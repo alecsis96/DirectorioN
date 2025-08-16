@@ -34,43 +34,53 @@ export default function BusinessList() {
     setFavorites(JSON.parse(localStorage.getItem("favorites") || "[]"));
   }, []);
 
-  const filtered = businesses.filter((b) => {
-    return (
-      (!search || b.name?.toLowerCase().includes(search.toLowerCase())) &&
-      (!category || b.category === category) &&
-      (!location || b.address === location)
-    );
-  });
+  const filtered = businesses
+    .filter((b) => {
+      return (
+        (!search || b.name?.toLowerCase().includes(search.toLowerCase())) &&
+        (!category || b.category === category) &&
+        (!location || b.address === location)
+      );
+    })
+    .sort((a, b) => {
+      // Destacados primero
+      if (a.featured === "si" && b.featured !== "si") return -1;
+      if (a.featured !== "si" && b.featured === "si") return 1;
+      return 0;
+    });
 
   return (
-    <section className="max-w-5xl mx-auto">
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
+    <section className="max-w-7xl mx-auto px-4 py-8">
+      {/* Filtros de búsqueda */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8 bg-gradient-to-r from-blue-50 via-white to-yellow-50 rounded-xl shadow p-6 border border-gray-100 animate-fadeIn">
         <input
           type="text"
-          placeholder="Buscar negocio..."
+          placeholder="🔍 Buscar negocio..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border rounded px-3 py-2 w-full md:w-1/3"
+          className="border border-gray-200 rounded-lg px-4 py-3 w-full md:w-1/3 text-lg shadow focus:ring-2 focus:ring-blue-200 transition-all"
         />
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="border rounded px-3 py-2 w-full md:w-1/4">
+        <select value={category} onChange={(e) => setCategory(e.target.value)} className="border border-gray-200 rounded-lg px-4 py-3 w-full md:w-1/4 text-lg shadow focus:ring-2 focus:ring-yellow-200 transition-all">
           <option value="">Categoría</option>
           {[...new Set(businesses.map((b) => b.category))].filter(Boolean).map((cat) => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
-        <select value={location} onChange={(e) => setLocation(e.target.value)} className="border rounded px-3 py-2 w-full md:w-1/4">
+        <select value={location} onChange={(e) => setLocation(e.target.value)} className="border border-gray-200 rounded-lg px-4 py-3 w-full md:w-1/4 text-lg shadow focus:ring-2 focus:ring-green-200 transition-all">
           <option value="">Ubicación</option>
           {[...new Set(businesses.map((b) => b.address))].filter(Boolean).map((loc) => (
             <option key={loc} value={loc}>{loc}</option>
           ))}
         </select>
       </div>
+      {/* Favoritos */}
       <Favorites businesses={businesses} favorites={favorites} setFavorites={setFavorites} />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Grid de negocios */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {filtered.map((b, idx) => (
           <div
             key={idx}
-            className="cursor-pointer"
+            className="cursor-pointer animate-fadeIn"
             onClick={() => setSelected(b)}
           >
             <BusinessCard
@@ -87,6 +97,7 @@ export default function BusinessList() {
           </div>
         ))}
       </div>
+      {/* Modal de negocio */}
       {selected && (
         <BusinessModal
           business={selected}
@@ -101,6 +112,7 @@ export default function BusinessList() {
           }}
         />
       )}
+      {/* Mapa y reseñas */}
       <BusinessMap businesses={filtered} />
       <ReviewSection businesses={filtered} />
     </section>

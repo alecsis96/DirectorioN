@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FaShareAlt, FaWhatsapp, FaFacebookF } from "react-icons/fa";
 
 export default function ShareButton({ business }: { business: any }) {
   const [open, setOpen] = useState(false);
@@ -9,9 +10,7 @@ export default function ShareButton({ business }: { business: any }) {
         onClick={() => setOpen((v) => !v)}
         title="Compartir"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm-6 8a3 3 0 016 0m-6 0a3 3 0 016 0" />
-        </svg>
+  <FaShareAlt className="w-5 h-5" />
       </button>
       {open && (
         <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-10 min-w-[160px]">
@@ -25,6 +24,7 @@ export default function ShareButton({ business }: { business: any }) {
             }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-4 h-4"><path d="M20.52 3.48A12 12 0 1 0 21 12a12 12 0 0 0-.48-8.52ZM12 21a9 9 0 1 1 9-9a9 9 0 0 1-9 9Zm4.29-7.71l-1.25-.37a.75.75 0 0 0-.72.15l-.32.26a6.54 6.54 0 0 1-3.13-3.13l.26-.32a.75.75 0 0 0 .15-.72l-.37-1.25a.75.75 0 0 0-.72-.52H8.5a1.25 1.25 0 0 0-1.25 1.25A7.75 7.75 0 0 0 15.25 17.5a1.25 1.25 0 0 0 1.25-1.25v-1.13a.75.75 0 0 0-.52-.72Z"/></svg>
+            <FaWhatsapp className="w-4 h-4" />
             Compartir por WhatsApp
           </button>
           <button
@@ -37,6 +37,7 @@ export default function ShareButton({ business }: { business: any }) {
             }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-4 h-4"><path d="M22.675 0h-21.35C.6 0 0 .6 0 1.326v21.348C0 23.4.6 24 1.326 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788c1.325 0 2.463.099 2.797.143v3.24l-1.918.001c-1.504 0-1.797.715-1.797 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.726 0 1.326-.6 1.326-1.326V1.326C24 .6 23.4 0 22.675 0"/></svg>
+            <FaFacebookF className="w-4 h-4" />
             Compartir en Facebook
           </button>
         </div>
