@@ -49,15 +49,15 @@ const BusinessCard: React.FC<BusinessProps> = ({ business, onFavorite, isFavorit
       <p className="text-gray-700 mb-4 whitespace-pre-line text-base leading-relaxed tracking-tight">{business.description}</p>
       <div className="mb-4 grid grid-cols-1 gap-2">
         <div className="flex gap-2 items-center">
-          <span className="font-semibold text-gray-600 w-24">Dirección:</span>
+          <span className="font-bold text-gray-600 w-24 ">Dirección:</span>
           <span className="text-gray-800">{business.address}</span>
         </div>
         <div className="flex gap-2 items-center">
-          <span className="font-semibold text-gray-600 w-24">Horario:</span>
+          <span className="font-bold text-gray-600 w-24">Horario:</span>
           <span className="text-gray-800">{business.hours}</span>
         </div>
         <div className="flex gap-2 items-center">
-          <span className="font-semibold text-gray-600 w-24">Calificación:</span>
+          <span className="font-bold text-gray-600 w-24">Calificación:</span>
           <span className="text-yellow-500 font-bold">{business.rating}</span>
           <span className="text-yellow-500">⭐</span>
         </div>
