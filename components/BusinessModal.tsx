@@ -157,7 +157,8 @@ export default function BusinessModal({ business, onClose, onFavorite, isFavorit
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl p-0 max-w-4xl w-full relative animate-fadeIn border border-gray-200 overflow-hidden"
+  className="bg-white rounded-2xl shadow-2xl p-0 max-w-4xl w-full relative animate-fadeIn border border-gray-200 overflow-hidden"
+  style={{ maxHeight: '90vh', overflowY: 'auto', overscrollBehavior: 'contain' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Encabezado con botón de cerrar */}
