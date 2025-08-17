@@ -50,9 +50,9 @@ export default function BusinessList() {
     });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-8">
+    <section className="max-w-8xl mx-auto px-10 py-8">
       {/* Filtros de búsqueda */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8 bg-gradient-to-r from-blue-50 via-white to-yellow-50 rounded-xl shadow p-6 border border-gray-100 animate-fadeIn">
+      <div className="flex flex-col md:flex-row gap-4 mb-8 bg-gradient-to-r from-blue-50 via-white to-yellow-50 rounded-xl shadow p-4 border border-gray-100 animate-fadeIn">
         <input
           type="text"
           placeholder="🔍 Buscar negocio..."
@@ -76,7 +76,7 @@ export default function BusinessList() {
       {/* Favoritos */}
       <Favorites businesses={businesses} favorites={favorites} setFavorites={setFavorites} />
       {/* Grid de negocios */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
         {filtered.map((b, idx) => (
           <div
             key={idx}
@@ -112,9 +112,9 @@ export default function BusinessList() {
           }}
         />
       )}
-      {/* Mapa y reseñas */}
+      {/* Mapa y reseñas 
       <BusinessMap businesses={filtered} />
-      <ReviewSection businesses={filtered} />
+      <ReviewSection businesses={filtered} />*/}
     </section>
   );
 }

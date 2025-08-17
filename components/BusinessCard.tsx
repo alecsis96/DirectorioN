@@ -25,15 +25,14 @@ interface BusinessProps {
 }
 
 const BusinessCard: React.FC<BusinessProps> = ({ business, onFavorite, isFavorite }) => {
-  // Vista previa de imagen usando la primera imagen disponible
-  const previewImg = business.image1 || business.image2 || business.image3 || null;
+  // Vista previa de imagen usando la primera imagen disponible o una genérica
+  const genericImage = "https://via.placeholder.com/400x300?text=Sin+imagen";
+  const previewImg = business.image1 || business.image2 || business.image3 || genericImage;
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-7 mb-8 flex flex-col border border-gray-100 hover:shadow-2xl transition-shadow relative animate-fadeIn">
-      {previewImg && (
-        <div className="mb-5 w-full h-44 flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-yellow-100 rounded-xl overflow-hidden border border-gray-200 shadow">
-          <img src={previewImg} alt={business.name + ' preview'} className="object-cover w-full h-full transition-transform duration-300 hover:scale-105" />
-        </div>
-      )}
+    <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 flex flex-col border border-gray-100 hover:shadow-2xl transition-shadow relative animate-fadeIn">
+      <div className="mb-5 w-full h-44 flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-yellow-100 rounded-xl overflow-hidden border border-gray-200 shadow">
+        <img src={previewImg} alt={business.name + ' preview'} className="object-cover w-full h-full transition-transform duration-300 hover:scale-105" />
+      </div>
       <div className="flex items-center gap-2 mb-4">
         <h2 className="text-2xl font-extrabold text-gray-800 tracking-tight">{business.name}</h2>
         {business.featured === "si" && (

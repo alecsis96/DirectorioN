@@ -248,6 +248,57 @@ export default function BusinessModal({ business, onClose, onFavorite, isFavorit
             </div>
           </div>
         </div>
+        {/* Botones de acción */}
+        <div className="flex flex-row gap-3 items-center justify-end px-8 pb-6 pt-2 border-t border-gray-100 bg-gradient-to-r from-white to-gray-50">
+          <button
+            className={`px-3 py-2 rounded-full text-lg font-bold shadow focus:outline-none transition-colors duration-150 border border-yellow-200 ${isFavorite ? "bg-yellow-100 text-yellow-400" : "bg-gray-100 text-gray-300 hover:bg-yellow-50 hover:text-yellow-400"}`}
+            title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+            onClick={() => onFavorite && onFavorite(business.id)}
+          >
+            {isFavorite ? "★" : "☆"}
+          </button>
+          <a
+            href={`tel:${business.phone}`}
+            className="px-3 py-2 bg-blue-500 text-white rounded-full text-lg font-bold hover:bg-blue-600 shadow-sm flex items-center justify-center border border-blue-200 transition-colors duration-150"
+            title="Llamar"
+          >
+            <span className="w-5 h-5 flex items-center justify-center">
+              {/* Teléfono */}
+              <i className="text-xl">
+                {require('react-icons/fa').FaPhoneAlt()}
+              </i>
+            </span>
+          </a>
+          <a
+            href={`https://wa.me/${business.WhatsApp}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 bg-green-500 text-white rounded-full text-lg font-bold hover:bg-green-600 shadow-sm flex items-center justify-center border border-green-200 transition-colors duration-150"
+            title="WhatsApp"
+          >
+            <span className="w-5 h-5 flex items-center justify-center">
+              {/* WhatsApp */}
+              <i className="text-xl">
+                {require('react-icons/fa').FaWhatsapp()}
+              </i>
+            </span>
+          </a>
+          <a
+            href={business.Facebook}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 bg-blue-600 text-white rounded-full text-lg font-bold hover:bg-blue-700 shadow-sm flex items-center justify-center border border-blue-300 transition-colors duration-150"
+            title="Facebook"
+          >
+            <span className="w-5 h-5 flex items-center justify-center">
+              {/* Facebook */}
+              <i className="text-xl">
+                {require('react-icons/fa').FaFacebookF()}
+              </i>
+            </span>
+          </a>
+          <ShareButton business={business} />
+        </div>
         {/* Reseñas de usuarios */}
               <div className="px-4 pb-4">
                 <h3 className="text-lg font-bold text-[#38761D] mb-2">Reseñas de usuarios</h3>
@@ -344,57 +395,7 @@ export default function BusinessModal({ business, onClose, onFavorite, isFavorit
                 </div>
               </div>
 
-        {/* Botones de acción */}
-        <div className="flex flex-row gap-3 items-center justify-end px-8 pb-6 pt-2 border-t border-gray-100 bg-gradient-to-r from-white to-gray-50">
-          <button
-            className={`px-3 py-2 rounded-full text-lg font-bold shadow focus:outline-none transition-colors duration-150 border border-yellow-200 ${isFavorite ? "bg-yellow-100 text-yellow-400" : "bg-gray-100 text-gray-300 hover:bg-yellow-50 hover:text-yellow-400"}`}
-            title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-            onClick={() => onFavorite && onFavorite(business.id)}
-          >
-            {isFavorite ? "★" : "☆"}
-          </button>
-          <a
-            href={`tel:${business.phone}`}
-            className="px-3 py-2 bg-blue-500 text-white rounded-full text-lg font-bold hover:bg-blue-600 shadow-sm flex items-center justify-center border border-blue-200 transition-colors duration-150"
-            title="Llamar"
-          >
-            <span className="w-5 h-5 flex items-center justify-center">
-              {/* Teléfono */}
-              <i className="text-xl">
-                {require('react-icons/fa').FaPhoneAlt()}
-              </i>
-            </span>
-          </a>
-          <a
-            href={`https://wa.me/${business.WhatsApp}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-2 bg-green-500 text-white rounded-full text-lg font-bold hover:bg-green-600 shadow-sm flex items-center justify-center border border-green-200 transition-colors duration-150"
-            title="WhatsApp"
-          >
-            <span className="w-5 h-5 flex items-center justify-center">
-              {/* WhatsApp */}
-              <i className="text-xl">
-                {require('react-icons/fa').FaWhatsapp()}
-              </i>
-            </span>
-          </a>
-          <a
-            href={business.Facebook}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-2 bg-blue-600 text-white rounded-full text-lg font-bold hover:bg-blue-700 shadow-sm flex items-center justify-center border border-blue-300 transition-colors duration-150"
-            title="Facebook"
-          >
-            <span className="w-5 h-5 flex items-center justify-center">
-              {/* Facebook */}
-              <i className="text-xl">
-                {require('react-icons/fa').FaFacebookF()}
-              </i>
-            </span>
-          </a>
-          <ShareButton business={business} />
-        </div>
+        
       </div>
     </div>
   );
