@@ -1,15 +1,20 @@
 import React, { useState } from "react";
+import { Business } from "../types/business";
 
-export default function ReviewSection({ businesses }: any) {
-  const [reviews, setReviews] = useState([]);
+export default function ReviewSection({ businesses }: { businesses: Business[] }) {
+  const [reviews, setReviews] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [rating, setRating] = useState(5);
   const [selected, setSelected] = useState("");
 
-  const handleSubmit = (e: any) => {
+  const negocioOptions = React.useMemo(() => businesses.map((b: Business) => (
+    <option key={b.id || b.name} value={b.name}>{b.name}</option>
+  )), [businesses]);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected || !text) return;
-    setReviews([...reviews, { negocio: selected, texto: text, rating }]);
+    setReviews(prev => [...prev, { negocio: selected, texto: text, rating }]);
     setText("");
     setRating(5);
     setSelected("");
@@ -21,9 +26,7 @@ export default function ReviewSection({ businesses }: any) {
       <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-2 mb-4">
         <select value={selected} onChange={e => setSelected(e.target.value)} className="border rounded px-2 py-1">
           <option value="">Selecciona negocio</option>
-          {businesses.map((b: any, idx: number) => (
-            <option key={idx} value={b.Nombre}>{b.Nombre}</option>
-          ))}
+          {negocioOptions}
         </select>
         <input type="number" min={1} max={5} value={rating} onChange={e => setRating(Number(e.target.value))} className="border rounded px-2 py-1 w-16" />
         <input type="text" value={text} onChange={e => setText(e.target.value)} placeholder="Escribe tu reseña" className="border rounded px-2 py-1 flex-1" />
@@ -40,3 +43,4 @@ export default function ReviewSection({ businesses }: any) {
     </div>
   );
 }
+

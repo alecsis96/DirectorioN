@@ -13,11 +13,11 @@ export default function RegisterForm() {
   });
   const [enviado, setEnviado] = useState(false);
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setEnviado(true);
     // Aquí podrías enviar el formulario a tu correo o Google Sheet
@@ -44,3 +44,4 @@ export default function RegisterForm() {
     </div>
   );
 }
+

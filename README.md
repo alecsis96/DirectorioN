@@ -51,3 +51,7 @@ https://docs.google.com/spreadsheets/d/e/2PACX-1vR6GXWtda697t29fnUQtwT8u7f4ypU1V
 ---
 
 ¿Listo para comenzar?
+
+## Notificaciones del asistente
+- Las solicitudes del asistente y el formulario usan la ruta `/api/businesses/submit` en Next.js.
+- Configura `SLACK_WEBHOOK_URL` (o `NOTIFY_WEBHOOK_URL`) en `.env.local` para recibir alertas.

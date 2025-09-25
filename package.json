@@ -8,12 +8,16 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.17.1",
     "firebase": "^12.1.0",
+    "firebase-admin": "^13.5.0",
     "next": "^13.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-hook-form": "^7.63.0",
     "react-icons": "^5.5.0",
-    "react-image-gallery": "^1.4.0"
+    "react-image-gallery": "^1.4.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "24.2.1",

@@ -1,37 +1,27 @@
-import React, { useState } from "react";
+import React from "react";
+import Image from "next/image";
 import ShareButton from "./ShareButton";
+import { FaPhoneAlt, FaWhatsapp, FaFacebookF, FaStar } from 'react-icons/fa';
+import { Business } from "../types/business";
 
 interface BusinessProps {
-  business: {
-    id: string;
-    name: string;
-    category: string;
-    description: string;
-    address: string;
-    phone: string;
-    WhatsApp: string;
-    Facebook: string;
-    price: string;
-    rating: string;
-    isOpen: string;
-    featured: string;
-    hours: string;
-    image1?: string;
-    image2?: string;
-    image3?: string;
-  };
-  onFavorite?: (id: string) => void;
-  isFavorite?: boolean;
+  business: Business;
 }
 
-const BusinessCard: React.FC<BusinessProps> = ({ business, onFavorite, isFavorite }) => {
+const BusinessCard: React.FC<BusinessProps> = ({ business }) => {
   // Vista previa de imagen usando la primera imagen disponible o una genérica
   const genericImage = "https://via.placeholder.com/400x300?text=Sin+imagen";
-  const previewImg = business.image1 || business.image2 || business.image3 || genericImage;
+  const previewImg = (business as any).images?.[0]?.url || business.image1 || business.image2 || business.image3 || genericImage;
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 flex flex-col border border-gray-100 hover:shadow-2xl transition-shadow relative animate-fadeIn">
-      <div className="mb-5 w-full h-44 flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-yellow-100 rounded-xl overflow-hidden border border-gray-200 shadow">
-        <img src={previewImg} alt={business.name + ' preview'} className="object-cover w-full h-full transition-transform duration-300 hover:scale-105" />
+      <div className="mb-5 w-full h-44 flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-yellow-100 rounded-xl overflow-hidden border border-gray-200 shadow relative">
+        <Image
+          src={previewImg}
+          alt={`${business.name} preview`}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+          className="object-cover transition-transform duration-300 hover:scale-105"
+        />
       </div>
       <div className="flex items-center gap-2 mb-4">
         <h2 className="text-2xl font-extrabold text-gray-800 tracking-tight">{business.name}</h2>
@@ -48,7 +38,7 @@ const BusinessCard: React.FC<BusinessProps> = ({ business, onFavorite, isFavorit
       <p className="text-gray-700 mb-4 whitespace-pre-line text-base leading-relaxed tracking-tight">{business.description}</p>
       <div className="mb-4 grid grid-cols-1 gap-2">
         <div className="flex gap-2 items-center">
-          <span className="font-bold text-gray-600 w-24 ">Dirección:</span>
+          <span className="font-bold text-gray-600 w-24 ">Direcci�n:</span>
           <span className="text-gray-800">{business.address}</span>
         </div>
         <div className="flex gap-2 items-center">
@@ -56,9 +46,13 @@ const BusinessCard: React.FC<BusinessProps> = ({ business, onFavorite, isFavorit
           <span className="text-gray-800">{business.hours}</span>
         </div>
         <div className="flex gap-2 items-center">
-          <span className="font-bold text-gray-600 w-24">Calificación:</span>
-          <span className="text-yellow-500 font-bold">{business.rating}</span>
-          <span className="text-yellow-500">⭐</span>
+          <span className="font-bold text-gray-600 w-24">Calificaci�n:</span>
+          <span className="text-yellow-600 font-bold">{Number.isFinite(Number(business.rating)) ? business.rating : 0}</span>
+          <span className="flex items-center gap-0.5 text-yellow-500" aria-hidden>
+            {Array.from({ length: Math.max(0, Math.min(5, Math.round(Number(business.rating) || 0))) }).map((_, i) => (
+              <FaStar key={i} />
+            ))}
+          </span>
         </div>
       </div>
       {/* Botones de acción */}
@@ -70,10 +64,7 @@ const BusinessCard: React.FC<BusinessProps> = ({ business, onFavorite, isFavorit
           onClick={e => e.stopPropagation()}
         >
           <span className="w-5 h-5 flex items-center justify-center">
-            {/* Teléfono */}
-            <i className="text-xl">
-              {require('react-icons/fa').FaPhoneAlt()}
-            </i>
+            <FaPhoneAlt className="text-xl" />
           </span>
         </a>
         <a
@@ -85,10 +76,7 @@ const BusinessCard: React.FC<BusinessProps> = ({ business, onFavorite, isFavorit
           onClick={e => e.stopPropagation()}
         >
           <span className="w-5 h-5 flex items-center justify-center">
-            {/* WhatsApp */}
-            <i className="text-xl">
-              {require('react-icons/fa').FaWhatsapp()}
-            </i>
+            <FaWhatsapp className="text-xl" />
           </span>
         </a>
         <a
@@ -100,10 +88,7 @@ const BusinessCard: React.FC<BusinessProps> = ({ business, onFavorite, isFavorit
           onClick={e => e.stopPropagation()}
         >
           <span className="w-5 h-5 flex items-center justify-center">
-            {/* Facebook */}
-            <i className="text-xl">
-              {require('react-icons/fa').FaFacebookF()}
-            </i>
+            <FaFacebookF className="text-xl" />
           </span>
         </a>
         {/* Botón único de compartir */}
@@ -115,5 +100,5 @@ const BusinessCard: React.FC<BusinessProps> = ({ business, onFavorite, isFavorit
   );
 }
 
-export default BusinessCard;
+export default React.memo(BusinessCard);
 
