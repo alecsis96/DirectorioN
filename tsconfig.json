@@ -20,8 +20,12 @@
                         },
     "include":  [
                     "next-env.d.ts",
-                    "**/*.ts",
-                    "**/*.tsx"
+                    "components",
+                    "hooks",
+                    "lib",
+                    "pages",
+                    "types",
+                    "firebaseConfig.ts"
                 ],
     "exclude":  [
                     "node_modules",
