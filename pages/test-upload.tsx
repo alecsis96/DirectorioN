@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { auth, db, googleProvider } from '../firebaseConfig';
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import {
-  addDoc,
   arrayUnion,
   collection,
   doc,
@@ -10,6 +9,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -44,14 +44,16 @@ export default function TestUpload() {
     load();
   }, [user?.uid]);
 
-  const selectedBiz = useMemo(() => businesses.find((b) => b.id === businessId), [businesses, businessId]);
+  const selectedBiz = useMemo(
+    () => businesses.find((b) => b.id === businessId),
+    [businesses, businessId]
+  );
 
   async function handleCreateBusiness() {
     if (!user?.uid) return;
     setBusy(true);
     setLog('Creando negocio de prueba...');
     try {
-      // Uno por cuenta: usa uid como ID
       const bizId = user.uid as string;
       const ref = doc(db, 'businesses', bizId);
       const exists = await getDoc(ref);
@@ -80,8 +82,8 @@ export default function TestUpload() {
       setLog('Negocio creado');
       setBusinessId(bizId);
       setBusinesses((prev) => [{ id: bizId, name: 'Negocio de prueba', images: [] }, ...prev]);
-    } catch (e: any) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
       setLog('Error creando negocio');
     } finally {
       setBusy(false);
@@ -94,40 +96,42 @@ export default function TestUpload() {
     if (!file || !businessId || !user?.uid) return;
     setBusy(true);
     try {
-      // Cloudinary unsigned upload
       setLog('Subiendo a Cloudinary...');
       const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD as string;
       const preset = process.env.NEXT_PUBLIC_CLOUDINARY_PRESET as string;
       if (!cloud || !preset) throw new Error('Faltan vars de Cloudinary');
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', preset);
       formData.append('folder', `businesses/${businessId}`);
+
       const resp = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, {
         method: 'POST',
         body: formData,
       });
       const json = await resp.json();
       if (!json?.secure_url || !json?.public_id) throw new Error('Upload falló');
+
       setLog('Guardando en Firestore...');
       await updateDoc(doc(db, 'businesses', businessId), {
         images: arrayUnion({ url: json.secure_url as string, publicId: json.public_id as string }),
         updatedAt: serverTimestamp(),
       });
-      // Refresh local state
+
       const fresh = await getDoc(doc(db, 'businesses', businessId));
       const bizData = fresh.data() as any;
       setBusinesses((prev) => prev.map((b) => (b.id === businessId ? { id: businessId, ...bizData } : b)));
       setLog('Imagen subida y guardada');
-    } catch (e: any) {
-      console.error(e);
-      setLog(`Error: ${e.message || e}`);
+    } catch (error: any) {
+      console.error(error);
+      setLog(`Error: ${error.message || error}`);
     } finally {
       setBusy(false);
     }
   }
 
-  async function handleDelete(publicId?: string, objectPath?: string) {
+  async function handleDelete(publicId?: string) {
     if (!user?.uid || !businessId) return;
     setBusy(true);
     try {
@@ -136,19 +140,26 @@ export default function TestUpload() {
       const idToken = await user.getIdToken();
       await fetch('/api/cloudinary/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ businessId, publicId }),
       });
+
       setLog('Actualizando Firestore...');
       const snap = await getDoc(doc(db, 'businesses', businessId));
       const data = snap.data() as any;
-      const images = (data?.images || []).filter((i: any) => i.publicId !== publicId);
-      await updateDoc(doc(db, 'businesses', businessId), { images, updatedAt: serverTimestamp() });
+      const images = (data?.images || []).filter((img: any) => img.publicId !== publicId);
+      await updateDoc(doc(db, 'businesses', businessId), {
+        images,
+        updatedAt: serverTimestamp(),
+      });
       setBusinesses((prev) => prev.map((b) => (b.id === businessId ? { ...b, images } : b)));
       setLog('Imagen eliminada');
-    } catch (e: any) {
-      console.error(e);
-      setLog(`Error: ${e.message || e}`);
+    } catch (error: any) {
+      console.error(error);
+      setLog(`Error: ${error.message || error}`);
     } finally {
       setBusy(false);
     }
@@ -159,11 +170,18 @@ export default function TestUpload() {
       <h1 className="text-2xl font-bold mb-4">Prueba de subida a GCS (Signed URL)</h1>
       <div className="mb-4 flex items-center gap-2">
         {!user ? (
-          <button className="px-3 py-2 bg-blue-600 text-white rounded" onClick={() => signInWithPopup(auth, googleProvider)}>Iniciar sesión</button>
+          <button
+            className="px-3 py-2 bg-blue-600 text-white rounded"
+            onClick={() => signInWithPopup(auth, googleProvider)}
+          >
+            Iniciar sesión
+          </button>
         ) : (
           <>
             <span className="text-sm text-gray-600">{user.email}</span>
-            <button className="px-3 py-2 bg-gray-200 rounded" onClick={() => signOut(auth)}>Cerrar sesión</button>
+            <button className="px-3 py-2 bg-gray-200 rounded" onClick={() => signOut(auth)}>
+              Cerrar sesión
+            </button>
           </>
         )}
       </div>
@@ -172,12 +190,24 @@ export default function TestUpload() {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <label className="font-semibold">Negocio:</label>
-            <select className="border rounded px-2 py-1" value={businessId} onChange={(e) => setBusinessId(e.target.value)}>
+            <select
+              className="border rounded px-2 py-1"
+              value={businessId}
+              onChange={(e) => setBusinessId(e.target.value)}
+            >
               {businesses.map((b) => (
-                <option key={b.id} value={b.id}>{b.name || b.id}</option>
+                <option key={b.id} value={b.id}>
+                  {b.name || b.id}
+                </option>
               ))}
             </select>
-            <button className="px-3 py-2 bg-green-600 text-white rounded" disabled={busy} onClick={handleCreateBusiness}>Crear negocio de prueba</button>
+            <button
+              className="px-3 py-2 bg-green-600 text-white rounded"
+              disabled={busy}
+              onClick={handleCreateBusiness}
+            >
+              Crear negocio de prueba
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -190,7 +220,10 @@ export default function TestUpload() {
               {selectedBiz.images.map((img) => (
                 <div key={img.publicId || img.objectPath || img.url} className="border rounded p-2">
                   <img src={img.url} alt="preview" className="w-full h-40 object-cover rounded" />
-                  <button className="mt-2 px-2 py-1 text-sm bg-red-500 text-white rounded" onClick={() => handleDelete(img.publicId, img.objectPath)}>
+                  <button
+                    className="mt-2 px-2 py-1 text-sm bg-red-500 text-white rounded"
+                    onClick={() => handleDelete(img.publicId)}
+                  >
                     Eliminar
                   </button>
                 </div>
