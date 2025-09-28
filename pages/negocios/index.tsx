@@ -1,8 +1,10 @@
+import { auth, googleProvider } from '../../firebaseConfig';
+import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import Link from "next/link";
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaStar } from "react-icons/fa";
 import { fetchBusinesses, toNumber } from "../../lib/server/businessData";
 import type { Business } from "../../types/business";
@@ -124,9 +126,12 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query 
 };
 
 const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, filters }) => {
+  const [user, setUser] = useState<User | null>(() => auth.currentUser);
   const router = useRouter();
-  const [geoError, setGeoError] = useState<string>("");
+  const [geoError, setGeoError] = useState<string>('');
   const [locating, setLocating] = useState(false);
+
+  useEffect(() => onAuthStateChanged(auth, setUser), []);
 
   const handleUpdate = useCallback(
     (next: Partial<Record<string, string | number | null>>) => {
@@ -194,6 +199,17 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
     );
   }, [handleUpdate]);
 
+  const handleSignIn = useCallback(() => {
+    signInWithPopup(auth, googleProvider).catch((error) => {
+      console.error('Sign-in error', error);
+    });
+  }, []);
+
+  const handleSignOut = useCallback(() => {
+    signOut(auth).catch((error) => {
+      console.error('Sign-out error', error);
+    });
+  }, []);
   const headingDescription = useMemo(() => {
     const parts: string[] = [];
     if (filters.category) parts.push(filters.category);
@@ -220,9 +236,32 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
               Directorio de negocios en Yajalon
             </h1>
             <p className="text-base md:text-lg text-gray-600">{headingDescription}</p>
+            <div className="mt-3 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Tienes un negocio? <Link href="/para-negocios" className="text-[#38761D] underline">Registralo aqui</Link>
+              </span>
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">{user.email}</span>
+                  <button
+                    onClick={handleSignOut}
+                    className="rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                  >
+                    Cerrar sesion
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleSignIn}
+                  className="rounded bg-[#38761D] px-3 py-1 text-xs font-semibold text-white hover:bg-[#2f5a1a]"
+                >
+                  Iniciar sesion
+                </button>
+              )}
+            </div>
           </header>
 
-          <p className="text-sm text-gray-500 ">Tienes un negocio? <Link href="/para-negocios" className="text-[#38761D] underline border-green-600 text-green-600 hover:bg-green-50">Registralo aqui</Link></p>
+
 
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 md:p-6 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -400,3 +439,7 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
 };
 
 export default ResultsPage;
+
+
+
+

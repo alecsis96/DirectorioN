@@ -55,3 +55,12 @@ https://docs.google.com/spreadsheets/d/e/2PACX-1vR6GXWtda697t29fnUQtwT8u7f4ypU1V
 ## Notificaciones del asistente
 - Las solicitudes del asistente y el formulario usan la ruta `/api/businesses/submit` en Next.js.
 - Configura `SLACK_WEBHOOK_URL` (o `NOTIFY_WEBHOOK_URL`) en `.env.local` para recibir alertas.
+- Ediciones del dashboard se envían a `/api/businesses/update`, que valida el token y el ownership antes de guardar.
+- Para aprobar/rechazar solicitudes usa `/api/admin/applications/update` con un ID token administrativo (`admin: true`). Ejemplo cURL:
+  ```sh
+  curl -X POST https://tu-dominio/api/admin/applications/update \
+    -H "Authorization: Bearer TOKEN_ADMIN" \
+    -H "Content-Type: application/json" \
+    -d '{"uid":"UID_DEL_USUARIO","status":"approved"}'
+  ```
+- Ejecuta `FIREBASE_SERVICE_ACCOUNT="$(cat serviceAccount.json)" node scripts/setAdmin.js <uid-o-email>` para otorgar el claim `admin`.

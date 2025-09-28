@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { arrayUnion, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { db, auth } from '../firebaseConfig';
+﻿import React, { useState } from 'react';
+import { auth } from '../firebaseConfig';
+
+interface UpdateResponse {
+  ok: boolean;
+}
 
 type ImageItem = { url: string; publicId: string };
 
@@ -23,10 +26,11 @@ export default function ImageUploader({ businessId, images, onChange }:{ busines
       form.append('folder', `businesses/${businessId}`);
       const r = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, { method: 'POST', body: form });
       const json = await r.json();
-      if (!json?.secure_url || !json?.public_id) throw new Error('Upload falló');
+      if (!json?.secure_url || !json?.public_id) throw new Error('Upload fallÃ³');
       const item: ImageItem = { url: json.secure_url, publicId: json.public_id };
-      await updateDoc(doc(db, 'businesses', businessId), { images: arrayUnion(item), updatedAt: serverTimestamp() });
-      onChange([...(images||[]), item]);
+      const nextImages = [...(images || []), item];
+      await saveImages(nextImages);
+      onChange(nextImages);
       setMsg('Imagen subida');
     } catch (err: any) {
       setMsg(err?.message || 'Error al subir');
@@ -35,14 +39,33 @@ export default function ImageUploader({ businessId, images, onChange }:{ busines
     }
   }
 
+  async function saveImages(next: ImageItem[]) {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw new Error('Debes iniciar sesion');
+    const response = await fetch('/api/businesses/update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        businessId,
+        updates: { images: next },
+      }),
+    });
+    const result: UpdateResponse | null = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) {
+      throw new Error((result as any)?.error || 'No se pudo actualizar la galeria');
+    }
+  }
   async function handleDelete(publicId: string){
     try {
       setBusy(true);
       setMsg('Eliminando...');
       const token = await auth.currentUser?.getIdToken();
       await fetch('/api/cloudinary/delete', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify({ businessId, publicId })});
-      const next = (images||[]).filter(i => i.publicId !== publicId);
-      await updateDoc(doc(db, 'businesses', businessId), { images: next, updatedAt: serverTimestamp() });
+      const next = (images || []).filter(i => i.publicId !== publicId);
+      await saveImages(next);
       onChange(next);
       setMsg('Imagen eliminada');
     } catch(e:any){
@@ -68,9 +91,18 @@ export default function ImageUploader({ businessId, images, onChange }:{ busines
           ))}
         </div>
       ) : (
-        <p className="text-gray-500">Sin imágenes</p>
+        <p className="text-gray-500">Sin imÃ¡genes</p>
       )}
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
 

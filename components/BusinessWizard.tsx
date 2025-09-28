@@ -94,23 +94,28 @@ export default function BusinessWizard() {
   }, [user?.uid, reset]);
 
   const persist = useCallback(
-    async (payload: Partial<WizardData>, nextStep?: StepKey) => {
+    async (payload: Partial<WizardData>, nextStep?: StepKey, modeOverride?: 'wizard' | 'application') => {
       if (!user?.uid) return;
       const mergedData = { ...getValues(), ...payload };
       const targetStep = stepToIndex(nextStep ?? currentStep);
+      const mode: 'wizard' | 'application' = modeOverride ?? (nextStep ? 'wizard' : 'application');
       try {
         setSaving(true);
         const token = await user.getIdToken();
+        const requestBody: Record<string, unknown> = {
+          formData: mergedData,
+          mode,
+        };
+        if (mode === 'wizard' && targetStep >= 0) {
+          requestBody.step = targetStep;
+        }
         const response = await fetch("/api/businesses/submit", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: 'Bearer ' + token,
           },
-          body: JSON.stringify({
-            formData: mergedData,
-            step: targetStep >= 0 ? targetStep : undefined,
-          }),
+          body: JSON.stringify(requestBody),
         });
         const result = await response.json().catch(() => null);
         if (!response.ok) {
@@ -132,7 +137,7 @@ export default function BusinessWizard() {
     try {
       const index = stepToIndex(currentStep);
       const next = steps[index + 1];
-      const result = await persist(values, next ? next.key : currentStep);
+      const result = await persist(values, next ? next.key : currentStep, next ? 'wizard' : 'application');
       if (next) {
         setCurrentStep(next.key);
         setStatusMsg("Progreso guardado.");
@@ -158,7 +163,7 @@ export default function BusinessWizard() {
 
   const onSaveDraft = async () => {
     try {
-      await persist(getValues());
+            await persist(getValues(), currentStep, 'wizard');
       setStatusMsg("Progreso guardado.");
     } catch (error) {
       console.error("Wizard draft error", error);
@@ -192,7 +197,32 @@ export default function BusinessWizard() {
             </Field>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Categoria" error={formState.errors.category?.message}>
-                <input placeholder="Ej. Restaurante, Carpinteria" className="block w-full rounded border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#38761D]/40" {...register("category", { required: "Indica una categoria" })} />
+                <select
+                  className="block w-full rounded border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#38761D]/40"
+                  {...register("category", { required: "Indica una categoria" })}
+                >
+                  <option value="" disabled>Selecciona una categoria</option>
+                  <option value="Restaurante">Restaurante</option>
+                  <option value="Cafeteria">Cafeteria</option>
+                  <option value="Comida rapida">Comida rapida</option>
+                  <option value="Bar">Bar</option>
+                  <option value="Gimnasio">Gimnasio</option>
+                  <option value="Spa">Spa</option>
+                  <option value="Salon de belleza">Salon de belleza</option>
+                  <option value="Ferreteria">Ferreteria</option>
+                  <option value="Supermercado">Supermercado</option>
+                  <option value="Papeleria">Papeleria</option>
+                  <option value="Boutique">Boutique</option>
+                  <option value="Farmacia">Farmacia</option>
+                  <option value="Servicios profesionales">Servicios profesionales</option>
+                  <option value="Tecnologia">Tecnologia</option>
+                  <option value="Automotriz">Automotriz</option>
+                  <option value="Educacion">Educacion</option>
+                  <option value="Entretenimiento">Entretenimiento</option>
+                  <option value="Salud">Salud</option>
+                  <option value="Turismo">Turismo</option>
+                  <option value="Otros">Otros</option>
+                </select>
               </Field>
               <Field label="Direccion" error={formState.errors.address?.message}>
                 <input placeholder="Calle, colonia, municipio" className="block w-full rounded border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#38761D]/40" {...register("address", { required: "Ingresa la direccion" })} />
@@ -407,4 +437,6 @@ function UserBadge({ user, onSignIn, onSignOut }: UserBadgeProps) {
     </div>
   );
 }
+
+
 
