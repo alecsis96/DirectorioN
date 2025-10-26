@@ -1,5 +1,5 @@
-import { auth, googleProvider } from '../../firebaseConfig';
-import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
+import { auth, signInWithGoogle } from '../../firebaseConfig';
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import Link from "next/link";
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
@@ -62,7 +62,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query 
       originLat != null && originLng != null && lat != null && lng != null
         ? haversineDistanceKm(originLat, originLng, lat, lng)
         : null;
-    const resolvedColonia = (biz.colonia || biz.neighborhood || "").trim();
+    const resolvedColonia = (biz.colonia || biz.neighborhood || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     return {
       ...biz,
       distanceKm,
@@ -71,13 +71,48 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query 
   });
 
   const categories = Array.from(new Set(allBusinesses.map((b) => b.category).filter(Boolean))).sort();
+  const YAJALON_COLONIAS = [
+    "Centro",
+    "Jonuta",
+    "Benito Juárez",
+    "El Calvario",
+    "El Carmen",
+    "El Mirador",
+    "Fátima",
+    "Guadalupe",
+    "Las Flores",
+    "Las Mercedes",
+    "Los Cerritos",
+    "San Antonio",
+    "San Felipe",
+    "San Francisco",
+    "San Isidro",
+    "San José",
+    "San Juan",
+    "San Marcos",
+    "San Martín",
+    "San Miguel",
+    "San Pedro",
+    "San Rafael",
+    "San Sebastián",
+    "San Vicente",
+    "Santa Catarina",
+    "Santa Cruz",
+    "Santa Lucía",
+    "Santa Rosa",
+    "Tzajalá",
+  ];
+
   const colonias = Array.from(
     new Set(
-      businessesWithMeta
-        .map((b) => b.resolvedColonia)
-        .filter((value): value is string => Boolean(value))
+      [
+        ...YAJALON_COLONIAS,
+        ...businessesWithMeta
+          .map((b) => b.resolvedColonia)
+          .filter((value): value is string => Boolean(value)),
+      ].map((name) => name.trim()).filter(Boolean)
     )
-  ).sort();
+  ).sort((a, b) => a.localeCompare(b, "es"));
 
   let filtered = businessesWithMeta.filter((biz) => {
     if (category && biz.category !== category) return false;
@@ -200,7 +235,7 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
   }, [handleUpdate]);
 
   const handleSignIn = useCallback(() => {
-    signInWithPopup(auth, googleProvider).catch((error) => {
+    signInWithGoogle().catch((error) => {
       console.error('Sign-in error', error);
     });
   }, []);
@@ -439,6 +474,7 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
 };
 
 export default ResultsPage;
+
 
 
 

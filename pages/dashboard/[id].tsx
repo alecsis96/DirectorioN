@@ -1,15 +1,21 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { auth, db, googleProvider } from '../../firebaseConfig';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { auth, db, signInWithGoogle } from '../../firebaseConfig';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import ImageUploader from '../../components/ImageUploader';
+import AddressPicker from '../../components/AddressPicker';
 
 interface UpdateResponse {
   ok: boolean;
 }
 
 export default function EditBusiness() {
+    const [addr, setAddr] = useState<{ address: string; lat: number; lng: number }>({
+    address: '',
+    lat: 0,
+    lng: 0,
+  });
   const router = useRouter();
   const { id } = router.query as { id?: string };
   const [user, setUser] = useState<any>(null);
@@ -26,6 +32,38 @@ export default function EditBusiness() {
     const end = matches.length > 1 ? matches[1] : '';
     return { openTime: start, closeTime: end };
   }
+
+useEffect(() => {
+    (async () => {
+      if (!id) return;
+      const snap = await getDoc(doc(db, 'businesses', id));
+      if (snap.exists()) {
+        const data = { id: snap.id, ...(snap.data() as any) };
+        const { openTime, closeTime } = parseHours(data.hours);
+
+        setBiz(data);
+        setForm({
+          name: data.name || '',
+          category: data.category || '',
+          address: data.address || '',      // seguir� existiendo para compatibilidad
+          description: data.description || '',
+          phone: data.phone || '',
+          WhatsApp: data.WhatsApp || '',
+          Facebook: data.Facebook || '',
+          hours: data.hours || '',
+          openTime,
+          closeTime,
+        });
+
+        // inicializa el picker con lo que tengas guardado
+        setAddr({
+          address: data.address || '',
+          lat: data.lat || 0,
+          lng: data.lng || 0,
+        });
+      }
+    })();
+  }, [id]);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => {
@@ -45,7 +83,6 @@ export default function EditBusiness() {
           WhatsApp: data.WhatsApp || '',
           Facebook: data.Facebook || '',
           hours: data.hours || '',
-          price: data.price || '',
           openTime,
           closeTime,
         });
@@ -54,6 +91,14 @@ export default function EditBusiness() {
   }, [id]);
 
   const canEdit = !!(user?.uid && biz?.ownerId && user.uid === biz.ownerId);
+
+  const handleAddressChange = useCallback((value: { address: string; lat: number; lng: number }) => {
+    setAddr(value);
+    setForm((prev: any) => ({
+      ...prev,
+      address: value.address ?? '',
+    }));
+  }, []);
 
   async function save() {
     if (!id || !canEdit) return;
@@ -64,6 +109,10 @@ export default function EditBusiness() {
         ? `${form.openTime || '00:00'} - ${form.closeTime || '00:00'}`
         : form.hours || '';
       const { openTime, closeTime, hours, ...rest } = form;
+      const hasCoords =
+        Number.isFinite(addr.lat) &&
+        Number.isFinite(addr.lng) &&
+        !(addr.lat === 0 && addr.lng === 0);
       const token = await user.getIdToken();
       const response = await fetch('/api/businesses/update', {
         method: 'POST',
@@ -75,7 +124,9 @@ export default function EditBusiness() {
           businessId: id,
           updates: {
             ...rest,
+            address: addr.address || rest.address || '',
             hours: derivedHours,
+            ...(hasCoords ? { lat: addr.lat, lng: addr.lng } : {}),
           },
         }),
       });
@@ -100,15 +151,15 @@ export default function EditBusiness() {
           {!user ? (
             <button
               className="px-3 py-2 bg-blue-600 text-white rounded"
-              onClick={() => signInWithPopup(auth, googleProvider)}
+              onClick={() => signInWithGoogle()}
             >
-              Iniciar sesión
+              Iniciar sesi�n
             </button>
           ) : (
             <>
               <span className="text-sm text-gray-600">{user.email}</span>
               <button className="px-3 py-2 bg-gray-200 rounded" onClick={() => signOut(auth)}>
-                Cerrar sesión
+                Cerrar sesi�n
               </button>
             </>
           )}
@@ -139,37 +190,33 @@ export default function EditBusiness() {
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >
-              <option value="">Selecciona una categoría</option>
+              <option value="">Selecciona una categor�a</option>
               <option value="Restaurante">Restaurante</option>
-              <option value="Cafeteria">Cafetería</option>
-              <option value="Comida rapida">Comida rápida</option>
+              <option value="Cafeteria">Cafeter�a</option>
+              <option value="Comida rapida">Comida r�pida</option>
               <option value="Bar">Bar</option>
               <option value="Gimnasio">Gimnasio</option>
               <option value="Spa">Spa</option>
-              <option value="Salon de belleza">Salón de belleza</option>
-              <option value="Ferreteria">Ferretería</option>
+              <option value="Salon de belleza">Sal�n de belleza</option>
+              <option value="Ferreteria">Ferreter�a</option>
               <option value="Supermercado">Supermercado</option>
-              <option value="Papeleria">Papelería</option>
+              <option value="Papeleria">Papeler�a</option>
               <option value="Boutique">Boutique</option>
               <option value="Farmacia">Farmacia</option>
               <option value="Servicios profesionales">Servicios profesionales</option>
-              <option value="Tecnologia">Tecnología</option>
+              <option value="Tecnologia">Tecnolog�a</option>
               <option value="Automotriz">Automotriz</option>
-              <option value="Educacion">Educación</option>
+              <option value="Educacion">Educaci�n</option>
               <option value="Entretenimiento">Entretenimiento</option>
               <option value="Salud">Salud</option>
               <option value="Turismo">Turismo</option>
               <option value="Otros">Otros</option>
             </select>
-            <input
-              className="border rounded px-3 py-2 md:col-span-2"
-              placeholder="Dirección"
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-            />
+            <AddressPicker value={addr} onChange={handleAddressChange} />
+
             <input
               className="border rounded px-3 py-2"
-              placeholder="Teléfono"
+              placeholder="Tel�fono"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
@@ -185,10 +232,16 @@ export default function EditBusiness() {
               value={form.Facebook}
               onChange={(e) => setForm({ ...form, Facebook: e.target.value })}
             />
-            <div className="flex gap-2">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Horario de apertura y cierre
+              </label>
+            </div>
+            <div className="flex gap-2">              
               <input
                 type="time"
                 className="border rounded px-3 py-2 flex-1"
+                //placeholder='Hora de apertura'
                 value={form.openTime || ''}
                 onChange={(e) => setForm({ ...form, openTime: e.target.value })}
               />
@@ -199,15 +252,10 @@ export default function EditBusiness() {
                 onChange={(e) => setForm({ ...form, closeTime: e.target.value })}
               />
             </div>
-            <input
-              className="border rounded px-3 py-2"
-              placeholder="Precio"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-            />
+            
             <textarea
               className="border rounded px-3 py-2 md:col-span-2"
-              placeholder="Descripción"
+              placeholder="Descripci�n"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
@@ -221,7 +269,7 @@ export default function EditBusiness() {
           </button>
           <span className="ml-2 text-sm text-gray-500">{msg}</span>
 
-          <h2 className="mt-6 text-xl font-semibold">Imágenes</h2>
+          <h2 className="mt-6 text-xl font-semibold">Im�genes</h2>
           <ImageUploader
             businessId={id!}
             images={biz.images || []}
@@ -231,4 +279,6 @@ export default function EditBusiness() {
       )}
     </main>
   );
+  
 }
+

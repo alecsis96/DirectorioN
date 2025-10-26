@@ -1,6 +1,6 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { auth, googleProvider } from '../../firebaseConfig';
-import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { auth, signInWithGoogle } from '../../firebaseConfig';
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 
 interface ApplicationItem {
   uid: string;
@@ -185,15 +185,15 @@ export default function AdminApplicationsPage() {
                 onClick={() => signOut(auth)}
                 className="rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100"
               >
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </div>
           ) : (
             <button
-              onClick={() => signInWithPopup(auth, googleProvider)}
+              onClick={() => signInWithGoogle()}
               className="rounded bg-[#38761D] px-3 py-1 text-xs font-semibold text-white hover:bg-[#2f5a1a]"
             >
-              Iniciar sesion
+              Iniciar sesión
             </button>
           )}
         </div>

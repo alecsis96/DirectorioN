@@ -6,7 +6,7 @@ import "react-image-gallery/styles/css/image-gallery.css";
 import ShareButton from "./ShareButton";
 import Link from "next/link";
 import { Business } from "../types/business";
-import { auth, googleProvider, db } from "../firebaseConfig";
+import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { addDoc, collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 
 type Props = {
@@ -79,8 +79,7 @@ export default function BusinessModal({ business, onClose, onFavorite, isFavorit
   }, [business?.id, user?.uid]);
 
   async function handleSignIn() {
-    const { signInWithPopup } = await import("firebase/auth");
-    await signInWithPopup(auth, googleProvider);
+    await signInWithGoogle();
   }
 
   async function handleSubmit(e: React.FormEvent) {

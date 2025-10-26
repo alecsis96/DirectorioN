@@ -38,7 +38,7 @@ const BusinessCard: React.FC<BusinessProps> = ({ business }) => {
       <p className="text-gray-700 mb-4 whitespace-pre-line text-base leading-relaxed tracking-tight">{business.description}</p>
       <div className="mb-4 grid grid-cols-1 gap-2">
         <div className="flex gap-2 items-center">
-          <span className="font-bold text-gray-600 w-24 ">Direcci�n:</span>
+          <span className="font-bold text-gray-600 w-24 ">Dirección:</span>
           <span className="text-gray-800">{business.address}</span>
         </div>
         <div className="flex gap-2 items-center">
@@ -46,7 +46,7 @@ const BusinessCard: React.FC<BusinessProps> = ({ business }) => {
           <span className="text-gray-800">{business.hours}</span>
         </div>
         <div className="flex gap-2 items-center">
-          <span className="font-bold text-gray-600 w-24">Calificaci�n:</span>
+          <span className="font-bold text-gray-600 w-24">Calificación:</span>
           <span className="text-yellow-600 font-bold">{Number.isFinite(Number(business.rating)) ? business.rating : 0}</span>
           <span className="flex items-center gap-0.5 text-yellow-500" aria-hidden>
             {Array.from({ length: Math.max(0, Math.min(5, Math.round(Number(business.rating) || 0))) }).map((_, i) => (

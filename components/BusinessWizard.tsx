@@ -1,8 +1,8 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, UseFormRegister } from "react-hook-form";
-import { auth, db, googleProvider } from "../firebaseConfig";
+import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
-import { signInWithPopup, signOut, type User } from "firebase/auth";
+import { signOut, type User } from "firebase/auth";
 
 interface WizardData {
   ownerName: string;
@@ -302,7 +302,7 @@ export default function BusinessWizard() {
           <h1 className="text-3xl font-bold text-[#38761D]">Registro de negocio</h1>
           <p className="text-sm text-gray-600">Completa cada paso y guarda tu progreso para terminar mas tarde.</p>
         </div>
-        <UserBadge user={user} onSignIn={async () => { await signInWithPopup(auth, googleProvider); }} onSignOut={async () => { await signOut(auth); }} />
+        <UserBadge user={user} onSignIn={() => signInWithGoogle()} onSignOut={async () => { await signOut(auth); }} />
       </header>
 
       <nav className="flex gap-2">
@@ -363,7 +363,7 @@ export default function BusinessWizard() {
 
       {!user && (
         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-          Inicia sesion con Google para guardar tu progreso y enviar la solicitud al completar el asistente.
+          Inicia sesión con Google para guardar tu progreso y enviar la solicitud al completar el asistente.
         </div>
       )}
     </div>
@@ -417,7 +417,7 @@ function UserBadge({ user, onSignIn, onSignOut }: UserBadgeProps) {
         className="rounded-lg border border-[#38761D] px-4 py-2 text-sm font-semibold text-[#38761D] hover:bg-[#38761D]/10"
         onClick={onSignIn}
       >
-        Iniciar sesion
+        Iniciar sesión
       </button>
     );
   }
@@ -432,11 +432,8 @@ function UserBadge({ user, onSignIn, onSignOut }: UserBadgeProps) {
         <p>{user.email}</p>
       </div>
       <button className="text-xs font-semibold text-red-500" onClick={onSignOut}>
-        Cerrar sesion
+        Cerrar sesión
       </button>
     </div>
   );
 }
-
-
-

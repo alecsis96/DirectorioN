@@ -1,7 +1,7 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { auth, db, googleProvider } from '../../firebaseConfig';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { auth, db, signInWithGoogle } from '../../firebaseConfig';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 
 export default function DashboardHome() {
@@ -60,7 +60,7 @@ export default function DashboardHome() {
         {!user ? (
           <button
             className="px-3 py-2 bg-blue-600 text-white rounded"
-            onClick={() => signInWithPopup(auth, googleProvider)}
+            onClick={() => signInWithGoogle()}
           >
             Iniciar sesión
           </button>

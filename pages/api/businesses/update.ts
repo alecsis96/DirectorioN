@@ -1,4 +1,4 @@
-﻿import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 
 const ALLOWED_FIELDS = new Set([
@@ -9,9 +9,10 @@ const ALLOWED_FIELDS = new Set([
   'phone',
   'WhatsApp',
   'Facebook',
-  'price',
   'hours',
   'images',
+  'lat',
+  'lng',
 ]);
 
 type UpdateBody = {
@@ -77,3 +78,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Internal error' });
   }
 }
+

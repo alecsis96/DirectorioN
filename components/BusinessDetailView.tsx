@@ -2,10 +2,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ImageGallery, { ReactImageGalleryItem } from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
-import { FaPhoneAlt, FaWhatsapp, FaFacebookF, FaStar, FaExternalLinkAlt } from "react-icons/fa";
+import { FaPhoneAlt, FaWhatsapp, FaFacebookF, FaStar } from "react-icons/fa";
 import ShareButton from "./ShareButton";
 import { Business } from "../types/business";
-import { auth, googleProvider, db } from "../firebaseConfig";
+import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import {
   addDoc,
   collection,
@@ -99,40 +99,39 @@ export default function BusinessDetailView({ business }: Props) {
   }, [business?.id, user?.uid]);
 
   async function handleSignIn() {
-    const { signInWithPopup } = await import("firebase/auth");
-    await signInWithPopup(auth, googleProvider);
+    await signInWithGoogle();
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg("");
     if (!business?.id) {
-      setErrorMsg("Negocio no valido.");
+      setErrorMsg("Negocio no válido.");
       return;
     }
     if (user && (business as any)?.ownerId && user.uid === (business as any).ownerId) {
-      setErrorMsg("No puedes dejar resena en tu propio negocio.");
+      setErrorMsg("No puedes dejar reseña en tu propio negocio.");
       return;
     }
     if (!user) {
-      setErrorMsg("Debes iniciar sesion para dejar una resena.");
+      setErrorMsg("Debes iniciar sesión para dejar una reseña.");
       return;
     }
     if (!reviewName.trim() || !reviewText.trim()) {
-      setErrorMsg("Completa tu nombre y la resena.");
+      setErrorMsg("Completa tu nombre y la reseña.");
       return;
     }
     if (reviewText.length < 10) {
-      setErrorMsg("La resena debe tener al menos 10 caracteres.");
+      setErrorMsg("La reseña debe tener al menos 10 caracteres.");
       return;
     }
     if (reviewText.length > 300) {
-      setErrorMsg("La resena no puede superar los 300 caracteres.");
+      setErrorMsg("La reseña no puede superar los 300 caracteres.");
       return;
     }
     const spamWords = ["http://", "https://", "www.", "spam", "oferta", "dinero", "gratis"];
     if (spamWords.some((word) => reviewText.toLowerCase().includes(word))) {
-      setErrorMsg("Tu resena contiene palabras no permitidas.");
+      setErrorMsg("Tu reseña contiene palabras no permitidas.");
       return;
     }
     setBusy(true);
@@ -157,7 +156,7 @@ export default function BusinessDetailView({ business }: Props) {
       setReviewText("");
     } catch (err) {
       console.error(err);
-      setErrorMsg("Hubo un problema al guardar tu resena.");
+      setErrorMsg("Hubo un problema al guardar tu reseña.");
     } finally {
       setBusy(false);
     }
@@ -170,7 +169,7 @@ export default function BusinessDetailView({ business }: Props) {
       await deleteDoc(doc(db, "resenas", reviewId));
     } catch (err) {
       console.error(err);
-      setErrorMsg("No pudimos eliminar la resena.");
+      setErrorMsg("No pudimos eliminar la reseña.");
     } finally {
       setBusy(false);
     }
@@ -203,7 +202,17 @@ export default function BusinessDetailView({ business }: Props) {
               </span>
             </div>
             {business.address && (
-              <p className="text-sm text-gray-600 mb-1"><strong>Direccion:</strong> {business.address}</p>
+              <p className="text-sm text-gray-600 mb-1">
+                <strong>Dirección:</strong>{" "}
+                <a
+                  href={mapsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#38761D] hover:underline"
+                >
+                  {business.address}
+                </a>
+              </p>
             )}
             {business.hours && (
               <p className="text-sm text-gray-600 mb-1"><strong>Horario:</strong> {business.hours}</p>
@@ -238,14 +247,6 @@ export default function BusinessDetailView({ business }: Props) {
               </a>
             )}
             <ShareButton business={business} />
-            <a
-              href={mapsHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition"
-            >
-              <FaExternalLinkAlt /> Ver en Maps
-            </a>
             {isOwner && (
               <a
                 href={dashboardHref}
@@ -304,14 +305,14 @@ export default function BusinessDetailView({ business }: Props) {
           <div className="rounded-xl border border-dashed border-gray-300 p-4 text-sm text-gray-600">
             <p className="mb-2">Para ver un mapa incrustado agrega la variable NEXT_PUBLIC_GOOGLE_MAPS_KEY.</p>
             <a className="text-[#38761D] underline" href={mapsHref} target="_blank" rel="noopener noreferrer">
-              Abrir ubicacion en Google Maps
+              Abrir ubicación en Google Maps
             </a>
           </div>
         )}
       </section>
 
       <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Resenas de clientes</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Reseñas de clientes</h2>
         {errorMsg && <div className="text-sm text-red-500 font-semibold mb-3">{errorMsg}</div>}
         {!user ? (
           <button
@@ -319,7 +320,7 @@ export default function BusinessDetailView({ business }: Props) {
             className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
             onClick={handleSignIn}
           >
-            Iniciar sesion con Google para dejar una resena
+            Iniciar sesión con Google para dejar una reseña
           </button>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3 mb-6">
@@ -352,7 +353,7 @@ export default function BusinessDetailView({ business }: Props) {
                 className="px-4 py-2 bg-[#38761D] text-white rounded-lg font-semibold disabled:opacity-50"
                 disabled={busy}
               >
-                {userReviewId ? "Guardar cambios" : "Enviar resena"}
+                {userReviewId ? "Guardar cambios" : "Enviar reseña"}
               </button>
               <button
                 type="button"
@@ -367,7 +368,7 @@ export default function BusinessDetailView({ business }: Props) {
 
         <div className="space-y-3">
           {reviews.length === 0 && (
-            <p className="text-sm text-gray-500">Aun no hay resenas. Se el primero en compartir tu opinion.</p>
+            <p className="text-sm text-gray-500">Aún no hay reseñas. Sé el primero en compartir tu opinión.</p>
           )}
           {reviews.map((review: any) => (
             <div key={review.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
@@ -417,3 +418,4 @@ export default function BusinessDetailView({ business }: Props) {
     </div>
   );
 }
+

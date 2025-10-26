@@ -22,8 +22,15 @@ const BusinessDetailPage: NextPage<PageProps> = ({ business }) => {
       <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800">
         <section className="max-w-5xl mx-auto px-6 py-10 space-y-6">
           <div className="flex items-center justify-between">
-            <Link href="/negocios" className="text-sm text-[#38761D] underline">
-              {'<- Volver al directorio'}
+            <Link
+              href="/negocios"
+              aria-label="Volver al directorio"
+              className="inline-flex items-center gap-2 text-sm text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full transition hover:bg-[#38761D]/10 hover:text-[#2f5a1a]"
+            >
+              <span aria-hidden="true" className="text-lg leading-none">
+                &larr;
+              </span>
+              <span>Directorio</span>
             </Link>
             <span className="text-xs text-gray-500">ID: {business.id}</span>
           </div>
