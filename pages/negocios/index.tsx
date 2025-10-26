@@ -12,14 +12,63 @@ import type { Business } from "../../types/business";
 const DEFAULT_ORDER = "destacado";
 const DISTANCE_OPTIONS = [0, 1, 3, 5, 10, 15];
 
+/** Normaliza nombres de colonias para poder comparar sin acentos/variantes */
+function normalizeColonia(input?: string): string {
+  if (!input) return "";
+  return input
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .toLowerCase()
+    .replace(/\./g, "")            // quita puntos
+    .replace(/\s+/g, " ")          // colapsa espacios
+    .trim()
+    .replace(/^yajalon\s+/, "");   // "yajalon centro" -> "centro"
+}
+
+/** Lista bonita para mostrar en el select */
+const YAJALON_COLONIAS_LABELS = [
+  "12 de Diciembre","Agua Fría","Amado Nervo","Barranca Nabil","Belén Ajkabalna","Belisario Domínguez",
+  "Callejón Lorena Shashijá","Calvario Bahuitz","Calvario Bahuitz Ojo de Agua","Chitaltic","Chul-Ha","Cueva Joctiul",
+  "Efigenia Chapoy","El Azufre","El Bosque","El Campo","El Delirio","El Milagro","Flamboyán","Flores","Jardines",
+  "Jonuta","José María Morelos y Pavón (Taquinja)","La Aldea","La Belleza","La Candelaria","La Laguna",
+  "Lázaro Cárdenas","Linda Vista 1a. Sección","Loma Bonita","Los Tulipanes","Lucio Blanco","Majasil",
+  "Nueva Creación","Nueva Esperanza","Saclumil Rosario II","San Antonio","San Fernando","San José Bunslac",
+  "San José el Mirador","San José Paraíso","San Luis","San Martín","San Miguel","San Miguel Ojo de Agua",
+  "San Pedro Buenavista","San Vicente","Santa Bárbara","Santa Candelaria","Santa Elena","Santa Teresita",
+  "Shashijá","Tzitzaquil","Vista Alegre","Centro"
+];
+
+/** Mapa label<->normalizada para búsquedas */
+const COLONIAS_NORM = YAJALON_COLONIAS_LABELS.map(label => ({
+  label,
+  norm: normalizeColonia(label),
+}));
+
+/** Intenta inferir colonia desde la dirección (cuando no viene en el doc). */
+function inferColoniaFromAddress(address?: string): string {
+  if (!address) return "";
+  const a = normalizeColonia(address);
+
+  // 1) Coincidencia por inclusión: si la dirección contiene el nombre de la colonia
+  for (const { norm } of COLONIAS_NORM) {
+    if (norm && a.includes(norm)) return norm;
+  }
+
+  // 2) Heurística básica: tomar el segundo segmento después de una coma
+  //    (ej: "Calle X, Jonuta, 29930 ..." -> "jonuta")
+  const parts = a.split(",").map(s => s.trim()).filter(Boolean);
+  if (parts.length >= 2) return parts[1];
+
+  return "";
+}
+
 type BusinessWithMeta = Business & {
   distanceKm: number | null;
-  resolvedColonia: string;
+  resolvedColonia: string; // colonia normalizada para comparar
 };
 
 type Filters = {
   category: string;
-  colonia: string;
+  colonia: string; // normalizada
   distance: number | null;
   order: string;
   lat: number | null;
@@ -29,7 +78,7 @@ type Filters = {
 type PageProps = {
   businesses: BusinessWithMeta[];
   categories: string[];
-  colonias: string[];
+  colonias: string[]; // labels bonitos
   filters: Filters;
 };
 
@@ -39,15 +88,16 @@ function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query }) => {
   const category = typeof query.category === "string" ? query.category : "";
-  const colonia = typeof query.colonia === "string" ? query.colonia : "";
+  const coloniaRaw = typeof query.colonia === "string" ? query.colonia : "";
+  const colonia = normalizeColonia(coloniaRaw); // normalizamos lo que viene por URL
   const order = typeof query.order === "string" && query.order.length ? query.order : DEFAULT_ORDER;
   const distance = toNumber(query.distance);
   const originLat = toNumber(query.lat);
@@ -62,58 +112,33 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query 
       originLat != null && originLng != null && lat != null && lng != null
         ? haversineDistanceKm(originLat, originLng, lat, lng)
         : null;
-    const resolvedColonia = (biz.colonia || biz.neighborhood || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-    return {
-      ...biz,
-      distanceKm,
-      resolvedColonia,
-    };
+
+    // 1) normalizada por campo
+    let resolvedColonia = normalizeColonia(biz.colonia || biz.neighborhood || "");
+    // 2) si no vino, intenta deducirla desde la dirección
+    if (!resolvedColonia) {
+      resolvedColonia = inferColoniaFromAddress(biz.address);
+    }
+
+    return { ...biz, distanceKm, resolvedColonia };
   });
 
   const categories = Array.from(new Set(allBusinesses.map((b) => b.category).filter(Boolean))).sort();
-  const YAJALON_COLONIAS = [
-    "Centro",
-    "Jonuta",
-    "Benito Juárez",
-    "El Calvario",
-    "El Carmen",
-    "El Mirador",
-    "Fátima",
-    "Guadalupe",
-    "Las Flores",
-    "Las Mercedes",
-    "Los Cerritos",
-    "San Antonio",
-    "San Felipe",
-    "San Francisco",
-    "San Isidro",
-    "San José",
-    "San Juan",
-    "San Marcos",
-    "San Martín",
-    "San Miguel",
-    "San Pedro",
-    "San Rafael",
-    "San Sebastián",
-    "San Vicente",
-    "Santa Catarina",
-    "Santa Cruz",
-    "Santa Lucía",
-    "Santa Rosa",
-    "Tzajalá",
-  ];
 
-  const colonias = Array.from(
-    new Set(
-      [
-        ...YAJALON_COLONIAS,
-        ...businessesWithMeta
-          .map((b) => b.resolvedColonia)
-          .filter((value): value is string => Boolean(value)),
-      ].map((name) => name.trim()).filter(Boolean)
-    )
-  ).sort((a, b) => a.localeCompare(b, "es"));
+  // Deduplca por versión normalizada y conserva el label bonito
+  const labelByNorm = new Map<string, string>();
+  for (const { label, norm } of COLONIAS_NORM) {
+    if (norm && !labelByNorm.has(norm)) labelByNorm.set(norm, label);
+  }
+  // añade las colonias que lleguen desde los docs
+  for (const b of businessesWithMeta) {
+    const raw = b.colonia || b.neighborhood || "";
+    const norm = normalizeColonia(raw);
+    if (norm && !labelByNorm.has(norm)) labelByNorm.set(norm, raw);
+  }
+  const colonias = Array.from(labelByNorm.values()).sort((a, b) => a.localeCompare(b, "es"));
 
+  // Filtrado usando la colonia normalizada
   let filtered = businessesWithMeta.filter((biz) => {
     if (category && biz.category !== category) return false;
     if (colonia && biz.resolvedColonia !== colonia) return false;
@@ -127,6 +152,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query 
     return true;
   });
 
+  // Orden
   filtered = filtered.sort((a, b) => {
     if (order === "distance") {
       if (a.distanceKm == null && b.distanceKm == null) return 0;
@@ -150,7 +176,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query 
       colonias,
       filters: {
         category,
-        colonia,
+        colonia, // normalizada
         distance: distance ?? null,
         order,
         lat: originLat,
@@ -192,6 +218,7 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
 
   const handleColoniaChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
+      // value viene normalizado (opciones usan normalizeColonia)
       handleUpdate({ colonia: event.target.value, page: null });
     },
     [handleUpdate]
@@ -245,15 +272,23 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
       console.error('Sign-out error', error);
     });
   }, []);
+
+  // Mostrar un label bonito para la colonia seleccionada
+  const selectedColoniaLabel = useMemo(() => {
+    if (!filters.colonia) return "";
+    const found = colonias.find(c => normalizeColonia(c) === filters.colonia);
+    return found || filters.colonia;
+  }, [filters.colonia, colonias]);
+
   const headingDescription = useMemo(() => {
     const parts: string[] = [];
     if (filters.category) parts.push(filters.category);
-    if (filters.colonia) parts.push(`en ${filters.colonia}`);
+    if (filters.colonia) parts.push(`en ${selectedColoniaLabel}`);
     if (!parts.length) {
       return "Explora negocios locales destacados, restaurantes, servicios y mas cerca de ti en Yajalon.";
     }
     return `Resultados para ${parts.join(" ")}.`;
-  }, [filters.category, filters.colonia]);
+  }, [filters.category, filters.colonia, selectedColoniaLabel]);
 
   return (
     <>
@@ -273,7 +308,7 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
             <p className="text-base md:text-lg text-gray-600">{headingDescription}</p>
             <div className="mt-3 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
               <span>
-                Tienes un negocio? <Link href="/para-negocios" className="text-[#38761D] underline">Registralo aqui</Link>
+                ¿Tienes un negocio? <Link href="/para-negocios" className="text-[#38761D] underline">Regístralo aquí</Link>
               </span>
               {user ? (
                 <div className="flex items-center gap-2">
@@ -295,8 +330,6 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
               )}
             </div>
           </header>
-
-
 
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 md:p-6 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -323,13 +356,13 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
                   Colonia
                 </label>
                 <select
-                  value={filters.colonia}
+                  value={filters.colonia /* normalizada */}
                   onChange={handleColoniaChange}
                   className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40"
                 >
                   <option value="">Todas las colonias</option>
                   {colonias.map((col) => (
-                    <option key={col} value={col}>
+                    <option key={col} value={normalizeColonia(col)}>
                       {col}
                     </option>
                   ))}
@@ -418,7 +451,14 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-3">
                       {biz.category && <span className="bg-gray-100 px-3 py-1 rounded-full">{biz.category}</span>}
-                      {biz.resolvedColonia && <span className="bg-gray-100 px-3 py-1 rounded-full">{biz.resolvedColonia}</span>}
+                      {biz.resolvedColonia && (
+                        <span className="bg-gray-100 px-3 py-1 rounded-full">
+                          {(() => {
+                            const label = colonias.find(c => normalizeColonia(c) === biz.resolvedColonia);
+                            return label || (biz.colonia || biz.neighborhood || "—");
+                          })()}
+                        </span>
+                      )}
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`}>
                         {biz.isOpen === "si" ? "Abierto" : "Cerrado"}
                       </span>
@@ -442,12 +482,14 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
                   <div className="flex flex-col gap-3 md:w-48">
                     <a
                       href={`tel:${biz.phone}`}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition"
                     >
                       <FaPhoneAlt /> Llamar
                     </a>
                     <a
-                      href={`https://wa.me/${biz.WhatsApp}`}
+                      href={`https://wa.me/521${biz.WhatsApp}?text=${encodeURIComponent(
+                        'Hola, vi tu negocio en el Directorio Yajalón y me gustaría más información.'
+                      )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition"
@@ -474,8 +516,3 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
 };
 
 export default ResultsPage;
-
-
-
-
-
