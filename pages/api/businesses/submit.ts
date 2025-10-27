@@ -1,7 +1,7 @@
 ﻿import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 
-const LAST_STEP_INDEX = 3;
+const LAST_STEP_INDEX = 2;
 
 type SubmitMode = 'wizard' | 'application';
 

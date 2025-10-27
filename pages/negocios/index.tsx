@@ -11,6 +11,71 @@ import type { Business } from "../../types/business";
 
 const DEFAULT_ORDER = "destacado";
 const DISTANCE_OPTIONS = [0, 1, 3, 5, 10, 15];
+const MINUTES_PER_DAY = 24 * 60;
+const HOURS_TOKEN = /(\d{1,2})(?::(\d{2}))?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|am|pm)?/gi;
+
+function timeStringToMinutes(raw: string | null | undefined): number | null {
+  if (!raw) return null;
+  const normalized = raw
+    .toLowerCase()
+    .replace(/a\.?\s*m\.?/g, "am")
+    .replace(/p\.?\s*m\.?/g, "pm")
+    .replace(/\./g, "")
+    .trim();
+
+  const match = normalized.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+  if (!match) return null;
+
+  let hour = Number(match[1]);
+  const minute = match[2] ? Number(match[2]) : 0;
+  const meridiem = match[3];
+
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
+
+  if (meridiem === "pm" && hour < 12) hour += 12;
+  if (meridiem === "am" && hour === 12) hour = 0;
+
+  hour = hour % 24;
+  return hour * 60 + minute;
+}
+
+function extractScheduleTokens(hours: string | null | undefined): string[] {
+  if (!hours) return [];
+  return Array.from(hours.matchAll(HOURS_TOKEN)).map((match) => match[0]);
+}
+
+function formatMinutesLabel(totalMinutes: number): string {
+  const normalized = ((totalMinutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+  const hours = Math.floor(normalized / 60);
+  const minutes = normalized % 60;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+}
+
+function getCurrentMinutes(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+function getScheduleStatus(hours: string | null | undefined, referenceMinutes: number): { isOpen: boolean; infoText: string } | null {
+  const tokens = extractScheduleTokens(hours);
+  if (tokens.length < 2) return null;
+
+  const openMinutes = timeStringToMinutes(tokens[0]);
+  const closeMinutes = timeStringToMinutes(tokens[1]);
+
+  if (openMinutes == null || closeMinutes == null) return null;
+
+  const spansMidnight = closeMinutes <= openMinutes;
+  const isOpen = spansMidnight
+    ? referenceMinutes >= openMinutes || referenceMinutes < closeMinutes
+    : referenceMinutes >= openMinutes && referenceMinutes < closeMinutes;
+
+  const infoText = isOpen
+    ? `Cierra a las ${formatMinutesLabel(closeMinutes)}`
+    : `Abre a las ${formatMinutesLabel(openMinutes)}`;
+
+  return { isOpen, infoText };
+}
 
 /** Normaliza nombres de colonias para poder comparar sin acentos/variantes */
 function normalizeColonia(input?: string): string {
@@ -191,8 +256,15 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
   const router = useRouter();
   const [geoError, setGeoError] = useState<string>('');
   const [locating, setLocating] = useState(false);
+  const [nowMinutes, setNowMinutes] = useState(() => getCurrentMinutes());
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = window.setInterval(() => setNowMinutes(getCurrentMinutes()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const handleUpdate = useCallback(
     (next: Partial<Record<string, string | number | null>>) => {
@@ -285,7 +357,7 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
     if (filters.category) parts.push(filters.category);
     if (filters.colonia) parts.push(`en ${selectedColoniaLabel}`);
     if (!parts.length) {
-      return "Explora negocios locales destacados, restaurantes, servicios y mas cerca de ti en Yajalon.";
+      return "Explora negocios locales destacados, restaurantes, servicios mas cerca de ti en Yajalon.";
     }
     return `Resultados para ${parts.join(" ")}.`;
   }, [filters.category, filters.colonia, selectedColoniaLabel]);
@@ -426,7 +498,11 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
                 biz.lat != null && biz.lng != null
                   ? `https://www.google.com/maps/search/?api=1&query=${biz.lat},${biz.lng}`
                   : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(biz.address ?? biz.name)}`;
-              const statusClass = biz.isOpen === "si" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+              const scheduleStatus = getScheduleStatus(biz.hours ?? null, nowMinutes);
+              const derivedIsOpen = scheduleStatus?.isOpen ?? (biz.isOpen === "si");
+              const statusClass = derivedIsOpen ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+              const statusLabel = derivedIsOpen ? "Abierto" : "Cerrado";
+              const statusInfoText = scheduleStatus?.infoText ?? null;
               const detailHref = { pathname: "/negocios/[id]", query: { id: biz.id } };
               return (
                 <article
@@ -459,9 +535,12 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
                           })()}
                         </span>
                       )}
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`}>
-                        {biz.isOpen === "si" ? "Abierto" : "Cerrado"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`}>
+                          {statusLabel}
+                        </span>
+                        {statusInfoText && <span className="text-xs text-gray-500">{statusInfoText}</span>}
+                      </div>
                       <span className="flex items-center gap-1 text-yellow-500">
                         <FaStar />
                         <span className="text-sm font-semibold text-gray-700">{Number(biz.rating).toFixed(1)}</span>
@@ -470,6 +549,11 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
                     {biz.address && (
                       <p className="text-sm text-gray-600 mb-2">
                         <strong className="font-semibold">Direccion:</strong> {biz.address}
+                      </p>
+                    )}
+                    {biz.hours && (
+                      <p className="text-sm text-gray-600 mb-4">
+                        <strong className="font-semibold">Horario:</strong> {biz.hours}
                       </p>
                     )}
                     {biz.description && (
@@ -516,3 +600,6 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
 };
 
 export default ResultsPage;
+
+
+
