@@ -24,6 +24,7 @@ export interface Business {
   image3?: string;
   images?: { url: string; publicId?: string }[];
   ownerId?: string;
+  ownerEmail?: string; 
 }
 
 export interface Review {

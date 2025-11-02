@@ -19,6 +19,7 @@ export default function EditBusiness() {
   const router = useRouter();
   const { id } = router.query as { id?: string };
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [biz, setBiz] = useState<any>(null);
   const [form, setForm] = useState<any>({ openTime: '', closeTime: '' });
   const [busy, setBusy] = useState(false);
@@ -67,6 +68,25 @@ useEffect(() => {
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => {
+    let active = true;
+    async function detectAdmin() {
+      if (!user) {
+        if (active) setIsAdmin(false);
+        return;
+      }
+      try {
+        const tokenResult = await user.getIdTokenResult();
+        if (active) setIsAdmin(tokenResult.claims?.admin === true);
+      } catch (error) {
+        if (active) setIsAdmin(false);
+      }
+    }
+    detectAdmin();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+  useEffect(() => {
     (async () => {
       if (!id) return;
       const snap = await getDoc(doc(db, 'businesses', id));
@@ -90,7 +110,7 @@ useEffect(() => {
     })();
   }, [id]);
 
-  const canEdit = !!(user?.uid && biz?.ownerId && user.uid === biz.ownerId);
+  const canEdit = Boolean(user?.uid) && (isAdmin || (!!biz?.ownerId && user.uid === biz.ownerId));
 
   const handleAddressChange = useCallback((value: { address: string; lat: number; lng: number }) => {
     setAddr(value);
