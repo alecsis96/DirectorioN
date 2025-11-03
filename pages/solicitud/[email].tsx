@@ -1,7 +1,8 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { signInAnonymously } from 'firebase/auth';
+import { db, auth } from '../../firebaseConfig';
 import Link from 'next/link';
 
 interface Application {
@@ -35,8 +36,15 @@ export default function SolicitudPorEmail() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const normalizedEmail = email.toLowerCase().trim();
         
+        // Autenticarse anónimamente para poder hacer queries
+        if (!auth.currentUser) {
+          console.log('🔐 Autenticando anónimamente...');
+          await signInAnonymously(auth);
+          console.log('✅ Autenticado anónimamente');
+        }
+        
+        const normalizedEmail = email.toLowerCase().trim();
         console.log('🔍 Buscando solicitudes para:', normalizedEmail);
 
         let apps: Application[] = [];
