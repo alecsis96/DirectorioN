@@ -38,9 +38,9 @@ service cloud.firestore {
       // Lectura individual: solo el usuario o admin
       allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       
-      // Permitir queries por ownerEmail (requiere autenticación, incluso anónima)
+      // Permitir queries públicas por ownerEmail con límite (para página de verificación)
       // list incluye query y collection
-      allow list: if isSignedIn() && request.query.limit <= 50;
+      allow list: if request.query.limit <= 100;
 
       // Creación: usuario autenticado crea su propia solicitud
       allow create: if isSignedIn()
@@ -113,8 +113,8 @@ service cloud.firestore {
                     isOwner(businessId) || 
                     isAdmin();
       
-      // Permitir queries por ownerEmail (requiere autenticación, incluso anónima)
-      allow list: if isSignedIn() && request.query.limit <= 50;
+      // Permitir queries públicas por ownerEmail con límite (para página de verificación)
+      allow list: if request.query.limit <= 100;
 
       // Creación: admin puede crear (para el flujo de aprobación)
       // O usuario puede crear draft con su ownerId
