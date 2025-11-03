@@ -141,15 +141,10 @@ const defaultValues: WizardData = {
   notes: "",
 };
 
-// ---------- Pasos ----------
+// ---------- Pasos SIMPLIFICADOS (Solo fase pública) ----------
+// El dueño completará el resto en el dashboard después de la aprobación
 const steps = [
-  { key: "basics", title: "Datos básicos" },
-  { key: "ubicacion", title: "Ubicación" },
-  { key: "contacto", title: "Contacto y redes" },
-  { key: "horarios", title: "Horarios" },
-  { key: "medios", title: "Logo, portada y galería" },
-  { key: "opciones", title: "Servicios y pagos" },
-  { key: "plan", title: "Plan y control" },
+  { key: "basics", title: "Información básica" },
   { key: "confirm", title: "Confirmación" },
 ] as const;
 type StepKey = typeof steps[number]["key"];
@@ -222,6 +217,7 @@ export default function BusinessWizardPro() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(() => auth.currentUser);
 
   const addressRef = useRef<HTMLInputElement>(null);
@@ -302,17 +298,13 @@ export default function BusinessWizardPro() {
         setCurrentStep(next.key);
         setStatusMsg("Progreso guardado.");
       } else {
-        setStatusMsg(
-          result?.submitted
-            ? result?.notified
-              ? "¡Solicitud enviada y notificada!"
-              : "¡Solicitud enviada!"
-            : "Enviado."
-        );
+        // Guardar el email para mostrar el link
+        setSubmittedEmail(values.ownerEmail);
+        setStatusMsg("✅ ¡Solicitud enviada exitosamente!");
       }
     } catch (e) {
       console.error("submit", e);
-      setStatusMsg("No pudimos guardar los cambios.");
+      setStatusMsg("❌ No pudimos enviar la solicitud. Intenta de nuevo.");
     }
   };
 
@@ -331,34 +323,61 @@ export default function BusinessWizardPro() {
     if (i > 0) setCurrentStep(steps[i - 1].key);
   };
 
-  // ------------- Contenido por paso -------------
+  // ------------- Contenido por paso SIMPLIFICADO -------------
   const stepContent = useMemo(() => {
     switch (currentStep) {
       case "basics":
         return (
-          <div className="grid gap-4">
-            <Group title="Responsable">
-              <Field label="Nombre completo" error={formState.errors.ownerName?.message}>
-                <input className="input" placeholder="Nombre del responsable" {...register("ownerName", { required: "Ingresa tu nombre" })} />
+          <div className="grid gap-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                📝 Solicitud de registro simplificada
+              </h3>
+              <p className="text-sm text-blue-800">
+                Solo necesitamos estos datos básicos para comenzar. Después de la aprobación, podrás completar toda la información de tu negocio en el dashboard.
+              </p>
+            </div>
+
+            <Group title="Tus datos (Responsable)">
+              <Field label="Tu nombre completo" error={formState.errors.ownerName?.message}>
+                <input 
+                  className="input" 
+                  placeholder="Ej: Juan Pérez" 
+                  {...register("ownerName", { required: "Ingresa tu nombre" })} 
+                />
               </Field>
               <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Correo del responsable" error={formState.errors.ownerEmail?.message}>
-                  <input className="input" type="email" placeholder="correo@ejemplo.com" {...register("ownerEmail", { required: "Ingresa tu correo" })} />
+                <Field label="Tu correo electrónico" error={formState.errors.ownerEmail?.message}>
+                  <input 
+                    className="input" 
+                    type="email" 
+                    placeholder="correo@ejemplo.com" 
+                    {...register("ownerEmail", { required: "Ingresa tu correo" })} 
+                  />
                 </Field>
-                <Field label="Teléfono del responsable" error={formState.errors.ownerPhone?.message}>
-                  <input className="input" placeholder="9611234567" {...register("ownerPhone", { required: "Ingresa un teléfono" })} />
+                <Field label="Tu teléfono" error={formState.errors.ownerPhone?.message}>
+                  <input 
+                    className="input" 
+                    placeholder="9611234567" 
+                    {...register("ownerPhone", { required: "Ingresa tu teléfono" })} 
+                  />
                 </Field>
               </div>
             </Group>
 
-            <Group title="Negocio">
+            <Group title="Información del negocio">
               <Field label="Nombre del negocio" error={formState.errors.businessName?.message}>
-                <input className="input" placeholder="Ej. Pollo Magon" {...register("businessName", { required: "Ingresa el nombre del negocio" })} />
+                <input 
+                  className="input" 
+                  placeholder="Ej: Restaurante El Sabor" 
+                  {...register("businessName", { required: "Ingresa el nombre del negocio" })} 
+                />
               </Field>
+              
               <div className="grid md:grid-cols-2 gap-4">
                 <Field label="Categoría" error={formState.errors.category?.message}>
-                  <select className="input" {...register("category", { required: "Selecciona una categoría" })}>
-                    <option value="">Selecciona una categoría</option>
+                  <select className="input" {...register("category")}>
+                    <option value="">Selecciona una categoría (opcional)</option>
                     <option value="Restaurante">Restaurante</option>
                     <option value="Cafetería">Cafetería</option>
                     <option value="Comida rápida">Comida rápida</option>
@@ -381,234 +400,62 @@ export default function BusinessWizardPro() {
                     <option value="Otros">Otros</option>
                   </select>
                 </Field>
-                <Field label="Tags (coma separada)">
-                  <input className="input" placeholder="pollo, rostizado, familiar" {...register("tags")} />
-                </Field>
-              </div>
-              <Field label="Descripción" error={formState.errors.description?.message}>
-                <textarea className="textarea" rows={4} placeholder="Describe tus servicios, propuesta de valor..." {...register("description", { required: "Describe tu negocio" })} />
-              </Field>
-            </Group>
-          </div>
-        );
 
-      case "ubicacion":
-        return (
-          <div className="grid gap-4">
-            <Group title="Dirección">
-              <Field label="Dirección (autocomplete si está Google Places)">
-                <input ref={addressRef} className="input" placeholder="Calle, colonia, municipio" {...register("address", { required: "Ingresa la dirección" })} />
-              </Field>
-              <div className="grid md:grid-cols-3 gap-4">
-                <Field label="Colonia">
-                  <input className="input" placeholder="Ej. Jonuta" {...register("colonia")} />
-                </Field>
-                <Field label="Municipio">
-                  <input className="input" placeholder="Yajalón" {...register("municipio")} />
-                </Field>
-                <Field label="Punto de referencia">
-                  <input className="input" placeholder="Frente al parque central" {...register("referencePoint")} />
+                <Field label="WhatsApp del negocio">
+                  <input 
+                    className="input" 
+                    placeholder="5219991234567" 
+                    {...register("whatsapp")} 
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Incluye código de país (521...)
+                  </p>
                 </Field>
               </div>
-            </Group>
-            <Group title="Coordenadas (opcional)">
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Latitud">
-                  <input className="input" placeholder="17.123456" {...register("lat")} />
-                </Field>
-                <Field label="Longitud">
-                  <input className="input" placeholder="-92.123456" {...register("lng")} />
-                </Field>
-              </div>
-            </Group>
-          </div>
-        );
 
-      case "contacto":
-        return (
-          <div className="grid gap-4">
-            <Group title="Contacto y redes">
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Teléfono">
-                  <input className="input" placeholder="9611234567" {...register("phone")} />
-                </Field>
-                <Field label="WhatsApp (con lada, ej. 5219611234567)">
-                  <input className="input" placeholder="5219611234567" {...register("whatsapp")} />
-                </Field>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Email de contacto">
-                  <input className="input" type="email" placeholder="contacto@negocio.com" {...register("emailContact")} />
-                </Field>
-                <Field label="Sitio web">
-                  <input className="input" placeholder="https://..." {...register("website")} />
-                </Field>
-              </div>
-              <div className="grid md:grid-cols-3 gap-4">
-                <Field label="Facebook">
-                  <input className="input" placeholder="https://facebook.com/mi-pagina" {...register("facebookPage")} />
-                </Field>
-                <Field label="Instagram">
-                  <input className="input" placeholder="@miusuario o url" {...register("instagramUser")} />
-                </Field>
-                <Field label="TikTok">
-                  <input className="input" placeholder="https://tiktok.com/@miusuario" {...register("tiktok")} />
-                </Field>
-              </div>
+              <Field label="Teléfono del negocio">
+                <input 
+                  className="input" 
+                  placeholder="9991234567" 
+                  {...register("phone")} 
+                />
+              </Field>
             </Group>
-          </div>
-        );
 
-      case "horarios":
-        return (
-          <div className="grid gap-4">
-            <Group title="Horarios por día">
-              <div className="grid gap-3">
-                {DAYS.map(({ key, label }) => {
-                  const abierto = watch(`horarios.${key}.abierto`);
-                  return (
-                    <div key={key} className="rounded-xl border p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                      <div className="font-semibold">{label}</div>
-                      <div className="flex items-center gap-3">
-                        <label className="inline-flex items-center gap-2 text-sm">
-                          <input type="checkbox" {...register(`horarios.${key}.abierto` as const)} />
-                          <span>Abierto</span>
-                        </label>
-                        <input type="time" className="input w-36" disabled={!abierto} {...register(`horarios.${key}.desde` as const)} />
-                        <span className="text-gray-500">a</span>
-                        <input type="time" className="input w-36" disabled={!abierto} {...register(`horarios.${key}.hasta` as const)} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Group>
-          </div>
-        );
-
-      case "medios":
-        return (
-          <div className="grid gap-4">
-            <Group title="Branding e imágenes">
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Logo (URL)">
-                  <input className="input" placeholder="https://..." {...register("logoUrl")} />
-                </Field>
-                <Field label="Portada (URL)">
-                  <input className="input" placeholder="https://..." {...register("coverPhoto")} />
-                </Field>
-              </div>
-              <Field label="Galería (URLs separadas por coma)">
-                <input className="input" placeholder="https://img1, https://img2" {...register("gallery")} />
-              </Field>
-              <Field label="Video promocional (YouTube o MP4)">
-                <input className="input" placeholder="https://..." {...register("videoPromoUrl")} />
-              </Field>
-            </Group>
-          </div>
-        );
-
-      case "opciones":
-        return (
-          <div className="grid gap-4">
-            <Group title="Servicios y métodos de pago">
-              <Field label="Servicios (elige los que apliquen)">
-                <div className="flex flex-wrap gap-3 text-sm">
-                  {[
-                    { v: "domicilio", l: "Entrega a domicilio" },
-                    { v: "pickup", l: "Recoger en tienda" },
-                    { v: "pedidos_whatsapp", l: "Pedidos por WhatsApp" },
-                    { v: "estacionamiento", l: "Estacionamiento" },
-                    { v: "wifi", l: "Wi-Fi" },
-                    { v: "pet_friendly", l: "Pet friendly" },
-                  ].map((s) => (
-                    <label key={s.v} className="inline-flex items-center gap-2">
-                      <input type="checkbox" value={s.v} {...register("servicios")} />
-                      <span>{s.l}</span>
-                    </label>
-                  ))}
-                </div>
-              </Field>
-              <Field label="Métodos de pago">
-                <div className="flex flex-wrap gap-3 text-sm">
-                  {[
-                    { v: "efectivo", l: "Efectivo" },
-                    { v: "transferencia", l: "Transferencia" },
-                    { v: "tarjeta", l: "Tarjeta" },
-                    { v: "qr", l: "Pago QR" },
-                  ].map((m) => (
-                    <label key={m.v} className="inline-flex items-center gap-2">
-                      <input type="checkbox" value={m.v} {...register("metodoPago")} />
-                      <span>{m.l}</span>
-                    </label>
-                  ))}
-                </div>
-              </Field>
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Rango de precios">
-                  <select className="input" {...register("priceRange")}>
-                    <option value="">Sin especificar</option>
-                    <option value="$">$ (económico)</option>
-                    <option value="$$">$$ (medio)</option>
-                    <option value="$$$">$$$ (alto)</option>
-                  </select>
-                </Field>
-                <Field label="Promociones activas">
-                  <input className="input" placeholder="2x1 miércoles, combo familiar, etc." {...register("promocionesActivas")} />
-                </Field>
-              </div>
-            </Group>
-          </div>
-        );
-
-      case "plan":
-        return (
-          <div className="grid gap-4">
-            <Group title="Plan y control">
-              <div className="grid md:grid-cols-3 gap-3">
-                <PlanOption value="free" title="Básico" description="Ficha en el directorio" register={register} currentValue={watch("plan")} />
-                <PlanOption value="featured" title="Destacado" description="Posición preferente" register={register} currentValue={watch("plan")} />
-                <PlanOption value="sponsor" title="Patrocinado" description="Incluye campaña" register={register} currentValue={watch("plan")} />
-              </div>
-              <div className="grid md:grid-cols-3 gap-4">
-                <label className="switch">
-                  <input type="checkbox" {...register("featured")} />
-                  <span>Marcar como destacado</span>
-                </label>
-                <label className="switch">
-                  <input type="checkbox" {...register("approved")} />
-                  <span>Aprobado para publicar</span>
-                </label>
-              </div>
-              <Field label="Notas internas">
-                <textarea className="textarea" rows={3} placeholder="Notas para administración (no públicas)" {...register("notes")} />
-              </Field>
-            </Group>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                💡 <strong>Nota:</strong> Solo necesitamos al menos un teléfono o WhatsApp del negocio. Después de la aprobación, podrás agregar ubicación, horarios, fotos y mucho más en el dashboard.
+              </p>
+            </div>
           </div>
         );
 
       case "confirm":
         const v = getValues();
-        const resumenHorarios = summarizeHorarios(v.horarios);
         return (
           <div className="grid gap-4">
-            <div className="rounded-2xl border p-4 bg-gray-50">
-              <p className="text-sm text-gray-700">
-                <strong>Resumen de horarios:</strong> {resumenHorarios || "—"}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Tags:</strong> {v.tags || "—"}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Servicios:</strong> {v.servicios?.join(", ") || "—"}
-              </p>
-              <p className="text-sm text-gray-700">
-                <strong>Métodos de pago:</strong> {v.metodoPago?.join(", ") || "—"}
+            <div className="rounded-2xl border p-4 bg-gradient-to-br from-[#38761D]/5 to-[#38761D]/10">
+              <h3 className="text-lg font-bold text-[#38761D] mb-3">📋 Resumen de tu solicitud</h3>
+              
+              <div className="space-y-2 text-sm">
+                <p><strong>Dueño:</strong> {v.ownerName || "—"}</p>
+                <p><strong>Email:</strong> {v.ownerEmail || "—"}</p>
+                <p><strong>Teléfono:</strong> {v.ownerPhone || "—"}</p>
+                <hr className="my-3 border-[#38761D]/20" />
+                <p><strong>Negocio:</strong> {v.businessName || "—"}</p>
+                <p><strong>Categoría:</strong> {v.category || "Sin especificar"}</p>
+                <p><strong>Teléfono del negocio:</strong> {v.phone || "—"}</p>
+                <p><strong>WhatsApp:</strong> {v.whatsapp || "—"}</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+              <p className="text-sm text-blue-900">
+                ℹ️ <strong>¿Qué sigue?</strong> Al enviar tu solicitud, un administrador la revisará y aprobará. 
+                Una vez aprobada, recibirás acceso a un dashboard donde podrás completar la información de tu negocio 
+                (ubicación, horarios, fotos, redes sociales, etc.) y publicarlo en el directorio.
               </p>
             </div>
-            <p className="text-sm text-gray-600">
-              Al enviar, se guardará el registro y (si configuraste) se notificará por webhook/Slack.
-            </p>
           </div>
         );
 
@@ -629,8 +476,8 @@ export default function BusinessWizardPro() {
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#38761D]">Registro de negocio (versión PRO)</h1>
-          <p className="text-sm text-gray-600">Completa los pasos. Puedes guardar borrador en cualquier momento.</p>
+          <h1 className="text-3xl font-bold text-[#38761D]">Solicitud de registro</h1>
+          <p className="text-sm text-gray-600">Proceso rápido en 2 pasos. Completa después de la aprobación.</p>
         </div>
         <UserBadge
           user={user}
@@ -664,8 +511,36 @@ export default function BusinessWizardPro() {
       </nav>
 
       {statusMsg && (
-        <div className="rounded border border-[#38761D]/40 bg-[#38761D]/10 px-4 py-2 text-sm text-[#2d5418]">
-          {statusMsg}
+        <div className={`rounded border px-4 py-3 text-sm ${
+          statusMsg.includes('❌') 
+            ? 'border-red-300 bg-red-50 text-red-700'
+            : 'border-green-300 bg-green-50 text-green-700'
+        }`}>
+          <p className="font-semibold mb-2">{statusMsg}</p>
+          {submittedEmail && (
+            <div className="mt-3 space-y-2">
+              <p className="text-sm">
+                📧 Email de registro: <span className="font-semibold">{submittedEmail}</span>
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <a
+                  href="/mis-solicitudes"
+                  className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-semibold text-center"
+                >
+                  🔍 Verificar estado de mi solicitud
+                </a>
+                <a
+                  href={`/solicitud/${encodeURIComponent(submittedEmail)}`}
+                  className="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition font-semibold text-center"
+                >
+                  Ver mis solicitudes directamente
+                </a>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Guarda este link para consultar el estado cuando quieras. Te notificaremos cuando tu solicitud sea aprobada y puedas completar los datos de tu negocio.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -699,7 +574,7 @@ export default function BusinessWizardPro() {
               disabled={saving}
               className="rounded-lg bg-[#38761D] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2f5a1a] disabled:opacity-40"
             >
-              {hasNext ? "Siguiente" : "Enviar"}
+              {hasNext ? "Siguiente" : "Enviar solicitud"}
             </button>
           </div>
         </div>

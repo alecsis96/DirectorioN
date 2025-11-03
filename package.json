@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "@google-cloud/storage": "^7.17.1",
     "cloudinary": "^1.41.3",
     "firebase": "^12.1.0",

@@ -1,8 +1,8 @@
 ﻿import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 
-// Si tu wizard tiene 8 pasos (0..7), el último índice es 7.
-const LAST_STEP_INDEX = 7;
+// Wizard simplificado: 2 pasos (0=basics, 1=confirm), último índice es 1.
+const LAST_STEP_INDEX = 1;
 
 type SubmitMode = 'wizard' | 'application';
 
@@ -95,15 +95,20 @@ function buildSummary(formData: Record<string, unknown>, email: string, uid: str
   const businessName = asString(formData.businessName ?? 'Negocio sin nombre', 140);
   const ownerName = asString(formData.ownerName ?? formData.displayName ?? 'Propietario desconocido', 140);
   const ownerEmail = asString(formData.ownerEmail ?? formData.email ?? email ?? uid, 200);
-  const ownerPhone = asString(formData.ownerPhone ?? formData.whatsappNumber ?? formData.whatsapp ?? '', 30);
-  const plan = asString(formData.plan ?? 'free', 30);
+  const ownerPhone = asString(formData.ownerPhone ?? '', 30);
+  const category = asString(formData.category ?? 'Sin categoría', 80);
+  const businessPhone = asString((formData as any).phone ?? '', 30);
+  const whatsapp = asString((formData as any).whatsapp ?? '', 30);
 
-  return `Nuevo registro enviado
-Negocio: ${businessName}
-Propietario: ${ownerName}
-Correo: ${ownerEmail}
-Telefono: ${ownerPhone}
-Plan: ${plan}`;
+  return `🆕 Nueva solicitud de registro
+
+📋 Negocio: ${businessName}
+📂 Categoría: ${category}
+👤 Propietario: ${ownerName}
+📧 Correo: ${ownerEmail}
+📱 Teléfono propietario: ${ownerPhone}
+☎️ Teléfono negocio: ${businessPhone}
+💬 WhatsApp: ${whatsapp}`;
 }
 
 // Requires SLACK_WEBHOOK_URL or NOTIFY_WEBHOOK_URL in the environment.

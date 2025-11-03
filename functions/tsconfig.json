@@ -1,15 +1,21 @@
 {
+  "compileOnSave": true,
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/genkit-sample.ts"
+  ],
   "compilerOptions": {
-    "module": "es2020",
-    "target": "es2020",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "noImplicitReturns": true,
     "outDir": "lib",
+    "sourceMap": true,
     "strict": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
+    "target": "es2017",
     "skipLibCheck": true,
-    "types": ["google.maps"]
-    
-  },
-  "include": ["src/**/*.ts"]
+    "esModuleInterop": true,
+    "moduleResolution": "nodenext",
+    "noUnusedLocals": true
+  }
 }

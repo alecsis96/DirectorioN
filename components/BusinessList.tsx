@@ -5,7 +5,7 @@ import Favorites from "./Favorites";
 import { Business } from "../types/business";
 import { useDebounce } from "../hooks/useDebounce";
 import { db } from "../firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 const BusinessModal = dynamic(() => import("./BusinessModal"), { ssr: false });
 
@@ -24,8 +24,10 @@ export default function BusinessList() {
   useEffect(() => {
     async function load() {
       try {
-        // 1) Intentar cargar desde Firestore
-        const snap = await getDocs(collection(db, "businesses"));
+        // 1) Intentar cargar desde Firestore (solo aprobados)
+        const snap = await getDocs(
+          query(collection(db, "businesses"), where("status", "==", "approved"))
+        );
         const list: Business[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
         if (list.length > 0) {
           const normalized = list.map((b: any) => ({

@@ -378,9 +378,28 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
               Directorio de negocios en Yajalon
             </h1>
             <p className="text-base md:text-lg text-gray-600">{headingDescription}</p>
-            <div className="mt-3 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                ¿Tienes un negocio? <Link href="/para-negocios" className="text-[#38761D] underline">Regístralo aquí</Link>
+            
+            {/* Botones de acción principales */}
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <Link
+                href="/para-negocios"
+                className="inline-flex items-center justify-center gap-2 bg-[#38761D] text-white px-6 py-3 rounded-lg hover:bg-[#2f5a1a] transition font-semibold shadow-md"
+              >
+                <span>📝</span>
+                <span>Registrar mi negocio</span>
+              </Link>
+              <Link
+                href="/mis-solicitudes"
+                className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md"
+              >
+                <span>🔍</span>
+                <span>Verificar mi solicitud</span>
+              </Link>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs">
+                ¿Ya registraste tu negocio? Verifica el estado de tu solicitud
               </span>
               {user ? (
                 <div className="flex items-center gap-2">

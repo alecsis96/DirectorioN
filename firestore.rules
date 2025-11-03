@@ -1,0 +1,283 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------- Helpers --------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Admin via Custom Claims: { admin: true }
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Verifica que el negocio pertenece al usuario actual (por ownerId o ownerEmail)
+    function isOwner(businessId) {
+      let biz = get(/databases/$(database)/documents/businesses/$(businessId)).data;
+      return isSignedIn() && (
+        biz.ownerId == request.auth.uid ||
+        (biz.ownerEmail != null && biz.ownerEmail == request.auth.token.email)
+      );
+    }
+
+    function validString(val, min, max) {
+      return val is string && val.size() >= min && val.size() <= max;
+    }
+
+    function optionalString(val, max) {
+      return !(val is string) || (val is string && val.size() <= max);
+    }
+
+    function validStatus(val) {
+      return val in ['draft','pending','approved','rejected'];
+    }
+
+    // ============== APPLICATIONS (Solicitudes iniciales) ==============
+    match /applications/{uid} {
+      // Lectura: solo el usuario o admin
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+
+      // Creación: usuario autenticado crea su propia solicitud
+      allow create: if isSignedIn()
+        && uid == request.auth.uid
+        && validApplicationCreate();
+
+      // Actualización: el usuario puede actualizar su propia solicitud o admin
+      allow update: if isSignedIn() && (
+        (request.auth.uid == uid && validApplicationUserUpdate()) ||
+        (isAdmin() && validApplicationAdminUpdate())
+      );
+
+      // Eliminación: solo admin
+      allow delete: if isAdmin();
+
+      function validApplicationCreate() {
+        return
+          // Datos básicos requeridos
+          validString(request.resource.data.ownerName, 2, 140) &&
+          validString(request.resource.data.ownerEmail, 5, 200) &&
+          validString(request.resource.data.businessName, 2, 140) &&
+          optionalString(request.resource.data.ownerPhone, 30) &&
+          optionalString(request.resource.data.category, 80) &&
+          optionalString(request.resource.data.phone, 30) &&
+          optionalString(request.resource.data.whatsapp, 30) &&
+          // Status debe ser pending al crear
+          (!('status' in request.resource.data) || request.resource.data.status == 'pending') &&
+          // UID debe coincidir
+          (!('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid) &&
+          // Timestamps opcionales
+          (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp) &&
+          (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+      }
+
+      function validApplicationUserUpdate() {
+        return
+          // Usuario puede actualizar sus datos mientras esté pending
+          resource.data.status == 'pending' &&
+          validString(request.resource.data.ownerName, 2, 140) &&
+          validString(request.resource.data.ownerEmail, 5, 200) &&
+          validString(request.resource.data.businessName, 2, 140) &&
+          optionalString(request.resource.data.ownerPhone, 30) &&
+          optionalString(request.resource.data.category, 80) &&
+          optionalString(request.resource.data.phone, 30) &&
+          optionalString(request.resource.data.whatsapp, 30) &&
+          // No puede cambiar el status
+          request.resource.data.status == resource.data.status &&
+          (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+      }
+
+      function validApplicationAdminUpdate() {
+        return
+          // Admin puede cambiar status y otros campos
+          (!('status' in request.resource.data) || validStatus(request.resource.data.status)) &&
+          optionalString(request.resource.data.ownerName, 140) &&
+          optionalString(request.resource.data.ownerEmail, 200) &&
+          optionalString(request.resource.data.businessName, 140) &&
+          optionalString(request.resource.data.ownerPhone, 30) &&
+          optionalString(request.resource.data.category, 80) &&
+          optionalString(request.resource.data.phone, 30) &&
+          optionalString(request.resource.data.whatsapp, 30) &&
+          (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+      }
+    }
+
+    // ============== BUSINESSES ==============
+    match /businesses/{businessId} {
+      // Lectura: pública para approved, restringida para otros
+      allow read: if resource.data.status == 'approved' || 
+                     isOwner(businessId) || 
+                     isAdmin();
+
+      // Creación: admin puede crear (para el flujo de aprobación)
+      // O usuario puede crear draft con su ownerId
+      allow create: if (isAdmin() && validBusinessAdminCreate()) ||
+                       (isSignedIn() && validBusinessUserCreate());
+
+      // Actualización: dueño con límites / admin con controles
+      allow update: if (isOwner(businessId) && validBusinessOwnerUpdate()) ||
+                       (isAdmin() && validBusinessAdminUpdate());
+
+      // Eliminación: solo admin
+      allow delete: if isAdmin();
+
+      // ---- create por admin (desde approve endpoint)
+      function validBusinessAdminCreate() {
+        return
+          validString(request.resource.data.businessName, 1, 140) &&
+          validString(request.resource.data.ownerEmail, 5, 200) &&
+          optionalString(request.resource.data.ownerName, 140) &&
+          optionalString(request.resource.data.ownerId, 128) &&
+          optionalString(request.resource.data.category, 80) &&
+          optionalString(request.resource.data.phone, 30) &&
+          optionalString(request.resource.data.whatsapp, 30) &&
+          (!('status' in request.resource.data) || validStatus(request.resource.data.status)) &&
+          (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp) &&
+          (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+      }
+
+      // ---- create por usuario (si decide crear directo)
+      function validBusinessUserCreate() {
+        return
+          request.resource.data.status == 'draft' &&
+          (request.resource.data.ownerId == request.auth.uid) &&
+          validString(request.resource.data.businessName, 1, 140) &&
+          !(request.resource.data.featured is bool && request.resource.data.featured == true) &&
+          (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp) &&
+          (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+      }
+
+      // ---- update por dueño: transiciones y validaciones
+      function validBusinessOwnerUpdate() {
+        // Mismo ownerId y ownerEmail
+        let sameOwner = request.resource.data.ownerId == resource.data.ownerId &&
+                       request.resource.data.ownerEmail == resource.data.ownerEmail;
+
+        // No puede activar featured por sí solo
+        let tryingToEnableFeatured =
+          ('featured' in request.resource.data) &&
+          (request.resource.data.featured == true) &&
+          !(resource.data.featured == true);
+
+        let oldStatus = resource.data.status;
+        let newStatus = ('status' in request.resource.data) ? request.resource.data.status : resource.data.status;
+
+        // Transiciones permitidas para el owner:
+        // draft -> draft o draft -> pending
+        // pending -> pending (puede seguir editando)
+        // approved -> approved (puede editar pero no cambiar status)
+        // rejected -> rejected o rejected -> pending (puede reenviar)
+        let transitionAllowed =
+          (oldStatus == 'draft' && (newStatus in ['draft','pending'])) ||
+          (oldStatus == 'pending' && newStatus == 'pending') ||
+          (oldStatus == 'approved' && newStatus == 'approved') ||
+          (oldStatus == 'rejected' && (newStatus in ['rejected','pending']));
+
+        let baseChecks =
+          sameOwner &&
+          !tryingToEnableFeatured &&
+          validStatus(newStatus) &&
+          transitionAllowed &&
+          (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+
+        // Validación de campos - más flexible para permitir updates parciales
+        // Solo valida los campos que están presentes en la actualización
+        let fieldsOk =
+          (!('businessName' in request.resource.data) || optionalString(request.resource.data.businessName, 140)) &&
+          (!('category' in request.resource.data) || optionalString(request.resource.data.category, 80)) &&
+          (!('address' in request.resource.data) || optionalString(request.resource.data.address, 300)) &&
+          (!('description' in request.resource.data) || optionalString(request.resource.data.description, 2000)) &&
+          (!('phone' in request.resource.data) || optionalString(request.resource.data.phone, 30)) &&
+          (!('whatsapp' in request.resource.data) || optionalString(request.resource.data.whatsapp, 30)) &&
+          (!('facebookPage' in request.resource.data) || optionalString(request.resource.data.facebookPage, 300)) &&
+          (!('instagramUser' in request.resource.data) || optionalString(request.resource.data.instagramUser, 200)) &&
+          (!('emailContact' in request.resource.data) || optionalString(request.resource.data.emailContact, 200)) &&
+          (!('website' in request.resource.data) || optionalString(request.resource.data.website, 300)) &&
+          (!('hours' in request.resource.data) || optionalString(request.resource.data.hours, 500));
+
+        return baseChecks && fieldsOk;
+      }
+
+      // ---- update por admin (puede cambiar cualquier cosa)
+      function validBusinessAdminUpdate() {
+        return
+          optionalString(request.resource.data.businessName, 140) &&
+          optionalString(request.resource.data.ownerName, 140) &&
+          optionalString(request.resource.data.ownerEmail, 200) &&
+          optionalString(request.resource.data.category, 80) &&
+          optionalString(request.resource.data.address, 300) &&
+          optionalString(request.resource.data.description, 2000) &&
+          optionalString(request.resource.data.phone, 30) &&
+          optionalString(request.resource.data.whatsapp, 30) &&
+          (!('featured' in request.resource.data) || request.resource.data.featured is bool) &&
+          (!('status' in request.resource.data) || validStatus(request.resource.data.status)) &&
+          (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
+      }
+    }
+
+    // ============== RESEÑAS (NESTED COLLECTION) ==============
+    match /businesses/{bid}/reviews/{uid} {
+      allow read: if true;
+
+      // Crear: usuario autenticado, UID = auth.uid, no es owner, datos válidos
+      allow create: if isSignedIn()
+        && uid == request.auth.uid
+        && exists(/databases/$(database)/documents/businesses/$(bid))
+        && !isOwner(bid)
+        && validReviewCreate();
+
+      // Actualizar: el mismo usuario o admin. No se permite cambiar "created".
+      allow update: if isSignedIn()
+        && (uid == request.auth.uid || isAdmin())
+        && validReviewUpdate();
+
+      // Borrar: el mismo usuario o admin
+      allow delete: if isSignedIn()
+        && (uid == request.auth.uid || isAdmin());
+
+      function validReviewCreate() {
+        return
+          (request.resource.data.rating is int
+            && request.resource.data.rating >= 1
+            && request.resource.data.rating <= 5) &&
+          validString(request.resource.data.text, 10, 500) &&
+          validString(request.resource.data.name, 2, 100) &&
+          (!('created' in request.resource.data) || request.resource.data.created is timestamp) &&
+          (!('updated' in request.resource.data) || request.resource.data.updated is timestamp) &&
+          (!('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid) &&
+          (!('businessId' in request.resource.data) || request.resource.data.businessId == bid);
+      }
+
+      function validReviewUpdate() {
+        return
+          (request.resource.data.rating is int
+            && request.resource.data.rating >= 1
+            && request.resource.data.rating <= 5) &&
+          validString(request.resource.data.text, 10, 500) &&
+          validString(request.resource.data.name, 2, 100) &&
+          (('created' in resource.data && 'created' in request.resource.data)
+            ? request.resource.data.created == resource.data.created
+            : true) &&
+          (!('updated' in request.resource.data) || request.resource.data.updated is timestamp) &&
+          (!('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId) &&
+          (!('businessId' in request.resource.data) || request.resource.data.businessId == resource.data.businessId);
+      }
+    }
+
+    // ============== WIZARD PROGRESS ==============
+    match /business_wizard/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ============== RECLAMOS (opcional) ==============
+    match /claims/{claimId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && exists(/databases/$(database)/documents/businesses/$(request.resource.data.businessId));
+
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+  }
+}

@@ -327,6 +327,7 @@ function ApplicationsPanel({
   if (next === "rejected") {
     notes = window.prompt("Motivo del rechazo (opcional):") || undefined;
   }
+setBanner({ kind: "success", text: `Solicitud ${uid} aprobada. Se creó el negocio en borrador.` });
 
   try {
     setActioning((prev) => ({ ...prev, [uid]: true }));
