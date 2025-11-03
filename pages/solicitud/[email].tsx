@@ -36,6 +36,8 @@ export default function SolicitudPorEmail() {
       try {
         setLoading(true);
         const normalizedEmail = email.toLowerCase().trim();
+        
+        console.log('🔍 Buscando solicitudes para:', normalizedEmail);
 
         let apps: Application[] = [];
         let businesses: Business[] = [];
@@ -48,28 +50,36 @@ export default function SolicitudPorEmail() {
             orderBy('createdAt', 'desc')
           );
           const appsSnapshot = await getDocs(appsQuery);
-          apps = appsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            businessName: doc.data().businessName || 'Sin nombre',
-            status: doc.data().status || 'pending',
-            createdAt: doc.data().createdAt,
-            type: 'application'
-          }));
+          console.log(`✅ Applications encontradas: ${appsSnapshot.size}`);
+          apps = appsSnapshot.docs.map(doc => {
+            console.log('📄 Application:', doc.id, doc.data());
+            return {
+              id: doc.id,
+              businessName: doc.data().businessName || 'Sin nombre',
+              status: doc.data().status || 'pending',
+              createdAt: doc.data().createdAt,
+              type: 'application'
+            };
+          });
         } catch (indexError: any) {
           // Si falla por índice, buscar sin orderBy
-          console.log('Usando query sin índice para applications');
+          console.log('⚠️ Usando query sin índice para applications');
           const appsQuery = query(
             collection(db, 'applications'),
             where('ownerEmail', '==', normalizedEmail)
           );
           const appsSnapshot = await getDocs(appsQuery);
-          apps = appsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            businessName: doc.data().businessName || 'Sin nombre',
-            status: doc.data().status || 'pending',
-            createdAt: doc.data().createdAt,
-            type: 'application'
-          }));
+          console.log(`✅ Applications encontradas (sin índice): ${appsSnapshot.size}`);
+          apps = appsSnapshot.docs.map(doc => {
+            console.log('📄 Application:', doc.id, doc.data());
+            return {
+              id: doc.id,
+              businessName: doc.data().businessName || 'Sin nombre',
+              status: doc.data().status || 'pending',
+              createdAt: doc.data().createdAt,
+              type: 'application'
+            };
+          });
         }
 
         // Buscar businesses
@@ -80,28 +90,36 @@ export default function SolicitudPorEmail() {
             orderBy('createdAt', 'desc')
           );
           const businessSnapshot = await getDocs(businessQuery);
-          businesses = businessSnapshot.docs.map(doc => ({
-            id: doc.id,
-            businessName: doc.data().businessName || 'Sin nombre',
-            status: doc.data().status || 'draft',
-            createdAt: doc.data().createdAt,
-            type: 'business'
-          }));
+          console.log(`✅ Businesses encontrados: ${businessSnapshot.size}`);
+          businesses = businessSnapshot.docs.map(doc => {
+            console.log('🏢 Business:', doc.id, doc.data());
+            return {
+              id: doc.id,
+              businessName: doc.data().businessName || 'Sin nombre',
+              status: doc.data().status || 'draft',
+              createdAt: doc.data().createdAt,
+              type: 'business'
+            };
+          });
         } catch (indexError: any) {
           // Si falla por índice, buscar sin orderBy
-          console.log('Usando query sin índice para businesses');
+          console.log('⚠️ Usando query sin índice para businesses');
           const businessQuery = query(
             collection(db, 'businesses'),
             where('ownerEmail', '==', normalizedEmail)
           );
           const businessSnapshot = await getDocs(businessQuery);
-          businesses = businessSnapshot.docs.map(doc => ({
-            id: doc.id,
-            businessName: doc.data().businessName || 'Sin nombre',
-            status: doc.data().status || 'draft',
-            createdAt: doc.data().createdAt,
-            type: 'business'
-          }));
+          console.log(`✅ Businesses encontrados (sin índice): ${businessSnapshot.size}`);
+          businesses = businessSnapshot.docs.map(doc => {
+            console.log('🏢 Business:', doc.id, doc.data());
+            return {
+              id: doc.id,
+              businessName: doc.data().businessName || 'Sin nombre',
+              status: doc.data().status || 'draft',
+              createdAt: doc.data().createdAt,
+              type: 'business'
+            };
+          });
           
           // Ordenar manualmente
           businesses.sort((a, b) => {
@@ -125,10 +143,20 @@ export default function SolicitudPorEmail() {
           return timeB.getTime() - timeA.getTime();
         });
 
+        console.log(`📊 Total items encontrados: ${allItems.length}`);
+        
+        if (allItems.length === 0) {
+          console.warn('⚠️ No se encontraron solicitudes para este email');
+          console.log('💡 Verifica que el email usado en el wizard coincida exactamente');
+        }
+        
         setItems(allItems);
         setError('');
       } catch (err: any) {
-        console.error('Error fetching data:', err);
+        console.error('❌ Error fetching data:', err);
+        console.error('Error code:', err.code);
+        console.error('Error message:', err.message);
+        
         // Si el error es por índice faltante, mostrar mensaje específico
         if (err.code === 'failed-precondition' || err.message?.includes('index')) {
           setError('Los índices de búsqueda se están configurando. Intenta de nuevo en 1-2 minutos.');
