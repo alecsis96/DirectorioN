@@ -1,8 +1,5 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
-import { db, auth } from '../../firebaseConfig';
 import Link from 'next/link';
 
 interface Application {
@@ -36,141 +33,34 @@ export default function SolicitudPorEmail() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Autenticarse anónimamente para poder hacer queries
-        if (!auth.currentUser) {
-          console.log('🔐 Autenticando anónimamente...');
-          await signInAnonymously(auth);
-          console.log('✅ Autenticado anónimamente');
-        }
-        
-        const normalizedEmail = email.toLowerCase().trim();
-        console.log('🔍 Buscando solicitudes para:', normalizedEmail);
-
-        let apps: Application[] = [];
-        let businesses: Business[] = [];
-
-        // Intentar con índices primero (más rápido)
-        try {
-          const appsQuery = query(
-            collection(db, 'applications'),
-            where('ownerEmail', '==', normalizedEmail),
-            orderBy('createdAt', 'desc')
-          );
-          const appsSnapshot = await getDocs(appsQuery);
-          console.log(`✅ Applications encontradas: ${appsSnapshot.size}`);
-          apps = appsSnapshot.docs.map(doc => {
-            console.log('📄 Application:', doc.id, doc.data());
-            return {
-              id: doc.id,
-              businessName: doc.data().businessName || 'Sin nombre',
-              status: doc.data().status || 'pending',
-              createdAt: doc.data().createdAt,
-              type: 'application'
-            };
-          });
-        } catch (indexError: any) {
-          // Si falla por índice, buscar sin orderBy
-          console.log('⚠️ Usando query sin índice para applications');
-          const appsQuery = query(
-            collection(db, 'applications'),
-            where('ownerEmail', '==', normalizedEmail)
-          );
-          const appsSnapshot = await getDocs(appsQuery);
-          console.log(`✅ Applications encontradas (sin índice): ${appsSnapshot.size}`);
-          apps = appsSnapshot.docs.map(doc => {
-            console.log('📄 Application:', doc.id, doc.data());
-            return {
-              id: doc.id,
-              businessName: doc.data().businessName || 'Sin nombre',
-              status: doc.data().status || 'pending',
-              createdAt: doc.data().createdAt,
-              type: 'application'
-            };
-          });
-        }
-
-        // Buscar businesses
-        try {
-          const businessQuery = query(
-            collection(db, 'businesses'),
-            where('ownerEmail', '==', normalizedEmail),
-            orderBy('createdAt', 'desc')
-          );
-          const businessSnapshot = await getDocs(businessQuery);
-          console.log(`✅ Businesses encontrados: ${businessSnapshot.size}`);
-          businesses = businessSnapshot.docs.map(doc => {
-            console.log('🏢 Business:', doc.id, doc.data());
-            return {
-              id: doc.id,
-              businessName: doc.data().businessName || 'Sin nombre',
-              status: doc.data().status || 'draft',
-              createdAt: doc.data().createdAt,
-              type: 'business'
-            };
-          });
-        } catch (indexError: any) {
-          // Si falla por índice, buscar sin orderBy
-          console.log('⚠️ Usando query sin índice para businesses');
-          const businessQuery = query(
-            collection(db, 'businesses'),
-            where('ownerEmail', '==', normalizedEmail)
-          );
-          const businessSnapshot = await getDocs(businessQuery);
-          console.log(`✅ Businesses encontrados (sin índice): ${businessSnapshot.size}`);
-          businesses = businessSnapshot.docs.map(doc => {
-            console.log('🏢 Business:', doc.id, doc.data());
-            return {
-              id: doc.id,
-              businessName: doc.data().businessName || 'Sin nombre',
-              status: doc.data().status || 'draft',
-              createdAt: doc.data().createdAt,
-              type: 'business'
-            };
-          });
-          
-          // Ordenar manualmente
-          businesses.sort((a, b) => {
-            const timeA = a.createdAt?.toDate?.() || new Date(0);
-            const timeB = b.createdAt?.toDate?.() || new Date(0);
-            return timeB.getTime() - timeA.getTime();
-          });
-        }
-
-        // Ordenar apps también si usó query sin índice
-        apps.sort((a, b) => {
-          const timeA = a.createdAt?.toDate?.() || new Date(0);
-          const timeB = b.createdAt?.toDate?.() || new Date(0);
-          return timeB.getTime() - timeA.getTime();
-        });
-
-        // Combinar y ordenar por fecha
-        const allItems = [...apps, ...businesses].sort((a, b) => {
-          const timeA = a.createdAt?.toDate?.() || new Date(0);
-          const timeB = b.createdAt?.toDate?.() || new Date(0);
-          return timeB.getTime() - timeA.getTime();
-        });
-
-        console.log(`📊 Total items encontrados: ${allItems.length}`);
-        
-        if (allItems.length === 0) {
-          console.warn('⚠️ No se encontraron solicitudes para este email');
-          console.log('💡 Verifica que el email usado en el wizard coincida exactamente');
-        }
-        
-        setItems(allItems);
         setError('');
+        
+        console.log('🔍 Buscando solicitudes para:', email);
+
+        // Llamar a la API del backend (sin necesidad de autenticación)
+        const response = await fetch(`/api/solicitud/${encodeURIComponent(email)}`);
+        
+        if (!response.ok) {
+          throw new Error('Error al buscar solicitudes');
+        }
+
+        const data = await response.json();
+        console.log(`📊 Total items encontrados: ${data.items.length}`);
+        
+        // Convertir las fechas ISO string a objetos Date
+        const items = data.items.map((item: any) => ({
+          ...item,
+          createdAt: item.createdAt ? new Date(item.createdAt) : null
+        }));
+        
+        setItems(items);
+        
+        if (items.length === 0) {
+          console.warn('⚠️ No se encontraron solicitudes para este email');
+        }
       } catch (err: any) {
         console.error('❌ Error fetching data:', err);
-        console.error('Error code:', err.code);
-        console.error('Error message:', err.message);
-        
-        // Si el error es por índice faltante, mostrar mensaje específico
-        if (err.code === 'failed-precondition' || err.message?.includes('index')) {
-          setError('Los índices de búsqueda se están configurando. Intenta de nuevo en 1-2 minutos.');
-        } else {
-          setError('Error al buscar solicitudes. Verifica tu email o intenta más tarde.');
-        }
+        setError('Error al buscar solicitudes. Verifica tu email o intenta más tarde.');
       } finally {
         setLoading(false);
       }
@@ -333,7 +223,7 @@ export default function SolicitudPorEmail() {
                       </div>
                       {item.createdAt && (
                         <div className="text-right text-sm text-gray-500">
-                          {item.createdAt.toDate().toLocaleDateString('es-ES', {
+                          {new Date(item.createdAt).toLocaleDateString('es-ES', {
                             day: '2-digit',
                             month: 'long',
                             year: 'numeric'
