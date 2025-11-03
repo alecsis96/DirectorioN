@@ -35,10 +35,11 @@ service cloud.firestore {
 
     // ============== APPLICATIONS (Solicitudes iniciales) ==============
     match /applications/{uid} {
-      // Lectura: solo el usuario, admin, o queries por ownerEmail (para verificación pública)
-      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      // Lectura individual: solo el usuario o admin
+      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       
-      // Permitir lectura pública con query por ownerEmail (para página de verificación)
+      // Permitir queries públicas por ownerEmail (para página de verificación)
+      // list incluye query y collection
       allow list: if request.query.limit <= 50;
 
       // Creación: usuario autenticado crea su propia solicitud
@@ -107,12 +108,12 @@ service cloud.firestore {
 
     // ============== BUSINESSES ==============
     match /businesses/{businessId} {
-      // Lectura: pública para approved, restringida para otros
-      allow read: if resource.data.status == 'approved' || 
-                     isOwner(businessId) || 
-                     isAdmin();
+      // Lectura individual: pública para approved, restringida para otros
+      allow get: if resource.data.status == 'approved' || 
+                    isOwner(businessId) || 
+                    isAdmin();
       
-      // Permitir lectura pública con query por ownerEmail (para página de verificación)
+      // Permitir queries públicas por ownerEmail (para página de verificación)
       allow list: if request.query.limit <= 50;
 
       // Creación: admin puede crear (para el flujo de aprobación)
