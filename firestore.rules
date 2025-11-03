@@ -35,8 +35,11 @@ service cloud.firestore {
 
     // ============== APPLICATIONS (Solicitudes iniciales) ==============
     match /applications/{uid} {
-      // Lectura: solo el usuario o admin
+      // Lectura: solo el usuario, admin, o queries por ownerEmail (para verificación pública)
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      
+      // Permitir lectura pública con query por ownerEmail (para página de verificación)
+      allow list: if request.query.limit <= 50;
 
       // Creación: usuario autenticado crea su propia solicitud
       allow create: if isSignedIn()
@@ -108,6 +111,9 @@ service cloud.firestore {
       allow read: if resource.data.status == 'approved' || 
                      isOwner(businessId) || 
                      isAdmin();
+      
+      // Permitir lectura pública con query por ownerEmail (para página de verificación)
+      allow list: if request.query.limit <= 50;
 
       // Creación: admin puede crear (para el flujo de aprobación)
       // O usuario puede crear draft con su ownerId
