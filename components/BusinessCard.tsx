@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import ShareButton from "./ShareButton";
+import BusinessHours from "./BusinessHours";
 import { FaPhoneAlt, FaWhatsapp, FaFacebookF, FaStar } from 'react-icons/fa';
 import { Business } from "../types/business";
 
@@ -41,9 +42,8 @@ const BusinessCard: React.FC<BusinessProps> = ({ business }) => {
           <span className="font-bold text-gray-600 w-24 ">Dirección:</span>
           <span className="text-gray-800">{business.address}</span>
         </div>
-        <div className="flex gap-2 items-center">
-          <span className="font-bold text-gray-600 w-24">Horario:</span>
-          <span className="text-gray-800">{business.hours}</span>
+        <div className="mb-2">
+          <BusinessHours hours={business.hours} horarios={business.horarios} />
         </div>
         <div className="flex gap-2 items-center">
           <span className="font-bold text-gray-600 w-24">Calificación:</span>
