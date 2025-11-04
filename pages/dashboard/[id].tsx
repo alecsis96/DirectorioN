@@ -220,16 +220,11 @@ export default function EditBusiness() {
         throw new Error(data.error || 'Error al crear sesión de pago');
       }
 
-      // Redirigir a Stripe Checkout
-      const stripe = await stripePromise;
-      if (stripe && data.sessionId) {
-        const { error } = await stripe.redirectToCheckout({
-          sessionId: data.sessionId
-        });
-
-        if (error) {
-          throw new Error(error.message);
-        }
+      // Redirigir directamente a la URL de Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No se recibió URL de checkout');
       }
     } catch (error: any) {
       console.error('Error al iniciar pago:', error);
