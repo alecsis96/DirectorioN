@@ -192,7 +192,25 @@ export default function EditBusiness() {
       // Recargar datos actualizados
       const snap = await getDoc(doc(db, 'businesses', id));
       if (snap.exists()) {
-        setBiz({ id: snap.id, ...(snap.data() as any) });
+        const updatedData = { id: snap.id, ...(snap.data() as any) };
+        setBiz(updatedData);
+        
+        // Actualizar también el state schedule con los datos guardados
+        if (updatedData.horarios && typeof updatedData.horarios === 'object') {
+          const loadedSchedule: any = {};
+          Object.keys(schedule).forEach(day => {
+            if (updatedData.horarios[day]) {
+              loadedSchedule[day] = {
+                open: updatedData.horarios[day].abierto !== false,
+                start: updatedData.horarios[day].desde || '09:00',
+                end: updatedData.horarios[day].hasta || '18:00'
+              };
+            } else {
+              loadedSchedule[day] = schedule[day];
+            }
+          });
+          setSchedule(loadedSchedule);
+        }
       }
       
     } catch (error) {
