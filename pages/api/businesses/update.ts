@@ -5,6 +5,7 @@ const ALLOWED_FIELDS = new Set([
   'name',
   'category',
   'address',
+  'colonia',
   'description',
   'phone',
   'WhatsApp',

@@ -78,6 +78,7 @@ export default function EditBusiness() {
             name: data.name || '',
             category: data.category || '',
             address: data.address || '',
+            colonia: data.colonia || '',
             description: data.description || '',
             phone: data.phone || '',
             WhatsApp: data.WhatsApp || '',
@@ -478,6 +479,68 @@ export default function EditBusiness() {
               <option value="Otros">Otros</option>
             </select>
             <AddressPicker value={addr} onChange={handleAddressChange} />
+            <select
+              className="border rounded px-3 py-2"
+              value={form.colonia || ''}
+              onChange={(e) => setForm({ ...form, colonia: e.target.value })}
+            >
+              <option value="">Selecciona una colonia</option>
+              <option value="12 de Diciembre">12 de Diciembre</option>
+              <option value="Agua Fría">Agua Fría</option>
+              <option value="Amado Nervo">Amado Nervo</option>
+              <option value="Barranca Nabil">Barranca Nabil</option>
+              <option value="Belén Ajkabalna">Belén Ajkabalna</option>
+              <option value="Belisario Domínguez">Belisario Domínguez</option>
+              <option value="Callejón Lorena Shashijá">Callejón Lorena Shashijá</option>
+              <option value="Calvario Bahuitz">Calvario Bahuitz</option>
+              <option value="Calvario Bahuitz Ojo de Agua">Calvario Bahuitz Ojo de Agua</option>
+              <option value="Centro">Centro</option>
+              <option value="Chitaltic">Chitaltic</option>
+              <option value="Chul-Ha">Chul-Ha</option>
+              <option value="Cueva Joctiul">Cueva Joctiul</option>
+              <option value="Efigenia Chapoy">Efigenia Chapoy</option>
+              <option value="El Azufre">El Azufre</option>
+              <option value="El Bosque">El Bosque</option>
+              <option value="El Campo">El Campo</option>
+              <option value="El Delirio">El Delirio</option>
+              <option value="El Milagro">El Milagro</option>
+              <option value="Flamboyán">Flamboyán</option>
+              <option value="Flores">Flores</option>
+              <option value="Jardines">Jardines</option>
+              <option value="Jonuta">Jonuta</option>
+              <option value="José María Morelos y Pavón (Taquinja)">José María Morelos y Pavón (Taquinja)</option>
+              <option value="La Aldea">La Aldea</option>
+              <option value="La Belleza">La Belleza</option>
+              <option value="La Candelaria">La Candelaria</option>
+              <option value="La Laguna">La Laguna</option>
+              <option value="Lázaro Cárdenas">Lázaro Cárdenas</option>
+              <option value="Linda Vista 1a. Sección">Linda Vista 1a. Sección</option>
+              <option value="Loma Bonita">Loma Bonita</option>
+              <option value="Los Tulipanes">Los Tulipanes</option>
+              <option value="Lucio Blanco">Lucio Blanco</option>
+              <option value="Majasil">Majasil</option>
+              <option value="Nueva Creación">Nueva Creación</option>
+              <option value="Nueva Esperanza">Nueva Esperanza</option>
+              <option value="Saclumil Rosario II">Saclumil Rosario II</option>
+              <option value="San Antonio">San Antonio</option>
+              <option value="San Fernando">San Fernando</option>
+              <option value="San José Bunslac">San José Bunslac</option>
+              <option value="San José el Mirador">San José el Mirador</option>
+              <option value="San José Paraíso">San José Paraíso</option>
+              <option value="San Luis">San Luis</option>
+              <option value="San Martín">San Martín</option>
+              <option value="San Miguel">San Miguel</option>
+              <option value="San Miguel Ojo de Agua">San Miguel Ojo de Agua</option>
+              <option value="San Pedro Buenavista">San Pedro Buenavista</option>
+              <option value="San Vicente">San Vicente</option>
+              <option value="Santa Bárbara">Santa Bárbara</option>
+              <option value="Santa Candelaria">Santa Candelaria</option>
+              <option value="Santa Elena">Santa Elena</option>
+              <option value="Santa Teresita">Santa Teresita</option>
+              <option value="Shashijá">Shashijá</option>
+              <option value="Tzitzaquil">Tzitzaquil</option>
+              <option value="Vista Alegre">Vista Alegre</option>
+            </select>
 
             {/* Selector de Plan */}
             <div className="md:col-span-2">
