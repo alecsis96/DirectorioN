@@ -10,6 +10,7 @@ const ALLOWED_FIELDS = new Set([
   'WhatsApp',
   'Facebook',
   'hours',
+  'horarios',
   'images',
   'lat',
   'lng',
