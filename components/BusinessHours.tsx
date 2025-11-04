@@ -229,3 +229,5 @@ export default function BusinessHours({ hours, horarios }: BusinessHoursProps) {
     </div>
   );
 }
+
+// Note: No usamos React.memo aquí porque el componente necesita actualizar cada minuto

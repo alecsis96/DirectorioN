@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FaShareAlt, FaWhatsapp, FaFacebookF } from "react-icons/fa";
 
-export default function ShareButton({ business }: { business: any }) {
+function ShareButton({ business }: { business: any }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
@@ -44,3 +44,4 @@ export default function ShareButton({ business }: { business: any }) {
   );
 }
 
+export default React.memo(ShareButton);

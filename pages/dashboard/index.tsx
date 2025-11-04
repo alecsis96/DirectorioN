@@ -94,7 +94,7 @@ export default function DashboardHome() {
             {needsApproval && (
               <span className="text-sm text-gray-600">
                 Tu solicitud: {appStatus ?? 'sin solicitud'}.{' '}
-                <Link href="/business/register" className="text-blue-600 underline">
+                <Link href="/registro-negocio" className="text-blue-600 underline">
                   Enviar solicitud
                 </Link>
               </span>
