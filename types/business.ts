@@ -19,6 +19,15 @@ export interface Business {
   isOpen: string; // "si" | "no"
   featured: string; // "si" | "no"
   hours: string;
+  horarios?: {
+    lunes?: { abierto: boolean; desde: string; hasta: string };
+    martes?: { abierto: boolean; desde: string; hasta: string };
+    miercoles?: { abierto: boolean; desde: string; hasta: string };
+    jueves?: { abierto: boolean; desde: string; hasta: string };
+    viernes?: { abierto: boolean; desde: string; hasta: string };
+    sabado?: { abierto: boolean; desde: string; hasta: string };
+    domingo?: { abierto: boolean; desde: string; hasta: string };
+  };
   image1?: string;
   image2?: string;
   image3?: string;
