@@ -44,6 +44,14 @@ export function normalizeBusiness(data: any, id: string): Business {
     images: [],
   };
 
+  // Incluir plan si existe (free, featured, sponsor)
+  const planValue = data.plan;
+  if (planValue === 'featured' || planValue === 'sponsor') {
+    business.plan = planValue;
+  } else {
+    business.plan = 'free';
+  }
+
   // Incluir horarios estructurados si existen
   if (data.horarios && typeof data.horarios === 'object') {
     business.horarios = data.horarios;

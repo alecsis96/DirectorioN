@@ -18,6 +18,7 @@ export interface Business {
   location?: { lat: number; lng: number };
   isOpen: string; // "si" | "no"
   featured: string; // "si" | "no"
+  plan?: 'free' | 'featured' | 'sponsor';
   hours: string;
   horarios?: {
     lunes?: { abierto: boolean; desde: string; hasta: string };

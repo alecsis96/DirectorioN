@@ -26,8 +26,15 @@ const BusinessCard: React.FC<BusinessProps> = ({ business }) => {
       </div>
       <div className="flex items-center gap-2 mb-4">
         <h2 className="text-2xl font-extrabold text-gray-800 tracking-tight">{business.name}</h2>
-        {business.featured === "si" && (
-          <span className="inline-block bg-yellow-300 text-yellow-900 px-2 py-1 rounded text-xs font-bold shadow">Destacado</span>
+        {(business as any).plan === 'sponsor' && (
+          <span className="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+            👑 Patrocinado
+          </span>
+        )}
+        {(business as any).plan === 'featured' && (
+          <span className="inline-block bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+            ⭐ Destacado
+          </span>
         )}
       </div>
       <div className="flex flex-wrap gap-4 mb-2 items-center">

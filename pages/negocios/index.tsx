@@ -228,9 +228,20 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query 
     if (order === "rating") {
       return (b.rating ?? 0) - (a.rating ?? 0);
     }
-    const aFeatured = a.featured === "si" ? 1 : 0;
-    const bFeatured = b.featured === "si" ? 1 : 0;
-    if (aFeatured !== bFeatured) return bFeatured - aFeatured;
+    
+    // Orden por defecto "destacado": priorizar por plan (sponsor > featured > free)
+    const getPlanPriority = (biz: any) => {
+      const plan = biz.plan || 'free';
+      if (plan === 'sponsor') return 3;
+      if (plan === 'featured') return 2;
+      return 1;
+    };
+    
+    const aPlan = getPlanPriority(a);
+    const bPlan = getPlanPriority(b);
+    if (aPlan !== bPlan) return bPlan - aPlan;
+    
+    // Si tienen el mismo plan, ordenar por rating
     return (b.rating ?? 0) - (a.rating ?? 0);
   });
 

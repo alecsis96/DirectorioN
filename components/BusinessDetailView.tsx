@@ -283,7 +283,19 @@ const dashboardHref = business.id ? `/dashboard/${business.id}` : "/dashboard";
       <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
         <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{business.name}</h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900">{business.name}</h1>
+              {(business as any).plan === 'sponsor' && (
+                <span className="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
+                  👑 Patrocinado
+                </span>
+              )}
+              {(business as any).plan === 'featured' && (
+                <span className="inline-block bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
+                  ⭐ Destacado
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap gap-2 mb-3 text-sm text-gray-600">
               {business.category && (
                 <span className="bg-gray-100 px-3 py-1 rounded-full">{business.category}</span>
@@ -374,22 +386,34 @@ const dashboardHref = business.id ? `/dashboard/${business.id}` : "/dashboard";
       {/* Galería */}
       <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Galería</h2>
-        {galleryItems.length ? (
-          <div className="relative max-w-lg mx-auto">
-            <ImageGallery
-              items={galleryItems}
-              showPlayButton={false}
-              showFullscreenButton={galleryItems.length > 0}
-              showThumbnails={false}
-              showBullets={galleryItems.length > 1}
-              slideDuration={350}
-              slideInterval={5000}
-              renderItem={renderItem}
-              additionalClass="business-gallery"
-            />
-          </div>
+        {((business as any).plan === 'featured' || (business as any).plan === 'sponsor') ? (
+          galleryItems.length ? (
+            <div className="relative max-w-lg mx-auto">
+              <ImageGallery
+                items={galleryItems}
+                showPlayButton={false}
+                showFullscreenButton={galleryItems.length > 0}
+                showThumbnails={false}
+                showBullets={galleryItems.length > 1}
+                slideDuration={350}
+                slideInterval={5000}
+                renderItem={renderItem}
+                additionalClass="business-gallery"
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">Este negocio aún no tiene imágenes.</p>
+          )
         ) : (
-          <p className="text-sm text-gray-500">Este negocio aún no tiene imágenes.</p>
+          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-lg p-6 text-center">
+            <p className="text-lg font-semibold text-gray-800 mb-2">🖼️ Galería de fotos</p>
+            <p className="text-sm text-gray-600 mb-4">
+              La galería completa de fotos está disponible solo para negocios con plan <span className="font-bold text-orange-600">Destacado</span> o <span className="font-bold text-purple-600">Patrocinado</span>.
+            </p>
+            <p className="text-xs text-gray-500">
+              ¿Eres dueño? <a href="/registro-negocio" className="text-[#38761D] font-semibold underline">Mejora tu plan aquí</a>
+            </p>
+          </div>
         )}
       </section>
 
