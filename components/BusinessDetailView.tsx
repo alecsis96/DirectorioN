@@ -271,8 +271,6 @@ const dashboardHref = business.id ? `/dashboard/${business.id}` : "/dashboard";
     };
   }, [business, galleryItems, reviews.length, tel]);
 
-  const open = business.isOpen === "si";
-
   return (
     <div className="space-y-10">
       {/* JSON-LD */}
@@ -293,14 +291,6 @@ const dashboardHref = business.id ? `/dashboard/${business.id}` : "/dashboard";
               {business.colonia && (
                 <span className="bg-gray-100 px-3 py-1 rounded-full">{business.colonia}</span>
               )}
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  open ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
-                }`}
-                aria-live="polite"
-              >
-                {open ? "Abierto" : "Cerrado"}
-              </span>
               <span className="flex items-center gap-1 text-yellow-500 font-semibold">
                 <FaStar />
                 {Number(business.rating ?? 0).toFixed(1)}
