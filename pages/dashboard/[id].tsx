@@ -11,6 +11,10 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import ImageUploader from '../../components/ImageUploader';
 import AddressPicker from '../../components/AddressPicker';
 import { useAuth, canEditBusiness } from '../../hooks/useAuth';
+import { loadStripe } from '@stripe/stripe-js';
+
+// Inicializar Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface UpdateResponse {
   ok: boolean;
@@ -189,6 +193,48 @@ export default function EditBusiness() {
       setMsg('❌ Error al enviar. Intenta nuevamente.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  // Iniciar proceso de pago con Stripe
+  async function handleUpgradePlan(selectedPlan: 'featured' | 'sponsor') {
+    if (!id || !biz) return;
+
+    setBusy(true);
+    setMsg('Redirigiendo a checkout...');
+
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: selectedPlan,
+          businessId: id,
+          businessName: biz.name || form.name
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al crear sesión de pago');
+      }
+
+      // Redirigir a Stripe Checkout
+      const stripe = await stripePromise;
+      if (stripe && data.sessionId) {
+        const { error } = await stripe.redirectToCheckout({
+          sessionId: data.sessionId
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error al iniciar pago:', error);
+      setMsg(`❌ Error: ${error.message}`);
+      setBusy(false);
     }
   }
 
@@ -399,13 +445,11 @@ export default function EditBusiness() {
                   </div>
                 </button>
                 
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, plan: 'featured' })}
+                <div
                   className={`p-4 rounded-lg border-2 transition-all ${
-                    form.plan === 'featured'
+                    biz?.plan === 'featured'
                       ? 'border-[#38761D] bg-[#38761D]/10'
-                      : 'border-gray-300 hover:border-[#38761D]/50'
+                      : 'border-gray-300'
                   }`}
                 >
                   <div className="text-center">
@@ -417,16 +461,28 @@ export default function EditBusiness() {
                       • Badge destacado<br />
                       • Galería de fotos
                     </div>
+                    {biz?.plan === 'featured' ? (
+                      <div className="mt-3 px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full inline-block">
+                        ✓ Plan Activo
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleUpgradePlan('featured')}
+                        disabled={busy}
+                        className="mt-3 w-full px-3 py-2 bg-[#38761D] text-white text-sm font-semibold rounded hover:bg-[#2d5418] disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                      >
+                        {busy ? 'Procesando...' : 'Mejorar a este plan'}
+                      </button>
+                    )}
                   </div>
-                </button>
+                </div>
                 
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, plan: 'sponsor' })}
+                <div
                   className={`p-4 rounded-lg border-2 transition-all ${
-                    form.plan === 'sponsor'
+                    biz?.plan === 'sponsor'
                       ? 'border-[#38761D] bg-[#38761D]/10'
-                      : 'border-gray-300 hover:border-[#38761D]/50'
+                      : 'border-gray-300'
                   }`}
                 >
                   <div className="text-center">
@@ -438,8 +494,22 @@ export default function EditBusiness() {
                       • Redes sociales<br />
                       • Estadísticas
                     </div>
+                    {biz?.plan === 'sponsor' ? (
+                      <div className="mt-3 px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full inline-block">
+                        ✓ Plan Activo
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleUpgradePlan('sponsor')}
+                        disabled={busy}
+                        className="mt-3 w-full px-3 py-2 bg-[#38761D] text-white text-sm font-semibold rounded hover:bg-[#2d5418] disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                      >
+                        {busy ? 'Procesando...' : 'Mejorar a este plan'}
+                      </button>
+                    )}
                   </div>
-                </button>
+                </div>
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 💡 Puedes cambiar tu plan en cualquier momento
