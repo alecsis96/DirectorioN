@@ -44,6 +44,11 @@ export function normalizeBusiness(data: any, id: string): Business {
     images: [],
   };
 
+  // Incluir horarios estructurados si existen
+  if (data.horarios && typeof data.horarios === 'object') {
+    business.horarios = data.horarios;
+  }
+
   const coloniaValue = asString(data.colonia ?? data.neighborhood ?? data.coloniaNombre);
   if (coloniaValue) business.colonia = coloniaValue;
 
