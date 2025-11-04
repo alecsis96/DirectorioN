@@ -48,6 +48,19 @@ export default function EditBusiness() {
   const [busy, setBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState('');
+  
+  // Horarios por día de la semana
+  const [schedule, setSchedule] = useState<{
+    [key: string]: { open: boolean; start: string; end: string };
+  }>({
+    lunes: { open: true, start: '09:00', end: '18:00' },
+    martes: { open: true, start: '09:00', end: '18:00' },
+    miercoles: { open: true, start: '09:00', end: '18:00' },
+    jueves: { open: true, start: '09:00', end: '18:00' },
+    viernes: { open: true, start: '09:00', end: '18:00' },
+    sabado: { open: true, start: '09:00', end: '14:00' },
+    domingo: { open: false, start: '09:00', end: '18:00' }
+  });
 
   // Cargar datos del negocio
   useEffect(() => {
@@ -80,6 +93,23 @@ export default function EditBusiness() {
             lat: data.lat || 0,
             lng: data.lng || 0,
           });
+          
+          // Cargar horarios por día si existen
+          if (data.horarios && typeof data.horarios === 'object') {
+            const loadedSchedule: any = {};
+            Object.keys(schedule).forEach(day => {
+              if (data.horarios[day]) {
+                loadedSchedule[day] = {
+                  open: data.horarios[day].abierto !== false,
+                  start: data.horarios[day].desde || '09:00',
+                  end: data.horarios[day].hasta || '18:00'
+                };
+              } else {
+                loadedSchedule[day] = schedule[day];
+              }
+            });
+            setSchedule(loadedSchedule);
+          }
         }
       } catch (error) {
         console.error('Error al cargar negocio:', error);
@@ -107,9 +137,25 @@ export default function EditBusiness() {
     setMsg('Guardando...');
     
     try {
-      const derivedHours = form.openTime || form.closeTime
-        ? `${form.openTime || '00:00'} - ${form.closeTime || '00:00'}`
-        : form.hours || '';
+      // Convertir schedule al formato de Firestore
+      const horarios: any = {};
+      Object.entries(schedule).forEach(([day, hours]) => {
+        horarios[day] = {
+          abierto: hours.open,
+          desde: hours.start,
+          hasta: hours.end
+        };
+      });
+      
+      // Generar string de horarios para el campo "hours" (retrocompatibilidad)
+      const hoursArray: string[] = [];
+      Object.entries(schedule).forEach(([day, hours]) => {
+        const dayLabel = day.charAt(0).toUpperCase() + day.slice(1, 3);
+        if (hours.open) {
+          hoursArray.push(`${dayLabel} ${hours.start}-${hours.end}`);
+        }
+      });
+      const derivedHours = hoursArray.join('; ');
       
       const { openTime, closeTime, hours, ...rest } = form;
       const hasCoords =
@@ -130,6 +176,7 @@ export default function EditBusiness() {
             ...rest,
             address: addr.address || rest.address || '',
             hours: derivedHours,
+            horarios, // Agregar horarios detallados por día
             ...(hasCoords ? { lat: addr.lat, lng: addr.lng } : {}),
           },
         }),
@@ -529,25 +576,60 @@ export default function EditBusiness() {
               value={form.Facebook}
               onChange={(e) => setForm({ ...form, Facebook: e.target.value })}
             />
+            {/* Horarios por día */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Horario de apertura y cierre
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                📅 Horarios de atención
               </label>
-            </div>
-            <div className="flex gap-2">              
-              <input
-                type="time"
-                className="border rounded px-3 py-2 flex-1"
-                //placeholder='Hora de apertura'
-                value={form.openTime || ''}
-                onChange={(e) => setForm({ ...form, openTime: e.target.value })}
-              />
-              <input
-                type="time"
-                className="border rounded px-3 py-2 flex-1"
-                value={form.closeTime || ''}
-                onChange={(e) => setForm({ ...form, closeTime: e.target.value })}
-              />
+              <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                {Object.entries(schedule).map(([day, hours]) => (
+                  <div key={day} className="flex items-center gap-3">
+                    <div className="w-24">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={hours.open}
+                          onChange={(e) => setSchedule({
+                            ...schedule,
+                            [day]: { ...hours, open: e.target.checked }
+                          })}
+                          className="w-4 h-4 text-[#38761D] rounded focus:ring-[#38761D]"
+                        />
+                        <span className="text-sm font-medium capitalize">{day}</span>
+                      </label>
+                    </div>
+                    
+                    {hours.open ? (
+                      <div className="flex gap-2 flex-1">
+                        <input
+                          type="time"
+                          value={hours.start}
+                          onChange={(e) => setSchedule({
+                            ...schedule,
+                            [day]: { ...hours, start: e.target.value }
+                          })}
+                          className="border rounded px-2 py-1 text-sm flex-1"
+                        />
+                        <span className="text-gray-500 self-center">-</span>
+                        <input
+                          type="time"
+                          value={hours.end}
+                          onChange={(e) => setSchedule({
+                            ...schedule,
+                            [day]: { ...hours, end: e.target.value }
+                          })}
+                          className="border rounded px-2 py-1 text-sm flex-1"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">Cerrado</span>
+                    )}
+                  </div>
+                ))}
+                <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-300">
+                  💡 Desmarca los días que permaneces cerrado
+                </div>
+              </div>
             </div>
             
             <textarea
