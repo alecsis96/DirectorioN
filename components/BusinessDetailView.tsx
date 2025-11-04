@@ -7,6 +7,7 @@ import type { ReactImageGalleryItem } from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 import { FaPhoneAlt, FaWhatsapp, FaFacebookF, FaStar } from "react-icons/fa";
 import ShareButton from "./ShareButton";
+import BusinessHours from "./BusinessHours";
 import type { Business } from "../types/business";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import {
@@ -319,11 +320,10 @@ const dashboardHref = business.id ? `/dashboard/${business.id}` : "/dashboard";
                 </a>
               </p>
             )}
-            {business.hours && (
-              <p className="text-sm text-gray-600 mb-1">
-                <strong>Horario:</strong> {business.hours}
-              </p>
-            )}
+            
+            {/* Dynamic Business Hours with Open/Closed Status */}
+            <BusinessHours hours={business.hours} horarios={business.horarios} />
+            
             {business.price && (
               <p className="text-sm text-gray-600 mb-1">
                 <strong>Precio:</strong> {business.price}
