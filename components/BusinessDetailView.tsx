@@ -167,11 +167,7 @@ export default function BusinessDetailView({ business }: Props) {
 
   // ---------- Usuario / Resenas ----------
 
-  const [user, setUser] = useState<null | { uid: string; displayName?: string | null; email?: string | null }>(
-
-    () => auth.currentUser as any
-
-  );
+  const [user, setUser] = useState<null | { uid: string; displayName?: string | null; email?: string | null }>(null);
 
   const [isAdmin, setIsAdmin] = useState(false);
 

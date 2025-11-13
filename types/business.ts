@@ -60,11 +60,17 @@ export interface BusinessPreview {
   address: string;
   phone?: string;
   WhatsApp?: string;
+  hours?: string;
+  horarios?: Business["horarios"];
 }
 
 export const pickBusinessPreview = (biz: Business): BusinessPreview => {
   const phone = typeof biz.phone === "string" && biz.phone.trim().length ? biz.phone.trim() : undefined;
   const whatsapp = typeof biz.WhatsApp === "string" && biz.WhatsApp.trim().length ? biz.WhatsApp.trim() : undefined;
+  const sanitizedHorarios =
+    biz.horarios && typeof biz.horarios === "object"
+      ? (JSON.parse(JSON.stringify(biz.horarios)) as Business["horarios"])
+      : undefined;
 
   return {
     id: biz.id ?? "",
@@ -74,7 +80,9 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     rating: typeof biz.rating === "number" ? biz.rating : null,
     isOpen: biz.isOpen === "no" ? "no" : "si",
     address: biz.address ?? "",
+    hours: biz.hours,
     ...(phone ? { phone } : {}),
     ...(whatsapp ? { WhatsApp: whatsapp } : {}),
+    ...(sanitizedHorarios ? { horarios: sanitizedHorarios } : {}),
   };
 };

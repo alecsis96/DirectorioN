@@ -1,8 +1,9 @@
 import Link from "next/link";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { mapsLink, normalizeDigits, waLink } from "../lib/helpers/contact";
 import { sendEvent } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
+import { getBusinessStatus } from "./BusinessHours";
 
 type CardBusiness = BusinessPreview | Business;
 
@@ -13,11 +14,33 @@ type Props = {
 const BusinessCard: React.FC<Props> = ({ business }) => {
   const businessId = typeof (business as any).id === "string" ? (business as any).id : undefined;
   const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
-  const isOpen = business.isOpen === "si";
+  const [isOpen, setIsOpen] = useState(business.isOpen === "si");
+  const [hoursLabel, setHoursLabel] = useState<string>(() => business.hours ? "Actualizando horario..." : "Horario no disponible");
   const addressText = business.address || "Sin direccion";
   const mapsHref = mapsLink(undefined, undefined, business.address || business.name);
   const callHref = business.phone ? `tel:${normalizeDigits(business.phone)}` : null;
   const whatsappHref = business.WhatsApp ? waLink(business.WhatsApp) : "";
+
+  useEffect(() => {
+    if (!business.hours) {
+      setHoursLabel("Horario no disponible");
+      return;
+    }
+    const updateStatus = () => {
+      const status = getBusinessStatus(business.hours);
+      setIsOpen(status.isOpen);
+      if (status.isOpen && status.closesAt) {
+        setHoursLabel(`Cierra a las ${status.closesAt}`);
+      } else if (!status.isOpen && status.opensAt) {
+        setHoursLabel(`Abre ${status.opensAt}`);
+      } else {
+        setHoursLabel("Horario disponible");
+      }
+    };
+    updateStatus();
+    const timer = setInterval(updateStatus, 60_000);
+    return () => clearInterval(timer);
+  }, [business.hours]);
 
   return (
     <article className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col gap-4">
@@ -53,6 +76,9 @@ const BusinessCard: React.FC<Props> = ({ business }) => {
       <p className="text-sm text-gray-700 flex items-center gap-2" aria-label={`Direccion ${addressText}`}>
         <LocationIcon className="w-4 h-4 text-gray-500" />
         <span className="truncate">{addressText}</span>
+      </p>
+      <p className="text-xs text-gray-500">
+        <span className="font-semibold">Horario:</span> {hoursLabel}
       </p>
 
       <div className="flex flex-wrap gap-2 text-sm font-semibold">

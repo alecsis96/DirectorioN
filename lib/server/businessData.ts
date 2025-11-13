@@ -53,8 +53,12 @@ export function normalizeBusiness(data: any, id: string): Business {
   }
 
   // Incluir horarios estructurados si existen
-  if (data.horarios && typeof data.horarios === 'object') {
-    business.horarios = data.horarios;
+  if (data.horarios && typeof data.horarios === "object") {
+    try {
+      business.horarios = JSON.parse(JSON.stringify(data.horarios));
+    } catch {
+      business.horarios = undefined;
+    }
   }
 
   const coloniaValue = asString(data.colonia ?? data.neighborhood ?? data.coloniaNombre);
