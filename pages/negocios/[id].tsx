@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Head from "next/head";
-import { GetServerSideProps, NextPage } from "next";
+import type { GetServerSideProps, NextPage } from "next";
 import { fetchBusinesses } from "../../lib/server/businessData";
 import BusinessDetailView from "../../components/BusinessDetailView";
 import type { Business } from "../../types/business";

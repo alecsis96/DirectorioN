@@ -45,8 +45,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         
-        console.log('[stripe/webhook] Payment successful:', session.id);
-        console.log('[stripe/webhook] Metadata:', session.metadata);
+        console.info('[stripe/webhook] Payment successful:', session.id);
+        console.info('[stripe/webhook] Metadata:', session.metadata);
 
         const { businessId, plan } = session.metadata || {};
 
@@ -73,18 +73,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updatedAt: now
         });
 
-        console.log(`[stripe/webhook] Business ${businessId} upgraded to ${plan}`);
+        console.info(`[stripe/webhook] Business ${businessId} upgraded to ${plan}`);
         break;
       }
 
       case 'checkout.session.expired': {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.log('[stripe/webhook] Session expired:', session.id);
+        console.info('[stripe/webhook] Session expired:', session.id);
         break;
       }
 
       default:
-        console.log(`[stripe/webhook] Unhandled event type: ${event.type}`);
+        console.info(`[stripe/webhook] Unhandled event type: ${event.type}`);
     }
 
     res.status(200).json({ received: true });

@@ -35,7 +35,7 @@ export default function SolicitudPorEmail() {
         setLoading(true);
         setError('');
         
-        console.log('🔍 Buscando solicitudes para:', email);
+        console.info('🔍 Buscando solicitudes para:', email);
 
         // Llamar a la API del backend (sin necesidad de autenticación)
         const response = await fetch(`/api/solicitud/${encodeURIComponent(email)}`);
@@ -45,7 +45,7 @@ export default function SolicitudPorEmail() {
         }
 
         const data = await response.json();
-        console.log(`📊 Total items encontrados: ${data.items.length}`);
+        console.info(`📊 Total items encontrados: ${data.items.length}`);
         
         // Convertir las fechas ISO string a objetos Date
         const items = data.items.map((item: any) => ({

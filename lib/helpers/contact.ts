@@ -1,33 +1,20 @@
-// lib/helpers/contact.ts
-export function normalizeDigits(s?: string) {
-  return (s || "").replace(/\D+/g, "");
-}
+export const normalizeDigits = (s?: string) =>
+  (s || "").replace(/[^\d+]/g, "");
 
-export function asE164Mx(phone?: string) {
-  const d = normalizeDigits(phone);
-  if (!d) return "";
-  return d.startsWith("52") ? d : `52${d}`;
-}
+export const waLink = (raw?: string) => {
+  const phone = normalizeDigits(raw);
+  return phone ? `https://wa.me/${phone}` : "";
+};
 
-export function waLink(phone?: string, msg?: string) {
-  const p = asE164Mx(phone);
-  if (!p) return "";
-  const text = encodeURIComponent(
-    msg || "Hola, vi tu negocio en el Directorio Yajalón y me gustaría más información."
-  );
-  return `https://wa.me/${p}?text=${text}`;
-}
-
-export function mapsLink(
+export const mapsLink = (
   lat?: number | null,
   lng?: number | null,
   address?: string
-) {
+) => {
   if (lat != null && lng != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    return `https://www.google.com/maps?q=${lat},${lng}`;
   }
-  if (address) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-  }
-  return "https://www.google.com/maps";
-}
+  return address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+    : "#";
+};

@@ -1,0 +1,14 @@
+.next
+node_modules
+dist
+coverage
+src/dataconnect-generated
+pages/api
+pages/dashboard
+pages/solicitud
+components/BusinessWizard.tsx
+components/BusinessList.tsx
+components/BusinessModal.tsx
+components/Favorites.tsx
+components/ImageUploader.tsx
+components/ReviewSection.tsx

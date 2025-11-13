@@ -1,41 +1,44 @@
-export interface Business {
-  id: string;
+export type Business = {
+  id?: string;
   name: string;
-  category: string;
-  description: string;
-  address: string;
-  phone: string;
-  WhatsApp: string;
-  Facebook: string;
-  price: string;
-  rating: number;
+  category?: string;
+  description?: string;
   colonia?: string;
   neighborhood?: string;
-  lat?: number;
-  lng?: number;
-  latitude?: number;
-  longitude?: number;
-  location?: { lat: number; lng: number };
-  isOpen: string; // "si" | "no"
-  featured: string; // "si" | "no"
-  plan?: 'free' | 'featured' | 'sponsor';
-  hours: string;
-  horarios?: {
-    lunes?: { abierto: boolean; desde: string; hasta: string };
-    martes?: { abierto: boolean; desde: string; hasta: string };
-    miercoles?: { abierto: boolean; desde: string; hasta: string };
-    jueves?: { abierto: boolean; desde: string; hasta: string };
-    viernes?: { abierto: boolean; desde: string; hasta: string };
-    sabado?: { abierto: boolean; desde: string; hasta: string };
-    domingo?: { abierto: boolean; desde: string; hasta: string };
-  };
-  image1?: string;
-  image2?: string;
-  image3?: string;
-  images?: { url: string; publicId?: string }[];
+  address?: string;
+  hours?: string;
+  horarios?:
+    | {
+        lunes?: { abierto: boolean; desde: string; hasta: string };
+        martes?: { abierto: boolean; desde: string; hasta: string };
+        miercoles?: { abierto: boolean; desde: string; hasta: string };
+        jueves?: { abierto: boolean; desde: string; hasta: string };
+        viernes?: { abierto: boolean; desde: string; hasta: string };
+        sabado?: { abierto: boolean; desde: string; hasta: string };
+        domingo?: { abierto: boolean; desde: string; hasta: string };
+      }
+    | Record<string, any>;
+  phone?: string;
+  WhatsApp?: string;
+  Facebook?: string;
+  price?: string;
+  rating?: number;
   ownerId?: string;
-  ownerEmail?: string; 
-}
+  ownerEmail?: string;
+  plan?: "free" | "featured" | "sponsor" | string;
+  isOpen?: "si" | "no" | string;
+  lat?: number | null;
+  lng?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  location?: { lat: number; lng: number } | null;
+  image1?: string | null;
+  image2?: string | null;
+  image3?: string | null;
+  images?: { url?: string | null; publicId?: string }[];
+  featured?: string;
+  priceRange?: string;
+};
 
 export interface Review {
   id?: string;
@@ -46,3 +49,32 @@ export interface Review {
   created: string;
   userId: string;
 }
+
+export interface BusinessPreview {
+  id: string;
+  name: string;
+  category: string;
+  colonia: string;
+  rating?: number | null;
+  isOpen: "si" | "no";
+  address: string;
+  phone?: string;
+  WhatsApp?: string;
+}
+
+export const pickBusinessPreview = (biz: Business): BusinessPreview => {
+  const phone = typeof biz.phone === "string" && biz.phone.trim().length ? biz.phone.trim() : undefined;
+  const whatsapp = typeof biz.WhatsApp === "string" && biz.WhatsApp.trim().length ? biz.WhatsApp.trim() : undefined;
+
+  return {
+    id: biz.id ?? "",
+    name: biz.name,
+    category: biz.category ?? "",
+    colonia: biz.colonia ?? biz.neighborhood ?? "",
+    rating: typeof biz.rating === "number" ? biz.rating : null,
+    isOpen: biz.isOpen === "no" ? "no" : "si",
+    address: biz.address ?? "",
+    ...(phone ? { phone } : {}),
+    ...(whatsapp ? { WhatsApp: whatsapp } : {}),
+  };
+};

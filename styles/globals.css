@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Prevent react-image-gallery from bloquear el scroll vertical en móvil */
+.image-gallery,
+.image-gallery-content,
+.image-gallery-slide-wrapper,
+.image-gallery-slides,
+.image-gallery-slide,
+.image-gallery-swipe {
+  touch-action: pan-y !important;
+  overscroll-behavior-y: contain;
+}

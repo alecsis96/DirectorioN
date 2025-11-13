@@ -1,111 +1,134 @@
+import Link from "next/link";
 import React from "react";
-import Image from "next/image";
-import ShareButton from "./ShareButton";
-import BusinessHours from "./BusinessHours";
-import { FaPhoneAlt, FaWhatsapp, FaFacebookF, FaStar } from 'react-icons/fa';
-import { Business } from "../types/business";
+import { mapsLink, normalizeDigits, waLink } from "../lib/helpers/contact";
+import { sendEvent } from "../lib/telemetry";
+import type { Business, BusinessPreview } from "../types/business";
 
-interface BusinessProps {
-  business: Business;
-}
+type CardBusiness = BusinessPreview | Business;
 
-const BusinessCard: React.FC<BusinessProps> = ({ business }) => {
-  // Vista previa de imagen usando la primera imagen disponible o una genérica
-  const genericImage = "https://via.placeholder.com/400x300?text=Sin+imagen";
-  const previewImg = (business as any).images?.[0]?.url || business.image1 || business.image2 || business.image3 || genericImage;
+type Props = {
+  business: CardBusiness;
+};
+
+const BusinessCard: React.FC<Props> = ({ business }) => {
+  const businessId = typeof (business as any).id === "string" ? (business as any).id : undefined;
+  const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
+  const isOpen = business.isOpen === "si";
+  const addressText = business.address || "Sin direccion";
+  const mapsHref = mapsLink(undefined, undefined, business.address || business.name);
+  const callHref = business.phone ? `tel:${normalizeDigits(business.phone)}` : null;
+  const whatsappHref = business.WhatsApp ? waLink(business.WhatsApp) : "";
+
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 flex flex-col border border-gray-100 hover:shadow-2xl transition-shadow relative animate-fadeIn">
-      <div className="mb-5 w-full h-44 flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-yellow-100 rounded-xl overflow-hidden border border-gray-200 shadow relative">
-        <Image
-          src={previewImg}
-          alt={`${business.name} preview`}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
-          className="object-cover transition-transform duration-300 hover:scale-105"
-        />
-      </div>
-      <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-2xl font-extrabold text-gray-800 tracking-tight">{business.name}</h2>
-        {(business as any).plan === 'sponsor' && (
-          <span className="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-            👑 Patrocinado
+    <article className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col gap-4">
+      <header className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col">
+            <Link
+              prefetch={false}
+              href={{ pathname: "/negocios/[id]", query: { id: business.id } }}
+              className="text-xl font-semibold text-gray-900 hover:text-[#38761D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38761D]"
+            >
+              {business.name}
+            </Link>
+            <p className="text-xs text-gray-500">Tap para ver detalles sin salir de esta pagina ligera.</p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600" aria-label={`Calificacion ${ratingValue.toFixed(1)} de 5`}>
+            <StarIcon className="w-4 h-4" />
+            {ratingValue.toFixed(1)}
           </span>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+          {business.category && <span className="bg-gray-100 px-3 py-1 rounded-full">{business.category}</span>}
+          {business.colonia && <span className="bg-gray-100 px-3 py-1 rounded-full">{business.colonia}</span>}
+          <span
+            className={`px-3 py-1 rounded-full font-semibold ${isOpen ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+            aria-live="polite"
+          >
+            {isOpen ? "Abierto" : "Cerrado"}
+          </span>
+        </div>
+      </header>
+
+      <p className="text-sm text-gray-700 flex items-center gap-2" aria-label={`Direccion ${addressText}`}>
+        <LocationIcon className="w-4 h-4 text-gray-500" />
+        <span className="truncate">{addressText}</span>
+      </p>
+
+      <div className="flex flex-wrap gap-2 text-sm font-semibold">
+        {callHref && (
+          <a
+            href={callHref}
+            className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-green-50 text-green-800 hover:bg-green-100 transition"
+            aria-label={`Llamar a ${business.name}`}
+            onClick={() => {
+              sendEvent({ t: "cta_call", p: "list", ...(businessId ? { b: businessId } : {}) });
+            }}
+          >
+            Llamar
+          </a>
         )}
-        {(business as any).plan === 'featured' && (
-          <span className="inline-block bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-            ⭐ Destacado
-          </span>
+        {whatsappHref && (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-green-100 text-green-900 hover:bg-green-200 transition"
+            aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
+            onClick={() => {
+              sendEvent({ t: "cta_wa", p: "list", ...(businessId ? { b: businessId } : {}) });
+            }}
+          >
+            WhatsApp
+          </a>
         )}
-      </div>
-      <div className="flex flex-wrap gap-4 mb-2 items-center">
-        <span className="text-sm text-gray-500 font-semibold bg-gray-100 px-2 py-1 rounded shadow">{business.category}</span>
-        <span className={`text-xs px-2 py-1 rounded font-semibold shadow ${business.isOpen === "si" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-          {business.isOpen === "si" ? "Abierto" : "Cerrado"}
-        </span>
-      </div>
-      <p className="text-gray-700 mb-4 whitespace-pre-line text-base leading-relaxed tracking-tight">{business.description}</p>
-      <div className="mb-4 grid grid-cols-1 gap-2">
-        <div className="flex gap-2 items-center">
-          <span className="font-bold text-gray-600 w-24 ">Dirección:</span>
-          <span className="text-gray-800">{business.address}</span>
-        </div>
-        <div className="mb-2">
-          <BusinessHours hours={business.hours} horarios={business.horarios} />
-        </div>
-        <div className="flex gap-2 items-center">
-          <span className="font-bold text-gray-600 w-24">Calificación:</span>
-          <span className="text-yellow-600 font-bold">{Number.isFinite(Number(business.rating)) ? business.rating : 0}</span>
-          <span className="flex items-center gap-0.5 text-yellow-500" aria-hidden>
-            {Array.from({ length: Math.max(0, Math.min(5, Math.round(Number(business.rating) || 0))) }).map((_, i) => (
-              <FaStar key={i} />
-            ))}
-          </span>
-        </div>
-      </div>
-      {/* Botones de acción */}
-      <div className="flex flex-row gap-3 items-center justify-end mt-2 relative">
         <a
-          href={`tel:${business.phone}`}
-          className="px-3 py-2 bg-blue-500 text-white rounded-full text-lg font-bold hover:bg-blue-600 shadow-sm flex items-center justify-center border border-blue-200 transition-colors duration-150"
-          title="Llamar"
-          onClick={e => e.stopPropagation()}
-        >
-          <span className="w-5 h-5 flex items-center justify-center">
-            <FaPhoneAlt className="text-xl" />
-          </span>
-        </a>
-        <a
-          href={`https://wa.me/${business.WhatsApp}`}
+          href={mapsHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-3 py-2 bg-green-500 text-white rounded-full text-lg font-bold hover:bg-green-600 shadow-sm flex items-center justify-center border border-green-200 transition-colors duration-150"
-          title="WhatsApp"
-          onClick={e => e.stopPropagation()}
+          className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+          aria-label="Como llegar en Google Maps"
+          onClick={() => {
+            sendEvent({ t: "cta_maps", p: "list", ...(businessId ? { b: businessId } : {}) });
+          }}
         >
-          <span className="w-5 h-5 flex items-center justify-center">
-            <FaWhatsapp className="text-xl" />
-          </span>
+          Como llegar
         </a>
-        <a
-          href={business.Facebook}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-3 py-2 bg-blue-600 text-white rounded-full text-lg font-bold hover:bg-blue-700 shadow-sm flex items-center justify-center border border-blue-300 transition-colors duration-150"
-          title="Facebook"
-          onClick={e => e.stopPropagation()}
-        >
-          <span className="w-5 h-5 flex items-center justify-center">
-            <FaFacebookF className="text-xl" />
-          </span>
-        </a>
-        {/* Botón único de compartir */}
-        <div onClick={e => e.stopPropagation()}>
-          <ShareButton business={business} />
-        </div>
       </div>
-    </div>
+    </article>
   );
-}
+};
 
 export default React.memo(BusinessCard);
 
+type IconProps = React.SVGProps<SVGSVGElement>;
+
+function StarIcon({ className = "w-4 h-4", ...props }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      role="img"
+      aria-hidden="true"
+      className={className}
+      {...props}
+    >
+      <path d="M10 1.5l2.4 4.9 5.4.78-3.9 3.75.92 5.32L10 13.88l-4.82 2.37.92-5.32-3.9-3.75 5.4-.78z" />
+    </svg>
+  );
+}
+
+function LocationIcon({ className = "w-4 h-4", ...props }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      role="img"
+      aria-hidden="true"
+      className={className}
+      {...props}
+    >
+      <path d="M10 1.75c-3.07 0-5.55 2.48-5.55 5.55 0 3.9 4.77 9.1 5.15 9.5a.5.5 0 0 0 .8 0c.38-.4 5.15-5.6 5.15-9.5 0-3.07-2.48-5.55-5.55-5.55zm0 8.03a2.48 2.48 0 1 1 0-4.96 2.48 2.48 0 0 1 0 4.96z" />
+    </svg>
+  );
+}

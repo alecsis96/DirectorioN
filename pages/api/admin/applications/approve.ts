@@ -158,9 +158,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       status: "approved",
       approvedAt: admin.firestore.FieldValue.serverTimestamp(),
       businessId: bizRef.id,
-      processedBy: decoded.uid, // ← Auditoría: quién aprobó
+      processedBy: decoded.uid, // ??? Auditor??a: qui?n aprob??
     });
 
+    try {
+      await db.collection("events").add({
+        t: "app_approved",
+        ts: admin.firestore.FieldValue.serverTimestamp(),
+        uid: decoded.uid || null,
+        sd: false,
+      });
+    } catch (telemetryError) {
+      console.warn("[telemetry] app_approved", telemetryError);
+    }
     // 10. Opcional: Eliminar la solicitud original si se especificó
     if (removeSource === true) {
       await appRef.delete();
@@ -172,7 +182,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     //   body: `Completa los datos de tu negocio en: ${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/${bizRef.id}`
     // });
 
-    console.log(`✅ Negocio creado en draft: ${bizRef.id} para ${ownerEmail || ownerId}`);
+    console.info(`✅ Negocio creado en draft: ${bizRef.id} para ${ownerEmail || ownerId}`);
 
     return res.status(200).json({ 
       ok: true, 
@@ -189,3 +199,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 }
+
+
+
+

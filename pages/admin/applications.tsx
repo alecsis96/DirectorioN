@@ -1,12 +1,13 @@
-﻿// pages/admin/index.tsx
+// pages/admin/index.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { auth, signInWithGoogle } from "../../firebaseConfig";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import AdminStatsPanel from "../../components/AdminStatsPanel";
 
-/* ────────────────────────────
+/* ----------------------------
    Tipos mínimos (ajústalos si tus APIs devuelven campos extra)
-   ──────────────────────────── */
+   ---------------------------- */
 type ApplicationItem = {
   uid: string;
   status: "pending" | "approved" | "rejected";
@@ -55,9 +56,9 @@ type BusinessFormState = {
   lng: string;
 };
 
-/* ────────────────────────────
+/* ----------------------------
    Utils
-   ──────────────────────────── */
+   ---------------------------- */
 const inputBase =
   "mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-[#38761D] focus:outline-none focus:ring-2 focus:ring-[#38761D]/30 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400";
 
@@ -159,17 +160,17 @@ function useAuthAdmin() {
     return () => {
       mounted = false;
     };
-  }, [user?.uid]);
+  }, [user]);
 
   return { user, isAdmin, checking };
 }
 
-/* ────────────────────────────
+/* ----------------------------
    Panel principal con tabs
-   ──────────────────────────── */
+   ---------------------------- */
 export default function AdminHome() {
   const { user, isAdmin, checking } = useAuthAdmin();
-  const [tab, setTab] = useState<"apps" | "biz" | "settings">("apps");
+  const [tab, setTab] = useState<"apps" | "biz" | "stats" | "settings">("apps");
   const [banner, setBanner] = useState<{ kind: "info" | "success" | "error"; text: string } | null>(null);
 
   return (
@@ -216,6 +217,7 @@ export default function AdminHome() {
             {([
               { key: "apps", label: "Solicitudes" },
               { key: "biz", label: "Negocios" },
+              { key: "stats", label: "Estadisticas" },
               { key: "settings", label: "Configuración" },
             ] as const).map((t) => (
               <button
@@ -237,7 +239,7 @@ export default function AdminHome() {
           </div>
         )}
 
-        {checking && <p className="text-gray-500">Verificando permisos…</p>}
+        {checking && <p className="text-gray-500">Verificando permisos</p>}
         {!checking && !user && <p className="text-gray-500">Inicia sesión para continuar.</p>}
         {!checking && user && !isAdmin && (
           <p className="rounded border border-yellow-300 bg-yellow-50 px-4 py-2 text-sm text-yellow-800">
@@ -249,6 +251,7 @@ export default function AdminHome() {
           <>
             {tab === "apps" && <ApplicationsPanel setBanner={setBanner} />}
             {tab === "biz" && <BusinessesPanel setBanner={setBanner} />}
+            {tab === "stats" && <AdminStatsPanel />}
             {tab === "settings" && <SettingsPanel />}
           </>
         )}
@@ -257,9 +260,9 @@ export default function AdminHome() {
   );
 }
 
-/* ────────────────────────────
+/* ----------------------------
    Solicitudes (Applications)
-   ──────────────────────────── */
+   ---------------------------- */
 function ApplicationsPanel({
   setBanner,
 }: {
@@ -304,9 +307,9 @@ function ApplicationsPanel({
   }, [load]);
 
   const totals = useMemo(() => {
-    let total = items.length;
-    let pending = items.filter((i) => i.status === "pending").length;
-    let approved = items.filter((i) => i.status === "approved").length;
+    const total = items.length;
+    const pending = items.filter((i) => i.status === "pending").length;
+    const approved = items.filter((i) => i.status === "approved").length;
     return { total, pending, approved };
   }, [items]);
 
@@ -334,7 +337,7 @@ setBanner({ kind: "success", text: `Solicitud ${uid} aprobada. Se creó el negoc
     const token = await user.getIdToken();
 
     if (next === "approved") {
-      // 🔹 LLAMA AL ENDPOINT CORRECTO Y CON EL NOMBRE CORRECTO DEL CAMPO
+      // ?? LLAMA AL ENDPOINT CORRECTO Y CON EL NOMBRE CORRECTO DEL CAMPO
       const res = await fetch("/api/admin/applications/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -345,7 +348,7 @@ setBanner({ kind: "success", text: `Solicitud ${uid} aprobada. Se creó el negoc
 
       setBanner({ kind: "success", text: `Solicitud ${uid} aprobada y movida a negocios.` });
 
-      // 🔄 Refresca solicitudes y avisa a la pestaña de negocios
+      // ?? Refresca solicitudes y avisa a la pestaña de negocios
       await load();
       window.dispatchEvent(new CustomEvent("biz:refresh"));
       return;
@@ -403,7 +406,7 @@ setBanner({ kind: "success", text: `Solicitud ${uid} aprobada. Se creó el negoc
             setPage(1);
             setQ(e.target.value);
           }}
-          placeholder="Buscar (nombre, email, negocio)…"
+          placeholder="Buscar (nombre, email, negocio)"
           className={inputBase}
         />
         <select
@@ -430,7 +433,7 @@ setBanner({ kind: "success", text: `Solicitud ${uid} aprobada. Se creó el negoc
             disabled={loading}
             className="rounded-full bg-[#38761D] px-4 py-2 text-xs font-semibold text-white hover:bg-[#2f5a1a] disabled:opacity-60"
           >
-            {loading ? "Actualizando…" : "Actualizar"}
+            {loading ? "Actualizando" : "Actualizar"}
           </button>
         </div>
       </div>
@@ -472,7 +475,7 @@ setBanner({ kind: "success", text: `Solicitud ${uid} aprobada. Se creó el negoc
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {app.updatedAt ? new Date(app.updatedAt).toLocaleString() : "—"}
+                    {app.updatedAt ? new Date(app.updatedAt).toLocaleString() : ""}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
@@ -542,9 +545,9 @@ setBanner({ kind: "success", text: `Solicitud ${uid} aprobada. Se creó el negoc
   );
 }
 
-/* ────────────────────────────
+/* ----------------------------
    Negocios (lista + drawer edición)
-   ──────────────────────────── */
+   ---------------------------- */
 function BusinessesPanel({
   
   setBanner,
@@ -744,7 +747,7 @@ function BusinessesPanel({
             setPage(1);
             setQ(e.target.value);
           }}
-          placeholder="Buscar (nombre, dirección, propietario)…"
+          placeholder="Buscar (nombre, dirección, propietario)"
           className={inputBase}
         />
         <select
@@ -789,7 +792,7 @@ function BusinessesPanel({
             disabled={loading}
             className="rounded-full bg-[#38761D] px-4 py-2 text-xs font-semibold text-white hover:bg-[#2f5a1a] disabled:opacity-60"
           >
-            {loading ? "Actualizando…" : "Actualizar"}
+            {loading ? "Actualizando" : "Actualizar"}
           </button>
         </div>
       </div>
@@ -1058,7 +1061,7 @@ function BusinessesPanel({
               className="rounded bg-[#38761D] px-4 py-2 text-xs font-semibold text-white hover:bg-[#2f5a1a] disabled:opacity-60"
               disabled={drawerBusy}
             >
-              {drawerBusy ? "Guardando…" : editId ? "Guardar cambios" : "Crear negocio"}
+              {drawerBusy ? "Guardando" : editId ? "Guardar cambios" : "Crear negocio"}
             </button>
           </div>
         </div>
@@ -1067,29 +1070,29 @@ function BusinessesPanel({
   );
 }
 
-/* ────────────────────────────
+/* ----------------------------
    Configuración (placeholder)
-   ──────────────────────────── */
+   ---------------------------- */
 function SettingsPanel() {
   return (
     <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-lg">
       <h2 className="text-lg font-semibold text-gray-900">Configuración</h2>
       <p className="mt-2 text-sm text-gray-600">
-        Integra aquí opciones como: recordatorios de renovación, expiración automática de “Destacado”, notificaciones
+        Integra aquí opciones como: recordatorios de renovación, expiración automática de Destacado, notificaciones
         por correo/Slack, y variables de entorno visibles para el admin (solo lectura).
       </p>
       <ul className="mt-3 list-disc pl-5 text-sm text-gray-600">
         <li>CRON/Cloud Scheduler para expirar planes.</li>
         <li>Webhook Slack/email templates (aprobado, rechazado, por vencer).</li>
-        <li>Activar modo “mantenimiento”.</li>
+        <li>Activar modo mantenimiento.</li>
       </ul>
     </section>
   );
 }
 
-/* ────────────────────────────
+/* ----------------------------
    Helpers de formulario negocio
-   ──────────────────────────── */
+   ---------------------------- */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block text-xs font-semibold text-gray-700">
@@ -1154,4 +1157,5 @@ function toNumStr(v: any) {
   if (typeof v === "string") return v.trim();
   return "";
 }
+
 

@@ -11,10 +11,19 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import ImageUploader from '../../components/ImageUploader';
 import AddressPicker from '../../components/AddressPicker';
 import { useAuth, canEditBusiness } from '../../hooks/useAuth';
-import { loadStripe } from '@stripe/stripe-js';
 
-// Inicializar Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+type DaySchedule = { open: boolean; start: string; end: string };
+type WeeklySchedule = Record<string, DaySchedule>;
+
+const createDefaultSchedule = (): WeeklySchedule => ({
+  lunes: { open: true, start: '09:00', end: '18:00' },
+  martes: { open: true, start: '09:00', end: '18:00' },
+  miercoles: { open: true, start: '09:00', end: '18:00' },
+  jueves: { open: true, start: '09:00', end: '18:00' },
+  viernes: { open: true, start: '09:00', end: '18:00' },
+  sabado: { open: true, start: '09:00', end: '14:00' },
+  domingo: { open: false, start: '09:00', end: '18:00' }
+});
 
 interface UpdateResponse {
   ok: boolean;
@@ -50,17 +59,7 @@ export default function EditBusiness() {
   const [msg, setMsg] = useState('');
   
   // Horarios por día de la semana
-  const [schedule, setSchedule] = useState<{
-    [key: string]: { open: boolean; start: string; end: string };
-  }>({
-    lunes: { open: true, start: '09:00', end: '18:00' },
-    martes: { open: true, start: '09:00', end: '18:00' },
-    miercoles: { open: true, start: '09:00', end: '18:00' },
-    jueves: { open: true, start: '09:00', end: '18:00' },
-    viernes: { open: true, start: '09:00', end: '18:00' },
-    sabado: { open: true, start: '09:00', end: '14:00' },
-    domingo: { open: false, start: '09:00', end: '18:00' }
-  });
+  const [schedule, setSchedule] = useState<WeeklySchedule>(() => createDefaultSchedule());
 
   // Cargar datos del negocio
   useEffect(() => {
@@ -97,8 +96,9 @@ export default function EditBusiness() {
           
           // Cargar horarios por día si existen
           if (data.horarios && typeof data.horarios === 'object') {
-            const loadedSchedule: any = {};
-            Object.keys(schedule).forEach(day => {
+            const baseSchedule = createDefaultSchedule();
+            const loadedSchedule: WeeklySchedule = {};
+            (Object.keys(baseSchedule) as Array<keyof WeeklySchedule>).forEach((day) => {
               if (data.horarios[day]) {
                 loadedSchedule[day] = {
                   open: data.horarios[day].abierto !== false,
@@ -106,7 +106,7 @@ export default function EditBusiness() {
                   end: data.horarios[day].hasta || '18:00'
                 };
               } else {
-                loadedSchedule[day] = schedule[day];
+                loadedSchedule[day] = baseSchedule[day];
               }
             });
             setSchedule(loadedSchedule);
@@ -158,7 +158,7 @@ export default function EditBusiness() {
       });
       const derivedHours = hoursArray.join('; ');
       
-      const { openTime, closeTime, hours, ...rest } = form;
+      const { openTime: _openTime, closeTime: _closeTime, hours: _hours, ...rest } = form;
       const hasCoords =
         Number.isFinite(addr.lat) &&
         Number.isFinite(addr.lng) &&

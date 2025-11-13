@@ -1,432 +1,393 @@
-import { auth, signInWithGoogle } from '../../firebaseConfig';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
+
+import { auth, signInWithGoogle } from "../../firebaseConfig";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import BusinessCard from "../../components/BusinessCard";
 import Link from "next/link";
-import { GetServerSideProps, NextPage } from "next";
+import type { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FaPhoneAlt, FaWhatsapp, FaMapMarkerAlt, FaStar } from "react-icons/fa";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchBusinesses, toNumber } from "../../lib/server/businessData";
-import type { Business } from "../../types/business";
+import type { BusinessPreview, Business } from "../../types/business";
+import { pickBusinessPreview } from "../../types/business";
+import { sendEvent } from "../../lib/telemetry";
+import { sliceBusinesses } from "../../lib/pagination";
 
-const DEFAULT_ORDER = "destacado";
-const DISTANCE_OPTIONS = [0, 1, 3, 5, 10, 15];
-const MINUTES_PER_DAY = 24 * 60;
-const HOURS_TOKEN = /(\d{1,2})(?::(\d{2}))?\s*(?:a\.?\s*m\.?|p\.?\s*m\.?|am|pm)?/gi;
+const PAGE_SIZE = 20;
+type SortMode = "destacado" | "rating" | "az";
+const DEFAULT_ORDER: SortMode = "destacado";
 
-function timeStringToMinutes(raw: string | null | undefined): number | null {
-  if (!raw) return null;
-  const normalized = raw
-    .toLowerCase()
-    .replace(/a\.?\s*m\.?/g, "am")
-    .replace(/p\.?\s*m\.?/g, "pm")
-    .replace(/\./g, "")
-    .trim();
-
-  const match = normalized.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
-  if (!match) return null;
-
-  let hour = Number(match[1]);
-  const minute = match[2] ? Number(match[2]) : 0;
-  const meridiem = match[3];
-
-  if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
-
-  if (meridiem === "pm" && hour < 12) hour += 12;
-  if (meridiem === "am" && hour === 12) hour = 0;
-
-  hour = hour % 24;
-  return hour * 60 + minute;
-}
-
-function extractScheduleTokens(hours: string | null | undefined): string[] {
-  if (!hours) return [];
-  return Array.from(hours.matchAll(HOURS_TOKEN)).map((match) => match[0]);
-}
-
-function formatMinutesLabel(totalMinutes: number): string {
-  const normalized = ((totalMinutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
-  const hours = Math.floor(normalized / 60);
-  const minutes = normalized % 60;
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
-}
-
-function getCurrentMinutes(): number {
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
-}
-
-function getScheduleStatus(hours: string | null | undefined, referenceMinutes: number): { isOpen: boolean; infoText: string } | null {
-  const tokens = extractScheduleTokens(hours);
-  if (tokens.length < 2) return null;
-
-  const openMinutes = timeStringToMinutes(tokens[0]);
-  const closeMinutes = timeStringToMinutes(tokens[1]);
-
-  if (openMinutes == null || closeMinutes == null) return null;
-
-  const spansMidnight = closeMinutes <= openMinutes;
-  const isOpen = spansMidnight
-    ? referenceMinutes >= openMinutes || referenceMinutes < closeMinutes
-    : referenceMinutes >= openMinutes && referenceMinutes < closeMinutes;
-
-  const infoText = isOpen
-    ? `Cierra a las ${formatMinutesLabel(closeMinutes)}`
-    : `Abre a las ${formatMinutesLabel(openMinutes)}`;
-
-  return { isOpen, infoText };
-}
-
-/** Normaliza nombres de colonias para poder comparar sin acentos/variantes */
 function normalizeColonia(input?: string): string {
   if (!input) return "";
   return input
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/\./g, "")            // quita puntos
-    .replace(/\s+/g, " ")          // colapsa espacios
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
     .trim()
-    .replace(/^yajalon\s+/, "");   // "yajalon centro" -> "centro"
+    .replace(/^yajalon\s+/, "");
 }
 
-/** Lista bonita para mostrar en el select */
 const YAJALON_COLONIAS_LABELS = [
-  "12 de Diciembre","Agua Fría","Amado Nervo","Barranca Nabil","Belén Ajkabalna","Belisario Domínguez",
-  "Callejón Lorena Shashijá","Calvario Bahuitz","Calvario Bahuitz Ojo de Agua","Chitaltic","Chul-Ha","Cueva Joctiul",
-  "Efigenia Chapoy","El Azufre","El Bosque","El Campo","El Delirio","El Milagro","Flamboyán","Flores","Jardines",
-  "Jonuta","José María Morelos y Pavón (Taquinja)","La Aldea","La Belleza","La Candelaria","La Laguna",
-  "Lázaro Cárdenas","Linda Vista 1a. Sección","Loma Bonita","Los Tulipanes","Lucio Blanco","Majasil",
-  "Nueva Creación","Nueva Esperanza","Saclumil Rosario II","San Antonio","San Fernando","San José Bunslac",
-  "San José el Mirador","San José Paraíso","San Luis","San Martín","San Miguel","San Miguel Ojo de Agua",
-  "San Pedro Buenavista","San Vicente","Santa Bárbara","Santa Candelaria","Santa Elena","Santa Teresita",
-  "Shashijá","Tzitzaquil","Vista Alegre","Centro"
+  "12 de Diciembre","Agua Fria","Amado Nervo","Barranca Nabil","Belen Ajkabalna","Belisario Dominguez",
+  "Callejon Lorena Shashijo","Calvario Bahuitz","Calvario Bahuitz Ojo de Agua","Chitaltic","Chul-Ha","Cueva Joctiul",
+  "Efigenia Chapoy","El Azufre","El Bosque","El Campo","El Delirio","El Milagro","Flamboyan","Flores","Jardines",
+  "Jonuta","Jose Maria Morelos y Pavon (Taquinja)","La Aldea","La Belleza","La Candelaria","La Laguna",
+  "Lazaro Cardenas","Linda Vista 1a. Seccion","Loma Bonita","Los Tulipanes","Lucio Blanco","Majasil",
+  "Nueva Creacion","Nueva Esperanza","Saclumil Rosario II","San Antonio","San Fernando","San Jose Bunslac",
+  "San Jose el Mirador","San Jose Paraiso","San Luis","San Martin","San Miguel","San Miguel Ojo de Agua",
+  "San Pedro Buenavista","San Vicente","Santa Barbara","Santa Candelaria","Santa Elena","Santa Teresita",
+  "Shashijo","Tzitzaquil","Vista Alegre","Centro"
 ];
 
-/** Mapa label<->normalizada para búsquedas */
-const COLONIAS_NORM = YAJALON_COLONIAS_LABELS.map(label => ({
+const COLONIAS_NORM = YAJALON_COLONIAS_LABELS.map((label) => ({
   label,
   norm: normalizeColonia(label),
 }));
 
-/** Intenta inferir colonia desde la dirección (cuando no viene en el doc). */
 function inferColoniaFromAddress(address?: string): string {
   if (!address) return "";
-  const a = normalizeColonia(address);
-
-  // 1) Coincidencia por inclusión: si la dirección contiene el nombre de la colonia
+  const cleaned = normalizeColonia(address);
   for (const { norm } of COLONIAS_NORM) {
-    if (norm && a.includes(norm)) return norm;
+    if (norm && cleaned.includes(norm)) return norm;
   }
-
-  // 2) Heurística básica: tomar el segundo segmento después de una coma
-  //    (ej: "Calle X, Jonuta, 29930 ..." -> "jonuta")
-  const parts = a.split(",").map(s => s.trim()).filter(Boolean);
+  const parts = cleaned.split(",").map((s) => s.trim()).filter(Boolean);
   if (parts.length >= 2) return parts[1];
-
   return "";
 }
 
-type BusinessWithMeta = Business & {
-  distanceKm: number | null;
-  resolvedColonia: string; // colonia normalizada para comparar
-};
+const SkeletonCard = () => (
+  <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 animate-pulse">
+    <div className="flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-4">
+        <div className="h-6 w-40 rounded bg-gray-200" />
+        <div className="h-4 w-16 rounded bg-gray-200" />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <div className="h-5 w-20 rounded-full bg-gray-200" />
+        <div className="h-5 w-24 rounded-full bg-gray-200" />
+        <div className="h-5 w-16 rounded-full bg-gray-200" />
+      </div>
+      <div className="h-4 w-2/3 rounded bg-gray-200" />
+      <div className="h-10 w-28 rounded bg-gray-200" />
+    </div>
+  </div>
+);
+
+const SkeletonList = ({ count }: { count: number }) => (
+  <div className="space-y-4">
+    {Array.from({ length: count }).map((_, index) => (
+      <SkeletonCard key={`skeleton-${index}`} />
+    ))}
+  </div>
+);
 
 type Filters = {
   category: string;
-  colonia: string; // normalizada
-  distance: number | null;
-  order: string;
-  lat: number | null;
-  lng: number | null;
+  colonia: string;
+  order: SortMode;
+  page: number;
+};
+
+const DEFAULT_FILTER_STATE: Filters = {
+  category: "",
+  colonia: "",
+  order: DEFAULT_ORDER,
+  page: 1,
 };
 
 type PageProps = {
-  businesses: BusinessWithMeta[];
+  businesses: BusinessPreview[];
   categories: string[];
-  colonias: string[]; // labels bonitos
+  colonias: string[];
   filters: Filters;
 };
 
-function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query }) => {
-  const category = typeof query.category === "string" ? query.category : "";
-  const coloniaRaw = typeof query.colonia === "string" ? query.colonia : "";
-  const colonia = normalizeColonia(coloniaRaw); // normalizamos lo que viene por URL
-  const order = typeof query.order === "string" && query.order.length ? query.order : DEFAULT_ORDER;
-  const distance = toNumber(query.distance);
-  const originLat = toNumber(query.lat);
-  const originLng = toNumber(query.lng);
+  const category = typeof query.c === "string" ? query.c : "";
+  const coloniaRaw = typeof query.co === "string" ? query.co : "";
+  const colonia = normalizeColonia(coloniaRaw);
+  const orderParam = typeof query.o === "string" ? (query.o as SortMode) : DEFAULT_ORDER;
+  const order: SortMode = ["destacado", "rating", "az"].includes(orderParam) ? orderParam : DEFAULT_ORDER;
+  const pageParam = Number.parseInt(typeof query.p === "string" ? query.p : "1", 10);
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
   const allBusinesses = await fetchBusinesses();
 
-  const businessesWithMeta: BusinessWithMeta[] = allBusinesses.map((biz) => {
-    const lat = toNumber(biz.lat ?? biz.latitude ?? biz.location?.lat);
-    const lng = toNumber(biz.lng ?? biz.longitude ?? biz.location?.lng);
-    const distanceKm =
-      originLat != null && originLng != null && lat != null && lng != null
-        ? haversineDistanceKm(originLat, originLng, lat, lng)
-        : null;
-
-    // 1) normalizada por campo
-    let resolvedColonia = normalizeColonia(biz.colonia || biz.neighborhood || "");
-    // 2) si no vino, intenta deducirla desde la dirección
-    if (!resolvedColonia) {
-      resolvedColonia = inferColoniaFromAddress(biz.address);
-    }
-
-    return { ...biz, distanceKm, resolvedColonia };
-  });
-
-  const categories = Array.from(new Set(allBusinesses.map((b) => b.category).filter(Boolean))).sort();
-
-  // Deduplca por versión normalizada y conserva el label bonito
   const labelByNorm = new Map<string, string>();
   for (const { label, norm } of COLONIAS_NORM) {
     if (norm && !labelByNorm.has(norm)) labelByNorm.set(norm, label);
   }
-  // añade las colonias que lleguen desde los docs
-  for (const b of businessesWithMeta) {
-    const raw = b.colonia || b.neighborhood || "";
+  for (const biz of allBusinesses) {
+    const raw = biz.colonia || biz.neighborhood || "";
     const norm = normalizeColonia(raw);
     if (norm && !labelByNorm.has(norm)) labelByNorm.set(norm, raw);
   }
+
   const colonias = Array.from(labelByNorm.values()).sort((a, b) => a.localeCompare(b, "es"));
+  const categories = Array.from(new Set(allBusinesses.map((b) => b.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
 
-  // Filtrado usando la colonia normalizada
-  let filtered = businessesWithMeta.filter((biz) => {
-    if (category && biz.category !== category) return false;
-    if (colonia && biz.resolvedColonia !== colonia) return false;
-    if (distance != null) {
-      if (distance === 0) {
-        if (biz.distanceKm == null) return false;
-      } else {
-        if (biz.distanceKm == null || biz.distanceKm > distance) return false;
-      }
+  const businesses: BusinessPreview[] = allBusinesses.map((biz) => {
+    const preview = pickBusinessPreview(biz as Business);
+    let resolvedColonia = normalizeColonia(preview.colonia);
+    if (!resolvedColonia) {
+      resolvedColonia = inferColoniaFromAddress(preview.address);
     }
-    return true;
-  });
+    const displayColonia = resolvedColonia ? labelByNorm.get(resolvedColonia) || preview.colonia : preview.colonia;
 
-  // Orden
-  filtered = filtered.sort((a, b) => {
-    if (order === "distance") {
-      if (a.distanceKm == null && b.distanceKm == null) return 0;
-      if (a.distanceKm == null) return 1;
-      if (b.distanceKm == null) return -1;
-      return a.distanceKm - b.distanceKm;
-    }
-    if (order === "rating") {
-      return (b.rating ?? 0) - (a.rating ?? 0);
-    }
-    
-    // Orden por defecto "destacado": priorizar por plan (sponsor > featured > free)
-    const getPlanPriority = (biz: any) => {
-      const plan = biz.plan || 'free';
-      if (plan === 'sponsor') return 3;
-      if (plan === 'featured') return 2;
-      return 1;
+    return {
+      ...preview,
+      colonia: displayColonia,
+      rating: toNumber(preview.rating) ?? null,
     };
-    
-    const aPlan = getPlanPriority(a);
-    const bPlan = getPlanPriority(b);
-    if (aPlan !== bPlan) return bPlan - aPlan;
-    
-    // Si tienen el mismo plan, ordenar por rating
-    return (b.rating ?? 0) - (a.rating ?? 0);
   });
 
   return {
     props: {
-      businesses: filtered,
+      businesses,
       categories,
       colonias,
       filters: {
         category,
-        colonia, // normalizada
-        distance: distance ?? null,
+        colonia,
         order,
-        lat: originLat,
-        lng: originLng,
+        page,
       },
     },
   };
 };
 
-const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, filters }) => {
-  const [user, setUser] = useState<User | null>(() => auth.currentUser);
+const ResultsPage: NextPage<PageProps> = (
+  {
+    businesses = [],
+    categories = [],
+    colonias = [],
+    filters = DEFAULT_FILTER_STATE,
+  }: PageProps = {
+    businesses: [],
+    categories: [],
+    colonias: [],
+    filters: DEFAULT_FILTER_STATE,
+  }
+) => {
   const router = useRouter();
-  const [geoError, setGeoError] = useState<string>('');
-  const [locating, setLocating] = useState(false);
-  const [nowMinutes, setNowMinutes] = useState(() => getCurrentMinutes());
+  const [user, setUser] = useState<User | null>(() => auth.currentUser);
+  const [prefersDataSaver, setPrefersDataSaver] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const pageViewType = router.pathname === "/" ? "home" : "list";
+
+  useEffect(() => {
+    sendEvent({ t: "pv", p: pageViewType });
+  }, [pageViewType]);
+
+  useEffect(() => {
+    const body = {
+      event: "home_render",
+      payload: {
+        page: pageViewType,
+        filters,
+      },
+    };
+    fetch("/api/telemetry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => {
+      // silent swallow to keep home lightweight
+    });
+  }, [pageViewType, filters]);
+
+  const [uiFilters, setUiFilters] = useState<Filters>(() => ({
+    category: filters.category || "",
+    colonia: filters.colonia || "",
+    order: filters.order || DEFAULT_ORDER,
+    page: filters.page || 1,
+  }));
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const id = window.setInterval(() => setNowMinutes(getCurrentMinutes()), 60_000);
-    return () => window.clearInterval(id);
+    if (typeof navigator === "undefined") return;
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (connection && typeof connection.saveData === "boolean") {
+      setPrefersDataSaver(Boolean(connection.saveData));
+    }
   }, []);
 
-  const handleUpdate = useCallback(
-    (next: Partial<Record<string, string | number | null>>) => {
-      const current = { ...router.query } as Record<string, string>;
-      Object.entries(next).forEach(([key, value]) => {
-        if (value === null || value === "" || value === undefined) {
-          delete current[key];
-        } else {
-          current[key] = String(value);
-        }
-      });
-      router.push({ pathname: "/negocios", query: current }, undefined, { shallow: false });
+  const pushQuery = useCallback(
+    (next: Filters) => {
+      const query: Record<string, string> = {};
+      if (next.category) query.c = next.category;
+      if (next.colonia) query.co = next.colonia;
+      if (next.order && next.order !== DEFAULT_ORDER) query.o = next.order;
+      if (next.page > 1) query.p = String(next.page);
+      setIsFetching(true);
+      router.push({ pathname: "/negocios", query }, undefined, { shallow: true }).finally(() => setIsFetching(false));
     },
     [router]
   );
 
+  const updateFilters = useCallback(
+    (partial: Partial<Filters>, options?: { resetPage?: boolean }) => {
+      setUiFilters((prev) => {
+        const nextPage = options?.resetPage ? 1 : partial.page ?? prev.page;
+        const next: Filters = {
+          category: partial.category ?? prev.category,
+          colonia: partial.colonia ?? prev.colonia,
+          order: partial.order ?? prev.order,
+          page: nextPage,
+        };
+        pushQuery(next);
+        return next;
+      });
+    },
+    [pushQuery]
+  );
+
   const handleCategoryChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
-      handleUpdate({ category: event.target.value, page: null });
+      updateFilters({ category: event.target.value }, { resetPage: true });
     },
-    [handleUpdate]
+    [updateFilters]
   );
 
   const handleColoniaChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
-      // value viene normalizado (opciones usan normalizeColonia)
-      handleUpdate({ colonia: event.target.value, page: null });
+      updateFilters({ colonia: event.target.value }, { resetPage: true });
     },
-    [handleUpdate]
+    [updateFilters]
   );
 
   const handleOrderChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
-      handleUpdate({ order: event.target.value });
+      updateFilters({ order: event.target.value as SortMode }, { resetPage: true });
     },
-    [handleUpdate]
+    [updateFilters]
   );
-
-  const handleDistanceChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const value = event.target.value;
-      handleUpdate({ distance: value.length ? Number(value) : null });
-    },
-    [handleUpdate]
-  );
-
-  const handleUseLocation = useCallback(() => {
-    if (typeof window === "undefined") return;
-    if (!navigator.geolocation) {
-      setGeoError("Tu navegador no soporta geolocalizacion.");
-      return;
-    }
-    setGeoError("");
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocating(false);
-        const { latitude, longitude } = position.coords;
-        handleUpdate({ lat: latitude.toFixed(6), lng: longitude.toFixed(6) });
-      },
-      () => {
-        setLocating(false);
-        setGeoError("No pudimos obtener tu ubicacion.");
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  }, [handleUpdate]);
 
   const handleSignIn = useCallback(() => {
     signInWithGoogle().catch((error) => {
-      console.error('Sign-in error', error);
+      console.error("sign-in", error);
     });
   }, []);
 
   const handleSignOut = useCallback(() => {
     signOut(auth).catch((error) => {
-      console.error('Sign-out error', error);
+      console.error("sign-out", error);
     });
   }, []);
 
-  // Mostrar un label bonito para la colonia seleccionada
+  const paginated = useMemo(() => {
+    const normalizedColonia = uiFilters.colonia;
+    const normalizedCategory = uiFilters.category;
+    const filtered = businesses.filter((biz) => {
+      if (normalizedCategory && biz.category !== normalizedCategory) return false;
+      if (normalizedColonia && normalizeColonia(biz.colonia) !== normalizedColonia) return false;
+      return true;
+    });
+    const sorted = [...filtered];
+    if (uiFilters.order === "az") {
+      sorted.sort((a, b) => a.name.localeCompare(b.name, "es"));
+    } else if (uiFilters.order === "rating") {
+      sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    } else {
+      sorted.sort((a, b) => {
+        if (a.isOpen !== b.isOpen) {
+          return a.isOpen === "si" ? -1 : 1;
+        }
+        return (b.rating ?? 0) - (a.rating ?? 0);
+      });
+    }
+    const pageCount = Math.max(1, uiFilters.page);
+    const currentSlice = sliceBusinesses(sorted, pageCount, PAGE_SIZE);
+    const previousEnd = (pageCount - 1) * PAGE_SIZE;
+    const accumulated =
+      pageCount > 1 ? sorted.slice(0, previousEnd).concat(currentSlice) : currentSlice;
+    return {
+      items: accumulated,
+      total: sorted.length,
+    };
+  }, [businesses, uiFilters]);
+
+  const hasMore = paginated.items.length < paginated.total;
+
+  const handleLoadMore = useCallback(() => {
+    if (isFetching || !hasMore) return;
+    updateFilters({ page: uiFilters.page + 1 });
+  }, [hasMore, isFetching, uiFilters.page, updateFilters]);
+
+  useEffect(() => {
+    if (prefersDataSaver || !hasMore) return;
+    const target = sentinelRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        handleLoadMore();
+      }
+    }, { rootMargin: "200px" });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [prefersDataSaver, hasMore, handleLoadMore]);
+
   const selectedColoniaLabel = useMemo(() => {
-    if (!filters.colonia) return "";
-    const found = colonias.find(c => normalizeColonia(c) === filters.colonia);
-    return found || filters.colonia;
-  }, [filters.colonia, colonias]);
+    if (!uiFilters.colonia) return "";
+    const found = colonias.find((c) => normalizeColonia(c) === uiFilters.colonia);
+    return found || uiFilters.colonia;
+  }, [uiFilters.colonia, colonias]);
 
   const headingDescription = useMemo(() => {
     const parts: string[] = [];
-    if (filters.category) parts.push(filters.category);
-    if (filters.colonia) parts.push(`en ${selectedColoniaLabel}`);
+    if (uiFilters.category) parts.push(uiFilters.category);
+    if (uiFilters.colonia) parts.push(`en ${selectedColoniaLabel}`);
     if (!parts.length) {
-      return "Explora negocios locales destacados, restaurantes, servicios mas cerca de ti en Yajalon.";
+      return "Explora comercios locales sin consumir datos extra.";
     }
     return `Resultados para ${parts.join(" ")}.`;
-  }, [filters.category, filters.colonia, selectedColoniaLabel]);
+  }, [uiFilters.category, uiFilters.colonia, selectedColoniaLabel]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") return;
+    console.info("home_render", { count: paginated.items.length, saveData: prefersDataSaver });
+  }, [paginated.items.length, prefersDataSaver]);
+
+  const showEmptyState = paginated.items.length === 0 && !isFetching;
 
   return (
     <>
       <Head>
-        <title>Negocios en Yajalon | Resultados y filtros</title>
-        <meta
-          name="description"
-          content={`Directorio de negocios locales en Yajalon. ${headingDescription} Filtra por categoria, colonia o distancia y descubre comercios destacados.`}
-        />
+        <title>Directorio Yajalon</title>
+        <meta name="robots" content="index,follow" />
+        <meta name="description" content={`Directorio optimizado para datos. ${headingDescription}`} />
       </Head>
-      <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800">
+      <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800 font-sans">
         <section className="max-w-6xl mx-auto px-6 py-10">
           <header className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-extrabold text-[#38761D] mb-3">
-              Directorio de negocios en Yajalon
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[#38761D] mb-3">Directorio de negocios en Yajalon</h1>
             <p className="text-base md:text-lg text-gray-600">{headingDescription}</p>
-            
-            {/* Botones de acción principales */}
+            {prefersDataSaver && (
+              <p className="mt-2 text-xs text-gray-500">Modo ahorro de datos activo: evitamos imagenes y mapas embebidos.</p>
+            )}
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <Link
-                href="/para-negocios"
-                className="inline-flex items-center justify-center gap-2 bg-[#38761D] text-white px-6 py-3 rounded-lg hover:bg-[#2f5a1a] transition font-semibold shadow-md"
-              >
-                <span>📝</span>
-                <span>Registrar mi negocio</span>
+              <Link prefetch={false} href="/para-negocios" className="inline-flex items-center justify-center gap-2 bg-[#38761D] text-white px-6 py-3 rounded-lg hover:bg-[#2f5a1a] transition font-semibold shadow-md">
+                Registrar mi negocio
               </Link>
-              <Link
-                href="/mis-solicitudes"
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md"
-              >
-                <span>🔍</span>
-                <span>Verificar mi solicitud</span>
+              <Link prefetch={false} href="/mis-solicitudes" className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md">
+                Verificar mi solicitud
               </Link>
             </div>
-
             <div className="mt-4 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-xs">
-                ¿Ya registraste tu negocio? Verifica el estado de tu solicitud
-              </span>
+              <span className="text-xs">Ya registraste tu negocio? Revisa el estado sin salir de esta pagina ligera.</span>
               {user ? (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">{user.email}</span>
-                  <button
-                    onClick={handleSignOut}
-                    className="rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100"
-                  >
+                  <button onClick={handleSignOut} className="rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100">
                     Cerrar sesion
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={handleSignIn}
-                  className="rounded bg-[#38761D] px-3 py-1 text-xs font-semibold text-white hover:bg-[#2f5a1a]"
-                >
+                <button onClick={handleSignIn} className="rounded bg-[#38761D] px-3 py-1 text-xs font-semibold text-white hover:bg-[#2f5a1a]">
                   Iniciar sesion
                 </button>
               )}
@@ -434,16 +395,10 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
           </header>
 
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 md:p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  Categoria
-                </label>
-                <select
-                  value={filters.category}
-                  onChange={handleCategoryChange}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40"
-                >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Categoria</label>
+                <select value={uiFilters.category} onChange={handleCategoryChange} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40">
                   <option value="">Todas las categorias</option>
                   {categories.map((cat) => (
                     <option key={cat} value={cat}>
@@ -453,15 +408,9 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
                 </select>
               </div>
 
-              <div className="md:col-span-1">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  Colonia
-                </label>
-                <select
-                  value={filters.colonia /* normalizada */}
-                  onChange={handleColoniaChange}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40"
-                >
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Colonia</label>
+                <select value={uiFilters.colonia} onChange={handleColoniaChange} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40">
                   <option value="">Todas las colonias</option>
                   {colonias.map((col) => (
                     <option key={col} value={normalizeColonia(col)}>
@@ -471,158 +420,44 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
                 </select>
               </div>
 
-              <div className="md:col-span-1">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  Distancia
-                </label>
-                <select
-                  value={filters.distance != null ? String(filters.distance) : ""}
-                  onChange={handleDistanceChange}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40"
-                >
-                  <option value="">Sin filtro</option>
-                  {DISTANCE_OPTIONS.map((km) => (
-                    <option key={km} value={km}>
-                      {km === 0 ? "Solo con coordenadas" : `Hasta ${km} km`}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleUseLocation}
-                  className="mt-2 text-xs text-[#38761D] underline"
-                  disabled={locating}
-                >
-                  {locating ? "Obteniendo ubicacion..." : "Usar mi ubicacion"}
-                </button>
-                {geoError && <p className="mt-1 text-xs text-red-500">{geoError}</p>}
-              </div>
-
-              <div className="md:col-span-1">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  Ordenar por
-                </label>
-                <select
-                  value={filters.order}
-                  onChange={handleOrderChange}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40"
-                >
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Ordenar por</label>
+                <select value={uiFilters.order} onChange={handleOrderChange} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40">
                   <option value="destacado">Destacado</option>
                   <option value="rating">Mejor calificados</option>
-                  <option value="distance">Mas cercanos</option>
+                  <option value="az">A-Z</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div className="space-y-6">
-            {businesses.length === 0 && (
+            {showEmptyState && (
               <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
-                No encontramos negocios con los filtros seleccionados. Intenta ajustar la busqueda o reiniciar los filtros.
+                No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
               </div>
             )}
 
-            {businesses.map((biz) => {
-              const displayDistance = biz.distanceKm != null ? `${biz.distanceKm.toFixed(1)} km` : null;
-              const mapsHref =
-                biz.lat != null && biz.lng != null
-                  ? `https://www.google.com/maps/search/?api=1&query=${biz.lat},${biz.lng}`
-                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(biz.address ?? biz.name)}`;
-              const scheduleStatus = getScheduleStatus(biz.hours ?? null, nowMinutes);
-              const derivedIsOpen = scheduleStatus?.isOpen ?? (biz.isOpen === "si");
-              const statusClass = derivedIsOpen ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
-              const statusLabel = derivedIsOpen ? "Abierto" : "Cerrado";
-              const statusInfoText = scheduleStatus?.infoText ?? null;
-              const detailHref = { pathname: "/negocios/[id]", query: { id: biz.id } };
-              return (
-                <article
-                  key={biz.id}
-                  className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col md:flex-row gap-6"
-                >
-                  <Link href={detailHref} className="flex-1 group">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h2 className="text-2xl font-bold text-gray-800 group-hover:text-[#38761D] transition-colors">
-                        {biz.name}
-                      </h2>
-                      {biz.featured === "si" && (
-                        <span className="inline-flex items-center text-xs font-semibold bg-yellow-200 text-yellow-900 px-2 py-1 rounded-full">
-                          Destacado
-                        </span>
-                      )}
-                      {displayDistance && (
-                        <span className="inline-flex items-center text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                          {displayDistance}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-3">
-                      {biz.category && <span className="bg-gray-100 px-3 py-1 rounded-full">{biz.category}</span>}
-                      {biz.resolvedColonia && (
-                        <span className="bg-gray-100 px-3 py-1 rounded-full">
-                          {(() => {
-                            const label = colonias.find(c => normalizeColonia(c) === biz.resolvedColonia);
-                            return label || (biz.colonia || biz.neighborhood || "—");
-                          })()}
-                        </span>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`}>
-                          {statusLabel}
-                        </span>
-                        {statusInfoText && <span className="text-xs text-gray-500">{statusInfoText}</span>}
-                      </div>
-                      <span className="flex items-center gap-1 text-yellow-500">
-                        <FaStar />
-                        <span className="text-sm font-semibold text-gray-700">{Number(biz.rating).toFixed(1)}</span>
-                      </span>
-                    </div>
-                    {biz.address && (
-                      <p className="text-sm text-gray-600 mb-2">
-                        <strong className="font-semibold">Direccion:</strong> {biz.address}
-                      </p>
-                    )}
-                    {biz.hours && (
-                      <p className="text-sm text-gray-600 mb-4">
-                        <strong className="font-semibold">Horario:</strong> {biz.hours}
-                      </p>
-                    )}
-                    {biz.description && (
-                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line overflow-hidden max-h-24">
-                        {biz.description}
-                      </p>
-                    )}
-                    <p className="mt-3 text-sm font-semibold text-[#38761D] group-hover:underline">Ver detalles del negocio</p>
-                  </Link>
-                  <div className="flex flex-col gap-3 md:w-48">
-                    <a
-                      href={`tel:${biz.phone}`}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition"
-                    >
-                      <FaPhoneAlt /> Llamar
-                    </a>
-                    <a
-                      href={`https://wa.me/521${biz.WhatsApp}?text=${encodeURIComponent(
-                        'Hola, vi tu negocio en el Directorio Yajalón y me gustaría más información.'
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition"
-                    >
-                      <FaWhatsapp /> WhatsApp
-                    </a>
-                    <a
-                      href={mapsHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition"
-                    >
-                      <FaMapMarkerAlt /> Como llegar
-                    </a>
-                  </div>
-                </article>
-              );
-            })}
+            {!showEmptyState && paginated.items.map((biz) => <BusinessCard key={biz.id} business={biz} />)}
+
+            {isFetching && paginated.items.length === 0 && <SkeletonList count={3} />}
+            {isFetching && paginated.items.length > 0 && <SkeletonList count={1} />}
           </div>
+
+          {hasMore && (
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={isFetching}
+                aria-label="Cargar mas resultados"
+                className="inline-flex items-center justify-center px-5 py-2 rounded-lg bg-[#38761D] text-white text-sm font-semibold hover:bg-[#2f5a1a] transition disabled:opacity-50"
+              >
+                {isFetching ? "Cargando..." : "Cargar mas"}
+              </button>
+              {!prefersDataSaver && <div ref={sentinelRef} className="h-1 w-full" aria-hidden="true" />}
+            </div>
+          )}
         </section>
       </main>
     </>
@@ -630,6 +465,3 @@ const ResultsPage: NextPage<PageProps> = ({ businesses, categories, colonias, fi
 };
 
 export default ResultsPage;
-
-
-

@@ -61,7 +61,7 @@ export default function AddressPicker({ value, onChange }: Props) {
       map.setCenter(p);
       onChange({ address: addr, lat: loc.lat(), lng: loc.lng() });
     });
-  }, [value.address, value.lat, value.lng]);
+  }, [value.address, value.lat, value.lng, onChange]);
 
   return (
     <div className="space-y-2 md:col-span-2">
