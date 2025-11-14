@@ -12,6 +12,7 @@ import type { BusinessPreview, Business } from "../../types/business";
 import { pickBusinessPreview } from "../../types/business";
 import { sendEvent } from "../../lib/telemetry";
 import { sliceBusinesses } from "../../lib/pagination";
+import { findBusinessesNear } from "../../lib/firestore/search";
 
 const PAGE_SIZE = 20;
 type SortMode = "destacado" | "rating" | "az";
@@ -102,6 +103,7 @@ type PageProps = {
   categories: string[];
   colonias: string[];
   filters: Filters;
+  error?: string | null;
 };
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query }) => {
@@ -112,8 +114,26 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query 
   const order: SortMode = ["destacado", "rating", "az"].includes(orderParam) ? orderParam : DEFAULT_ORDER;
   const pageParam = Number.parseInt(typeof query.p === "string" ? query.p : "1", 10);
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+  const lat = typeof query.lat === "string" ? Number.parseFloat(query.lat) : undefined;
+  const lng = typeof query.lng === "string" ? Number.parseFloat(query.lng) : undefined;
+  const radiusParam = typeof query.radius === "string" ? Number.parseFloat(query.radius) : undefined;
+  const radius = Number.isFinite(radiusParam) && radiusParam! > 0 ? radiusParam! : 5;
 
-  const allBusinesses = await fetchBusinesses();
+  let allBusinesses: Business[] = [];
+  let error: string | null = null;
+
+  const hasGeoParams = Number.isFinite(lat) && Number.isFinite(lng);
+  if (hasGeoParams) {
+    try {
+      allBusinesses = await findBusinessesNear(lat!, lng!, radius);
+    } catch (geoError) {
+      console.error("[home] geosearch failed", geoError);
+      error = "No pudimos filtrar por ubicación, mostrando todos los negocios.";
+      allBusinesses = await fetchBusinesses();
+    }
+  } else {
+    allBusinesses = await fetchBusinesses();
+  }
 
   const labelByNorm = new Map<string, string>();
   for (const { label, norm } of COLONIAS_NORM) {
@@ -154,6 +174,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ query 
         order,
         page,
       },
+      error,
     },
   };
 };
@@ -164,11 +185,13 @@ const ResultsPage: NextPage<PageProps> = (
     categories = [],
     colonias = [],
     filters = DEFAULT_FILTER_STATE,
+    error = null,
   }: PageProps = {
     businesses: [],
     categories: [],
     colonias: [],
     filters: DEFAULT_FILTER_STATE,
+    error: null,
   }
 ) => {
   const router = useRouter();
@@ -366,6 +389,11 @@ const ResultsPage: NextPage<PageProps> = (
           <header className="mb-8">
             <h1 className="text-3xl md:text-4xl font-extrabold text-[#38761D] mb-3">Directorio de negocios en Yajalon</h1>
             <p className="text-base md:text-lg text-gray-600">{headingDescription}</p>
+            {error && (
+              <p className="mt-2 text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
             {prefersDataSaver && (
               <p className="mt-2 text-xs text-gray-500">Modo ahorro de datos activo: evitamos imagenes y mapas embebidos.</p>
             )}

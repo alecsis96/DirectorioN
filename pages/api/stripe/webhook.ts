@@ -61,16 +61,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const now = new Date();
         const expirationDate = new Date(now);
-        expirationDate.setMonth(expirationDate.getMonth() + 1); // Plan válido por 1 mes
+        expirationDate.setDate(expirationDate.getDate() + 365); // Plan válido por 1 año
 
-        await businessRef.update({
-          plan,
-          featured: plan === 'featured' || plan === 'sponsor' ? 'si' : 'no',
-          planPurchaseDate: now,
-          planExpirationDate: expirationDate,
-          stripeSessionId: session.id,
-          stripePaymentStatus: 'paid',
-          updatedAt: now
+        await db.runTransaction(async (transaction) => {
+          const snapshot = await transaction.get(businessRef);
+          if (!snapshot.exists) {
+            throw new Error(`Business ${businessId} not found`);
+          }
+
+          transaction.update(businessRef, {
+            plan,
+            featured: plan === 'featured' || plan === 'sponsor' ? 'si' : 'no',
+            planPurchaseDate: now,
+            planExpirationDate: expirationDate,
+            stripeSessionId: session.id,
+            stripePaymentStatus: 'paid',
+            updatedAt: now,
+          });
         });
 
         console.info(`[stripe/webhook] Business ${businessId} upgraded to ${plan}`);

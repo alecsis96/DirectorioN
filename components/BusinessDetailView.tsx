@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 import dynamic from "next/dynamic";
 
@@ -126,35 +127,24 @@ export default function BusinessDetailView({ business }: Props) {
       const altText = business.name ? `${business.name} - imagen` : "Imagen del negocio";
 
       if (!src) {
-
         return (
           <div className="relative w-full rounded-xl bg-gray-100 aspect-[3/4] flex items-center justify-center text-gray-400">
             <span>Sin imagen</span>
           </div>
         );
-
       }
 
       return (
-
         <div className="relative w-full rounded-xl bg-gray-100 aspect-[3/4]">
-
-          <img
-
+          <Image
             src={src}
-
             alt={altText}
-
+            fill
+            sizes="(max-width: 768px) 100vw, 600px"
+            className="object-contain"
             loading="lazy"
-
-            decoding="async"
-
-            className="absolute inset-0 h-full w-full object-contain"
-
           />
-
         </div>
-
       );
 
     },

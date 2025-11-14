@@ -456,23 +456,23 @@ export default function EditBusiness() {
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >
-              <option value="">Selecciona una categor�a</option>
+              <option value="">Selecciona una categoría</option>
               <option value="Restaurante">Restaurante</option>
-              <option value="Cafeteria">Cafeter�a</option>
-              <option value="Comida rapida">Comida r�pida</option>
+              <option value="Cafeteria">Cafetería</option>
+              <option value="Comida rapida">Comida rápida</option>
               <option value="Bar">Bar</option>
               <option value="Gimnasio">Gimnasio</option>
               <option value="Spa">Spa</option>
-              <option value="Salon de belleza">Sal�n de belleza</option>
-              <option value="Ferreteria">Ferreter�a</option>
+              <option value="Salon de belleza">Salón de belleza</option>
+              <option value="Ferreteria">Ferretería</option>
               <option value="Supermercado">Supermercado</option>
-              <option value="Papeleria">Papeler�a</option>
+              <option value="Papeleria">Papelería</option>
               <option value="Boutique">Boutique</option>
               <option value="Farmacia">Farmacia</option>
               <option value="Servicios profesionales">Servicios profesionales</option>
-              <option value="Tecnologia">Tecnolog�a</option>
+              <option value="Tecnologia">Tecnología</option>
               <option value="Automotriz">Automotriz</option>
-              <option value="Educacion">Educaci�n</option>
+              <option value="Educacion">Educación</option>
               <option value="Entretenimiento">Entretenimiento</option>
               <option value="Salud">Salud</option>
               <option value="Turismo">Turismo</option>
@@ -577,7 +577,7 @@ export default function EditBusiness() {
                 >
                   <div className="text-center">
                     <div className="text-xl font-bold text-[#38761D]">Destacado</div>
-                    <div className="text-sm text-gray-600 mt-1">$299 / mes</div>
+                    <div className="text-sm text-gray-600 mt-1">$99 / mes</div>
                     <div className="text-xs text-gray-500 mt-2">
                       • Todo lo de Gratuito<br />
                       • Posición preferente<br />
@@ -610,7 +610,7 @@ export default function EditBusiness() {
                 >
                   <div className="text-center">
                     <div className="text-xl font-bold text-[#38761D]">Patrocinado</div>
-                    <div className="text-sm text-gray-600 mt-1">$599 / mes</div>
+                    <div className="text-sm text-gray-600 mt-1">$199 / mes</div>
                     <div className="text-xs text-gray-500 mt-2">
                       • Todo lo de Destacado<br />
                       • Banner en homepage<br />
@@ -729,7 +729,7 @@ export default function EditBusiness() {
           </button>
           <span className="ml-2 text-sm text-gray-500">{msg}</span>
 
-          <h2 className="mt-6 text-xl font-semibold">Im�genes</h2>
+          <h2 className="mt-6 text-xl font-semibold">Imágenes</h2>
           <ImageUploader
             businessId={id!}
             images={biz.images || []}
