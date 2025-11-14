@@ -1,9 +1,9 @@
 // hooks/useAuth.ts
 // Hook reutilizable para gestión de autenticación y detección de admin
 
-import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
+import { useState, useEffect } from "react";
+import { User, onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebaseConfig";
 
 /**
  * Hook personalizado para gestionar el estado de autenticación
@@ -20,17 +20,15 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Suscripción al cambio de estado de autenticación
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
 
       if (currentUser) {
         try {
-          // Obtener el token con claims personalizados
           const tokenResult = await currentUser.getIdTokenResult();
           setIsAdmin(tokenResult.claims?.admin === true);
         } catch (error) {
-          console.error('Error al verificar claims de admin:', error);
+          console.error("Error al verificar claims de admin:", error);
           setIsAdmin(false);
         }
       } else {
@@ -40,7 +38,6 @@ export function useAuth() {
       setLoading(false);
     });
 
-    // Cleanup: desuscribirse cuando el componente se desmonte
     return () => unsubscribe();
   }, []);
 
@@ -53,17 +50,6 @@ export function useAuth() {
  * 
  * @returns {User | null} Usuario autenticado o null
  */
-export function useCurrentUser(): User | null {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-
-  return user;
-}
-
 /**
  * Verifica si el usuario actual puede editar un negocio específico
  * Considera tanto el ownerId como el ownerEmail para compatibilidad
@@ -76,20 +62,9 @@ export function useCurrentUser(): User | null {
 export function canEditBusiness(
   user: User | null,
   isAdmin: boolean,
-  business: { ownerId?: string; ownerEmail?: string } | null
+  business: { ownerId?: string } | null
 ): boolean {
   if (!user || !business) return false;
-  
-  // Admin siempre puede editar
   if (isAdmin) return true;
-
-  // Verificar por ownerId (método principal)
-  if (business.ownerId && user.uid === business.ownerId) return true;
-
-  // Verificar por ownerEmail (fallback para compatibilidad)
-  if (business.ownerEmail && user.email) {
-    return user.email.toLowerCase() === business.ownerEmail.toLowerCase();
-  }
-
-  return false;
+  return Boolean(business.ownerId && user.uid === business.ownerId);
 }

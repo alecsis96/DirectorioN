@@ -86,16 +86,10 @@ export function normalizeBusiness(data: any, id: string): Business {
   const ownerCandidate = asString(data.ownerId);
   if (ownerCandidate) business.ownerId = ownerCandidate;
 
-  if (lat !== null && lat !== undefined) {
-    business.lat = lat;
-    business.latitude = lat;
-  }
-  if (lng !== null && lng !== undefined) {
-    business.lng = lng;
-    business.longitude = lng;
-  }
   if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
     business.location = { lat, lng };
+  } else {
+    business.location = null;
   }
 
   return business;

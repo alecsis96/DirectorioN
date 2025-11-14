@@ -185,7 +185,7 @@ const describeStatus = (schedule: Schedule): HoursStatus => {
       return {
         status: "open",
         closeAt,
-        message: `Abierto · Cierra a las ${closeAt}`,
+        message: `Cierra a las ${closeAt}`,
       };
     }
   }
@@ -201,7 +201,7 @@ const describeStatus = (schedule: Schedule): HoursStatus => {
         return {
           status: "closed",
           nextOpen,
-          message: `Cerrado · Abre hoy a las ${formatTime(slot.open)}`,
+          message: `Abre hoy a las ${formatTime(slot.open)}`,
         };
       }
       if (!isToday) {
@@ -209,7 +209,7 @@ const describeStatus = (schedule: Schedule): HoursStatus => {
         return {
           status: "closed",
           nextOpen,
-          message: `Cerrado · Abre ${nextOpen}`,
+          message: `Abre ${nextOpen}`,
         };
       }
     }

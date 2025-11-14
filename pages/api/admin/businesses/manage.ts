@@ -1,20 +1,82 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getAdminAuth, getAdminFirestore } from '../../../../lib/server/firebaseAdmin';
+import type { NextApiRequest, NextApiResponse } from "next";
+import { getAdminAuth, getAdminFirestore } from "../../../../lib/server/firebaseAdmin";
+import { z } from "zod";
+import type { Business } from "../../../../types/business";
 
 type ManageBody = {
   businessId?: string;
   data?: Record<string, unknown>;
 };
 
+const horarioDiaSchema = z.object({
+  abierto: z.boolean(),
+  desde: z.string(),
+  hasta: z.string(),
+});
+
+const horariosSchema = z
+  .object({
+    lunes: horarioDiaSchema.optional(),
+    martes: horarioDiaSchema.optional(),
+    miercoles: horarioDiaSchema.optional(),
+    jueves: horarioDiaSchema.optional(),
+    viernes: horarioDiaSchema.optional(),
+    sabado: horarioDiaSchema.optional(),
+    domingo: horarioDiaSchema.optional(),
+  })
+  .optional();
+
+const locationSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+});
+
+const imageSchema = z.object({
+  url: z.string().nullable().optional(),
+  publicId: z.string().optional(),
+});
+
+const BusinessSchema: z.ZodType<Business & { lat?: number | null; lng?: number | null }> = z
+  .object({
+    id: z.string().optional(),
+    name: z.string().min(1),
+    category: z.string().optional(),
+    description: z.string().optional(),
+    colonia: z.string().optional(),
+    neighborhood: z.string().optional(),
+    address: z.string().optional(),
+    hours: z.string().optional(),
+    horarios: horariosSchema,
+    phone: z.string().optional(),
+    WhatsApp: z.string().optional(),
+    Facebook: z.string().optional(),
+    price: z.string().optional(),
+    rating: z.number().optional(),
+    ownerId: z.string().optional(),
+    ownerEmail: z.string().optional(),
+    plan: z.enum(["free", "featured", "sponsor"]).or(z.string()).optional(),
+    isOpen: z.enum(["si", "no"]).or(z.string()).optional(),
+    location: locationSchema.nullable().optional(),
+    image1: z.string().nullable().optional(),
+    image2: z.string().nullable().optional(),
+    image3: z.string().nullable().optional(),
+    images: z.array(imageSchema).optional(),
+    featured: z.string().optional(),
+    priceRange: z.string().optional(),
+    lat: z.number().nullable().optional(),
+    lng: z.number().nullable().optional(),
+  })
+  .passthrough();
+
 function ensureString(value: unknown): string {
   if (Array.isArray(value)) return ensureString(value[0]);
-  if (typeof value !== 'string') return '';
+  if (typeof value !== "string") return "";
   return value.trim();
 }
 
 function toNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string') {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
     const trimmed = value.trim();
     if (!trimmed.length) return null;
     const parsed = Number(trimmed);
@@ -32,9 +94,9 @@ function sanitizeData(source: Record<string, unknown>) {
     if (value === undefined) continue;
 
     switch (key) {
-      case 'lat':
-      case 'latitude': {
-        if (value === null || (typeof value === 'string' && value.trim().length === 0)) {
+      case "lat":
+      case "latitude": {
+        if (value === null || (typeof value === "string" && value.trim().length === 0)) {
           lat = null;
           target.lat = null;
           target.latitude = null;
@@ -45,9 +107,9 @@ function sanitizeData(source: Record<string, unknown>) {
         if (num !== null) lat = num;
         break;
       }
-      case 'lng':
-      case 'longitude': {
-        if (value === null || (typeof value === 'string' && value.trim().length === 0)) {
+      case "lng":
+      case "longitude": {
+        if (value === null || (typeof value === "string" && value.trim().length === 0)) {
           lng = null;
           target.lng = null;
           target.longitude = null;
@@ -58,11 +120,11 @@ function sanitizeData(source: Record<string, unknown>) {
         if (num !== null) lng = num;
         break;
       }
-      case 'images': {
+      case "images": {
         if (!Array.isArray(value)) break;
         const images = value
           .map((item) => {
-            if (item && typeof item === 'object') {
+            if (item && typeof item === "object") {
               const maybe = item as Record<string, unknown>;
               const url = ensureString(maybe.url);
               if (!url) return null;
@@ -82,15 +144,15 @@ function sanitizeData(source: Record<string, unknown>) {
         break;
       }
       default: {
-        if (typeof value === 'string') {
+        if (typeof value === "string") {
           target[key] = value.trim();
-        } else if (typeof value === 'number' || typeof value === 'boolean') {
+        } else if (typeof value === "number" || typeof value === "boolean") {
           target[key] = value;
         } else if (value === null) {
           target[key] = null;
         } else if (Array.isArray(value)) {
           target[key] = value;
-        } else if (value && typeof value === 'object') {
+        } else if (value && typeof value === "object") {
           target[key] = value;
         }
         break;
@@ -114,33 +176,33 @@ function sanitizeData(source: Record<string, unknown>) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET' && req.method !== 'POST') {
-    res.setHeader('Allow', 'GET,POST');
+  if (req.method !== "GET" && req.method !== "POST") {
+    res.setHeader("Allow", "GET,POST");
     return res.status(405).end();
   }
 
   try {
-    const authHeader = req.headers.authorization ?? '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    if (!token) return res.status(401).json({ error: 'Missing token' });
+    const authHeader = req.headers.authorization ?? "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!token) return res.status(401).json({ error: "Missing token" });
 
     const auth = getAdminAuth();
     const decoded = await auth.verifyIdToken(token);
     if ((decoded as any).admin !== true) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     const db = getAdminFirestore();
 
-    if (req.method === 'GET') {
+    if (req.method === "GET") {
       const businessId = ensureString(req.query.businessId ?? req.query.id);
       if (!businessId) {
-        return res.status(400).json({ error: 'Missing businessId' });
+        return res.status(400).json({ error: "Missing businessId" });
       }
       const docRef = db.doc(`businesses/${businessId}`);
       const snapshot = await docRef.get();
       if (!snapshot.exists) {
-        return res.status(404).json({ error: 'Business not found' });
+        return res.status(404).json({ error: "Business not found" });
       }
       return res.status(200).json({
         ok: true,
@@ -152,11 +214,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const { businessId: rawId, data }: ManageBody = (req.body as ManageBody) ?? {};
-    if (!data || typeof data !== 'object') {
-      return res.status(400).json({ error: 'Missing data' });
+    if (!data || typeof data !== "object") {
+      return res.status(400).json({ error: "Missing data" });
     }
 
-    const sanitized = sanitizeData(data);
+    const validation = BusinessSchema.safeParse(data);
+    if (!validation.success) {
+      return res
+        .status(400)
+        .json({ error: "Invalid business payload", details: validation.error.format() });
+    }
+
+    const sanitized = sanitizeData(validation.data as Record<string, unknown>);
     const now = new Date();
 
     let businessId = ensureString(rawId);

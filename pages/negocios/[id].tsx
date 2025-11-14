@@ -10,6 +10,25 @@ interface PageProps {
 }
 
 const BusinessDetailPage: NextPage<PageProps> = ({ business }) => {
+  const ldLocalBusiness = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: business.name,
+    address: business.address,
+    telephone: business.phone || undefined,
+    priceRange: business.price || "MXN",
+    ...(business.WhatsApp ? { contactPoint: [{ "@type": "ContactPoint", contactType: "WhatsApp", telephone: business.WhatsApp }] } : {}),
+    ...(typeof business.rating === "number" && business.rating > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: business.rating.toFixed(1),
+            reviewCount: 1,
+          },
+        }
+      : {}),
+  };
+
   return (
     <>
       <Head>
@@ -17,6 +36,10 @@ const BusinessDetailPage: NextPage<PageProps> = ({ business }) => {
         <meta
           name="description"
           content={`Informacion de ${business.name}. Conoce su galeria, contacto, resenas y ubicacion en Yajalon.`}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ldLocalBusiness) }}
         />
       </Head>
       <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800">

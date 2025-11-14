@@ -483,14 +483,19 @@ export default function BusinessDetailView({ business }: Props) {
         ? business.Facebook
         : `https://${business.Facebook}`
       : "";
-  const mapHref = mapsLink(business.lat, business.lng, business.address || business.name);
+  const mapHref = mapsLink(business.location?.lat, business.location?.lng, business.address || business.name);
   const hasMapLink = Boolean(mapHref && mapHref !== "#");
 
   const googleKey = optionalPublicEnv("NEXT_PUBLIC_GOOGLE_MAPS_KEY");
   const dataSaverEnabled = saveData === true;
-  const hasEmbedMap = Boolean(!dataSaverEnabled && googleKey && business.lat != null && business.lng != null);
+  const hasEmbedMap = Boolean(
+    !dataSaverEnabled &&
+      googleKey &&
+      business.location?.lat != null &&
+      business.location?.lng != null
+  );
   const embedSrc = hasEmbedMap
-    ? `https://www.google.com/maps/embed/v1/view?key=${googleKey}&center=${business.lat},${business.lng}&zoom=16`
+    ? `https://www.google.com/maps/embed/v1/view?key=${googleKey}&center=${business.location?.lat},${business.location?.lng}&zoom=16`
     : null;
   const planValue = String((business as any)?.plan ?? "").toLowerCase();
   const hasPremiumGallery = planValue === "featured" || planValue === "sponsor";
@@ -516,11 +521,11 @@ export default function BusinessDetailView({ business }: Props) {
     if (process.env.NODE_ENV !== "production") return;
     console.info("detail_render", {
       id: business.id,
-        saveData: dataSaverEnabled,
-        hasGallery: hasPremiumGallery && !dataSaverEnabled && galleryItems.length > 0,
+      saveData: dataSaverEnabled,
+      hasGallery: hasPremiumGallery && !dataSaverEnabled && galleryItems.length > 0,
       hasMap: Boolean(embedSrc),
     });
-  }, [business.id, saveData, hasPremiumGallery, galleryItems.length, embedSrc]);
+  }, [business.id, dataSaverEnabled, hasPremiumGallery, galleryItems.length, embedSrc]);
 
 
   // -------- JSON-LD (SEO Local) ----------
@@ -528,173 +533,93 @@ export default function BusinessDetailView({ business }: Props) {
   const ldLocalBusiness = useMemo(() => {
 
     const images = galleryItems.map((i) => i.original).slice(0, 3);
-
     const ratingNumber = Number(business.rating || 0);
     const sameAsLinks = facebookHref ? [facebookHref] : undefined;
 
     return {
-
       "@context": "https://schema.org",
-
       "@type": "LocalBusiness",
-
       name: business.name,
-
       address: business.address,
-
       telephone: tel || undefined,
-
       image: images.length ? images : undefined,
       sameAs: sameAsLinks,
-
       priceRange: business.price || "MXN",
-
       url: pageUrl,
-
       aggregateRating:
-
         ratingNumber > 0
-
           ? {
-
             "@type": "AggregateRating",
-
             ratingValue: ratingNumber.toFixed(1),
-
             reviewCount: Math.max(1, reviews.length || 0),
-
           }
-
           : undefined,
-
     };
-
   }, [business, facebookHref, galleryItems, reviews.length, tel, pageUrl]);
 
-
-
   return (
-
     <div className="space-y-10">
-
       {/* JSON-LD */}
-
       <script
-
         type="application/ld+json"
-
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ldLocalBusiness) }}
-
       />
 
-
-
       {/* Header */}
-
       {/* Mapa */}
       <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-
         <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
-
           <div>
-
             <div className="flex items-center gap-3 mb-2">
-
               <h1 className="text-3xl font-bold text-gray-900">{business.name}</h1>
-
               {(business as any).plan === 'sponsor' && (
-
                 <span className="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
-
                   Patrocinado
-
                 </span>
-
               )}
-
               {(business as any).plan === 'featured' && (
-
                 <span className="inline-block bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
-
                   Destacado
-
                 </span>
-
               )}
-
             </div>
-
             <div className="flex flex-wrap gap-2 mb-3 text-sm text-gray-600">
-
               {business.category && (
-
                 <span className="bg-gray-100 px-3 py-1 rounded-full">{business.category}</span>
-
               )}
-
               {business.colonia && (
-
                 <span className="bg-gray-100 px-3 py-1 rounded-full">{business.colonia}</span>
-
               )}
-
               <span className="flex items-center gap-1 text-yellow-500 font-semibold">
-
                 <StarIcon className="w-4 h-4 text-yellow-500" />
-
                 {Number(business.rating ?? 0).toFixed(1)}
-
               </span>
-
             </div>
-
-
 
             {business.address && (
-
               <p className="text-sm text-gray-600 mb-1">
-
-                <strong>Direccin:</strong>{" "}
-
+                <strong>Dirección:</strong>{" "}
                 <a
-
                   href={mapHref}
-
                   target="_blank"
-
                   rel="noopener noreferrer"
-
                   className="text-[#38761D] hover:underline"
                   aria-label={`Abrir direccion de ${business.name} en Google Maps`}
                   onClick={handleMapClick}
-
                 >
                   {business.address}
-
                 </a>
-
               </p>
-
             )}
-
-
 
             {/* Dynamic Business Hours with Open/Closed Status */}
-
             <BusinessHours hours={business.hours} horarios={business.horarios} />
 
-
-
             {business.price && (
-
               <p className="text-sm text-gray-600 mb-1">
-
                 <strong>Precio:</strong> {business.price}
-
               </p>
-
             )}
-
           </div>
 
 
@@ -796,27 +721,19 @@ export default function BusinessDetailView({ business }: Props) {
               La galeria completa esta disponible solo para planes <span className="font-bold text-orange-600">Destacado</span> o <span className="font-bold text-purple-600">Patrocinado</span>.
             </p>
             <p className="text-xs text-gray-500">
-              Eres dueno? <Link prefetch={false} href="/registro-negocio" className="text-[#38761D] font-semibold underline">Mejora tu plan aqui</Link>
+              Eres dueño? <Link prefetch={false} href="/registro-negocio" className="text-[#38761D] font-semibold underline">Mejora tu plan aqui</Link>
             </p>
           </div>
         )}
       </section>
 
       {/* Descripcion */}
-
       <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Descripcin</h2>
-
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Descripción</h2>
         <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-
           {business.description || "Sin descripcion disponible."}
-
         </p>
-
       </section>
-
-
 
       <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Mapa</h2>
@@ -851,71 +768,40 @@ export default function BusinessDetailView({ business }: Props) {
       </section>
 
       {/* Resenas */}
-
       <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Reseas de clientes</h2>
-
         {errorMsg && <div className="text-sm text-red-500 font-semibold mb-3">{errorMsg}</div>}
 
-
-
         {!user ? (
-
           <button
-
             type="button"
-
             className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
-
             onClick={handleSignIn}
-
           >
-
             Iniciar sesion con Google para dejar una resena
-
           </button>
 
         ) : (
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3 mb-6">
-
             <div className="flex flex-col md:flex-row gap-2 items-center">
-
               <input
-
                 type="text"
-
                 value={reviewName}
-
                 disabled
-
                 className="border rounded px-3 py-2 flex-1 bg-gray-100 text-gray-600"
-
                 placeholder="Tu nombre"
-
                 aria-readonly
-
               />
-
               <Stars value={reviewRating} onChange={setReviewRating} />
-
             </div>
 
-
-
             <textarea
-
               value={reviewText}
-
               onChange={(e) => setReviewText(e.target.value)}
-
               placeholder="Comparte tu experiencia"
-
               className="border rounded px-3 py-2 w-full h-28"
-
               maxLength={300}
-
             />
 
             <div className="text-xs text-gray-500">{reviewText.length}/300</div>

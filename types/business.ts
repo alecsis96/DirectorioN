@@ -7,17 +7,15 @@ export type Business = {
   neighborhood?: string;
   address?: string;
   hours?: string;
-  horarios?:
-    | {
-        lunes?: { abierto: boolean; desde: string; hasta: string };
-        martes?: { abierto: boolean; desde: string; hasta: string };
-        miercoles?: { abierto: boolean; desde: string; hasta: string };
-        jueves?: { abierto: boolean; desde: string; hasta: string };
-        viernes?: { abierto: boolean; desde: string; hasta: string };
-        sabado?: { abierto: boolean; desde: string; hasta: string };
-        domingo?: { abierto: boolean; desde: string; hasta: string };
-      }
-    | Record<string, any>;
+  horarios?: {
+    lunes?: { abierto: boolean; desde: string; hasta: string };
+    martes?: { abierto: boolean; desde: string; hasta: string };
+    miercoles?: { abierto: boolean; desde: string; hasta: string };
+    jueves?: { abierto: boolean; desde: string; hasta: string };
+    viernes?: { abierto: boolean; desde: string; hasta: string };
+    sabado?: { abierto: boolean; desde: string; hasta: string };
+    domingo?: { abierto: boolean; desde: string; hasta: string };
+  };
   phone?: string;
   WhatsApp?: string;
   Facebook?: string;
@@ -27,10 +25,6 @@ export type Business = {
   ownerEmail?: string;
   plan?: "free" | "featured" | "sponsor" | string;
   isOpen?: "si" | "no" | string;
-  lat?: number | null;
-  lng?: number | null;
-  latitude?: number | null;
-  longitude?: number | null;
   location?: { lat: number; lng: number } | null;
   image1?: string | null;
   image2?: string | null;
@@ -67,10 +61,7 @@ export interface BusinessPreview {
 export const pickBusinessPreview = (biz: Business): BusinessPreview => {
   const phone = typeof biz.phone === "string" && biz.phone.trim().length ? biz.phone.trim() : undefined;
   const whatsapp = typeof biz.WhatsApp === "string" && biz.WhatsApp.trim().length ? biz.WhatsApp.trim() : undefined;
-  const sanitizedHorarios =
-    biz.horarios && typeof biz.horarios === "object"
-      ? (JSON.parse(JSON.stringify(biz.horarios)) as Business["horarios"])
-      : undefined;
+  const sanitizedHorarios = biz.horarios ? { ...biz.horarios } : undefined;
 
   return {
     id: biz.id ?? "",

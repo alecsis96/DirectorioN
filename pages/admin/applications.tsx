@@ -1,4 +1,4 @@
-// pages/admin/index.tsx
+﻿// pages/admin/index.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { auth, signInWithGoogle } from "../../firebaseConfig";
@@ -808,7 +808,7 @@ function BusinessesPanel({
               <th className="px-4 py-2 text-left font-semibold">Propietario</th>
               <th className="px-4 py-2 text-left font-semibold">Actualizado</th>
               <th className="px-4 py-2 text-left font-semibold">Acciones</th>
-            </tr>
+            </tr>n
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
             {items.map((biz) => (
