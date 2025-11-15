@@ -3,7 +3,10 @@
 
 import React, { useEffect } from 'react';
 import Script from 'next/script';
+import { onAuthStateChanged } from 'firebase/auth';
 import { FavoritesProvider } from '../context/FavoritesContext';
+import { auth } from '../firebaseConfig';
+import { writeSessionCookie } from '../lib/sessionCookie';
 
 const googleMapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
 
@@ -14,6 +17,22 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         'Falta definir NEXT_PUBLIC_GOOGLE_MAPS_KEY para habilitar el mapa en el dashboard.'
       );
     }
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        writeSessionCookie();
+        return;
+      }
+      try {
+        const token = await user.getIdToken();
+        writeSessionCookie(token);
+      } catch {
+        writeSessionCookie();
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   return (

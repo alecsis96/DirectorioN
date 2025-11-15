@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { hasAdminOverride } from "../lib/adminOverrides";
+import { writeSessionCookie } from "../lib/sessionCookie";
 
 /**
  * Hook personalizado para gestionar el estado de autenticación
@@ -32,12 +33,15 @@ export function useAuth() {
           setIsAdmin(
             tokenResult.claims?.admin === true || hasAdminOverride(email)
           );
+          writeSessionCookie(tokenResult.token);
         } catch (error) {
           console.error("Error al verificar claims de admin:", error);
           setIsAdmin(false);
+          writeSessionCookie();
         }
       } else {
         setIsAdmin(false);
+        writeSessionCookie();
       }
 
       setLoading(false);

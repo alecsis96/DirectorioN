@@ -11,7 +11,7 @@ import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, type Filters, type SortMode } from
 
 export const metadata: Metadata = {
   title: 'Directorio Yajalon',
-  description: 'Explora negocios locales optimizados para bajo consumo de datos.',
+  description: 'Explora negocios locales.',
   robots: {
     index: true,
     follow: true,
