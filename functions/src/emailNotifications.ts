@@ -11,6 +11,7 @@
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
+import type { Business, Review } from "../../types/business";
 
 // Inicializar Firebase Admin si no está inicializado
 if (!admin.apps.length) {
@@ -293,6 +294,51 @@ function getRejectionTemplate(ownerName: string, businessName: string, reason: s
   `;
 }
 
+export async function sendNewReviewNotification(review: Review, business: Business): Promise<void> {
+  if (!business.ownerEmail) {
+    console.warn("[emailNotifications] Business has no ownerEmail, skipping notification.");
+    return;
+  }
+
+  const dashboardUrl = business.id
+    ? `https://directorio-1.vercel.app/dashboard/${business.id}`
+    : "https://directorio-1.vercel.app/dashboard";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9; border-radius: 12px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .cta { display: inline-block; background: #38761D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; }
+        .rating { font-size: 18px; color: #eab308; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>¡Nueva reseña para ${business.name}!</h2>
+        </div>
+        <p><strong>Calificación:</strong> <span class="rating">${review.rating ?? "N/A"} ★</span></p>
+        <p><strong>Comentario:</strong></p>
+        <p>${review.text || "Sin comentario adicional."}</p>
+        <p>Puedes responder o gestionar esta reseña desde tu panel:</p>
+        <p><a class="cta" href="${dashboardUrl}">Ir a mi panel</a></p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await sendEmail({
+    to: business.ownerEmail,
+    subject: `Nueva reseña para ${business.name}`,
+    html,
+  });
+}
+
 // ========== CLOUD FUNCTIONS ==========
 
 /**
@@ -399,5 +445,29 @@ export const onBusinessStatusChange = functions.firestore
           after.ownerEmail
         ),
       });
+    }
+  });
+
+export const onNewReviewCreated = functions.firestore
+  .document("businesses/{businessId}/reviews/{reviewId}")
+  .onCreate(async (snap, context) => {
+    try {
+      const review = snap.data() as Review | undefined;
+      const businessId = context.params.businessId;
+      if (!review || !businessId) {
+        console.warn("[onNewReviewCreated] Missing review data or businessId");
+        return;
+      }
+
+      const businessDoc = await admin.firestore().doc(`businesses/${businessId}`).get();
+      if (!businessDoc.exists) {
+        console.warn(`[onNewReviewCreated] Business ${businessId} not found`);
+        return;
+      }
+
+      const business = { id: businessId, ...(businessDoc.data() as Business) };
+      await sendNewReviewNotification(review, business);
+    } catch (error) {
+      console.error("[onNewReviewCreated] Failed to send review notification", error);
     }
   });
