@@ -1,9 +1,12 @@
+'use client';
+
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { mapsLink, normalizeDigits, waLink } from "../lib/helpers/contact";
 import { sendEvent } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
 import { getBusinessStatus } from "./BusinessHours";
+import { useFavorites } from "../context/FavoritesContext";
 
 type CardBusiness = BusinessPreview | Business;
 
@@ -20,6 +23,8 @@ const BusinessCard: React.FC<Props> = ({ business }) => {
   const mapsHref = mapsLink(undefined, undefined, business.address || business.name);
   const callHref = business.phone ? `tel:${normalizeDigits(business.phone)}` : null;
   const whatsappHref = business.WhatsApp ? waLink(business.WhatsApp) : "";
+  const { favorites, addFavorite, removeFavorite } = useFavorites();
+  const isFavorite = businessId ? favorites.includes(businessId) : false;
 
   useEffect(() => {
     const schedule = business.hours;
@@ -57,10 +62,29 @@ const BusinessCard: React.FC<Props> = ({ business }) => {
             </Link>
             <p className="text-xs text-gray-500">Tap para ver detalles sin salir de esta pagina ligera.</p>
           </div>
-          <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600" aria-label={`Calificacion ${ratingValue.toFixed(1)} de 5`}>
-            <StarIcon className="w-4 h-4" />
-            {ratingValue.toFixed(1)}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+              onClick={() => {
+                if (!businessId) return;
+                if (isFavorite) {
+                  removeFavorite(businessId);
+                } else {
+                  addFavorite(businessId);
+                }
+              }}
+              className={`rounded-full p-2 text-sm font-semibold transition ${
+                isFavorite ? "text-red-500 hover:text-red-600" : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              {isFavorite ? "♥" : "♡"}
+            </button>
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600" aria-label={`Calificacion ${ratingValue.toFixed(1)} de 5`}>
+              <StarIcon className="w-4 h-4" />
+              {ratingValue.toFixed(1)}
+            </span>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-gray-600">
           {business.category && <span className="bg-gray-100 px-3 py-1 rounded-full">{business.category}</span>}

@@ -1,16 +1,18 @@
-﻿/**
+﻿'use client';
+/**
  * Dashboard para editar negocios
  * Optimizado con hook personalizado useAuth
  * Incluye banner para negocios en estado 'draft' y botón para enviar a revisión
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import { auth, db, signInWithGoogle } from '../../firebaseConfig';
+import { useRouter } from 'next/navigation';
+import { auth, db, signInWithGoogle } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import ImageUploader from '../../components/ImageUploader';
-import AddressPicker from '../../components/AddressPicker';
-import { useAuth, canEditBusiness } from '../../hooks/useAuth';
+import ImageUploader from './ImageUploader';
+import AddressPicker from './AddressPicker';
+import { useAuth, canEditBusiness } from '../hooks/useAuth';
+import { updateBusinessDetails } from '../app/actions/businesses';
 
 type DaySchedule = { open: boolean; start: string; end: string };
 type WeeklySchedule = Record<string, DaySchedule>;
@@ -25,10 +27,6 @@ const createDefaultSchedule = (): WeeklySchedule => ({
   domingo: { open: false, start: '09:00', end: '18:00' }
 });
 
-interface UpdateResponse {
-  ok: boolean;
-}
-
 // Helper para parsear horarios del formato "HH:MM - HH:MM"
 function parseHours(value?: string) {
   if (!value) return { openTime: '', closeTime: '' };
@@ -39,85 +37,126 @@ function parseHours(value?: string) {
   return { openTime: start, closeTime: end };
 }
 
-export default function EditBusiness() {
+const defaultFormState = {
+  name: '',
+  category: '',
+  address: '',
+  colonia: '',
+  description: '',
+  phone: '',
+  WhatsApp: '',
+  Facebook: '',
+  hours: '',
+  openTime: '',
+  closeTime: '',
+  plan: 'free',
+};
+
+function mapToFormState(data?: Record<string, any>) {
+  if (!data) return { ...defaultFormState };
+  const { openTime, closeTime } = parseHours(typeof data.hours === 'string' ? data.hours : undefined);
+  return {
+    ...defaultFormState,
+    name: data.name ?? '',
+    category: data.category ?? '',
+    address: data.address ?? '',
+    colonia: data.colonia ?? '',
+    description: data.description ?? '',
+    phone: data.phone ?? '',
+    WhatsApp: data.WhatsApp ?? '',
+    Facebook: data.Facebook ?? '',
+    hours: data.hours ?? '',
+    openTime,
+    closeTime,
+    plan: data.plan ?? 'free',
+  };
+}
+
+function mapToAddressState(data?: Record<string, any>) {
+  return {
+    address: data?.address ?? '',
+    lat: typeof data?.lat === 'number' ? data.lat : 0,
+    lng: typeof data?.lng === 'number' ? data.lng : 0,
+  };
+}
+
+function mapToScheduleState(data?: Record<string, any>): WeeklySchedule {
+  const base = createDefaultSchedule();
+  if (!data?.horarios || typeof data.horarios !== 'object') {
+    return base;
+  }
+
+  const loaded: WeeklySchedule = { ...base };
+  Object.entries(base).forEach(([day, fallback]) => {
+    const source = (data.horarios as Record<string, any>)[day];
+    if (!source) return;
+    loaded[day] = {
+      open: source.abierto !== false,
+      start: source.desde || fallback.start,
+      end: source.hasta || fallback.end,
+    };
+  });
+  return loaded;
+}
+
+type DashboardEditorProps = {
+  businessId?: string;
+  initialBusiness?: Record<string, unknown> | null;
+};
+
+export default function EditBusiness({ businessId, initialBusiness }: DashboardEditorProps) {
   const router = useRouter();
-  const { id } = router.query as { id?: string };
+  const id = businessId;
   
   // Hook personalizado para autenticación
   const { user, isAdmin, loading: authLoading } = useAuth();
+
+  const normalizedInitial = (initialBusiness ?? undefined) as Record<string, any> | undefined;
+
+  const [addr, setAddr] = useState<{ address: string; lat: number; lng: number }>(() =>
+    mapToAddressState(normalizedInitial)
+  );
   
-  const [addr, setAddr] = useState<{ address: string; lat: number; lng: number }>({
-    address: '',
-    lat: 0,
-    lng: 0,
-  });
-  
-  const [biz, setBiz] = useState<any>(null);
-  const [form, setForm] = useState<any>({ openTime: '', closeTime: '' });
+  const [biz, setBiz] = useState<any>(normalizedInitial ?? null);
+  const [form, setForm] = useState<any>(() => mapToFormState(normalizedInitial));
   const [busy, setBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState('');
   
   // Horarios por día de la semana
-  const [schedule, setSchedule] = useState<WeeklySchedule>(() => createDefaultSchedule());
+  const [schedule, setSchedule] = useState<WeeklySchedule>(() => mapToScheduleState(normalizedInitial));
+
+  const applyBusinessData = useCallback((data: Record<string, any>) => {
+    setBiz(data);
+    setForm(mapToFormState(data));
+    setAddr(mapToAddressState(data));
+    setSchedule(mapToScheduleState(data));
+  }, []);
+
+  useEffect(() => {
+    if (initialBusiness) {
+      applyBusinessData(initialBusiness as Record<string, any>);
+    }
+  }, [initialBusiness, applyBusinessData]);
 
   // Cargar datos del negocio
   useEffect(() => {
+    if (!id) return;
     (async () => {
-      if (!id) return;
-      
       try {
         const snap = await getDoc(doc(db, 'businesses', id));
         if (snap.exists()) {
           const data = { id: snap.id, ...(snap.data() as any) };
-          const { openTime, closeTime } = parseHours(data.hours);
-
-          setBiz(data);
-          setForm({
-            name: data.name || '',
-            category: data.category || '',
-            address: data.address || '',
-            colonia: data.colonia || '',
-            description: data.description || '',
-            phone: data.phone || '',
-            WhatsApp: data.WhatsApp || '',
-            Facebook: data.Facebook || '',
-            hours: data.hours || '',
-            openTime,
-            closeTime,
-            plan: data.plan || 'free', // Plan por defecto: free
-          });
-
-          setAddr({
-            address: data.address || '',
-            lat: data.lat || 0,
-            lng: data.lng || 0,
-          });
-          
-          // Cargar horarios por día si existen
-          if (data.horarios && typeof data.horarios === 'object') {
-            const baseSchedule = createDefaultSchedule();
-            const loadedSchedule: WeeklySchedule = {};
-            (Object.keys(baseSchedule) as Array<keyof WeeklySchedule>).forEach((day) => {
-              if (data.horarios[day]) {
-                loadedSchedule[day] = {
-                  open: data.horarios[day].abierto !== false,
-                  start: data.horarios[day].desde || '09:00',
-                  end: data.horarios[day].hasta || '18:00'
-                };
-              } else {
-                loadedSchedule[day] = baseSchedule[day];
-              }
-            });
-            setSchedule(loadedSchedule);
-          }
+          applyBusinessData(data);
+        } else {
+          setMsg('No encontramos datos para este negocio.');
         }
       } catch (error) {
         console.error('Error al cargar negocio:', error);
         setMsg('Error al cargar los datos del negocio');
       }
     })();
-  }, [id]);
+  }, [id, applyBusinessData]);
 
   // Verificar permisos de edición
   const userCanEdit = canEditBusiness(user, isAdmin, biz);
@@ -133,13 +172,18 @@ export default function EditBusiness() {
 
   // Guardar cambios del negocio
   async function save() {
-    if (!id || !userCanEdit) return;
+    if (!id) return;
+    if (!userCanEdit || !user) {
+      setMsg('Necesitas permisos para editar este negocio.');
+      return;
+    }
+
     setBusy(true);
     setMsg('Guardando...');
     
     try {
       // Convertir schedule al formato de Firestore
-      const horarios: any = {};
+      const horarios: Record<string, { abierto: boolean; desde: string; hasta: string }> = {};
       Object.entries(schedule).forEach(([day, hours]) => {
         horarios[day] = {
           abierto: hours.open,
@@ -164,59 +208,36 @@ export default function EditBusiness() {
         Number.isFinite(addr.lng) &&
         !(addr.lat === 0 && addr.lng === 0);
       
-      const token = await user!.getIdToken();
-      const response = await fetch('/api/businesses/update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          businessId: id,
-          updates: {
-            ...rest,
-            address: addr.address || rest.address || '',
-            hours: derivedHours,
-            horarios, // Agregar horarios detallados por día
-            ...(hasCoords ? { lat: addr.lat, lng: addr.lng } : {}),
-          },
-        }),
-      });
+      const token = await user.getIdToken();
+      const payload = {
+        ...rest,
+        address: addr.address || rest.address || '',
+        hours: derivedHours,
+        horarios, // Agregar horarios detallados por día
+        ...(hasCoords ? { lat: addr.lat, lng: addr.lng } : {}),
+      };
+
+      const formData = new FormData();
+      formData.append('token', token);
+      formData.append('updates', JSON.stringify(payload));
+      await updateBusinessDetails(id, formData);
       
-      const result: UpdateResponse | null = await response.json().catch(() => null);
-      if (!response.ok || !result?.ok) {
-        throw new Error((result as any)?.error || 'Error al guardar');
-      }
-      
-      setMsg('✅ Guardado correctamente');
+      setMsg('¡Guardado correctamente!');
       
       // Recargar datos actualizados
       const snap = await getDoc(doc(db, 'businesses', id));
       if (snap.exists()) {
         const updatedData = { id: snap.id, ...(snap.data() as any) };
-        setBiz(updatedData);
-        
-        // Actualizar también el state schedule con los datos guardados
-        if (updatedData.horarios && typeof updatedData.horarios === 'object') {
-          const loadedSchedule: any = {};
-          Object.keys(schedule).forEach(day => {
-            if (updatedData.horarios[day]) {
-              loadedSchedule[day] = {
-                open: updatedData.horarios[day].abierto !== false,
-                start: updatedData.horarios[day].desde || '09:00',
-                end: updatedData.horarios[day].hasta || '18:00'
-              };
-            } else {
-              loadedSchedule[day] = schedule[day];
-            }
-          });
-          setSchedule(loadedSchedule);
-        }
+        applyBusinessData(updatedData);
       }
       
     } catch (error) {
       console.error('Error al guardar:', error);
-      setMsg('❌ No pudimos guardar los cambios. Intenta nuevamente.');
+      setMsg(
+        error instanceof Error
+          ? error.message
+          : 'No pudimos guardar los cambios. Intenta nuevamente.'
+      );
     } finally {
       setBusy(false);
     }
@@ -228,13 +249,13 @@ export default function EditBusiness() {
     
     // Solo permitir desde draft o rejected
     if (biz.status !== 'draft' && biz.status !== 'rejected') {
-      setMsg('❌ Este negocio ya está en revisión o publicado');
+      setMsg('⚠️ Este negocio ya está en revisión o publicado.');
       return;
     }
     
     // Validar campos mínimos antes de enviar
     if (!form.name?.trim() || !form.description?.trim() || !form.phone?.trim()) {
-      setMsg('❌ Completa al menos: Nombre, Descripción y Teléfono antes de enviar');
+      setMsg('⚠️ Completa al menos: Nombre, Descripción y Teléfono antes de enviar.');
       return;
     }
 
@@ -252,51 +273,23 @@ export default function EditBusiness() {
       
       // Actualizar estado local
       setBiz((prev: any) => ({ ...prev, status: 'pending' }));
-      setMsg('✅ ¡Negocio enviado a revisión! Te notificaremos cuando sea aprobado.');
+      setMsg('¡Negocio enviado a revisión! Te notificaremos cuando sea aprobado.');
       
     } catch (error) {
       console.error('Error al enviar a revisión:', error);
-      setMsg('❌ Error al enviar. Intenta nuevamente.');
+      setMsg('Error al enviar. Intenta nuevamente.');
     } finally {
       setSubmitting(false);
     }
   }
 
   // Iniciar proceso de pago con Stripe
-  async function handleUpgradePlan(selectedPlan: 'featured' | 'sponsor') {
+  function handleUpgradePlan(selectedPlan: 'featured' | 'sponsor') {
     if (!id || !biz) return;
-
-    setBusy(true);
-    setMsg('Redirigiendo a checkout...');
-
-    try {
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: selectedPlan,
-          businessId: id,
-          businessName: biz.name || form.name
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al crear sesión de pago');
-      }
-
-      // Redirigir directamente a la URL de Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No se recibió URL de checkout');
-      }
-    } catch (error: any) {
-      console.error('Error al iniciar pago:', error);
-      setMsg(`❌ Error: ${error.message}`);
-      setBusy(false);
-    }
+    const planLabel = selectedPlan === 'featured' ? 'Destacado' : 'Patrocinado';
+    setMsg(
+      `Pronto habilitaremos el plan ${planLabel}. Mientras tanto escríbenos y te ayudamos con el cambio.`
+    );
   }
 
   // Estados de carga
@@ -346,7 +339,7 @@ export default function EditBusiness() {
         <p className="text-red-600">No tienes permisos para editar este negocio.</p>
       ) : (
         <div className="space-y-4">
-          {/* 🔥 BANNER PARA NEGOCIOS EN DRAFT */}
+          {/* Banner para negocios en borrador */}
           {biz.status === 'draft' && (
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
               <div className="flex">
@@ -361,7 +354,7 @@ export default function EditBusiness() {
                   </h3>
                   <div className="mt-2 text-sm text-yellow-700">
                     <p>Completa toda la información de tu negocio y envíalo a revisión para que aparezca en el directorio público.</p>
-                    <p className="mt-2">✓ Elige tu plan de suscripción<br/>✓ Agrega información completa<br/>✓ Sube al menos una imagen</p>
+                    <p className="mt-2">• Elige tu plan de suscripción<br/>• Agrega información completa<br/>• Sube al menos una imagen</p>
                   </div>
                   <div className="mt-4">
                     <button
@@ -373,7 +366,7 @@ export default function EditBusiness() {
                           : 'bg-yellow-600 hover:bg-yellow-700 text-white'
                       }`}
                     >
-                      {submitting ? 'Enviando...' : '📤 Enviar a revisión'}
+                      {submitting ? 'Enviando...' : 'Enviar a revisión'}
                     </button>
                   </div>
                 </div>
@@ -387,7 +380,7 @@ export default function EditBusiness() {
               <div className="flex">
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-blue-800">
-                    🕐 Tu negocio está en revisión
+                    ⏳ Tu negocio está en revisión
                   </h3>
                   <p className="mt-2 text-sm text-blue-700">
                     Nuestro equipo está revisando tu negocio. Te notificaremos cuando sea aprobado.
@@ -419,7 +412,7 @@ export default function EditBusiness() {
               <div className="flex">
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">
-                    ❌ Tu negocio fue rechazado
+                    ¡Tu negocio fue rechazado!
                   </h3>
                   <p className="mt-2 text-sm text-red-700">
                     Por favor, revisa la información y corrígela. Luego podrás enviarlo nuevamente a revisión.
@@ -434,7 +427,7 @@ export default function EditBusiness() {
                           : 'bg-red-600 hover:bg-red-700 text-white'
                       }`}
                     >
-                      {submitting ? 'Enviando...' : '🔄 Reenviar a revisión'}
+                      {submitting ? 'Enviando...' : 'Reenviar a revisión'}
                     </button>
                   </div>
                 </div>
@@ -491,7 +484,7 @@ export default function EditBusiness() {
               <option value="Barranca Nabil">Barranca Nabil</option>
               <option value="Belén Ajkabalna">Belén Ajkabalna</option>
               <option value="Belisario Domínguez">Belisario Domínguez</option>
-              <option value="Callejón Lorena Shashijá">Callejón Lorena Shashijá</option>
+              <option value="Callejón Lorena Shashijó">Callejón Lorena Shashijó</option>
               <option value="Calvario Bahuitz">Calvario Bahuitz</option>
               <option value="Calvario Bahuitz Ojo de Agua">Calvario Bahuitz Ojo de Agua</option>
               <option value="Centro">Centro</option>
@@ -537,7 +530,7 @@ export default function EditBusiness() {
               <option value="Santa Candelaria">Santa Candelaria</option>
               <option value="Santa Elena">Santa Elena</option>
               <option value="Santa Teresita">Santa Teresita</option>
-              <option value="Shashijá">Shashijá</option>
+              <option value="Shashijó">Shashijó</option>
               <option value="Tzitzaquil">Tzitzaquil</option>
               <option value="Vista Alegre">Vista Alegre</option>
             </select>
@@ -586,7 +579,7 @@ export default function EditBusiness() {
                     </div>
                     {biz?.plan === 'featured' ? (
                       <div className="mt-3 px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full inline-block">
-                        ✓ Plan Activo
+                        ✔ Plan activo
                       </div>
                     ) : (
                       <button
@@ -619,7 +612,7 @@ export default function EditBusiness() {
                     </div>
                     {biz?.plan === 'sponsor' ? (
                       <div className="mt-3 px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full inline-block">
-                        ✓ Plan Activo
+                        ✔ Plan activo
                       </div>
                     ) : (
                       <button
@@ -635,7 +628,7 @@ export default function EditBusiness() {
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                💡 Puedes cambiar tu plan en cualquier momento
+                Puedes cambiar tu plan en cualquier momento
               </p>
             </div>
 
@@ -660,7 +653,7 @@ export default function EditBusiness() {
             {/* Horarios por día */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                📅 Horarios de atención
+                🕒 Horarios de atención
               </label>
               <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
                 {Object.entries(schedule).map(([day, hours]) => (
@@ -708,14 +701,14 @@ export default function EditBusiness() {
                   </div>
                 ))}
                 <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-300">
-                  💡 Desmarca los días que permaneces cerrado
+                  ℹ️ Desmarca los días que permaneces cerrado
                 </div>
               </div>
             </div>
             
             <textarea
               className="border rounded px-3 py-2 md:col-span-2"
-              placeholder="Descripci�n"
+              placeholder="descripción"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
@@ -741,4 +734,7 @@ export default function EditBusiness() {
   );
   
 }
+
+
+
 

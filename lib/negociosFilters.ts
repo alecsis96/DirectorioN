@@ -5,6 +5,7 @@ export type Filters = {
   colonia: string;
   order: SortMode;
   page: number;
+  query: string;
 };
 
 export const PAGE_SIZE = 20;
@@ -16,4 +17,5 @@ export const DEFAULT_FILTER_STATE: Filters = {
   colonia: "",
   order: DEFAULT_ORDER,
   page: 1,
+  query: "",
 };

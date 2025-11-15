@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import NegociosListClient from '../../components/NegociosListClient';
+import { FavoritesProvider } from '../../context/FavoritesContext';
 import type { Business, BusinessPreview } from '../../types/business';
 import { pickBusinessPreview } from '../../types/business';
 import { fetchBusinesses, toNumber } from '../../lib/server/businessData';
@@ -24,6 +25,7 @@ type SearchParams = {
   co?: string;
   o?: string;
   p?: string;
+  q?: string;
   lat?: string;
   lng?: string;
   radius?: string;
@@ -37,6 +39,7 @@ async function buildBusinessesResult(params: SearchParams) {
   const order: SortMode = ['destacado', 'rating', 'az'].includes(orderParam) ? orderParam : DEFAULT_ORDER;
   const pageParam = Number.parseInt(typeof params.p === 'string' ? params.p : '1', 10);
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+  const query = typeof params.q === 'string' ? params.q.slice(0, 80) : '';
   const lat = typeof params.lat === 'string' ? Number.parseFloat(params.lat) : undefined;
   const lng = typeof params.lng === 'string' ? Number.parseFloat(params.lng) : undefined;
   const radiusParam = typeof params.radius === 'string' ? Number.parseFloat(params.radius) : undefined;
@@ -101,6 +104,7 @@ async function buildBusinessesResult(params: SearchParams) {
     colonia,
     order,
     page,
+    query,
   };
 
   const geoQuery = hasGeoParams
@@ -121,17 +125,20 @@ async function buildBusinessesResult(params: SearchParams) {
   };
 }
 
-export default async function NegociosPage({ searchParams = {} }: { searchParams?: SearchParams }) {
-  const { businesses, categories, colonias, filters, error, geoQuery } = await buildBusinessesResult(searchParams);
+export default async function NegociosPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const resolvedParams = (await searchParams) ?? {};
+  const { businesses, categories, colonias, filters, error, geoQuery } = await buildBusinessesResult(resolvedParams);
 
   return (
-    <NegociosListClient
-      businesses={businesses}
-      categories={categories}
-      colonias={colonias}
-      initialFilters={filters ?? DEFAULT_FILTER_STATE}
-      initialError={error}
-      geoQuery={geoQuery}
-    />
+    <FavoritesProvider>
+      <NegociosListClient
+        businesses={businesses}
+        categories={categories}
+        colonias={colonias}
+        initialFilters={filters ?? DEFAULT_FILTER_STATE}
+        initialError={error}
+        geoQuery={geoQuery}
+      />
+    </FavoritesProvider>
   );
 }

@@ -8,6 +8,7 @@ import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 import BusinessCard from './BusinessCard';
+import SearchHeader from './SearchHeader';
 import { auth, signInWithGoogle } from '../firebaseConfig';
 import { sendEvent } from '../lib/telemetry';
 import { sliceBusinesses } from '../lib/pagination';
@@ -74,6 +75,7 @@ export default function NegociosListClient({
     colonia: initialFilters.colonia || '',
     order: initialFilters.order || DEFAULT_ORDER,
     page: initialFilters.page || 1,
+    query: initialFilters.query || '',
   }));
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const pageViewType = pathname === '/' ? 'home' : 'list';
@@ -82,6 +84,26 @@ export default function NegociosListClient({
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    setUiFilters({
+      category: initialFilters.category || '',
+      colonia: initialFilters.colonia || '',
+      order: initialFilters.order || DEFAULT_ORDER,
+      page: initialFilters.page || 1,
+      query: initialFilters.query || '',
+    });
+  }, [
+    initialFilters.category,
+    initialFilters.colonia,
+    initialFilters.order,
+    initialFilters.page,
+    initialFilters.query,
+  ]);
+
+  useEffect(() => {
+    geoQueryRef.current = geoQuery;
+  }, [geoQuery]);
 
   useEffect(() => {
     if (typeof navigator === 'undefined') return undefined;
@@ -97,23 +119,6 @@ export default function NegociosListClient({
   }, [pageViewType]);
 
   useEffect(() => {
-    const body = {
-      event: 'home_render',
-      payload: {
-        page: pageViewType,
-        filters: initialFilters,
-      },
-    };
-    fetch('/api/telemetry', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }).catch(() => {
-      // mantener la home ligera
-    });
-  }, [pageViewType, initialFilters]);
-
-  useEffect(() => {
     if (!isFetching) return undefined;
     const timeout = window.setTimeout(() => setIsFetching(false), 150);
     return () => window.clearTimeout(timeout);
@@ -127,6 +132,8 @@ export default function NegociosListClient({
       if (next.colonia) params.set('co', next.colonia);
       if (next.order && next.order !== DEFAULT_ORDER) params.set('o', next.order);
       if (next.page > 1) params.set('p', String(next.page));
+      if (next.query) params.set('q', next.query);
+      else params.delete('q');
       const geo = geoQueryRef.current;
       if (geo?.lat) params.set('lat', geo.lat);
       if (geo?.lng) params.set('lng', geo.lng);
@@ -148,6 +155,7 @@ export default function NegociosListClient({
           colonia: partial.colonia ?? prev.colonia,
           order: partial.order ?? prev.order,
           page: nextPage,
+          query: partial.query ?? prev.query,
         };
         syncUrl(next);
         return next;
@@ -192,9 +200,14 @@ export default function NegociosListClient({
   const paginated = useMemo(() => {
     const normalizedColonia = uiFilters.colonia;
     const normalizedCategory = uiFilters.category;
+    const normalizedQuery = uiFilters.query.trim().toLowerCase();
     const filtered = businesses.filter((biz) => {
       if (normalizedCategory && biz.category !== normalizedCategory) return false;
       if (normalizedColonia && normalizeColonia(biz.colonia) !== normalizedColonia) return false;
+      if (normalizedQuery) {
+        const haystack = `${biz.name ?? ''} ${biz.address ?? ''} ${biz.category ?? ''}`.toLowerCase();
+        if (!haystack.includes(normalizedQuery)) return false;
+      }
       return true;
     });
     const sorted = [...filtered];
@@ -250,14 +263,31 @@ export default function NegociosListClient({
   }, [uiFilters.colonia, colonias]);
 
   const headingDescription = useMemo(() => {
-    const parts: string[] = [];
-    if (uiFilters.category) parts.push(uiFilters.category);
-    if (uiFilters.colonia) parts.push(`en ${selectedColoniaLabel}`);
-    if (!parts.length) {
+    const segments: string[] = [];
+    if (uiFilters.query) segments.push(`"${uiFilters.query}"`);
+    if (uiFilters.category) segments.push(uiFilters.category);
+    if (uiFilters.colonia) segments.push(`en ${selectedColoniaLabel}`);
+    if (!segments.length) {
       return 'Explora comercios locales sin consumir datos extra.';
     }
-    return `Resultados para ${parts.join(' ')}.`;
-  }, [uiFilters.category, uiFilters.colonia, selectedColoniaLabel]);
+    return `Resultados para ${segments.join(' ')}.`;
+  }, [uiFilters.category, uiFilters.colonia, uiFilters.query, selectedColoniaLabel]);
+
+  const activeGeo = geoQueryRef.current;
+  const radiusValue = activeGeo?.radius ? Number.parseFloat(activeGeo.radius) : undefined;
+  const radiusKm = Number.isFinite(radiusValue) && radiusValue! > 0 ? Number(radiusValue) : 5;
+  const hasGeoActive = Boolean(activeGeo?.lat && activeGeo?.lng);
+
+  const clearGeoFilters = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    geoQueryRef.current = null;
+    const params = new URLSearchParams(window.location.search);
+    params.delete('lat');
+    params.delete('lng');
+    params.delete('radius');
+    const qs = params.toString();
+    window.location.href = qs ? `${pathname}?${qs}` : pathname;
+  }, [pathname]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') return;
@@ -268,6 +298,19 @@ export default function NegociosListClient({
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800 font-sans">
+      <SearchHeader
+        initialQuery={uiFilters.query}
+        hasGeoActive={hasGeoActive}
+        radiusKm={radiusKm}
+        onClearLocation={hasGeoActive ? clearGeoFilters : undefined}
+        categories={categories}
+        colonias={colonias}
+        currentFilters={{
+          category: uiFilters.category,
+          colonia: uiFilters.colonia,
+          order: uiFilters.order,
+        }}
+      />
       <section className="max-w-6xl mx-auto px-6 py-10">
         <header className="mb-8">
           <h1 className="text-3xl md:text-4xl font-extrabold text-[#38761D] mb-3">Directorio de negocios en Yajalon</h1>
@@ -295,7 +338,9 @@ export default function NegociosListClient({
             </Link>
           </div>
           <div className="mt-4 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs">Ya registraste tu negocio? Revisa el estado sin salir de esta pagina ligera.</span>
+            <span className="text-xs">
+              ¿Ya registraste tu negocio? Revisa el estado de tu solicitud sin salir de esta página ligera.
+            </span>
             {user ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500">{user.email}</span>

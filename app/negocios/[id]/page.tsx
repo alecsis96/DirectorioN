@@ -4,11 +4,12 @@ import type { Metadata } from 'next';
 import BusinessDetailView from '../../../components/BusinessDetailView';
 import type { Business } from '../../../types/business';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { fetchBusinesses } from '../../../lib/server/businessData';
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 async function fetchBusinessById(id: string): Promise<Business | null> {
@@ -17,7 +18,7 @@ async function fetchBusinessById(id: string): Promise<Business | null> {
   if (!snapshot.exists) return null;
   const data = snapshot.data() as Business & { status?: string };
   if (data.status && data.status !== 'approved' && data.status !== 'draft') return null;
-  return { id, ...data };
+  return { id, ...JSON.parse(JSON.stringify(data)) };
 }
 
 export async function generateStaticParams() {
@@ -27,8 +28,9 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const id = decodeURIComponent(params.id);
-  const business = await fetchBusinessById(id);
+  const { id } = await params;
+  const decodedId = decodeURIComponent(id);
+  const business = await fetchBusinessById(decodedId);
   if (!business) {
     return {
       title: 'Negocio no encontrado',
@@ -54,8 +56,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function BusinessDetailAppPage({ params }: PageProps) {
-  const id = decodeURIComponent(params.id);
-  const business = await fetchBusinessById(id);
+  const { id } = await params;
+  const decodedId = decodeURIComponent(id);
+  let business = await fetchBusinessById(decodedId);
+  if (!business) {
+    const all = await fetchBusinesses();
+    const fallback = all.find((item) => item.id === decodedId);
+    business = fallback ?? null;
+  }
   if (!business) {
     notFound();
   }

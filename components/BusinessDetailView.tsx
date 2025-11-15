@@ -475,20 +475,31 @@ export default function BusinessDetailView({ business }: Props) {
         ? business.Facebook
         : `https://${business.Facebook}`
       : "";
-  const mapHref = mapsLink(business.location?.lat, business.location?.lng, business.address || business.name);
+  const lat =
+    typeof business.location?.lat === "number"
+      ? business.location.lat
+      : typeof (business as any).lat === "number"
+      ? (business as any).lat
+      : null;
+  const lng =
+    typeof business.location?.lng === "number"
+      ? business.location.lng
+      : typeof (business as any).lng === "number"
+      ? (business as any).lng
+      : null;
+
+  const mapHref = mapsLink(lat, lng, business.address || business.name);
   const hasMapLink = Boolean(mapHref && mapHref !== "#");
 
   const googleKey = optionalPublicEnv("NEXT_PUBLIC_GOOGLE_MAPS_KEY");
   const dataSaverEnabled = saveData === true;
-  const hasEmbedMap = Boolean(
-    !dataSaverEnabled &&
-      googleKey &&
-      business.location?.lat != null &&
-      business.location?.lng != null
-  );
-  const embedSrc = hasEmbedMap
-    ? `https://www.google.com/maps/embed/v1/view?key=${googleKey}&center=${business.location?.lat},${business.location?.lng}&zoom=16`
-    : null;
+  const canEmbed = !dataSaverEnabled && lat != null && lng != null;
+  let embedSrc: string | null = null;
+  if (canEmbed) {
+    embedSrc = googleKey
+      ? `https://www.google.com/maps/embed/v1/view?key=${googleKey}&center=${lat},${lng}&zoom=16`
+      : `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
+  }
   const planValue = String((business as any)?.plan ?? "").toLowerCase();
   const hasPremiumGallery = planValue === "featured" || planValue === "sponsor";
 
@@ -550,7 +561,7 @@ export default function BusinessDetailView({ business }: Props) {
   }, [business, facebookHref, galleryItems, reviews.length, tel, pageUrl]);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 md:max-w-5xl md:mx-auto md:px-6 lg:max-w-6xl lg:px-8">
       {/* JSON-LD */}
       <script
         type="application/ld+json"

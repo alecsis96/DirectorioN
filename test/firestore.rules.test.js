@@ -128,4 +128,80 @@ runner("Firestore security rules for /businesses", () => {
 
     await assertSucceeds(docRef.delete());
   });
+
+  it("prevents non-admins from creating businesses with non-draft status", async () => {
+    const userContext = testEnv.authenticatedContext("creator-uid", { email: "creator@example.com" });
+    const ref = userContext.firestore().collection("businesses").doc("biz-new");
+    await assertFails(
+      ref.set({
+        businessName: "Negocio Avanzado",
+        ownerId: "creator-uid",
+        ownerEmail: "creator@example.com",
+        status: "pending",
+      })
+    );
+  });
+
+  it("blocks owners from enabling featured on their business", async () => {
+    await seedBusiness(testEnv, {
+      id: "biz-featured",
+      businessName: "Negocio Draft",
+      ownerId: "owner-secure",
+      ownerEmail: "owner@example.com",
+      status: "draft",
+      featured: false,
+    });
+
+    const ownerContext = testEnv.authenticatedContext("owner-secure", { email: "owner@example.com" });
+    const ref = ownerContext.firestore().collection("businesses").doc("biz-featured");
+    await assertFails(
+      ref.set(
+        {
+          featured: true,
+          ownerId: "owner-secure",
+          ownerEmail: "owner@example.com",
+        },
+        { merge: true }
+      )
+    );
+  });
+});
+
+runner("Firestore security rules for /business_wizard", () => {
+  beforeAll(async () => {
+    if (!emulatorHost) return;
+    const [host, portString] = emulatorHost.split(":");
+    const port = portString ? Number(portString) : 8080;
+
+    testEnv = await initializeTestEnvironment({
+      projectId,
+      firestore: {
+        rules: loadRules(),
+        host,
+        port,
+      },
+    });
+  });
+
+  afterAll(async () => {
+    if (!testEnv) return;
+    await testEnv.cleanup();
+  });
+
+  beforeEach(async () => {
+    if (!testEnv) return;
+    await testEnv.clearFirestore();
+  });
+
+  it("allows only the owner to read and write their wizard progress", async () => {
+    const ownerContext = testEnv.authenticatedContext("wizard-owner", { email: "owner@example.com" });
+    const ownerRef = ownerContext.firestore().collection("business_wizard").doc("wizard-owner");
+    await assertSucceeds(ownerRef.set({ step: 1, formData: { businessName: "Mi negocio" } }));
+    await assertSucceeds(ownerRef.get());
+
+    const otherContext = testEnv.authenticatedContext("intruder", { email: "intruder@example.com" });
+    const otherRef = otherContext.firestore().collection("business_wizard").doc("wizard-owner");
+    await assertFails(otherRef.get());
+    await assertFails(otherRef.set({ step: 2 }));
+  });
 });
