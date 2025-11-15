@@ -22,12 +22,13 @@ const BusinessCard: React.FC<Props> = ({ business }) => {
   const whatsappHref = business.WhatsApp ? waLink(business.WhatsApp) : "";
 
   useEffect(() => {
-    if (!business.hours) {
+    const schedule = business.hours;
+    if (!schedule) {
       setHoursLabel("Horario no disponible");
       return;
     }
     const updateStatus = () => {
-      const status = getBusinessStatus(business.hours);
+      const status = getBusinessStatus(schedule);
       setIsOpen(status.isOpen);
       if (status.isOpen && status.closesAt) {
         setHoursLabel(`Cierra a las ${status.closesAt}`);

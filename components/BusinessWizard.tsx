@@ -182,7 +182,10 @@ function summarizeHorarios(h: HorariosSemana): string {
 }
 
 // Autocomplete de Google Places: si está disponible window.google.maps.places
-function usePlacesAutocomplete(inputRef: React.RefObject<HTMLInputElement>, onPlace: (data: { address: string; lat?: number; lng?: number }) => void) {
+function usePlacesAutocomplete(
+  inputRef: React.RefObject<HTMLInputElement | null>,
+  onPlace: (data: { address: string; lat?: number; lng?: number }) => void
+) {
   useEffect(() => {
     const el = inputRef.current;
     const w = (typeof window !== "undefined" ? window : undefined) as any;
