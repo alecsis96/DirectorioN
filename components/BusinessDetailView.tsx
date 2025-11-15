@@ -25,6 +25,7 @@ import { waLink, mapsLink, normalizeDigits } from "../lib/helpers/contact";
 import { sendEvent } from "../lib/telemetry";
 
 import { upsertReview, reviewsQuery, ReviewSchema } from "../lib/firestore/reviews";
+import { hasAdminOverride } from "../lib/adminOverrides";
 
 
 
@@ -214,23 +215,15 @@ export default function BusinessDetailView({ business }: Props) {
       setUser(u as any);
 
       if (u) {
-
         try {
-
           const tr = await u.getIdTokenResult();
-
-          setIsAdmin(tr.claims?.admin === true);
-
+          const email = (tr.claims?.email as string | undefined) || u.email;
+          setIsAdmin(tr.claims?.admin === true || hasAdminOverride(email));
         } catch {
-
           setIsAdmin(false);
-
         }
-
       } else {
-
         setIsAdmin(false);
-
       }
 
     });

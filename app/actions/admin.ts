@@ -5,9 +5,15 @@ import * as admin from 'firebase-admin';
 import { z } from 'zod';
 
 import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
+import { hasAdminOverride } from '../../lib/adminOverrides';
 import type { Business } from '../../types/business';
 
 type DecodedAdmin = admin.auth.DecodedIdToken & { admin?: boolean };
+
+function decodedIsAdmin(decoded: DecodedAdmin | null | undefined) {
+  if (!decoded) return false;
+  return decoded.admin === true || hasAdminOverride(decoded.email);
+}
 
 const horarioDiaSchema = z.object({
   abierto: z.boolean(),
@@ -92,7 +98,7 @@ async function verifyAdmin(providedToken?: string): Promise<DecodedAdmin> {
   } catch {
     decoded = (await auth.verifyIdToken(token)) as DecodedAdmin;
   }
-  if ((decoded as any).admin !== true) {
+  if (!decodedIsAdmin(decoded)) {
     throw new Error('Permisos de administrador requeridos.');
   }
   return decoded;

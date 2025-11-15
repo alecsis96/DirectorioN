@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import AdminApplicationsList, { type AdminApplication } from '../../../components/AdminApplicationsList';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { hasAdminOverride } from '../../../lib/adminOverrides';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,12 +23,12 @@ async function requireAdmin() {
   const auth = getAdminAuth();
   try {
     const decoded = await auth.verifySessionCookie(token, true);
-    if ((decoded as any).admin === true) return decoded;
+    if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
   } catch {
     // fallback to ID token
     try {
       const decoded = await auth.verifyIdToken(token);
-      if ((decoded as any).admin === true) return decoded;
+      if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
     } catch (error) {
       console.error('[admin/applications] auth error', error);
     }

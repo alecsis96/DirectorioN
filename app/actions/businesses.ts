@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
+import { hasAdminOverride } from '../../lib/adminOverrides';
 
 const LAST_STEP_INDEX = 1;
 
@@ -378,7 +379,7 @@ export async function updateBusinessDetails(businessId: string, formData: FormDa
   const data = snap.data() as Record<string, unknown> | undefined;
   const ownerId = data?.ownerId;
   const isOwner = typeof ownerId === 'string' && ownerId === decoded.uid;
-  const isAdmin = (decoded as any).admin === true;
+  const isAdmin = (decoded as any).admin === true || hasAdminOverride(decoded.email);
   if (!isOwner && !isAdmin) {
     throw new Error('No tienes permisos para editar este negocio.');
   }
