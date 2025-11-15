@@ -4,8 +4,12 @@ const warnMissingKey = (key: string) => {
   }
 };
 
+const PUBLIC_VALUES: Record<string, string | undefined> = {
+  NEXT_PUBLIC_GOOGLE_MAPS_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY,
+};
+
 export const requiredPublicEnv = (key: string): string | null => {
-  const value = process.env[key];
+  const value = PUBLIC_VALUES[key] ?? process.env[key];
   if (typeof value === "string" && value.trim().length) {
     return value;
   }
@@ -14,7 +18,7 @@ export const requiredPublicEnv = (key: string): string | null => {
 };
 
 export const optionalPublicEnv = (key: string): string | null => {
-  const value = process.env[key];
+  const value = PUBLIC_VALUES[key] ?? process.env[key];
   if (typeof value === "string" && value.trim().length) {
     return value;
   }

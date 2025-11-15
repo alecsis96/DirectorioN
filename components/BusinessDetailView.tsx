@@ -2,6 +2,8 @@
 
 // components/BusinessDetailView.tsx
 
+'use client';
+
 import { onAuthStateChanged } from "firebase/auth";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";

@@ -50,7 +50,7 @@ const BusinessCard: React.FC<Props> = ({ business }) => {
           <div className="flex flex-col">
             <Link
               prefetch={false}
-              href={{ pathname: "/negocios/[id]", query: { id: business.id } }}
+              href={`/negocios/${business.id ?? ""}`}
               className="text-xl font-semibold text-gray-900 hover:text-[#38761D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38761D]"
             >
               {business.name}

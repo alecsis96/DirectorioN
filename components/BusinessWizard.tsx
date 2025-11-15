@@ -1,8 +1,11 @@
+'use client';
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, UseFormRegister } from "react-hook-form";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { signOut, type User } from "firebase/auth";
+import { submitNewBusiness } from "../app/actions/businesses";
 
 // ---------- Tipos ----------
 type DayKey =
@@ -276,14 +279,19 @@ export default function BusinessWizardPro() {
         const body: Record<string, unknown> = { formData: merged, mode };
         if (mode === "wizard") body.step = targetStep;
 
-        const res = await fetch("/api/businesses/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json().catch(() => null);
-        if (!res.ok) throw new Error((data as any)?.error || "No se pudo guardar");
-        return data as { ok: boolean; submitted?: boolean; notified?: boolean } | null;
+        const formData = new FormData();
+        formData.append("token", token);
+        formData.append("mode", mode);
+        formData.append("formData", JSON.stringify(merged));
+        if (mode === "wizard") {
+          formData.append("step", String(targetStep));
+        }
+
+        const data = await submitNewBusiness(formData);
+        if (!data?.ok) {
+          throw new Error("No se pudo guardar");
+        }
+        return data;
       } finally {
         setSaving(false);
       }
