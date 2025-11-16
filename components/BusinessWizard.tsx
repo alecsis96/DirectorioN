@@ -269,7 +269,15 @@ export default function BusinessWizardPro() {
 
   const persist = useCallback(
     async (payload: Partial<WizardData>, nextStep?: StepKey, modeOverride?: "wizard" | "application") => {
-      if (!user?.uid) return;
+      if (!user?.uid) {
+        setStatusMsg("Inicia sesión para continuar con tu solicitud.");
+        try {
+          await signInWithGoogle();
+        } catch (error) {
+          console.error("sign-in wizard", error);
+        }
+        return;
+      }
       const merged = { ...getValues(), ...payload };
       const targetStep = stepToIndex(nextStep ?? currentStep);
       const mode: "wizard" | "application" = modeOverride ?? (nextStep ? "wizard" : "application");

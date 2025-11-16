@@ -143,10 +143,15 @@ function summarizeHorarios(value: HorariosSemana): string {
   return parts.join('; ');
 }
 
+function normalizeEmailValue(value: string) {
+  if (!value) return '';
+  return value.trim().toLowerCase();
+}
+
 function buildSummary(formData: Record<string, unknown>, email: string, uid: string) {
   const businessName = asString(formData.businessName ?? 'Negocio sin nombre', 140);
   const ownerName = asString(formData.ownerName ?? formData.displayName ?? 'Propietario desconocido', 140);
-  const ownerEmail = asString(formData.ownerEmail ?? formData.email ?? email ?? uid, 200);
+  const ownerEmail = normalizeEmailValue(asString(formData.ownerEmail ?? formData.email ?? email ?? uid, 200));
   const ownerPhone = asString(formData.ownerPhone ?? '', 30);
   const category = asString(formData.category ?? 'Sin categoría', 80);
   const businessPhone = asString((formData as any).phone ?? '', 30);
@@ -182,7 +187,7 @@ function buildApplicationPayload(
 ) {
   const businessName = asString(formData.businessName ?? 'Negocio sin nombre', 140);
   const ownerName = asString(formData.ownerName ?? owner.name ?? '', 140);
-  const ownerEmail = asString(formData.ownerEmail ?? owner.email ?? '', 200);
+  const ownerEmail = normalizeEmailValue(asString(formData.ownerEmail ?? owner.email ?? '', 200));
   const ownerPhone = asString(formData.ownerPhone ?? '', 30);
   const description = asString(formData.description, 2000);
   const category = asString(formData.category ?? '', 120);
@@ -214,6 +219,7 @@ function buildApplicationPayload(
   const featured = Boolean(formData.featured);
   const approved = Boolean(formData.approved);
   const notes = asString(formData.notes ?? '', 800);
+  const status = asString(formData.status ?? '', 40) || 'pending';
 
   const payload: Record<string, unknown> = {
     businessName,
@@ -252,6 +258,7 @@ function buildApplicationPayload(
     ownerUid: owner.uid,
     notes,
     formData,
+    status,
   };
 
   if (lat != null && lng != null) {
@@ -272,10 +279,11 @@ function sanitizeUpdates(source: Record<string, unknown>) {
 }
 
 export async function submitNewBusiness(formData: FormData) {
+  const rawStep = formData.get('step');
   const parsed = submitActionSchema.parse({
     token: formData.get('token'),
     mode: formData.get('mode'),
-    step: formData.get('step'),
+    step: rawStep ?? undefined,
     formPayload: formData.get('formData') ?? formData.get('payload'),
   });
 
