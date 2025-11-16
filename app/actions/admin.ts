@@ -238,6 +238,8 @@ export async function approveApplication(
   if (!ownerId && !ownerEmail) {
     throw new Error('No se encontró ownerId ni ownerEmail válido.');
   }
+  const resolvedOwnerId = ownerId || applicationId;
+  const resolvedOwnerEmail = ownerEmail || normalizeString(form.ownerEmail, '', 200);
 
   const baseBusiness = {
     name: normalizeString(form.businessName, 'Negocio sin nombre', 140),
@@ -250,8 +252,8 @@ export async function approveApplication(
     Facebook: normalizeString(form.facebookPage || form.Facebook, '', 300),
     hours: normalizeString(form.hours, '', 200),
     price: normalizeString(form.price, '', 100),
-    ownerId,
-    ownerEmail,
+    ownerId: resolvedOwnerId,
+    ownerEmail: resolvedOwnerEmail,
     ownerName: normalizeString(form.ownerName, '', 140),
     plan: normalizeString(form.plan, 'free', 30),
     featured: false,

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { auth } from '../firebaseConfig';
 import { approveApplication, deleteApplication } from '../app/actions/admin';
+import AdminQAModal from './AdminQAModal';
 
 export type AdminApplication = {
   uid: string;
@@ -16,6 +17,7 @@ export type AdminApplication = {
   status?: string;
   notes?: string;
   createdAt?: string | null;
+  formData?: Record<string, any>;
 };
 
 const badgeMap: Record<string, string> = {
@@ -37,6 +39,7 @@ export default function AdminApplicationsList({ applications }: { applications: 
   const [apps, setApps] = useState(applications);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<AdminApplication | null>(null);
 
   const getToken = useCallback(async () => {
     const user = auth.currentUser;
@@ -121,6 +124,14 @@ export default function AdminApplicationsList({ applications }: { applications: 
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
+              className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              onClick={() => setSelected(app)}
+              disabled={busyId !== null}
+            >
+              Revisar / Editar
+            </button>
+            <button
+              type="button"
               className="inline-flex items-center justify-center rounded-lg bg-[#38761D] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2f5a1a]"
               onClick={() => handleApprove(app.uid)}
               disabled={busyId !== null}
@@ -138,6 +149,21 @@ export default function AdminApplicationsList({ applications }: { applications: 
           </div>
         </article>
       ))}
+      {selected ? (
+        <AdminQAModal
+          application={selected}
+          onClose={() => setSelected(null)}
+          onApproved={(id) => {
+            setApps((prev) => prev.filter((app) => app.uid !== id));
+            setSelected(null);
+          }}
+          onDeleted={(id) => {
+            setApps((prev) => prev.filter((app) => app.uid !== id));
+            setSelected(null);
+          }}
+          getToken={getToken}
+        />
+      ) : null}
     </div>
   );
 }

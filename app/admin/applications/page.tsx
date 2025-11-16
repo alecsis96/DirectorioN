@@ -53,6 +53,7 @@ async function fetchPendingApplications(): Promise<AdminApplication[]> {
 
   return snapshot.docs.map((doc) => {
     const data = doc.data() as Record<string, any>;
+    const formData = (data.formData as Record<string, any>) || {};
     return {
       uid: doc.id,
       businessName: (data.businessName as string) || 'Negocio sin nombre',
@@ -63,6 +64,7 @@ async function fetchPendingApplications(): Promise<AdminApplication[]> {
       status: data.status as string | undefined,
       notes: data.notes as string | undefined,
       createdAt: serializeTimestamp(data.createdAt),
+      formData,
     };
   });
 }
