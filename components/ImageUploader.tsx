@@ -7,9 +7,11 @@ interface UpdateResponse {
 
 type ImageItem = { url: string; publicId: string };
 
-export default function ImageUploader({ businessId, images, onChange }:{ businessId: string; images: ImageItem[]; onChange: (imgs: ImageItem[]) => void; }){
+export default function ImageUploader({ businessId, images, onChange, plan }:{ businessId: string; images: ImageItem[]; onChange: (imgs: ImageItem[]) => void; plan?: string; }){
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  
+  const canUploadImages = plan === 'featured' || plan === 'sponsor';
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -73,6 +75,20 @@ export default function ImageUploader({ businessId, images, onChange }:{ busines
     } finally { setBusy(false); }
   }
 
+  if (!canUploadImages) {
+    return (
+      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-lg p-6 text-center">
+        <p className="text-lg font-semibold text-gray-800 mb-2">🖼️ Galería de fotos</p>
+        <p className="text-sm text-gray-600 mb-4">
+          La subida de imágenes está disponible solo para planes <span className="font-bold text-orange-600">Destacado</span> o <span className="font-bold text-purple-600">Patrocinado</span>.
+        </p>
+        <p className="text-xs text-gray-500">
+          Plan actual: <span className="font-semibold">{plan || 'Gratuito'}</span>
+        </p>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">

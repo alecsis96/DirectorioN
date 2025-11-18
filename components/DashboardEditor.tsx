@@ -733,6 +733,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
             businessId={id!}
             images={biz.images || []}
             onChange={(imgs) => setBiz((b: any) => ({ ...b, images: imgs }))}
+            plan={biz.plan}
           />
         </div>
       )}

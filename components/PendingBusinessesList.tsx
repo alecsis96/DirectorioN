@@ -134,12 +134,12 @@ export default function PendingBusinessesList({ businesses: initialBusinesses }:
 
               <div className="flex flex-col gap-2 min-w-[200px]">
                 <a
-                  href={`/negocios/${business.id}`}
+                  href={`/dashboard/${business.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 text-center"
                 >
-                  👁️ Ver negocio
+                  👁️ Ver dashboard
                 </a>
                 
                 <button
