@@ -70,6 +70,13 @@ export default async function handler(
         businessName,
         plan,
       },
+      subscription_data: {
+        metadata: {
+          businessId,
+          plan,
+        },
+      },
+      },
     });
 
     res.status(200).json({ url: session.url });

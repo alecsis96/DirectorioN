@@ -65,14 +65,31 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
       setBusy(true);
       setMsg('Eliminando...');
       const token = await auth.currentUser?.getIdToken();
-      await fetch('/api/cloudinary/delete', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body: JSON.stringify({ businessId, publicId })});
+      
+      const response = await fetch('/api/cloudinary/delete', { 
+        method:'POST', 
+        headers:{ 
+          'Content-Type':'application/json', 
+          Authorization:`Bearer ${token}` 
+        }, 
+        body: JSON.stringify({ publicId })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al eliminar imagen');
+      }
+      
       const next = (images || []).filter(i => i.publicId !== publicId);
       await saveImages(next);
       onChange(next);
-      setMsg('Imagen eliminada');
+      setMsg('✅ Imagen eliminada');
     } catch(e:any){
-      setMsg(e?.message || 'Error al eliminar');
-    } finally { setBusy(false); }
+      setMsg(`❌ ${e?.message || 'Error al eliminar'}`);
+    } finally { 
+      setBusy(false); 
+    }
   }
 
   if (!canUploadImages) {
