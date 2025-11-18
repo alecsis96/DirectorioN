@@ -5,3 +5,12 @@ node_modules/
 *.log
 .DS_Store
 out/
+
+# Credenciales y claves privadas
+serviceAccountKey.json
+*.pem
+*.key
+.env.*.local
+
+# Archivos de configuración sensibles
+firebaseConfig.local.ts

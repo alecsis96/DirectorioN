@@ -1,6 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
+import { rateLimit } from '../../../lib/rateLimit';
+import { csrfProtection } from '../../../lib/csrfProtection';
+
+const limiter = rateLimit({ interval: 60000, uniqueTokenPerInterval: 20 });
 
 type ReviewBody = {
   businessId?: string;
@@ -10,6 +14,12 @@ type ReviewBody = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // CSRF Protection
+  if (!csrfProtection(req, res)) return;
+
+  // Rate limiting: 20 requests per minute
+  if (!limiter.check(req, res, 20)) return;
 
   try {
     // Verificar autenticación admin
@@ -35,6 +45,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     if (!action || (action !== 'approve' && action !== 'reject')) {
       return res.status(400).json({ error: 'Invalid action' });
+    }
+    
+    // Validar longitud del notes para prevenir ataques
+    if (notes && (typeof notes !== 'string' || notes.length > 1000)) {
+      return res.status(400).json({ error: 'Notes field too long (max 1000 chars)' });
     }
 
     const db = getAdminFirestore();

@@ -284,12 +284,40 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   }
 
   // Iniciar proceso de pago con Stripe
-  function handleUpgradePlan(selectedPlan: 'featured' | 'sponsor') {
-    if (!id || !biz) return;
-    const planLabel = selectedPlan === 'featured' ? 'Destacado' : 'Patrocinado';
-    setMsg(
-      `Pronto habilitaremos el plan ${planLabel}. Mientras tanto escríbenos y te ayudamos con el cambio.`
-    );
+  async function handleUpgradePlan(selectedPlan: 'featured' | 'sponsor') {
+    if (!id || !biz || !user) return;
+    
+    setBusy(true);
+    setMsg('Redirigiendo a Stripe...');
+    
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          businessId: id,
+          businessName: biz.name || 'Negocio',
+          plan: selectedPlan,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || 'Error al crear sesión de pago');
+      }
+
+      // Redirigir a Stripe Checkout
+      window.location.href = data.url;
+    } catch (error: any) {
+      console.error('Error al iniciar pago:', error);
+      setMsg(`❌ Error: ${error.message || 'No se pudo procesar el pago'}`);
+      setBusy(false);
+    }
   }
 
   // Estados de carga
@@ -576,7 +604,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 >
                   <div className="text-center">
                     <div className="text-xl font-bold text-[#38761D]">Destacado</div>
-                    <div className="text-sm text-gray-600 mt-1">$99 / mes</div>
+                    <div className="text-sm text-gray-600 mt-1">$99 MXN / mes</div>
                     <div className="text-xs text-gray-500 mt-2">
                       • Todo lo de Gratuito<br />
                       • Posición preferente<br />
@@ -609,7 +637,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 >
                   <div className="text-center">
                     <div className="text-xl font-bold text-[#38761D]">Patrocinado</div>
-                    <div className="text-sm text-gray-600 mt-1">$199 / mes</div>
+                    <div className="text-sm text-gray-600 mt-1">$199 MXN / mes</div>
                     <div className="text-xs text-gray-500 mt-2">
                       • Todo lo de Destacado<br />
                       • Banner en homepage<br />
