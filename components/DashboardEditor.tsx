@@ -412,11 +412,17 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               <div className="flex">
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">
-                    ¡Tu negocio fue rechazado!
+                    ❌ Tu negocio fue rechazado
                   </h3>
                   <p className="mt-2 text-sm text-red-700">
                     Por favor, revisa la información y corrígela. Luego podrás enviarlo nuevamente a revisión.
                   </p>
+                  {biz.rejectionNotes && (
+                    <div className="mt-3 bg-white border border-red-200 rounded p-3">
+                      <p className="text-xs font-semibold text-red-800 mb-1">Motivo del rechazo:</p>
+                      <p className="text-sm text-gray-700">{biz.rejectionNotes}</p>
+                    </div>
+                  )}
                   <div className="mt-4">
                     <button
                       onClick={submitForReview}
@@ -427,7 +433,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                           : 'bg-red-600 hover:bg-red-700 text-white'
                       }`}
                     >
-                      {submitting ? 'Enviando...' : 'Reenviar a revisión'}
+                      {submitting ? 'Enviando...' : '🔄 Reenviar a revisión'}
                     </button>
                   </div>
                 </div>
