@@ -413,59 +413,50 @@ export default function NegociosListClient({
         </header>
 
         {/* Categorías Destacadas */}
-        {!uiFilters.category && !uiFilters.query && (
+        {!uiFilters.category && !uiFilters.query && categories.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <span className="text-2xl">🏷️</span>
               Explora por categoría
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {[
-                { name: 'Restaurantes', icon: '🍽️', color: 'from-orange-500 to-red-500', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
-                { name: 'Servicios', icon: '🔧', color: 'from-blue-500 to-cyan-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
-                { name: 'Tiendas', icon: '🛍️', color: 'from-purple-500 to-pink-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
-                { name: 'Salud', icon: '🏥', color: 'from-green-500 to-emerald-500', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
-                { name: 'Educación', icon: '📚', color: 'from-indigo-500 to-blue-500', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200' },
-                { name: 'Entretenimiento', icon: '🎬', color: 'from-rose-500 to-pink-500', bgColor: 'bg-rose-50', borderColor: 'border-rose-200' },
-              ]
-                .filter(cat => categories.some(c => c.toLowerCase().includes(cat.name.toLowerCase())))
-                .map((cat) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {categories.slice(0, 7).map((cat) => {
+                const count = businesses.filter(b => b.category === cat).length;
+                return (
                   <button
-                    key={cat.name}
-                    onClick={() => handleCategoryChange(categories.find(c => c.toLowerCase().includes(cat.name.toLowerCase())) || '')}
-                    className={`group relative overflow-hidden rounded-xl ${cat.bgColor} border-2 ${cat.borderColor} p-4 text-center transition-all hover:shadow-lg hover:scale-105 active:scale-95`}
+                    key={cat}
+                    onClick={() => handleCategoryChange(cat)}
+                    className="group rounded-lg bg-white border border-gray-200 p-3 text-left transition-all hover:shadow-md hover:border-emerald-300"
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${cat.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
-                    <div className="relative">
-                      <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">{cat.icon}</div>
-                      <div className="text-sm font-bold text-gray-700 group-hover:text-gray-900">
-                        {categories.find(c => c.toLowerCase().includes(cat.name.toLowerCase())) || cat.name}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {businesses.filter(b => b.category?.toLowerCase().includes(cat.name.toLowerCase())).length} negocios
-                      </div>
+                    <div className="text-sm font-semibold text-gray-800 group-hover:text-emerald-600 mb-1">
+                      {cat}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {count} {count === 1 ? 'negocio' : 'negocios'}
                     </div>
                   </button>
-                ))}
+                );
+              })}
               
-              {/* Ver todas las categorías */}
-              <button
-                onClick={() => {
-                  const categoriesSection = document.getElementById('all-categories');
-                  categoriesSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="group relative overflow-hidden rounded-xl bg-gray-50 border-2 border-gray-200 p-4 text-center transition-all hover:shadow-lg hover:scale-105 active:scale-95 hover:bg-gray-100"
-              >
-                <div className="relative">
-                  <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📋</div>
-                  <div className="text-sm font-bold text-gray-700 group-hover:text-gray-900">
-                    Ver todas
+              {categories.length > 7 && (
+                <button
+                  onClick={() => {
+                    const select = document.querySelector('select[name="category"]') as HTMLSelectElement;
+                    if (select) {
+                      select.focus();
+                      select.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }}
+                  className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-center transition-all hover:bg-gray-100 hover:border-gray-300"
+                >
+                  <div className="text-sm font-semibold text-gray-600">
+                    +{categories.length - 7} más
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {categories.length} categorías
+                    Ver todas
                   </div>
-                </div>
-              </button>
+                </button>
+              )}
             </div>
           </div>
         )}
