@@ -80,7 +80,7 @@ export default async function AdminApplicationsPage() {
         <h1 className="mt-2 text-3xl font-bold text-[#38761D]">Solicitudes pendientes</h1>
         <p className="text-sm text-gray-600">Revisa las aplicaciones que aún están en proceso de aprobación.</p>
         
-        <div className="mt-6 flex gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           <a
             href="/admin/applications"
             className="px-4 py-2 bg-[#38761D] text-white font-semibold rounded hover:bg-[#2d5418]"
@@ -89,9 +89,21 @@ export default async function AdminApplicationsPage() {
           </a>
           <a
             href="/admin/pending-businesses"
-            className="px-4 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
           >
             🔍 Negocios en revisión
+          </a>
+          <a
+            href="/admin/businesses"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            🏪 Negocios publicados
+          </a>
+          <a
+            href="/admin/stats"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            📊 Estadísticas
           </a>
         </div>
       </header>

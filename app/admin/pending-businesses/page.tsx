@@ -93,10 +93,10 @@ export default async function PendingBusinessesPage() {
           Revisa los negocios que han sido editados y enviados a revisión para publicación.
         </p>
         
-        <div className="mt-6 flex gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           <a
             href="/admin/applications"
-            className="px-4 py-2 bg-gray-600 text-white font-semibold rounded hover:bg-gray-700"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
           >
             📋 Solicitudes iniciales
           </a>
@@ -105,6 +105,18 @@ export default async function PendingBusinessesPage() {
             className="px-4 py-2 bg-[#38761D] text-white font-semibold rounded hover:bg-[#2d5418]"
           >
             🔍 Negocios en revisión
+          </a>
+          <a
+            href="/admin/businesses"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            🏪 Negocios publicados
+          </a>
+          <a
+            href="/admin/stats"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            📊 Estadísticas
           </a>
         </div>
       </header>
