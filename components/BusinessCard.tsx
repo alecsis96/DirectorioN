@@ -95,6 +95,11 @@ const BusinessCard: React.FC<Props> = ({ business }) => {
           >
             {isOpen ? "Abierto" : "Cerrado"}
           </span>
+          {business.hasDelivery && (
+            <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-semibold flex items-center gap-1">
+              🚚 Delivery
+            </span>
+          )}
         </div>
       </header>
 

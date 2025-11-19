@@ -25,6 +25,7 @@ export type Business = {
   ownerEmail?: string;
   plan?: "free" | "featured" | "sponsor" | string;
   isOpen?: "si" | "no" | string;
+  hasDelivery?: boolean;
   location?: { lat: number; lng: number } | null;
   image1?: string | null;
   image2?: string | null;

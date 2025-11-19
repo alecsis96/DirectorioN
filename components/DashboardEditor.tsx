@@ -50,6 +50,7 @@ const defaultFormState = {
   openTime: '',
   closeTime: '',
   plan: 'free',
+  hasDelivery: false,
 };
 
 function mapToFormState(data?: Record<string, any>) {
@@ -69,6 +70,7 @@ function mapToFormState(data?: Record<string, any>) {
     openTime,
     closeTime,
     plan: data.plan ?? 'free',
+    hasDelivery: data.hasDelivery === true,
   };
 }
 
@@ -684,6 +686,41 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               value={form.Facebook}
               onChange={(e) => setForm({ ...form, Facebook: e.target.value })}
             />
+            
+            {/* Delivery - Solo para categorías de comida */}
+            {(form.category.toLowerCase().includes('comida') || 
+              form.category.toLowerCase().includes('restaurante') || 
+              form.category.toLowerCase().includes('pizzería') ||
+              form.category.toLowerCase().includes('pizzeria') ||
+              form.category.toLowerCase().includes('cafetería') ||
+              form.category.toLowerCase().includes('cafeteria') ||
+              form.category.toLowerCase().includes('panadería') ||
+              form.category.toLowerCase().includes('panaderia') ||
+              form.category.toLowerCase().includes('antojitos') ||
+              form.category.toLowerCase().includes('cocina') ||
+              form.category.toLowerCase().includes('mariscos') ||
+              form.category.toLowerCase().includes('tacos')) && (
+              <div className="md:col-span-2 bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.hasDelivery}
+                    onChange={(e) => setForm({ ...form, hasDelivery: e.target.checked })}
+                    className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500"
+                  />
+                  <div>
+                    <span className="text-base font-bold text-orange-900 flex items-center gap-2">
+                      <span className="text-xl">🚚</span>
+                      Ofrece servicio de entrega a domicilio (Delivery)
+                    </span>
+                    <p className="text-sm text-orange-700 mt-1">
+                      Marca esta opción si tu negocio realiza entregas a domicilio. Esto ayudará a los clientes a encontrarte más fácilmente.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
+            
             {/* Horarios por día */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-3">

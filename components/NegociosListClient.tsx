@@ -73,6 +73,7 @@ export default function NegociosListClient({
   const [quickFilterOpen, setQuickFilterOpen] = useState(false);
   const [quickFilterTopRated, setQuickFilterTopRated] = useState(false);
   const [quickFilterNew, setQuickFilterNew] = useState(false);
+  const [quickFilterDelivery, setQuickFilterDelivery] = useState(false);
   const [uiFilters, setUiFilters] = useState<Filters>(() => ({
     category: initialFilters.category || '',
     colonia: initialFilters.colonia || '',
@@ -220,6 +221,7 @@ export default function NegociosListClient({
       // Filtros rápidos
       if (quickFilterOpen && biz.isOpen !== 'si') return false;
       if (quickFilterTopRated && (biz.rating ?? 0) < 4.5) return false;
+      if (quickFilterDelivery && biz.hasDelivery !== true) return false;
       if (quickFilterNew) {
         const created = (biz as any).createdAt;
         if (created) {
@@ -254,7 +256,7 @@ export default function NegociosListClient({
       items: accumulated,
       total: sorted.length,
     };
-  }, [businesses, uiFilters, quickFilterOpen, quickFilterTopRated, quickFilterNew]);
+  }, [businesses, uiFilters, quickFilterOpen, quickFilterTopRated, quickFilterNew, quickFilterDelivery]);
 
   const hasMore = paginated.items.length < paginated.total;
 
@@ -475,12 +477,13 @@ export default function NegociosListClient({
               <span>⚡</span>
               Filtros rápidos
             </h3>
-            {(quickFilterOpen || quickFilterTopRated || quickFilterNew) && (
+            {(quickFilterOpen || quickFilterTopRated || quickFilterNew || quickFilterDelivery) && (
               <button
                 onClick={() => {
                   setQuickFilterOpen(false);
                   setQuickFilterTopRated(false);
                   setQuickFilterNew(false);
+                  setQuickFilterDelivery(false);
                 }}
                 className="text-xs text-gray-500 hover:text-gray-700 underline"
               >
@@ -527,24 +530,20 @@ export default function NegociosListClient({
 
             {/* Delivery */}
             <button
-              onClick={() => {
-                const deliveryCategories = ['Restaurantes', 'Comida', 'Pizzería', 'Cafetería'];
-                const hasDeliveryCategory = deliveryCategories.some(cat => 
-                  categories.some(c => c.toLowerCase().includes(cat.toLowerCase()))
-                );
-                if (hasDeliveryCategory) {
-                  const deliveryCat = categories.find(c => 
-                    deliveryCategories.some(dc => c.toLowerCase().includes(dc.toLowerCase()))
-                  );
-                  if (deliveryCat) {
-                    handleCategoryChange(deliveryCat);
-                  }
-                }
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50 transition-all"
+              onClick={() => setQuickFilterDelivery(!quickFilterDelivery)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                quickFilterDelivery
+                  ? 'bg-orange-500 text-white shadow-lg scale-105'
+                  : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50'
+              }`}
             >
               <span className="text-lg">🚚</span>
               Delivery
+              {quickFilterDelivery && (
+                <span className="bg-white text-orange-600 rounded-full px-2 py-0.5 text-xs font-bold">
+                  {businesses.filter(b => b.hasDelivery === true).length}
+                </span>
+              )}
             </button>
 
             {/* Nuevos */}
