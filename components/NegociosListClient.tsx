@@ -362,54 +362,44 @@ export default function NegociosListClient({
           </div>
         </header>
 
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 md:p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Categoria</label>
-              <select
-                value={uiFilters.category}
-                onChange={handleCategoryChange}
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40"
+        {/* Filtros activos - Chips para mostrar filtros seleccionados */}
+        {(uiFilters.category || uiFilters.colonia || uiFilters.order !== DEFAULT_ORDER) && (
+          <div className="mb-6 flex flex-wrap gap-2">
+            {uiFilters.category && (
+              <button
+                onClick={() => updateFilters({ category: '' }, { resetPage: true })}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition"
               >
-                <option value="">Todas las categorias</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Colonia</label>
-              <select
-                value={uiFilters.colonia}
-                onChange={handleColoniaChange}
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40"
+                📂 {uiFilters.category}
+                <span className="text-green-600">✕</span>
+              </button>
+            )}
+            {uiFilters.colonia && (
+              <button
+                onClick={() => updateFilters({ colonia: '' }, { resetPage: true })}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition"
               >
-                <option value="">Todas las colonias</option>
-                {colonias.map((col) => (
-                  <option key={col} value={normalizeColonia(col)}>
-                    {col}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Ordenar por</label>
-              <select
-                value={uiFilters.order}
-                onChange={handleOrderChange}
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D]/40"
+                📍 {selectedColoniaLabel}
+                <span className="text-blue-600">✕</span>
+              </button>
+            )}
+            {uiFilters.order !== DEFAULT_ORDER && (
+              <button
+                onClick={() => updateFilters({ order: DEFAULT_ORDER }, { resetPage: true })}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-200 transition"
               >
-                <option value="destacado">Destacado</option>
-                <option value="rating">Mejor calificados</option>
-                <option value="az">A-Z</option>
-              </select>
-            </div>
+                🔄 {uiFilters.order === 'rating' ? 'Mejor calificados' : 'A-Z'}
+                <span className="text-purple-600">✕</span>
+              </button>
+            )}
+            <button
+              onClick={() => updateFilters({ category: '', colonia: '', order: DEFAULT_ORDER }, { resetPage: true })}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-600 text-sm font-medium hover:text-gray-800 underline"
+            >
+              Limpiar filtros
+            </button>
           </div>
-        </div>
+        )}
 
         <div className="space-y-6">
           {showEmptyState && (

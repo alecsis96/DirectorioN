@@ -155,6 +155,13 @@ export default function SearchHeader({
     setIsModalOpen(false);
   };
 
+  // Contador de filtros activos
+  const activeFiltersCount = [
+    selectedCategory,
+    selectedColonia,
+    selectedOrder !== 'destacado' ? selectedOrder : null
+  ].filter(Boolean).length;
+
   return (
     <>
       <div
@@ -192,10 +199,15 @@ export default function SearchHeader({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="relative inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
               >
                 <BsFilter aria-hidden="true" />
                 Filtros
+                {activeFiltersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white shadow-lg">
+                    {activeFiltersCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -223,28 +235,43 @@ export default function SearchHeader({
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 px-4 pb-6 sm:items-center">
-          <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800">Filtros</h3>
+        <div 
+          className="fixed inset-0 z-30 flex items-end justify-center bg-black/50 backdrop-blur-sm px-4 pb-6 sm:items-center transition-all"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl transform transition-all animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del Modal */}
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Filtros de búsqueda</h3>
+                <p className="text-sm text-gray-500 mt-1">Personaliza tus resultados</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+                aria-label="Cerrar filtros"
               >
-                Cerrar
+                ✕
               </button>
             </div>
 
-            <div className="space-y-4 text-sm">
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase text-gray-500">Categoria</label>
+            <div className="space-y-5">
+              {/* Categoría */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                <label className="flex items-center gap-2 mb-2 text-sm font-bold text-green-900">
+                  <span className="text-lg">📂</span>
+                  Categoría
+                </label>
                 <select
                   value={selectedCategory}
                   onChange={(event) => setSelectedCategory(event.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring focus:ring-emerald-100"
+                  className="w-full rounded-lg border-2 border-green-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                 >
-                  <option value="">Todas</option>
+                  <option value="">Todas las categorías</option>
                   {categories.map((cat) => (
                     <option key={cat} value={cat}>
                       {cat}
@@ -253,14 +280,18 @@ export default function SearchHeader({
                 </select>
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase text-gray-500">Colonia</label>
+              {/* Colonia */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
+                <label className="flex items-center gap-2 mb-2 text-sm font-bold text-blue-900">
+                  <span className="text-lg">📍</span>
+                  Colonia
+                </label>
                 <select
                   value={selectedColonia}
                   onChange={(event) => setSelectedColonia(event.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring focus:ring-emerald-100"
+                  className="w-full rounded-lg border-2 border-blue-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 >
-                  <option value="">Todas</option>
+                  <option value="">Todas las colonias</option>
                   {colonias.map((col) => (
                     <option key={col} value={col}>
                       {col}
@@ -269,12 +300,16 @@ export default function SearchHeader({
                 </select>
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase text-gray-500">Ordenar por</label>
+              {/* Ordenar */}
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+                <label className="flex items-center gap-2 mb-2 text-sm font-bold text-purple-900">
+                  <span className="text-lg">🔄</span>
+                  Ordenar por
+                </label>
                 <select
                   value={selectedOrder}
                   onChange={(event) => setSelectedOrder(event.target.value as SortMode)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring focus:ring-emerald-100"
+                  className="w-full rounded-lg border-2 border-purple-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
                 >
                   {sortOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -284,37 +319,62 @@ export default function SearchHeader({
                 </select>
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase text-gray-500">Radio (km)</label>
+              {/* Radio de búsqueda */}
+              <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-100">
+                <label className="flex items-center gap-2 mb-2 text-sm font-bold text-orange-900">
+                  <span className="text-lg">📏</span>
+                  Radio de búsqueda
+                </label>
                 <input
                   type="number"
                   min="1"
                   max="50"
                   value={radiusValue}
                   onChange={(event) => setRadiusValue(event.target.value)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring focus:ring-emerald-100"
-                  placeholder="Ej. 5"
+                  className="w-full rounded-lg border-2 border-orange-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                  placeholder="Ej. 5 km"
                 />
-                <p className="mt-1 text-xs text-gray-500">Usa el botón de ubicación para actualizar lat/lng.</p>
+                <p className="mt-2 text-xs text-orange-700">
+                  💡 Activa tu ubicación para búsquedas cercanas
+                </p>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 p-3">
-                <p className="mb-2 text-xs font-semibold text-gray-500 uppercase">Ubicación</p>
+              {/* Botón de Geolocalización */}
+              <div className="rounded-xl border-2 border-dashed border-gray-300 p-4 bg-gray-50">
+                <p className="mb-3 text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span className="text-base">🎯</span>
+                  Búsqueda por ubicación
+                </p>
                 <GeolocationButton
                   radiusKm={Number(radiusValue) || radiusKm}
-                  label="Aplicar ubicación"
+                  label="📍 Usar mi ubicación actual"
                   onSuccess={handleGeoSuccess}
                 />
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleApplyFilters}
-              className="mt-5 w-full rounded-full bg-emerald-500 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
-            >
-              Aplicar filtros
-            </button>
+            {/* Botones de Acción */}
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('');
+                  setSelectedColonia('');
+                  setSelectedOrder('destacado');
+                  setRadiusValue('');
+                }}
+                className="flex-1 rounded-xl border-2 border-gray-300 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
+              >
+                Limpiar todo
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyFilters}
+                className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 py-3 text-sm font-bold text-white hover:from-emerald-600 hover:to-green-700 shadow-lg hover:shadow-xl transition-all"
+              >
+                Aplicar filtros
+              </button>
+            </div>
           </div>
         </div>
       )}
