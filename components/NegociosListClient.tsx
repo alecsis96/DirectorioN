@@ -165,8 +165,9 @@ export default function NegociosListClient({
   );
 
   const handleCategoryChange = useCallback(
-    (event: ChangeEvent<HTMLSelectElement>) => {
-      updateFilters({ category: event.target.value }, { resetPage: true });
+    (eventOrValue: ChangeEvent<HTMLSelectElement> | string) => {
+      const value = typeof eventOrValue === 'string' ? eventOrValue : eventOrValue.target.value;
+      updateFilters({ category: value }, { resetPage: true });
     },
     [updateFilters],
   );
@@ -387,6 +388,64 @@ export default function NegociosListClient({
           </div>
         </header>
 
+        {/* Categorías Destacadas */}
+        {!uiFilters.category && !uiFilters.query && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="text-2xl">🏷️</span>
+              Explora por categoría
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {[
+                { name: 'Restaurantes', icon: '🍽️', color: 'from-orange-500 to-red-500', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+                { name: 'Servicios', icon: '🔧', color: 'from-blue-500 to-cyan-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
+                { name: 'Tiendas', icon: '🛍️', color: 'from-purple-500 to-pink-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
+                { name: 'Salud', icon: '🏥', color: 'from-green-500 to-emerald-500', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
+                { name: 'Educación', icon: '📚', color: 'from-indigo-500 to-blue-500', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200' },
+                { name: 'Entretenimiento', icon: '🎬', color: 'from-rose-500 to-pink-500', bgColor: 'bg-rose-50', borderColor: 'border-rose-200' },
+              ]
+                .filter(cat => categories.some(c => c.toLowerCase().includes(cat.name.toLowerCase())))
+                .map((cat) => (
+                  <button
+                    key={cat.name}
+                    onClick={() => handleCategoryChange(categories.find(c => c.toLowerCase().includes(cat.name.toLowerCase())) || '')}
+                    className={`group relative overflow-hidden rounded-xl ${cat.bgColor} border-2 ${cat.borderColor} p-4 text-center transition-all hover:shadow-lg hover:scale-105 active:scale-95`}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-br ${cat.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
+                    <div className="relative">
+                      <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">{cat.icon}</div>
+                      <div className="text-sm font-bold text-gray-700 group-hover:text-gray-900">
+                        {categories.find(c => c.toLowerCase().includes(cat.name.toLowerCase())) || cat.name}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {filteredBusinesses.filter(b => b.category?.toLowerCase().includes(cat.name.toLowerCase())).length} negocios
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              
+              {/* Ver todas las categorías */}
+              <button
+                onClick={() => {
+                  const categoriesSection = document.getElementById('all-categories');
+                  categoriesSection?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="group relative overflow-hidden rounded-xl bg-gray-50 border-2 border-gray-200 p-4 text-center transition-all hover:shadow-lg hover:scale-105 active:scale-95 hover:bg-gray-100"
+              >
+                <div className="relative">
+                  <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📋</div>
+                  <div className="text-sm font-bold text-gray-700 group-hover:text-gray-900">
+                    Ver todas
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {categories.length} categorías
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Filtros activos - Chips para mostrar filtros seleccionados */}
         {(uiFilters.category || uiFilters.colonia || uiFilters.order !== DEFAULT_ORDER) && (
           <div className="mb-6 flex flex-wrap gap-2">
@@ -426,7 +485,7 @@ export default function NegociosListClient({
           </div>
         )}
 
-        <div className="space-y-6">
+        <div id="all-categories" className="space-y-6">
           {showEmptyState && (
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
               No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
