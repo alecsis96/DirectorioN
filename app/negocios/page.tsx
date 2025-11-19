@@ -10,11 +10,16 @@ import { COLONIAS_MAP, inferColoniaFromAddress, normalizeColonia } from '../../l
 import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, type Filters, type SortMode } from '../../lib/negociosFilters';
 
 export const metadata: Metadata = {
-  title: 'Directorio Yajalon',
-  description: 'Explora negocios locales.',
+  title: 'Directorio de Negocios en Yajalón - Tu Guía Completa de Comercios Locales',
+  description: 'Descubre, compara y conecta con los mejores negocios de Yajalón. Encuentra restaurantes, tiendas, servicios profesionales y más cerca de ti. Directorio completo con reseñas, ubicaciones y contactos.',
   robots: {
     index: true,
     follow: true,
+  },
+  openGraph: {
+    title: 'Directorio de Negocios en Yajalón',
+    description: 'Tu guía completa de comercios locales en Yajalón. Encuentra lo que buscas cerca de ti.',
+    type: 'website',
   },
 };
 

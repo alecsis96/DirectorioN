@@ -313,42 +313,67 @@ export default function NegociosListClient({
       />
       <section className="max-w-6xl mx-auto px-6 py-10">
         <header className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-[#38761D] mb-3">Directorio de negocios en Yajalon</h1>
-          <p className="text-base md:text-lg text-gray-600">{headingDescription}</p>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg">
+              <span className="text-2xl">🏪</span>
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-[#38761D] leading-tight">
+                Directorio de Negocios en Yajalón
+              </h1>
+              <p className="text-sm md:text-base text-emerald-600 font-semibold">
+                Tu guía completa de comercios locales
+              </p>
+            </div>
+          </div>
+          <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+            <span className="font-semibold text-gray-900">Descubre, compara y conecta</span> con los mejores negocios de Yajalón. 
+            Encuentra restaurantes, tiendas, servicios profesionales y más, todo en un solo lugar. 
+            <span className="inline-flex items-center gap-1 ml-1 text-emerald-600">
+              📍 Cerca de ti, fácil de encontrar
+            </span>
+          </p>
           {initialError && (
-            <p className="mt-2 text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-lg px-3 py-2">{initialError}</p>
+            <p className="mt-3 text-sm text-amber-700 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg px-4 py-3 shadow-sm">
+              ⚠️ {initialError}
+            </p>
           )}
           {prefersDataSaver && (
-            <p className="mt-2 text-xs text-gray-500">Modo ahorro de datos activo: evitamos imagenes y mapas embebidos.</p>
+            <p className="mt-2 text-xs text-gray-500 bg-blue-50 px-3 py-2 rounded-lg">
+              💾 Modo ahorro de datos activo: evitamos imágenes y mapas embebidos.
+            </p>
           )}
-          <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <Link
-              prefetch={false}
-              href="/para-negocios"
-              className="inline-flex items-center justify-center gap-2 bg-[#38761D] text-white px-6 py-3 rounded-lg hover:bg-[#2f5a1a] transition font-semibold shadow-md"
-            >
-              Registrar mi negocio
-            </Link>
-            <Link
-              prefetch={false}
-              href="/mis-solicitudes"
-              className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md"
-            >
-              Verificar mi solicitud
-            </Link>
-          </div>
-          <div className="mt-4 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs">
-              ¿Ya registraste tu negocio? Revisa el estado de tu solicitud sin salir de esta página ligera.
-            </span>
+          
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+              <span className="text-gray-700">
+                ¿Tienes un negocio?
+              </span>
+              <Link
+                prefetch={false}
+                href="/para-negocios"
+                className="text-emerald-600 font-semibold hover:text-emerald-700 hover:underline underline-offset-2 transition"
+              >
+                Regístralo aquí →
+              </Link>
+              <span className="text-gray-400">|</span>
+              <Link
+                prefetch={false}
+                href="/mis-solicitudes"
+                className="text-blue-600 font-semibold hover:text-blue-700 hover:underline underline-offset-2 transition"
+              >
+                Verificar solicitud →
+              </Link>
+            </div>
+            
             {user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm">
                 <span className="text-xs text-gray-500">{user.email}</span>
                 <button
                   onClick={handleSignOut}
-                  className="rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                  className="rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition"
                 >
-                  Cerrar sesion
+                  Cerrar sesión
                 </button>
               </div>
             ) : (
