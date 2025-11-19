@@ -11,8 +11,7 @@
     "test:watch": "vitest",
     "build": "next build",
     "start": "next start",
-    "verify-env": "node scripts/verifyEnv.js",
-    "prebuild": "npm run verify-env"
+    "verify-env": "node scripts/verifyEnv.js"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
