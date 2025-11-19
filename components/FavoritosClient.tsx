@@ -28,6 +28,8 @@ export default function FavoritosClient() {
         setLoading(true);
         setError(null);
         
+        console.log('[FavoritosClient] Favorites IDs:', favorites);
+        
         // Firestore permite máximo 10 items en un 'in' query, así que dividimos en chunks
         const chunks: string[][] = [];
         for (let i = 0; i < favorites.length; i += 10) {
@@ -37,18 +39,22 @@ export default function FavoritosClient() {
         const allBusinesses: Business[] = [];
         
         for (const chunk of chunks) {
+          console.log('[FavoritosClient] Fetching chunk:', chunk);
           const q = query(
             collection(db, 'businesses'),
-            where('__name__', 'in', chunk),
-            where('status', '==', 'approved')
+            where('__name__', 'in', chunk)
           );
           
           const snapshot = await getDocs(q);
+          console.log('[FavoritosClient] Snapshot size:', snapshot.size);
           snapshot.forEach((doc) => {
-            allBusinesses.push({ id: doc.id, ...doc.data() } as Business);
+            const data = doc.data();
+            console.log('[FavoritosClient] Found business:', doc.id, data.name);
+            allBusinesses.push({ id: doc.id, ...data } as Business);
           });
         }
 
+        console.log('[FavoritosClient] Total businesses found:', allBusinesses.length);
         setBusinesses(allBusinesses);
       } catch (err) {
         console.error('Error fetching favorites:', err);

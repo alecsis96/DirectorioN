@@ -55,13 +55,17 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   }, [favorites]);
 
   const addFavorite = useCallback((businessId: string) => {
+    console.log('[FavoritesContext] Adding favorite:', businessId);
     setFavorites((prev) => {
       if (!businessId || prev.includes(businessId)) return prev;
-      return [...prev, businessId];
+      const updated = [...prev, businessId];
+      console.log('[FavoritesContext] Updated favorites:', updated);
+      return updated;
     });
   }, []);
 
   const removeFavorite = useCallback((businessId: string) => {
+    console.log('[FavoritesContext] Removing favorite:', businessId);
     setFavorites((prev) => prev.filter((id) => id !== businessId));
   }, []);
 
