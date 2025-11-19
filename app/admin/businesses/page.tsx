@@ -53,15 +53,17 @@ interface BusinessData {
 
 async function fetchAllBusinesses(): Promise<BusinessData[]> {
   const db = getAdminFirestore();
+  
+  // Opción 1: Obtener todos los negocios aprobados sin ordenar (más rápido, no requiere índice)
   const snapshot = await db
     .collection('businesses')
     .where('status', '==', 'approved')
-    .orderBy('createdAt', 'desc')
     .get();
 
   if (snapshot.empty) return [];
 
-  return snapshot.docs.map((doc) => {
+  // Ordenar en memoria después de obtener los datos
+  const businesses = snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -78,6 +80,13 @@ async function fetchAllBusinesses(): Promise<BusinessData[]> {
       avgRating: data.avgRating || 0,
       stripeSubscriptionStatus: data.stripeSubscriptionStatus,
     };
+  });
+
+  // Ordenar por fecha de creación (más recientes primero)
+  return businesses.sort((a, b) => {
+    if (!a.createdAt) return 1;
+    if (!b.createdAt) return -1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 }
 
