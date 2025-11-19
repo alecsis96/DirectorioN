@@ -6,15 +6,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import dynamic from 'next/dynamic';
 
 import BusinessCard from './BusinessCard';
 import SearchHeader from './SearchHeader';
 import { auth, signInWithGoogle } from '../firebaseConfig';
 import { sendEvent } from '../lib/telemetry';
 import { sliceBusinesses } from '../lib/pagination';
-import type { BusinessPreview } from '../types/business';
+import type { Business, BusinessPreview } from '../types/business';
 import { normalizeColonia } from '../lib/helpers/colonias';
 import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, PAGE_SIZE, type Filters, type SortMode } from '../lib/negociosFilters';
+
+const BusinessModalWrapper = dynamic(() => import('./BusinessModalWrapper'), { ssr: false });
 
 const SkeletonCard = () => (
   <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 animate-pulse">
@@ -74,6 +77,7 @@ export default function NegociosListClient({
   const [quickFilterTopRated, setQuickFilterTopRated] = useState(false);
   const [quickFilterNew, setQuickFilterNew] = useState(false);
   const [quickFilterDelivery, setQuickFilterDelivery] = useState(false);
+  const [selectedBusiness, setSelectedBusiness] = useState<BusinessPreview | Business | null>(null);
   const [uiFilters, setUiFilters] = useState<Filters>(() => ({
     category: initialFilters.category || '',
     colonia: initialFilters.colonia || '',
@@ -609,7 +613,13 @@ export default function NegociosListClient({
             </div>
           )}
 
-          {!showEmptyState && paginated.items.map((biz) => <BusinessCard key={biz.id} business={biz} />)}
+          {!showEmptyState && paginated.items.map((biz) => (
+            <BusinessCard 
+              key={biz.id} 
+              business={biz}
+              onViewDetails={(business) => setSelectedBusiness(business)}
+            />
+          ))}
 
           {isFetching && paginated.items.length === 0 && <SkeletonList count={3} />}
           {isFetching && paginated.items.length > 0 && <SkeletonList count={1} />}
@@ -630,6 +640,14 @@ export default function NegociosListClient({
           </div>
         )}
       </section>
+
+      {/* Modal de detalles */}
+      {selectedBusiness && (
+        <BusinessModalWrapper
+          businessPreview={selectedBusiness}
+          onClose={() => setSelectedBusiness(null)}
+        />
+      )}
     </main>
   );
 }

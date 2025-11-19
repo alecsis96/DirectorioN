@@ -12,9 +12,10 @@ type CardBusiness = BusinessPreview | Business;
 
 type Props = {
   business: CardBusiness;
+  onViewDetails?: (business: CardBusiness) => void;
 };
 
-const BusinessCard: React.FC<Props> = ({ business }) => {
+const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const businessId = typeof (business as any).id === "string" ? (business as any).id : undefined;
   const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
   const [isOpen, setIsOpen] = useState(business.isOpen === "si");
@@ -48,6 +49,13 @@ const BusinessCard: React.FC<Props> = ({ business }) => {
     return () => clearInterval(timer);
   }, [business.hours]);
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (onViewDetails) {
+      e.preventDefault();
+      onViewDetails(business);
+    }
+  };
+
   return (
     <article className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col gap-4">
       <header className="flex flex-col gap-2">
@@ -56,6 +64,7 @@ const BusinessCard: React.FC<Props> = ({ business }) => {
             <Link
               prefetch={false}
               href={`/negocios/${business.id ?? ""}`}
+              onClick={handleClick}
               className="text-xl font-semibold text-gray-900 hover:text-[#38761D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38761D]"
             >
               {business.name}
