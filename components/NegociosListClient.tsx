@@ -418,7 +418,7 @@ export default function NegociosListClient({
                         {categories.find(c => c.toLowerCase().includes(cat.name.toLowerCase())) || cat.name}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
-                        {filteredBusinesses.filter(b => b.category?.toLowerCase().includes(cat.name.toLowerCase())).length} negocios
+                        {businesses.filter(b => b.category?.toLowerCase().includes(cat.name.toLowerCase())).length} negocios
                       </div>
                     </div>
                   </button>
