@@ -70,6 +70,9 @@ export default function NegociosListClient({
   const [user, setUser] = useState<User | null>(() => auth.currentUser);
   const [prefersDataSaver, setPrefersDataSaver] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [quickFilterOpen, setQuickFilterOpen] = useState(false);
+  const [quickFilterTopRated, setQuickFilterTopRated] = useState(false);
+  const [quickFilterNew, setQuickFilterNew] = useState(false);
   const [uiFilters, setUiFilters] = useState<Filters>(() => ({
     category: initialFilters.category || '',
     colonia: initialFilters.colonia || '',
@@ -213,6 +216,21 @@ export default function NegociosListClient({
         const haystack = `${biz.name ?? ''} ${biz.address ?? ''} ${biz.category ?? ''}`.toLowerCase();
         if (!haystack.includes(normalizedQuery)) return false;
       }
+      
+      // Filtros rápidos
+      if (quickFilterOpen && biz.isOpen !== 'si') return false;
+      if (quickFilterTopRated && (biz.rating ?? 0) < 4.5) return false;
+      if (quickFilterNew) {
+        const created = (biz as any).createdAt;
+        if (created) {
+          const createdDate = created.toDate ? created.toDate() : new Date(created);
+          const daysDiff = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+          if (daysDiff > 30) return false;
+        } else {
+          return false;
+        }
+      }
+      
       return true;
     });
     const sorted = [...filtered];
@@ -236,7 +254,7 @@ export default function NegociosListClient({
       items: accumulated,
       total: sorted.length,
     };
-  }, [businesses, uiFilters]);
+  }, [businesses, uiFilters, quickFilterOpen, quickFilterTopRated, quickFilterNew]);
 
   const hasMore = paginated.items.length < paginated.total;
 
@@ -449,6 +467,111 @@ export default function NegociosListClient({
             </div>
           </div>
         )}
+
+        {/* Filtros Rápidos con Chips */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+              <span>⚡</span>
+              Filtros rápidos
+            </h3>
+            {(quickFilterOpen || quickFilterTopRated || quickFilterNew) && (
+              <button
+                onClick={() => {
+                  setQuickFilterOpen(false);
+                  setQuickFilterTopRated(false);
+                  setQuickFilterNew(false);
+                }}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                Limpiar filtros rápidos
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {/* Abierto Ahora */}
+            <button
+              onClick={() => setQuickFilterOpen(!quickFilterOpen)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                quickFilterOpen
+                  ? 'bg-green-500 text-white shadow-lg scale-105'
+                  : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-green-300 hover:bg-green-50'
+              }`}
+            >
+              <span className="text-lg">⏰</span>
+              Abierto ahora
+              {quickFilterOpen && (
+                <span className="bg-white text-green-600 rounded-full px-2 py-0.5 text-xs font-bold">
+                  {businesses.filter(b => b.isOpen === 'si').length}
+                </span>
+              )}
+            </button>
+
+            {/* Mejor Valorados */}
+            <button
+              onClick={() => setQuickFilterTopRated(!quickFilterTopRated)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                quickFilterTopRated
+                  ? 'bg-yellow-500 text-white shadow-lg scale-105'
+                  : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-yellow-300 hover:bg-yellow-50'
+              }`}
+            >
+              <span className="text-lg">⭐</span>
+              Mejor valorados
+              {quickFilterTopRated && (
+                <span className="bg-white text-yellow-600 rounded-full px-2 py-0.5 text-xs font-bold">
+                  {businesses.filter(b => (b.rating ?? 0) >= 4.5).length}
+                </span>
+              )}
+            </button>
+
+            {/* Delivery */}
+            <button
+              onClick={() => {
+                const deliveryCategories = ['Restaurantes', 'Comida', 'Pizzería', 'Cafetería'];
+                const hasDeliveryCategory = deliveryCategories.some(cat => 
+                  categories.some(c => c.toLowerCase().includes(cat.toLowerCase()))
+                );
+                if (hasDeliveryCategory) {
+                  const deliveryCat = categories.find(c => 
+                    deliveryCategories.some(dc => c.toLowerCase().includes(dc.toLowerCase()))
+                  );
+                  if (deliveryCat) {
+                    handleCategoryChange(deliveryCat);
+                  }
+                }
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50 transition-all"
+            >
+              <span className="text-lg">🚚</span>
+              Delivery
+            </button>
+
+            {/* Nuevos */}
+            <button
+              onClick={() => setQuickFilterNew(!quickFilterNew)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                quickFilterNew
+                  ? 'bg-purple-500 text-white shadow-lg scale-105'
+                  : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-purple-300 hover:bg-purple-50'
+              }`}
+            >
+              <span className="text-lg">🆕</span>
+              Nuevos
+              {quickFilterNew && (
+                <span className="bg-white text-purple-600 rounded-full px-2 py-0.5 text-xs font-bold">
+                  {businesses.filter(b => {
+                    const created = (b as any).createdAt;
+                    if (!created) return false;
+                    const createdDate = created.toDate ? created.toDate() : new Date(created);
+                    const daysDiff = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+                    return daysDiff <= 30;
+                  }).length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Filtros activos - Chips para mostrar filtros seleccionados */}
         {(uiFilters.category || uiFilters.colonia || uiFilters.order !== DEFAULT_ORDER) && (
