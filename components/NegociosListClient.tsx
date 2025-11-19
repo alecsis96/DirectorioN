@@ -16,6 +16,7 @@ import { sliceBusinesses } from '../lib/pagination';
 import type { Business, BusinessPreview } from '../types/business';
 import { normalizeColonia } from '../lib/helpers/colonias';
 import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, PAGE_SIZE, type Filters, type SortMode } from '../lib/negociosFilters';
+import { getBusinessStatus } from './BusinessHours';
 
 const BusinessModalWrapper = dynamic(() => import('./BusinessModalWrapper'), { ssr: false });
 
@@ -214,6 +215,8 @@ export default function NegociosListClient({
     const normalizedColonia = uiFilters.colonia;
     const normalizedCategory = uiFilters.category;
     const normalizedQuery = uiFilters.query.trim().toLowerCase();
+    const now = new Date();
+    
     const filtered = businesses.filter((biz) => {
       if (normalizedCategory && biz.category !== normalizedCategory) return false;
       if (normalizedColonia && normalizeColonia(biz.colonia) !== normalizedColonia) return false;
@@ -223,7 +226,12 @@ export default function NegociosListClient({
       }
       
       // Filtros rápidos
-      if (quickFilterOpen && biz.isOpen !== 'si') return false;
+      if (quickFilterOpen) {
+        // Calcular estado en tiempo real usando el horario
+        if (!biz.hours) return false;
+        const status = getBusinessStatus(biz.hours, now);
+        if (!status.isOpen) return false;
+      }
       if (quickFilterTopRated && (biz.rating ?? 0) < 4.5) return false;
       if (quickFilterDelivery && biz.hasDelivery !== true) return false;
       if (quickFilterNew) {
@@ -246,8 +254,11 @@ export default function NegociosListClient({
       sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     } else {
       sorted.sort((a, b) => {
-        if (a.isOpen !== b.isOpen) {
-          return a.isOpen === 'si' ? -1 : 1;
+        // Calcular estado en tiempo real para ordenar
+        const aOpen = a.hours ? getBusinessStatus(a.hours, now).isOpen : false;
+        const bOpen = b.hours ? getBusinessStatus(b.hours, now).isOpen : false;
+        if (aOpen !== bOpen) {
+          return aOpen ? -1 : 1;
         }
         return (b.rating ?? 0) - (a.rating ?? 0);
       });
@@ -500,7 +511,13 @@ export default function NegociosListClient({
               Abierto ahora
               {quickFilterOpen && (
                 <span className="bg-white text-green-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                  {businesses.filter(b => b.isOpen === 'si').length}
+                  {(() => {
+                    const now = new Date();
+                    return businesses.filter(b => {
+                      if (!b.hours) return false;
+                      return getBusinessStatus(b.hours, now).isOpen;
+                    }).length;
+                  })()}
                 </span>
               )}
             </button>
