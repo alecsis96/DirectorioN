@@ -441,14 +441,32 @@ export default function NegociosListClient({
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {(() => {
-                // Filtrar solo negocios que pagaron por plan destacado
+                // Filtrar negocios destacados - varios criterios para máxima flexibilidad
                 const featured = businesses.filter(b => {
+                  // Criterio 1: Tiene featured marcado Y plan premium
                   const isFeatured = b.featured === true || b.featured === 'true';
                   const hasPremiumPlan = b.plan === 'featured' || b.plan === 'sponsor';
-                  return isFeatured && hasPremiumPlan;
+                  
+                  // Criterio 2: Si no hay plan definido pero tiene featured, mostrar igual
+                  const featuredWithoutPlan = isFeatured && !b.plan;
+                  
+                  // Criterio 3: Plan premium sin featured explícito
+                  const isPremiumOnly = hasPremiumPlan;
+                  
+                  return (isFeatured && hasPremiumPlan) || featuredWithoutPlan || isPremiumOnly;
                 })
-                .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)) // Ordenar por rating
+                .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
                 .slice(0, 3);
+
+                // Debug: mostrar en consola
+                if (typeof window !== 'undefined') {
+                  console.log('Negocios destacados encontrados:', featured.length);
+                  console.log('Detalles:', featured.map(b => ({ 
+                    name: b.name, 
+                    featured: b.featured, 
+                    plan: b.plan 
+                  })));
+                }
 
                 if (featured.length === 0) {
                   return (
