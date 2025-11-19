@@ -33,6 +33,7 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+export { app };
 
 const REDIRECT_ERROR_CODES = new Set<string>([
   "auth/popup-blocked",

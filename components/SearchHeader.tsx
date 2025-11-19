@@ -2,8 +2,10 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { BsFilter, BsSearch, BsGeoAlt } from 'react-icons/bs';
 import GeolocationButton from './GeolocationButton';
+import { useFavorites } from '../context/FavoritesContext';
 import type { SortMode } from '../lib/negociosFilters';
 
 type SearchHeaderProps = {
@@ -50,6 +52,7 @@ export default function SearchHeader({
   const [radiusValue, setRadiusValue] = useState(radiusQueryValue);
   const [geoFeedback, setGeoFeedback] = useState<string | null>(null);
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { favorites } = useFavorites();
 
   useEffect(() => {
     setTerm(initialQuery);
@@ -196,6 +199,18 @@ export default function SearchHeader({
                 label="Mi ubicación"
                 onSuccess={handleGeoSuccess}
               />
+              <Link
+                href="/favoritos"
+                className="relative inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+              >
+                <span className="text-red-500">♥</span>
+                Favoritos
+                {favorites.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-lg">
+                    {favorites.length}
+                  </span>
+                )}
+              </Link>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(true)}
