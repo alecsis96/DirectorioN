@@ -59,6 +59,7 @@ export interface BusinessPreview {
   horarios?: Business["horarios"];
   hasDelivery?: boolean;
   featured?: boolean | string;
+  plan?: string;
 }
 
 export const pickBusinessPreview = (biz: Business): BusinessPreview => {
@@ -77,6 +78,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     hours: biz.hours,
     hasDelivery: biz.hasDelivery === true,
     featured: biz.featured === true || biz.featured === 'true',
+    plan: biz.plan,
     ...(phone ? { phone } : {}),
     ...(whatsapp ? { WhatsApp: whatsapp } : {}),
     ...(sanitizedHorarios ? { horarios: sanitizedHorarios } : {}),

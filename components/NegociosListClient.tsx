@@ -440,10 +440,30 @@ export default function NegociosListClient({
               </span>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {businesses
-                .filter(b => b.featured === true || (b.rating ?? 0) >= 4.5)
-                .slice(0, 3)
-                .map((business) => (
+              {(() => {
+                // Filtrar solo negocios que pagaron por plan destacado
+                const featured = businesses.filter(b => {
+                  const isFeatured = b.featured === true || b.featured === 'true';
+                  const hasPremiumPlan = b.plan === 'featured' || b.plan === 'sponsor';
+                  return isFeatured && hasPremiumPlan;
+                })
+                .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)) // Ordenar por rating
+                .slice(0, 3);
+
+                if (featured.length === 0) {
+                  return (
+                    <div className="col-span-full text-center py-8 bg-yellow-50 rounded-xl border-2 border-dashed border-yellow-200">
+                      <p className="text-gray-600 text-sm">
+                        🌟 Próximamente aquí aparecerán los negocios destacados del mes.
+                      </p>
+                      <p className="text-gray-500 text-xs mt-2">
+                        ¿Tienes un negocio? <a href="/para-negocios" className="text-emerald-600 font-semibold underline">Conoce nuestros planes premium</a>
+                      </p>
+                    </div>
+                  );
+                }
+
+                return featured.map((business) => (
                   <div
                     key={business.id}
                     className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105"
@@ -501,7 +521,8 @@ export default function NegociosListClient({
                       </div>
                     </div>
                   </div>
-                ))}
+                ));
+              })()}
             </div>
           </div>
         )}
