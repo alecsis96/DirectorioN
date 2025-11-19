@@ -57,6 +57,7 @@ export interface BusinessPreview {
   WhatsApp?: string;
   hours?: string;
   horarios?: Business["horarios"];
+  hasDelivery?: boolean;
 }
 
 export const pickBusinessPreview = (biz: Business): BusinessPreview => {
@@ -73,6 +74,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     isOpen: biz.isOpen === "no" ? "no" : "si",
     address: biz.address ?? "",
     hours: biz.hours,
+    hasDelivery: biz.hasDelivery === true,
     ...(phone ? { phone } : {}),
     ...(whatsapp ? { WhatsApp: whatsapp } : {}),
     ...(sanitizedHorarios ? { horarios: sanitizedHorarios } : {}),
