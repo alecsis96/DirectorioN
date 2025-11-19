@@ -157,12 +157,16 @@ export default function NegociosListClient({
           page: nextPage,
           query: partial.query ?? prev.query,
         };
-        syncUrl(next);
         return next;
       });
     },
-    [syncUrl],
+    [],
   );
+
+  // Sincronizar URL cuando cambien los filtros
+  useEffect(() => {
+    syncUrl(uiFilters);
+  }, [uiFilters, syncUrl]);
 
   const handleCategoryChange = useCallback(
     (eventOrValue: ChangeEvent<HTMLSelectElement> | string) => {
