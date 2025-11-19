@@ -66,6 +66,13 @@ Listo para comenzar?
 - Ejecuta `FIREBASE_SERVICE_ACCOUNT="$(cat serviceAccount.json)" node scripts/setAdmin.js <uid-o-email>` para otorgar el claim `admin`.
 
 ## Siguientes pasos sugeridos
+- **✅ COMPLETADO:** Sistema de notificaciones por email para pagos fallidos
+- **✅ COMPLETADO:** Guía completa de despliegue a Vercel con todas las configuraciones
+- **✅ COMPLETADO:** Script de verificación de variables de entorno (`npm run verify-env`)
 - **Lint automatizado**: con `npm run lint` puedes validar la base antes del build; integra este comando en tu pipeline CI/CD.
 - **Pruebas de horarios y paginacion**: agrega tests (Jest/Vitest) para `components/BusinessHours` y la logica de paginacion en `pages/negocios/index.tsx` (filtros + save-data) para prevenir regresiones.
 - **Telemetria opcional**: los eventos `home_render` y `detail_render` hoy se envian a la consola; si necesitas metricas historicas, envia estos datos a un endpoint seguro o permite desactivarlos via variable de entorno.
+
+## 🚀 Listo para Producción
+
+El proyecto está **listo para desplegar**. Consulta `DEPLOY_GUIDE.md` para instrucciones detalladas de despliegue en Vercel.

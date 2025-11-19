@@ -294,6 +294,68 @@ function getRejectionTemplate(ownerName: string, businessName: string, reason: s
   `;
 }
 
+function getPaymentFailedTemplate(ownerName: string, businessName: string, businessId: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { display: inline-block; background: #38761D; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; }
+        .icon { font-size: 48px; margin-bottom: 10px; }
+        .warning-box { background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="icon">⚠️</div>
+          <h1>Problema con tu Suscripción</h1>
+        </div>
+        <div class="content">
+          <p>Hola <strong>${ownerName}</strong>,</p>
+          
+          <div class="warning-box">
+            <p><strong>No pudimos procesar el pago de tu suscripción</strong> para <strong>${businessName}</strong>.</p>
+          </div>
+          
+          <h3>¿Qué pasó?</h3>
+          <p>El cargo automático de tu suscripción no pudo ser procesado. Esto puede deberse a:</p>
+          <ul>
+            <li>💳 Tarjeta vencida o caducada</li>
+            <li>💰 Fondos insuficientes</li>
+            <li>🔒 Bloqueo del banco por seguridad</li>
+            <li>📋 Datos de pago incorrectos</li>
+          </ul>
+          
+          <h3>¿Qué hacer ahora?</h3>
+          <p>Para evitar la interrupción de tu plan, actualiza tu método de pago lo antes posible:</p>
+          
+          <a href="https://directorio-1.vercel.app/dashboard/${businessId}" class="button">
+            💳 Actualizar Método de Pago
+          </a>
+          
+          <p><strong>Importante:</strong> Si no se actualiza el método de pago, tu plan será degradado al plan gratuito y perderás los beneficios de tu plan actual.</p>
+          
+          <p style="font-size: 12px; color: #666; margin-top: 20px;">
+            Si tienes dudas o necesitas ayuda, contáctanos.
+          </p>
+        </div>
+        <div class="footer">
+          <p>Directorio de Negocios Yajalón</p>
+          <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 export async function sendNewReviewNotification(review: Review, business: Business): Promise<void> {
   if (!business.ownerEmail) {
     console.warn("[emailNotifications] Business has no ownerEmail, skipping notification.");
@@ -447,6 +509,43 @@ export const onBusinessStatusChange = functions.firestore
       });
     }
   });
+
+/**
+ * Enviar notificación cuando falla el pago de una suscripción
+ * Esta función es llamada desde el webhook de Stripe
+ */
+export async function sendPaymentFailedNotification(businessId: string): Promise<void> {
+  try {
+    const businessDoc = await admin.firestore().doc(`businesses/${businessId}`).get();
+    
+    if (!businessDoc.exists) {
+      console.warn(`[sendPaymentFailedNotification] Business ${businessId} not found`);
+      return;
+    }
+    
+    const business = businessDoc.data();
+    
+    if (!business?.ownerEmail || !business?.ownerName) {
+      console.warn(`[sendPaymentFailedNotification] Business ${businessId} missing owner data`);
+      return;
+    }
+    
+    await sendEmail({
+      to: business.ownerEmail,
+      subject: "⚠️ Problema con tu suscripción - Directorio Yajalón",
+      html: getPaymentFailedTemplate(
+        business.ownerName,
+        business.businessName || "tu negocio",
+        businessId
+      ),
+    });
+    
+    console.log(`✅ Payment failed notification sent to ${business.ownerEmail} for business ${businessId}`);
+  } catch (error) {
+    console.error("[sendPaymentFailedNotification] Error:", error);
+    throw error;
+  }
+}
 
 export const onNewReviewCreated = functions.firestore
   .document("businesses/{businessId}/reviews/{reviewId}")

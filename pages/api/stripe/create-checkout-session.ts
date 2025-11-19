@@ -76,7 +76,6 @@ export default async function handler(
           plan,
         },
       },
-      },
     });
 
     res.status(200).json({ url: session.url });

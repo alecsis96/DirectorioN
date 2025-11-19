@@ -139,8 +139,10 @@ export default async function handler(
     }
 
     case 'invoice.payment_failed': {
-      const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = invoice.subscription;
+      const invoice = event.data.object as any; // Invoice type varies by Stripe version
+      const subscriptionId = typeof invoice.subscription === 'string' 
+        ? invoice.subscription 
+        : invoice.subscription?.id;
 
       if (!subscriptionId) break;
 
@@ -156,7 +158,20 @@ export default async function handler(
             planUpdatedAt: new Date().toISOString(),
           });
           console.log(`⚠️ Payment failed for business ${businessId}`);
-          // TODO: Enviar email de notificación al negocio
+          
+          // Enviar notificación por email
+          try {
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+            await fetch(`${baseUrl}/api/notify-payment-failed`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ businessId }),
+            });
+            console.log(`📧 Payment failed notification sent for business ${businessId}`);
+          } catch (emailError) {
+            console.error('Error sending payment failed notification:', emailError);
+            // No fallar el webhook si falla el email
+          }
         }
       } catch (error: any) {
         console.error('Error handling payment failure:', error);
