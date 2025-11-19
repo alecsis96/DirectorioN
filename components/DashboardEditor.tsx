@@ -51,6 +51,7 @@ const defaultFormState = {
   closeTime: '',
   plan: 'free',
   hasDelivery: false,
+  featured: false,
 };
 
 function mapToFormState(data?: Record<string, any>) {
@@ -71,6 +72,7 @@ function mapToFormState(data?: Record<string, any>) {
     closeTime,
     plan: data.plan ?? 'free',
     hasDelivery: data.hasDelivery === true,
+    featured: data.featured === true || data.featured === 'true',
   };
 }
 
@@ -720,6 +722,28 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </label>
               </div>
             )}
+
+            {/* Negocio Destacado */}
+            <div className="md:col-span-2 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.featured}
+                  onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+                  className="w-5 h-5 text-yellow-600 rounded focus:ring-yellow-500"
+                />
+                <div>
+                  <span className="text-base font-bold text-yellow-900 flex items-center gap-2">
+                    <span className="text-xl">⭐</span>
+                    Marcar como Negocio Destacado del Mes
+                  </span>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Tu negocio aparecerá en la sección premium de la página principal con mayor visibilidad. 
+                    <span className="font-semibold"> Disponible para planes Pro y Premium.</span>
+                  </p>
+                </div>
+              </label>
+            </div>
             
             {/* Horarios por día */}
             <div className="md:col-span-2">

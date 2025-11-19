@@ -31,7 +31,7 @@ export type Business = {
   image2?: string | null;
   image3?: string | null;
   images?: { url?: string | null; publicId?: string }[];
-  featured?: string;
+  featured?: boolean | string;
   priceRange?: string;
 };
 
@@ -58,6 +58,7 @@ export interface BusinessPreview {
   hours?: string;
   horarios?: Business["horarios"];
   hasDelivery?: boolean;
+  featured?: boolean | string;
 }
 
 export const pickBusinessPreview = (biz: Business): BusinessPreview => {
@@ -75,6 +76,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     address: biz.address ?? "",
     hours: biz.hours,
     hasDelivery: biz.hasDelivery === true,
+    featured: biz.featured === true || biz.featured === 'true',
     ...(phone ? { phone } : {}),
     ...(whatsapp ? { WhatsApp: whatsapp } : {}),
     ...(sanitizedHorarios ? { horarios: sanitizedHorarios } : {}),
