@@ -69,7 +69,7 @@ export default function FavoritosClient() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="max-w-6xl mx-auto px-6 py-10 pb-24 md:pb-10">
         {/* Header */}
         <header className="mb-8">
           <div className="flex items-center gap-3 mb-4">

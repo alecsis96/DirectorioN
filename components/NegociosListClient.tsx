@@ -351,7 +351,7 @@ export default function NegociosListClient({
           order: uiFilters.order,
         }}
       />
-      <section className="max-w-6xl mx-auto px-6 py-10">
+      <section className="max-w-6xl mx-auto px-6 py-10 pb-24 md:pb-10">
         <header className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg">

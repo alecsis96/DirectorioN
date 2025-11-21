@@ -136,7 +136,7 @@ const TESTIMONIALS = [
 
 export default function ParaNegociosPage() {
   return (
-    <main className="min-h-screen bg-white text-gray-800">
+    <main className="min-h-screen bg-white text-gray-800 pb-20 md:pb-0">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-600 to-emerald-700 px-6 py-20 text-white">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />

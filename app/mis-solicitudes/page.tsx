@@ -25,7 +25,7 @@ export default function MisSolicitudesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 pb-24 md:pb-12">
       <div className="mx-auto max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="mb-4 inline-block">

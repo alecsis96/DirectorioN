@@ -1,10 +1,8 @@
-﻿// app/layout.tsx (Versión corregida)
-
-import type { ReactNode } from 'react';
+﻿import type { ReactNode } from 'react';
 import '../styles/globals.css';
-// DEBES eliminar la importación de FavoritesProvider de aquí
-import Providers from '../components/Providers'; // <-- NUEVA IMPORTACIÓN DEL WRAPPER
+import Providers from '../components/Providers';
 import Navigation from '../components/Navigation';
+import PWAInstaller from '../components/PWAInstaller';
 
 export const metadata = {
   title: 'Directorio Yajalón - Conecta con negocios locales',
@@ -32,11 +30,19 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#38761D" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Directorio Yajalón" />
+      </head>
       <body className="min-h-screen bg-white text-gray-900" suppressHydrationWarning>
-        {/* Usar el wrapper de cliente para resolver el Mismatch */}
         <Providers>
           <Navigation />
           {children}
+          <PWAInstaller />
         </Providers> 
       </body>
     </html>

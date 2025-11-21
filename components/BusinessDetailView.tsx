@@ -17,6 +17,7 @@ import type { ReactImageGalleryItem } from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 
 import BusinessHours from "./BusinessHours";
+import BusinessMapComponent from "./BusinessMapComponent";
 import type { Business } from "../types/business";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { optionalPublicEnv } from "../lib/env";
@@ -732,31 +733,31 @@ export default function BusinessDetailView({ business }: Props) {
       </section>
 
       <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Mapa</h2>
-        {embedSrc ? (
-          <div className="aspect-video w-full rounded-xl border overflow-y-auto touch-pan-y overscroll-y-contain">
-            <iframe
-              title={`Mapa de ${business.name}`}
-              src={embedSrc}
-              width="100%"
-              height="100%"
-              allowFullScreen
-              loading="lazy"
-            />
+        <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          🗺️ Ubicación
+        </h2>
+        {!dataSaverEnabled && (lat != null && lng != null) ? (
+          <div className="rounded-xl overflow-hidden border border-gray-200">
+            <BusinessMapComponent business={business} height="400px" zoom={16} />
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-gray-300 p-4 text-sm text-gray-600">
-            <p className="mb-2">{dataSaverEnabled ? "Modo ahorro de datos activo: omite el mapa embebido." : "No podemos mostrar un mapa incrustado en este momento."}</p>
+          <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center">
+            <div className="text-5xl mb-3">📍</div>
+            <p className="text-gray-600 mb-4">
+              {dataSaverEnabled 
+                ? "Modo ahorro de datos activo: mapa deshabilitado." 
+                : "No hay coordenadas disponibles para mostrar el mapa."}
+            </p>
             {hasMapLink && (
               <a
-                className="text-[#38761D] underline font-semibold"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#38761D] text-white rounded-lg font-semibold hover:bg-[#2d5418] transition shadow-md"
                 href={mapHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Abrir ubicacion de ${business.name} en Google Maps`}
                 onClick={handleMapClick}
               >
-                Abrir ubicacion en Google Maps
+                🧭 Abrir en Google Maps
               </a>
             )}
           </div>

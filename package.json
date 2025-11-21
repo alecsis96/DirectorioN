@@ -16,6 +16,7 @@
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
     "@google-cloud/storage": "^7.17.1",
+    "@react-google-maps/api": "^2.20.7",
     "@stripe/stripe-js": "^8.3.0",
     "cloudinary": "^2.8.0",
     "firebase": "^12.1.0",
