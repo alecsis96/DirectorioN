@@ -4,9 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { BsHeart, BsHouseDoor, BsShop, BsPerson, BsFilter, BsSearch } from 'react-icons/bs';
-import { FormEvent, useState, useEffect, Suspense } from 'react';
+import { FormEvent, useState, useEffect, Suspense, useRef } from 'react';
 import { useFavorites } from '../context/FavoritesContext';
 import GeolocationButton from './GeolocationButton';
+import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 
 function NavigationContent() {
   const pathname = usePathname();
@@ -17,6 +18,9 @@ function NavigationContent() {
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [colonias, setColonias] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const { suggestions, isLoading: loadingSuggestions } = useSearchSuggestions(searchTerm, categories);
   
   // Determinar si mostrar el buscador basado en la ruta
   const showSearch = pathname === '/' || pathname === '/negocios';
@@ -39,6 +43,17 @@ function NavigationContent() {
         .catch(err => console.error('Error loading filters:', err));
     }
   }, [showFiltersModal, categories.length]);
+
+  // Cerrar sugerencias al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   // No mostrar en páginas de admin
   if (pathname?.startsWith('/admin')) {
@@ -93,27 +108,73 @@ function NavigationContent() {
 
           {/* Buscador (Solo Desktop) */}
           {showSearch && (
-            <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-2xl mx-4">
-              <div className="relative flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 shadow-sm hover:shadow-md transition-shadow w-full">
-                <BsSearch className="text-gray-400 flex-shrink-0" />
-                <input
-                  type="search"
-                  placeholder="Buscar negocios..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none min-w-0"
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm('')}
-                    className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </form>
+            <div className="hidden md:flex flex-1 max-w-2xl mx-4 relative">
+              <form onSubmit={handleSearchSubmit} className="w-full">
+                <div className="relative flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 shadow-sm hover:shadow-md transition-shadow w-full">
+                  <BsSearch className="text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Buscar negocios..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none min-w-0"
+                    autoComplete="off"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setShowSuggestions(false);
+                      }}
+                      className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </form>
+              
+              {/* Autocomplete dropdown desktop */}
+              {showSuggestions && searchTerm.length >= 2 && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 max-h-96 overflow-y-auto">
+                  {suggestions.map((suggestion, idx) => (
+                    <button
+                      key={`desktop-${suggestion.type}-${suggestion.name}-${idx}`}
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm(suggestion.name);
+                        setShowSuggestions(false);
+                        const nextParams = new URLSearchParams(params?.toString() ?? '');
+                        nextParams.set('q', suggestion.name);
+                        nextParams.delete('p');
+                        const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                        router.push(`${targetPath}?${nextParams.toString()}`);
+                      }}
+                      className="w-full px-5 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl flex-shrink-0">
+                          {suggestion.type === 'business' ? '🏪' : 
+                           suggestion.type === 'category' ? '🏷️' :
+                           suggestion.type === 'recent' ? '🕒' : '🔍'}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{suggestion.name}</p>
+                          {suggestion.category && (
+                            <p className="text-sm text-gray-500 truncate">{suggestion.category}</p>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Botón de Geolocalización (Solo Desktop) */}
@@ -216,27 +277,76 @@ function NavigationContent() {
 
         {/* Mobile Search Bar */}
         {showSearch && (
-          <div className="md:hidden pb-3 pt-2">
-            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
-              <div className="relative flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 shadow-sm flex-1">
-                <BsSearch className="text-gray-400 flex-shrink-0" />
-                <input
-                  type="search"
-                  placeholder="Buscar..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none min-w-0"
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm('')}
-                    className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-                  >
-                    ✕
-                  </button>
+          <div className="md:hidden pb-3 pt-2 px-1">
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1 min-w-0" ref={searchRef}>
+                <form onSubmit={handleSearchSubmit}>
+                  <div className="relative flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-2 shadow-sm">
+                    <BsSearch className="text-gray-400 flex-shrink-0 text-sm" />
+                    <input
+                      type="text"
+                      placeholder="Buscar..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setShowSuggestions(true);
+                      }}
+                      onFocus={() => setShowSuggestions(true)}
+                      className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none min-w-0"
+                      autoComplete="off"
+                    />
+                    {searchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm('');
+                          setShowSuggestions(false);
+                        }}
+                        className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-lg"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </form>
+                
+                {/* Autocomplete dropdown */}
+                {showSuggestions && searchTerm.length >= 2 && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-2xl shadow-lg z-50 max-h-64 overflow-y-auto">
+                    {suggestions.map((suggestion, idx) => (
+                      <button
+                        key={`${suggestion.type}-${suggestion.name}-${idx}`}
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm(suggestion.name);
+                          setShowSuggestions(false);
+                          const nextParams = new URLSearchParams(params?.toString() ?? '');
+                          nextParams.set('q', suggestion.name);
+                          nextParams.delete('p');
+                          const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                          router.push(`${targetPath}?${nextParams.toString()}`);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl flex-shrink-0">
+                            {suggestion.type === 'business' ? '🏪' : 
+                             suggestion.type === 'category' ? '🏷️' :
+                             suggestion.type === 'recent' ? '🕒' : '🔍'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{suggestion.name}</p>
+                            {suggestion.category && (
+                              <p className="text-xs text-gray-500 truncate">{suggestion.category}</p>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
+              
               <div className="flex-shrink-0">
                 <GeolocationButton
                   radiusKm={5}
@@ -245,6 +355,7 @@ function NavigationContent() {
                   className=""
                 />
               </div>
+              
               <button
                 type="button"
                 onClick={() => setShowFiltersModal(true)}
@@ -257,7 +368,7 @@ function NavigationContent() {
                   </span>
                 )}
               </button>
-            </form>
+            </div>
           </div>
         )}
       </div>
