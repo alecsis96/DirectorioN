@@ -742,7 +742,13 @@ export default function BusinessDetailView({ business }: Props) {
         </h2>
         {!dataSaverEnabled && (lat != null && lng != null) ? (
           <div className="rounded-xl overflow-hidden border border-gray-200">
-            <BusinessMapComponent business={business} height="400px" zoom={16} />
+            {typeof window !== 'undefined' ? (
+              <BusinessMapComponent business={business} height="400px" zoom={16} />
+            ) : (
+              <div className="h-[400px] flex items-center justify-center bg-gray-100">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600" />
+              </div>
+            )}
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center">
