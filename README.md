@@ -69,6 +69,8 @@ Listo para comenzar?
 - **✅ COMPLETADO:** Sistema de notificaciones por email para pagos fallidos
 - **✅ COMPLETADO:** Guía completa de despliegue a Vercel con todas las configuraciones
 - **✅ COMPLETADO:** Script de verificación de variables de entorno (`npm run verify-env`)
+- **✅ COMPLETADO:** Notificación automática al admin cuando un negocio se envía a revisión
+- **Configurar email de administrador**: Lee `ADMIN_EMAIL_SETUP.md` para recibir notificaciones de negocios pendientes
 - **Lint automatizado**: con `npm run lint` puedes validar la base antes del build; integra este comando en tu pipeline CI/CD.
 - **Pruebas de horarios y paginacion**: agrega tests (Jest/Vitest) para `components/BusinessHours` y la logica de paginacion en `pages/negocios/index.tsx` (filtros + save-data) para prevenir regresiones.
 - **Telemetria opcional**: los eventos `home_render` y `detail_render` hoy se envian a la consola; si necesitas metricas historicas, envia estos datos a un endpoint seguro o permite desactivarlos via variable de entorno.

@@ -40,7 +40,7 @@ export const sendPaymentFailedEmail = onRequest(async (req, res) => {
     }
 
     // Importar la función de notificación
-    const { sendPaymentFailedNotification } = await import("./emailNotifications");
+    const { sendPaymentFailedNotification } = await import("./emailNotifications.js");
     
     await sendPaymentFailedNotification(businessId);
 

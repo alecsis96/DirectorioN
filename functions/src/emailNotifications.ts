@@ -356,6 +356,79 @@ function getPaymentFailedTemplate(ownerName: string, businessName: string, busin
   `;
 }
 
+function getAdminReviewNotificationTemplate(
+  businessName: string,
+  ownerName: string,
+  ownerEmail: string,
+  businessId: string,
+  phone?: string,
+  category?: string
+): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { display: inline-block; background: #38761D; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .info-box { background: white; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; }
+        .icon { font-size: 48px; margin-bottom: 10px; }
+        .detail { margin: 8px 0; }
+        .label { font-weight: bold; color: #555; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="icon">🔔</div>
+          <h1>Nuevo Negocio para Revisar</h1>
+        </div>
+        <div class="content">
+          <p>Hola Admin,</p>
+          
+          <p>Un dueño de negocio ha completado los datos de su establecimiento y lo ha enviado a revisión para su publicación.</p>
+          
+          <div class="info-box">
+            <h3>📋 Detalles del negocio:</h3>
+            <div class="detail">
+              <span class="label">Nombre:</span> ${businessName}
+            </div>
+            <div class="detail">
+              <span class="label">Categoría:</span> ${category || "No especificada"}
+            </div>
+            <div class="detail">
+              <span class="label">Dueño:</span> ${ownerName}
+            </div>
+            <div class="detail">
+              <span class="label">Email:</span> ${ownerEmail}
+            </div>
+            ${phone ? `<div class="detail"><span class="label">Teléfono:</span> ${phone}</div>` : ""}
+          </div>
+          
+          <h3>⏰ Acción requerida:</h3>
+          <p>Por favor revisa el negocio y decide si aprobarlo o rechazarlo:</p>
+          
+          <a href="https://directorio-1.vercel.app/admin/pending-businesses" class="button">
+            👀 Revisar Negocio
+          </a>
+          
+          <p><small>ID del negocio: <code>${businessId}</code></small></p>
+        </div>
+        <div class="footer">
+          <p>Directorio de Negocios Yajalón - Panel de Administración</p>
+          <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 export async function sendNewReviewNotification(review: Review, business: Business): Promise<void> {
   if (!business.ownerEmail) {
     console.warn("[emailNotifications] Business has no ownerEmail, skipping notification.");
@@ -471,6 +544,7 @@ export const onApplicationStatusChange = functions.firestore
 /**
  * Trigger cuando cambia el status de un business
  * Envía email cuando se publica o rechaza
+ * También notifica al admin cuando el dueño envía el negocio a revisión (status: pending)
  */
 export const onBusinessStatusChange = functions.firestore
   .document("businesses/{businessId}")
@@ -480,6 +554,27 @@ export const onBusinessStatusChange = functions.firestore
     
     if (!after.ownerEmail || !after.ownerName) {
       return;
+    }
+    
+    // Si el negocio fue enviado a revisión (status cambió a 'pending')
+    if (before.status !== "pending" && after.status === "pending") {
+      // Email del admin (puedes configurarlo como variable de entorno)
+      const adminEmail = process.env.ADMIN_EMAIL || "tu_email_admin@gmail.com";
+      
+      await sendEmail({
+        to: adminEmail,
+        subject: "🔔 Nuevo negocio para revisar - Directorio Yajalón",
+        html: getAdminReviewNotificationTemplate(
+          after.businessName || after.name || "Negocio sin nombre",
+          after.ownerName,
+          after.ownerEmail,
+          context.params.businessId,
+          after.phone,
+          after.category
+        ),
+      });
+      
+      console.log(`✅ Admin notification sent for business ${context.params.businessId} (${after.businessName})`);
     }
     
     // Si se publicó (status cambió a 'approved')
