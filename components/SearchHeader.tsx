@@ -22,6 +22,12 @@ type SearchHeaderProps = {
     colonia: string;
     order: SortMode;
   };
+  showPageHeader?: boolean;
+  pageTitle?: string;
+  pageSubtitle?: string;
+  pageDescription?: string;
+  errorMessage?: string | null;
+  dataSaverEnabled?: boolean;
 };
 
 const sortOptions: { label: string; value: SortMode }[] = [
@@ -38,6 +44,12 @@ export default function SearchHeader({
   categories,
   colonias,
   currentFilters,
+  showPageHeader = false,
+  pageTitle = 'Directorio de Negocios en Yajalón',
+  pageSubtitle = 'Tu guía completa de comercios locales',
+  pageDescription = 'Descubre, compara y conecta con los mejores negocios de Yajalón.',
+  errorMessage = null,
+  dataSaverEnabled = false,
 }: SearchHeaderProps) {
   const router = useRouter();
   const pathname = usePathname() || '/negocios';
@@ -318,6 +330,42 @@ export default function SearchHeader({
         className={`sticky top-0 z-20 border-b border-gray-100 bg-white/90 shadow-md backdrop-blur transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
       >
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 md:px-6">
+          {/* Header de página (opcional) */}
+          {showPageHeader && (
+            <div className="pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg">
+                  <span className="text-2xl">🏪</span>
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-extrabold text-[#38761D] leading-tight">
+                    {pageTitle}
+                  </h1>
+                  <p className="text-xs md:text-sm text-emerald-600 font-semibold">
+                    {pageSubtitle}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm md:text-base text-gray-700 leading-relaxed">
+                <span className="font-semibold text-gray-900">{pageDescription}</span>
+                {' '}
+                <span className="inline-flex items-center gap-1 text-emerald-600">
+                  📍 Cerca de ti, fácil de encontrar
+                </span>
+              </p>
+              {errorMessage && (
+                <p className="mt-3 text-sm text-amber-700 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg px-4 py-3 shadow-sm">
+                  ⚠️ {errorMessage}
+                </p>
+              )}
+              {dataSaverEnabled && (
+                <p className="mt-2 text-xs text-gray-500 bg-blue-50 px-3 py-2 rounded-lg">
+                  💾 Modo ahorro de datos activo: evitamos imágenes y mapas embebidos.
+                </p>
+              )}
+            </div>
+          )}
+          
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3 text-sm text-gray-600">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 shadow-inner">
