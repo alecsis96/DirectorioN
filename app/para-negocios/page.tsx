@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: '¿Tienes un negocio? Únete gratis al Directorio de Yajalón',
@@ -141,6 +142,18 @@ export default function ParaNegociosPage() {
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
         <div className="relative mx-auto max-w-6xl">
           <div className="text-center">
+            {/* Logo */}
+            <div className="mb-6 flex justify-center">
+              <div className="relative h-24 w-24 md:h-32 md:w-32">
+                <Image
+                  src="/images/logo.png"
+                  alt="Directorio Yajalón"
+                  fill
+                  className="object-contain drop-shadow-2xl"
+                  priority
+                />
+              </div>
+            </div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-semibold backdrop-blur-sm">
               <span className="text-yellow-300">⭐</span>
               <span>+150 negocios ya confían en nosotros</span>

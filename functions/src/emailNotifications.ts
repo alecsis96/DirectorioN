@@ -68,6 +68,7 @@ function getApplicationReceivedTemplate(ownerName: string, businessName: string,
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .header { background: linear-gradient(135deg, #38761D 0%, #2f5a1a 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .logo { width: 80px; height: 80px; margin: 0 auto 15px; }
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .button { display: inline-block; background: #38761D; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
         .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; }
@@ -77,7 +78,7 @@ function getApplicationReceivedTemplate(ownerName: string, businessName: string,
     <body>
       <div class="container">
         <div class="header">
-          <div class="icon">🏪</div>
+          <img src="https://directorio-1.vercel.app/images/logo.png" alt="Directorio Yajalón" class="logo" />
           <h1>¡Solicitud Recibida!</h1>
         </div>
         <div class="content">
@@ -124,6 +125,7 @@ function getApplicationApprovedTemplate(ownerName: string, businessName: string,
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .header { background: linear-gradient(135deg, #38761D 0%, #2f5a1a 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .logo { width: 70px; height: 70px; margin: 0 auto 10px; }
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .button { display: inline-block; background: #2563eb; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; font-size: 16px; }
         .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; }
@@ -134,7 +136,7 @@ function getApplicationApprovedTemplate(ownerName: string, businessName: string,
     <body>
       <div class="container">
         <div class="header">
-          <div class="icon">✅</div>
+          <img src="https://directorio-1.vercel.app/images/logo.png" alt="Directorio Yajalón" class="logo" />
           <h1>¡Solicitud Aprobada!</h1>
         </div>
         <div class="content">
@@ -373,6 +375,7 @@ function getAdminReviewNotificationTemplate(
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .logo { width: 60px; height: 60px; margin: 0 auto 10px; }
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .button { display: inline-block; background: #38761D; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
         .info-box { background: white; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
@@ -385,7 +388,7 @@ function getAdminReviewNotificationTemplate(
     <body>
       <div class="container">
         <div class="header">
-          <div class="icon">🔔</div>
+          <img src="https://directorio-1.vercel.app/images/logo.png" alt="Directorio Yajalón" class="logo" />
           <h1>Nuevo Negocio para Revisar</h1>
         </div>
         <div class="content">
