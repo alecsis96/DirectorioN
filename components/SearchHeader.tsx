@@ -44,6 +44,15 @@ export default function SearchHeader({
   const [isVisible, setIsVisible] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const lastScrollRef = useRef(0);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteResults, setAutocompleteResults] = useState<Array<{
+    type: 'business' | 'category' | 'suggestion';
+    name: string;
+    category?: string;
+  }>>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   const [selectedCategory, setSelectedCategory] = useState(currentFilters.category);
   const [selectedColonia, setSelectedColonia] = useState(currentFilters.colonia);
@@ -83,6 +92,7 @@ export default function SearchHeader({
       if (Math.abs(current - last) < 6) return;
       if (current > last && current > 60) {
         setIsVisible(false);
+        setShowAutocomplete(false);
       } else {
         setIsVisible(true);
       }
@@ -91,6 +101,110 @@ export default function SearchHeader({
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Cerrar autocomplete al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        autocompleteRef.current &&
+        !autocompleteRef.current.contains(event.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowAutocomplete(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Generar sugerencias de autocompletado
+  useEffect(() => {
+    if (term.trim().length < 2) {
+      setAutocompleteResults([]);
+      setShowAutocomplete(false);
+      setSelectedIndex(-1);
+      return;
+    }
+
+    const searchTerm = term.toLowerCase().trim();
+    const results: typeof autocompleteResults = [];
+
+    // Buscar en categorías
+    const matchingCategories = categories
+      .filter(cat => cat.toLowerCase().includes(searchTerm))
+      .slice(0, 3)
+      .map(cat => ({ type: 'category' as const, name: cat }));
+
+    results.push(...matchingCategories);
+
+    // Sugerencias comunes basadas en el término
+    const commonSuggestions = [
+      'restaurantes',
+      'comida',
+      'pizza',
+      'tacos',
+      'café',
+      'ferretería',
+      'farmacia',
+      'doctor',
+      'dentista',
+      'ropa',
+      'zapatos',
+      'electrónica',
+      'panadería',
+      'carnicería',
+      'verduras',
+      'frutas',
+      'abarrotes',
+      'papelería',
+      'librería',
+      'tienda',
+    ].filter(suggestion => 
+      suggestion.includes(searchTerm) && 
+      !results.some(r => r.name.toLowerCase() === suggestion)
+    ).slice(0, 5 - results.length)
+    .map(suggestion => ({ 
+      type: 'suggestion' as const, 
+      name: suggestion 
+    }));
+
+    results.push(...commonSuggestions);
+
+    setAutocompleteResults(results);
+    setShowAutocomplete(results.length > 0);
+    setSelectedIndex(-1);
+  }, [term, categories]);
+
+  // Navegación con teclado
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showAutocomplete || autocompleteResults.length === 0) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        setSelectedIndex(prev => 
+          prev < autocompleteResults.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
+        break;
+      case 'Enter':
+        if (selectedIndex >= 0) {
+          event.preventDefault();
+          handleAutocompleteSelect(autocompleteResults[selectedIndex].name);
+        }
+        break;
+      case 'Escape':
+        event.preventDefault();
+        setShowAutocomplete(false);
+        setSelectedIndex(-1);
+        break;
+    }
+  };
 
   const applyQuery = (value: string) => {
     const nextParams = new URLSearchParams(params?.toString() ?? '');
@@ -105,7 +219,14 @@ export default function SearchHeader({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setShowAutocomplete(false);
     applyQuery(term.trim());
+  };
+
+  const handleAutocompleteSelect = (suggestion: string) => {
+    setTerm(suggestion);
+    setShowAutocomplete(false);
+    applyQuery(suggestion);
   };
 
   const locationTitle = hasGeoActive ? 'Negocios cerca de ti' : 'Activa tu ubicación';
@@ -229,22 +350,111 @@ export default function SearchHeader({
 
           <form
             onSubmit={handleSubmit}
-            className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 shadow-sm"
+            className="relative flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 shadow-sm"
           >
             <BsSearch className="text-gray-400" aria-hidden="true" />
             <input
+              ref={searchInputRef}
               type="search"
               placeholder="Buscar un negocio o producto"
               value={term}
               onChange={(event) => setTerm(event.target.value)}
+              onFocus={() => term.trim().length >= 2 && setShowAutocomplete(true)}
+              onKeyDown={handleKeyDown}
               className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none"
+              autoComplete="off"
+              aria-label="Búsqueda de negocios"
+              aria-autocomplete="list"
+              aria-controls="autocomplete-results"
+              aria-expanded={showAutocomplete}
             />
+            {term && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTerm('');
+                  setShowAutocomplete(false);
+                  searchInputRef.current?.focus();
+                }}
+                className="text-gray-400 hover:text-gray-600 transition"
+                aria-label="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            )}
             <button
               type="submit"
-              className="rounded-full bg-emerald-500 px-4 py-1 text-xs font-semibold text-white hover:bg-emerald-600"
+              className="rounded-full bg-emerald-500 px-4 py-1 text-xs font-semibold text-white hover:bg-emerald-600 transition"
             >
               Buscar
             </button>
+
+            {/* Dropdown de Autocompletado */}
+            {showAutocomplete && autocompleteResults.length > 0 && (
+              <div
+                ref={autocompleteRef}
+                id="autocomplete-results"
+                role="listbox"
+                className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto"
+              >
+                <div className="py-2">
+                  {autocompleteResults.map((result, index) => (
+                    <button
+                      key={`${result.type}-${result.name}-${index}`}
+                      type="button"
+                      role="option"
+                      aria-selected={selectedIndex === index}
+                      onClick={() => handleAutocompleteSelect(result.name)}
+                      className={`w-full px-4 py-2.5 text-left hover:bg-gray-50 transition flex items-center gap-3 group ${
+                        selectedIndex === index ? 'bg-emerald-50 border-l-4 border-emerald-500' : ''
+                      }`}
+                    >
+                      <span className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition ${
+                        selectedIndex === index 
+                          ? 'bg-emerald-100' 
+                          : 'bg-gray-50 group-hover:bg-gray-100'
+                      }`}>
+                        {result.type === 'category' && '📂'}
+                        {result.type === 'business' && '🏪'}
+                        {result.type === 'suggestion' && '🔍'}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-medium truncate ${
+                          selectedIndex === index ? 'text-emerald-900' : 'text-gray-900'
+                        }`}>
+                          {result.name}
+                        </div>
+                        {result.category && (
+                          <div className="text-xs text-gray-500 truncate">
+                            en {result.category}
+                          </div>
+                        )}
+                        {result.type === 'category' && (
+                          <div className="text-xs text-gray-500">
+                            Categoría
+                          </div>
+                        )}
+                      </div>
+                      <span className={`flex-shrink-0 transition ${
+                        selectedIndex === index 
+                          ? 'text-emerald-600 opacity-100' 
+                          : 'text-gray-400 opacity-0 group-hover:opacity-100'
+                      }`}>
+                        →
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="border-t border-gray-100 px-4 py-2 bg-gray-50 text-xs text-gray-500 flex items-center gap-2">
+                  <kbd className="px-2 py-1 bg-white border border-gray-200 rounded text-xs font-mono">↑↓</kbd>
+                  <span>navegar</span>
+                  <kbd className="px-2 py-1 bg-white border border-gray-200 rounded text-xs font-mono ml-2">Enter</kbd>
+                  <span>seleccionar</span>
+                  <kbd className="px-2 py-1 bg-white border border-gray-200 rounded text-xs font-mono ml-auto">Esc</kbd>
+                  <span>cerrar</span>
+                </div>
+              </div>
+            )}
           </form>
         </div>
       </div>
