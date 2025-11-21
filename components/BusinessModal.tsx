@@ -141,24 +141,24 @@ export default function BusinessModal({ business, onClose, onFavorite, isFavorit
 
   return (
     <div
-      className="fixed inset-0 bg-gradient-to-br from-gray-900/70 via-gray-800/60 to-gray-900/80 flex items-center justify-center z-50 backdrop-blur-sm"
+      className="fixed inset-0 bg-gradient-to-br from-gray-900/70 via-gray-800/60 to-gray-900/80 flex items-start md:items-center justify-center z-50 backdrop-blur-sm overflow-y-auto py-4 md:py-0"
       role="dialog"
       aria-modal="true"
       aria-labelledby="business-modal-title"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl p-0 max-w-4xl w-full relative animate-fadeIn border border-gray-200 overflow-hidden"
-        style={{ maxHeight: "90vh", overflowY: "auto", overscrollBehavior: "contain" }}
+        className="bg-white rounded-2xl shadow-2xl p-0 max-w-4xl w-full relative animate-fadeIn border border-gray-200 overflow-hidden my-auto"
+        style={{ maxHeight: "calc(100vh - 2rem)", overflowY: "auto", overscrollBehavior: "contain" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-8 pt-6 pb-2 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-          <h2 id="business-modal-title" className="text-2xl font-extrabold text-gray-800 tracking-tight">
+        {/* Header - Sticky para que el botón X siempre sea visible */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-8 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white shadow-sm">
+          <h2 id="business-modal-title" className="text-xl md:text-2xl font-extrabold text-gray-800 tracking-tight pr-4 truncate">
             {business.name}
           </h2>
           <button
-            className="text-gray-400 hover:text-gray-700 text-2xl font-bold transition-colors duration-150"
+            className="text-gray-400 hover:text-gray-700 text-3xl md:text-2xl font-bold transition-colors duration-150 flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100"
             onClick={onClose}
             title="Cerrar"
             aria-label="Cerrar"
