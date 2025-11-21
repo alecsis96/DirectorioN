@@ -350,17 +350,41 @@ export default function NegociosListClient({
           colonia: uiFilters.colonia,
           order: uiFilters.order,
         }}
-        showPageHeader={pageViewType === 'list'}
-        pageTitle="Directorio de Negocios en Yajalón"
-        pageSubtitle="Tu guía completa de comercios locales"
-        pageDescription="Descubre, compara y conecta con los mejores negocios de Yajalón. Encuentra restaurantes, tiendas, servicios profesionales y más, todo en un solo lugar."
-        errorMessage={initialError}
-        dataSaverEnabled={prefersDataSaver}
       />
       <section className="max-w-6xl mx-auto px-6 py-10 pb-24 md:pb-10">
-        {/* Links de acción rápida */}
-        {pageViewType === 'list' && (
-          <div className="mb-8 flex flex-col sm:flex-row gap-3 items-start sm:items-center sm:justify-between">
+        <header className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg">
+              <span className="text-2xl">🏪</span>
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-[#38761D] leading-tight">
+                Directorio de Negocios en Yajalón
+              </h1>
+              <p className="text-sm md:text-base text-emerald-600 font-semibold">
+                Tu guía completa de comercios locales
+              </p>
+            </div>
+          </div>
+          <p className="text-base md:text-lg text-gray-700 leading-relaxed">
+            <span className="font-semibold text-gray-900">Descubre, compara y conecta</span> con los mejores negocios de Yajalón. 
+            Encuentra restaurantes, tiendas, servicios profesionales y más, todo en un solo lugar. 
+            <span className="inline-flex items-center gap-1 ml-1 text-emerald-600">
+              📍 Cerca de ti, fácil de encontrar
+            </span>
+          </p>
+          {initialError && (
+            <p className="mt-3 text-sm text-amber-700 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg px-4 py-3 shadow-sm">
+              ⚠️ {initialError}
+            </p>
+          )}
+          {prefersDataSaver && (
+            <p className="mt-2 text-xs text-gray-500 bg-blue-50 px-3 py-2 rounded-lg">
+              💾 Modo ahorro de datos activo: evitamos imágenes y mapas embebidos.
+            </p>
+          )}
+          
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
               <span className="text-gray-700">
                 ¿Tienes un negocio?
@@ -401,7 +425,7 @@ export default function NegociosListClient({
               </button>
             )}
           </div>
-        )}
+        </header>
 
         {/* Banner de Negocios Patrocinados - Máxima visibilidad */}
         {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && (

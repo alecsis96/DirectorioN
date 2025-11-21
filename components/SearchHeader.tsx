@@ -22,12 +22,6 @@ type SearchHeaderProps = {
     colonia: string;
     order: SortMode;
   };
-  showPageHeader?: boolean;
-  pageTitle?: string;
-  pageSubtitle?: string;
-  pageDescription?: string;
-  errorMessage?: string | null;
-  dataSaverEnabled?: boolean;
 };
 
 const sortOptions: { label: string; value: SortMode }[] = [
@@ -44,12 +38,6 @@ export default function SearchHeader({
   categories,
   colonias,
   currentFilters,
-  showPageHeader = false,
-  pageTitle = 'Directorio de Negocios en Yajalón',
-  pageSubtitle = 'Tu guía completa de comercios locales',
-  pageDescription = 'Descubre, compara y conecta con los mejores negocios de Yajalón.',
-  errorMessage = null,
-  dataSaverEnabled = false,
 }: SearchHeaderProps) {
   const router = useRouter();
   const pathname = usePathname() || '/negocios';
@@ -330,76 +318,25 @@ export default function SearchHeader({
         className={`sticky top-0 z-20 border-b border-gray-100 bg-white/90 shadow-md backdrop-blur transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
       >
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 md:px-6">
-          {/* Header de página (opcional) */}
-          {showPageHeader && (
-            <div className="pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg">
-                  <span className="text-2xl">🏪</span>
-                </div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-extrabold text-[#38761D] leading-tight">
-                    {pageTitle}
-                  </h1>
-                  <p className="text-xs md:text-sm text-emerald-600 font-semibold">
-                    {pageSubtitle}
-                  </p>
-                </div>
-              </div>
-              <p className="text-sm md:text-base text-gray-700 leading-relaxed">
-                <span className="font-semibold text-gray-900">{pageDescription}</span>
-                {' '}
-                <span className="inline-flex items-center gap-1 text-emerald-600">
-                  📍 Cerca de ti, fácil de encontrar
-                </span>
-              </p>
-              {errorMessage && (
-                <p className="mt-3 text-sm text-amber-700 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg px-4 py-3 shadow-sm">
-                  ⚠️ {errorMessage}
-                </p>
-              )}
-              {dataSaverEnabled && (
-                <p className="mt-2 text-xs text-gray-500 bg-blue-50 px-3 py-2 rounded-lg">
-                  💾 Modo ahorro de datos activo: evitamos imágenes y mapas embebidos.
-                </p>
-              )}
-            </div>
-          )}
-          
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3 text-sm text-gray-600">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 shadow-inner">
-                <BsGeoAlt className="text-base" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-xs font-semibold uppercase text-gray-500">Ubicación</p>
-                <p className="text-sm font-medium text-gray-900">{locationTitle}</p>
-                <p className="text-xs text-gray-500">{locationSubtitle}</p>
-                {geoFeedback && <p className="text-xs font-semibold text-emerald-600">{geoFeedback}</p>}
+            {/* Logo y título */}
+            <Link href="/" className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg">
+                <span className="text-xl">🏪</span>
               </div>
-            </div>
+              <div className="hidden sm:block">
+                <p className="text-sm font-bold text-[#38761D]">Directorio Yajalón</p>
+                <p className="text-xs text-gray-500">Negocios locales</p>
+              </div>
+            </Link>
+            
             <div className="flex items-center gap-2">
-              {hasGeoActive && onClearLocation && (
-                <button
-                  type="button"
-                  onClick={onClearLocation}
-                  className="text-xs font-semibold text-gray-500 underline-offset-2 hover:underline"
-                >
-                  Limpiar
-                </button>
-              )}
-              <GeolocationButton
-                radiusKm={radiusKm}
-                variant="compact"
-                label="Mi ubicación"
-                onSuccess={handleGeoSuccess}
-              />
               <Link
                 href="/favoritos"
                 className="relative inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
               >
                 <span className="text-red-500">♥</span>
-                Favoritos
+                <span className="hidden sm:inline">Favoritos</span>
                 {favorites.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-lg">
                     {favorites.length}
@@ -412,7 +349,7 @@ export default function SearchHeader({
                 className="relative inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
               >
                 <BsFilter aria-hidden="true" />
-                Filtros
+                <span className="hidden sm:inline">Filtros</span>
                 {activeFiltersCount > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white shadow-lg">
                     {activeFiltersCount}
