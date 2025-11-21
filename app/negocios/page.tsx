@@ -4,7 +4,7 @@ import NegociosListClient from '../../components/NegociosListClient';
 import { FavoritesProvider } from '../../context/FavoritesContext';
 import type { Business, BusinessPreview } from '../../types/business';
 import { pickBusinessPreview } from '../../types/business';
-import { fetchBusinesses, toNumber } from '../../lib/server/businessData';
+import { fetchBusinesses, toNumber, sortBusinessesWithSponsors } from '../../lib/server/businessData';
 import { findBusinessesNear } from '../../lib/firestore/search';
 import { COLONIAS_MAP, inferColoniaFromAddress, normalizeColonia } from '../../lib/helpers/colonias';
 import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, type Filters, type SortMode } from '../../lib/negociosFilters';
@@ -89,7 +89,10 @@ async function buildBusinessesResult(params: SearchParams) {
   }
   const categories = Array.from(categorySet).sort((a, b) => a.localeCompare(b, 'es'));
 
-  const businesses: BusinessPreview[] = allBusinesses.map((biz) => {
+  // Aplicar ordenamiento con patrocinados al inicio
+  const sortedBusinesses = sortBusinessesWithSponsors(allBusinesses);
+
+  const businesses: BusinessPreview[] = sortedBusinesses.map((biz) => {
     const preview = pickBusinessPreview(biz as Business);
     let resolvedColonia = normalizeColonia(preview.colonia);
     if (!resolvedColonia) {

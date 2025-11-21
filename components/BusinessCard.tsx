@@ -56,48 +56,97 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     }
   };
 
+  // Determinar estilo según el plan
+  const plan = (business as any).plan || 'free';
+  const cardStyles = {
+    sponsor: {
+      border: 'border-amber-300 border-2',
+      bg: 'bg-gradient-to-br from-amber-50 to-orange-50',
+      shadow: 'shadow-lg shadow-amber-100',
+      badge: { text: '💡 Patrocinado', style: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' }
+    },
+    featured: {
+      border: 'border-emerald-300 border-2',
+      bg: 'bg-gradient-to-br from-emerald-50 to-green-50',
+      shadow: 'shadow-md shadow-emerald-100',
+      badge: { text: '✨ Destacado', style: 'bg-gradient-to-r from-emerald-500 to-green-500 text-white' }
+    },
+    free: {
+      border: 'border-gray-200',
+      bg: 'bg-white',
+      shadow: 'shadow-sm',
+      badge: null
+    }
+  };
+
+  const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
+
+  // Obtener imagen del negocio
+  const businessImage = (business as any).images?.[0]?.url || (business as any).image1 || null;
+
   return (
-    <article className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col gap-4">
-      <header className="flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col">
-            <Link
-              prefetch={false}
-              href={`/negocios/${business.id ?? ""}`}
-              onClick={handleClick}
-              className="text-xl font-semibold text-gray-900 hover:text-[#38761D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38761D]"
-            >
-              {business.name}
-            </Link>
-            <p className="text-xs text-gray-500">Tap para ver detalles sin salir de esta pagina ligera.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-              onClick={() => {
-                if (!businessId) return;
-                if (isFavorite) {
-                  removeFavorite(businessId);
-                } else {
-                  addFavorite(businessId);
-                }
-              }}
-              className={`rounded-full p-2 text-sm font-semibold transition ${
-                isFavorite ? "text-red-500 hover:text-red-600" : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              {isFavorite ? "♥" : "♡"}
-            </button>
-            <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600" aria-label={`Calificacion ${ratingValue.toFixed(1)} de 5`}>
-              <StarIcon className="w-4 h-4" />
-              {ratingValue.toFixed(1)}
-            </span>
-          </div>
+    <article className={`${currentStyle.bg} border ${currentStyle.border} rounded-2xl ${currentStyle.shadow} p-5 flex gap-4 transition-all hover:scale-[1.02]`}>
+      {/* Imagen del negocio */}
+      {businessImage && (
+        <div className="flex-shrink-0">
+          <img
+            src={businessImage}
+            alt={business.name}
+            className="w-24 h-24 object-cover rounded-xl border-2 border-gray-200"
+          />
         </div>
-        <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-          {business.category && <span className="bg-gray-100 px-3 py-1 rounded-full">{business.category}</span>}
-          {business.colonia && <span className="bg-gray-100 px-3 py-1 rounded-full">{business.colonia}</span>}
+      )}
+      
+      <div className="flex-1 flex flex-col gap-4">
+        <header className="flex flex-col gap-2">
+          {/* Badge de plan */}
+          {currentStyle.badge && (
+            <div className="inline-flex self-start">
+              <span className={`${currentStyle.badge.style} px-3 py-1 rounded-full text-xs font-bold shadow-md`}>
+                {currentStyle.badge.text}
+              </span>
+            </div>
+          )}
+          
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col">
+              <Link
+                prefetch={false}
+                href={`/negocios/${business.id ?? ""}`}
+                onClick={handleClick}
+                className="text-xl font-semibold text-gray-900 hover:text-[#38761D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38761D]"
+              >
+                {business.name}
+              </Link>
+              <p className="text-xs text-gray-500">Tap para ver detalles sin salir de esta pagina ligera.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                onClick={() => {
+                  if (!businessId) return;
+                  if (isFavorite) {
+                    removeFavorite(businessId);
+                  } else {
+                    addFavorite(businessId);
+                  }
+                }}
+                className={`rounded-full p-2 text-sm font-semibold transition ${
+                  isFavorite ? "text-red-500 hover:text-red-600" : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                {isFavorite ? "♥" : "♡"}
+              </button>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600" aria-label={`Calificacion ${ratingValue.toFixed(1)} de 5`}>
+                <StarIcon className="w-4 h-4" />
+                {ratingValue.toFixed(1)}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+            {business.category && <span className="bg-gray-100 px-3 py-1 rounded-full">{business.category}</span>}
+            {business.colonia && <span className="bg-gray-100 px-3 py-1 rounded-full">{business.colonia}</span>}
           <span
             className={`px-3 py-1 rounded-full font-semibold ${isOpen ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
             aria-live="polite"
@@ -159,6 +208,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         >
           Como llegar
         </a>
+      </div>
       </div>
     </article>
   );

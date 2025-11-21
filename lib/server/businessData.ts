@@ -126,3 +126,35 @@ export async function fetchBusinesses(): Promise<Business[]> {
     return [];
   }
 }
+
+/**
+ * Reorganiza los negocios para poner hasta 3 patrocinados al inicio (con rotación aleatoria)
+ * seguidos del resto de negocios ordenados por rating.
+ */
+export function sortBusinessesWithSponsors(businesses: Business[]): Business[] {
+  // Separar patrocinados y el resto
+  const sponsored = businesses.filter(b => b.plan === 'sponsor');
+  const others = businesses.filter(b => b.plan !== 'sponsor');
+  
+  // Si hay más de 3 patrocinados, seleccionar 3 al azar
+  let selectedSponsored: Business[] = [];
+  if (sponsored.length > 3) {
+    // Rotación aleatoria: shuffle y tomar los primeros 3
+    const shuffled = [...sponsored].sort(() => Math.random() - 0.5);
+    selectedSponsored = shuffled.slice(0, 3);
+  } else {
+    selectedSponsored = sponsored;
+  }
+  
+  // Ordenar el resto por rating (destacados primero, luego por rating)
+  const sortedOthers = others.sort((a, b) => {
+    // Priorizar destacados
+    if (a.plan === 'featured' && b.plan !== 'featured') return -1;
+    if (a.plan !== 'featured' && b.plan === 'featured') return 1;
+    // Luego por rating
+    return (b.rating ?? 0) - (a.rating ?? 0);
+  });
+  
+  // Retornar patrocinados primero, luego el resto
+  return [...selectedSponsored, ...sortedOthers];
+}
