@@ -17,7 +17,6 @@ import type { ReactImageGalleryItem } from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 
 import BusinessHours from "./BusinessHours";
-import BusinessMapComponent from "./BusinessMapComponent";
 import type { Business } from "../types/business";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { optionalPublicEnv } from "../lib/env";
@@ -36,6 +35,11 @@ const ImageGallery = dynamic(() => import("react-image-gallery"), {
 
   ssr: false
 
+}) as React.ComponentType<any>;
+
+// Carga dinámica para BusinessMapComponent (usa google.maps)
+const BusinessMapComponent = dynamic(() => import("./BusinessMapComponent"), {
+  ssr: false
 }) as React.ComponentType<any>;
 
 
