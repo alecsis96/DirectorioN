@@ -750,53 +750,55 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 🕒 Horarios de atención
               </label>
-              <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                {Object.entries(schedule).map(([day, hours]) => (
-                  <div key={day} className="flex items-center gap-3">
-                    <div className="w-24">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={hours.open}
-                          onChange={(e) => setSchedule({
-                            ...schedule,
-                            [day]: { ...hours, open: e.target.checked }
-                          })}
-                          className="w-4 h-4 text-[#38761D] rounded focus:ring-[#38761D]"
-                        />
-                        <span className="text-sm font-medium capitalize">{day}</span>
-                      </label>
-                    </div>
-                    
-                    {hours.open ? (
-                      <div className="flex gap-2 flex-1">
-                        <input
-                          type="time"
-                          value={hours.start}
-                          onChange={(e) => setSchedule({
-                            ...schedule,
-                            [day]: { ...hours, start: e.target.value }
-                          })}
-                          className="border rounded px-2 py-1 text-sm flex-1"
-                        />
-                        <span className="text-gray-500 self-center">-</span>
-                        <input
-                          type="time"
-                          value={hours.end}
-                          onChange={(e) => setSchedule({
-                            ...schedule,
-                            [day]: { ...hours, end: e.target.value }
-                          })}
-                          className="border rounded px-2 py-1 text-sm flex-1"
-                        />
+              <div className="overflow-x-auto">
+                <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200 min-w-[500px] md:min-w-0">
+                  {Object.entries(schedule).map(([day, hours]) => (
+                    <div key={day} className="flex items-center gap-3">
+                      <div className="w-24 flex-shrink-0">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={hours.open}
+                            onChange={(e) => setSchedule({
+                              ...schedule,
+                              [day]: { ...hours, open: e.target.checked }
+                            })}
+                            className="w-4 h-4 text-[#38761D] rounded focus:ring-[#38761D]"
+                          />
+                          <span className="text-sm font-medium capitalize">{day}</span>
+                        </label>
                       </div>
-                    ) : (
-                      <span className="text-sm text-gray-400 italic">Cerrado</span>
-                    )}
+                      
+                      {hours.open ? (
+                        <div className="flex gap-2 flex-1">
+                          <input
+                            type="time"
+                            value={hours.start}
+                            onChange={(e) => setSchedule({
+                              ...schedule,
+                              [day]: { ...hours, start: e.target.value }
+                            })}
+                            className="border rounded px-2 py-1 text-sm flex-1 min-w-[100px]"
+                          />
+                          <span className="text-gray-500 self-center">-</span>
+                          <input
+                            type="time"
+                            value={hours.end}
+                            onChange={(e) => setSchedule({
+                              ...schedule,
+                              [day]: { ...hours, end: e.target.value }
+                            })}
+                            className="border rounded px-2 py-1 text-sm flex-1 min-w-[100px]"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400 italic">Cerrado</span>
+                      )}
+                    </div>
+                  ))}
+                  <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-300">
+                    ℹ️ Desmarca los días que permaneces cerrado
                   </div>
-                ))}
-                <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-300">
-                  ℹ️ Desmarca los días que permaneces cerrado
                 </div>
               </div>
             </div>

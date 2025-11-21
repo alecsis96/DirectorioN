@@ -113,18 +113,18 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
         <span className="text-sm text-gray-500">{busy ? 'Procesando...' : msg}</span>
       </div>
       {images?.length ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pb-20 md:pb-0">
           {images.map((img) => (
             <div key={img.publicId} className="border rounded p-2">
               <img src={img.url} className="w-full h-40 object-cover rounded" alt="img" />
-              <button type="button" className="mt-2 px-2 py-1 text-xs bg-red-500 text-white rounded" onClick={() => handleDelete(img.publicId)}>
+              <button type="button" className="mt-2 px-2 py-1 text-xs bg-red-500 text-white rounded w-full" onClick={() => handleDelete(img.publicId)}>
                 Eliminar
               </button>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-gray-500">Sin imÃ¡genes</p>
+        <p className="text-gray-500">Sin imágenes</p>
       )}
     </div>
   );
