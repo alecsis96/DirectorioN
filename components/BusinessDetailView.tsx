@@ -182,6 +182,12 @@ export default function BusinessDetailView({ business }: Props) {
   const [busy, setBusy] = useState(false);
   const [saveData, setSaveData] = useState<boolean | null>(null);
   const [pageUrl, setPageUrl] = useState<string | undefined>(undefined);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Detectar cuando el componente está montado en el cliente
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     sendEvent({ t: "pv", p: "detail", ...(businessId ? { b: businessId } : {}) });
@@ -742,7 +748,7 @@ export default function BusinessDetailView({ business }: Props) {
         </h2>
         {!dataSaverEnabled && (lat != null && lng != null) ? (
           <div className="rounded-xl overflow-hidden border border-gray-200">
-            {typeof window !== 'undefined' ? (
+            {isMounted ? (
               <BusinessMapComponent business={business} height="400px" zoom={16} />
             ) : (
               <div className="h-[400px] flex items-center justify-center bg-gray-100">
