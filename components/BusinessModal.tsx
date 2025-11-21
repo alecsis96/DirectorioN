@@ -1,13 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FaPhoneAlt, FaWhatsapp, FaFacebookF, FaHeart, FaRegHeart, FaStar } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
-import ImageGallery from "react-image-gallery";
+import dynamic from "next/dynamic";
 import "react-image-gallery/styles/css/image-gallery.css";
 import ShareButton from "./ShareButton";
 import Link from "next/link";
 import { Business } from "../types/business";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { addDoc, collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from "firebase/firestore";
+
+// Carga dinámica de ImageGallery para evitar problemas de SSR
+const ImageGallery = dynamic(() => import("react-image-gallery"), {
+  ssr: false
+}) as React.ComponentType<any>;
 
 type Props = {
   business: Business;
