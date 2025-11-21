@@ -48,6 +48,10 @@ export default function BusinessMapComponent({ business, height = '400px', zoom 
       ? `https://www.google.com/maps?q=${business.location.lat},${business.location.lng}&z=16&output=embed`
       : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address || business.name + ' Yajalón')}`;
 
+    const directionsUrl = business.location?.lat && business.location?.lng
+      ? `https://www.google.com/maps/dir/?api=1&destination=${business.location.lat},${business.location.lng}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address || business.name + ' Yajalón')}`;
+
     return (
       <div className="relative" style={{ height }}>
         <iframe
@@ -61,7 +65,7 @@ export default function BusinessMapComponent({ business, height = '400px', zoom 
           title={`Mapa de ${business.name}`}
         />
         <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${business.location?.lat || ''},${business.location?.lng || ''}`}
+          href={directionsUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="absolute bottom-4 right-4 bg-white px-4 py-2 rounded-lg shadow-lg font-semibold text-[#38761D] hover:bg-gray-50 transition text-sm flex items-center gap-2"
@@ -100,11 +104,19 @@ export default function BusinessMapComponent({ business, height = '400px', zoom 
               position={{ lat: business.location.lat, lng: business.location.lng }}
               onClick={() => setShowInfo(!showInfo)}
               icon={{
-                url: business.image1 || '/images/logo.png',
-                scaledSize: new google.maps.Size(40, 40),
-                anchor: new google.maps.Point(20, 40),
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 12,
+                fillColor: '#38761D',
+                fillOpacity: 1,
+                strokeColor: '#FFFFFF',
+                strokeWeight: 3,
               }}
               animation={google.maps.Animation.DROP}
+              label={{
+                text: '📍',
+                fontSize: '24px',
+                fontWeight: 'bold',
+              }}
             />
           )}
 
