@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { BsHeart, BsHouseDoor, BsShop, BsPerson, BsFilter, BsSearch } from 'react-icons/bs';
 import { FormEvent, useState, useEffect, Suspense } from 'react';
 import { useFavorites } from '../context/FavoritesContext';
+import GeolocationButton from './GeolocationButton';
 
 function NavigationContent() {
   const pathname = usePathname();
@@ -98,6 +99,18 @@ function NavigationContent() {
                 )}
               </div>
             </form>
+          )}
+
+          {/* Botón de Geolocalización */}
+          {showSearch && (
+            <div className="flex-shrink-0">
+              <GeolocationButton
+                radiusKm={5}
+                variant="compact"
+                label=""
+                className=""
+              />
+            </div>
           )}
 
           {/* Botón de Filtros */}

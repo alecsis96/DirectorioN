@@ -9,7 +9,6 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
 import BusinessCard from './BusinessCard';
-import SearchHeader from './SearchHeader';
 import { auth, signInWithGoogle } from '../firebaseConfig';
 import { sendEvent } from '../lib/telemetry';
 import { sliceBusinesses } from '../lib/pagination';
@@ -338,19 +337,6 @@ export default function NegociosListClient({
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800 font-sans">
-      <SearchHeader
-        initialQuery={uiFilters.query}
-        hasGeoActive={hasGeoActive}
-        radiusKm={radiusKm}
-        onClearLocation={hasGeoActive ? clearGeoFilters : undefined}
-        categories={categories}
-        colonias={colonias}
-        currentFilters={{
-          category: uiFilters.category,
-          colonia: uiFilters.colonia,
-          order: uiFilters.order,
-        }}
-      />
       <section className="max-w-6xl mx-auto px-6 py-10 pb-24 md:pb-10">
         <header className="mb-8">
           <div className="flex items-center gap-3 mb-4">
