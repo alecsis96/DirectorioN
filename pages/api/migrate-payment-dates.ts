@@ -74,21 +74,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         // Calcular fecha de próximo pago
         let nextPaymentDate: Date;
+        let lastPaymentDate: string | undefined;
         
-        if (business.planUpdatedAt) {
-          // Si tiene fecha de actualización de plan, usar esa + 30 días
+        // Función auxiliar para validar fecha
+        const isValidDate = (date: any): boolean => {
+          if (!date) return false;
+          const d = new Date(date);
+          return d instanceof Date && !isNaN(d.getTime());
+        };
+        
+        if (business.planUpdatedAt && isValidDate(business.planUpdatedAt)) {
+          // Si tiene fecha de actualización de plan válida, usar esa + 30 días
           const planDate = new Date(business.planUpdatedAt);
           nextPaymentDate = new Date(planDate);
           nextPaymentDate.setDate(nextPaymentDate.getDate() + 30);
-        } else if (business.approvedAt) {
-          // Si no tiene planUpdatedAt pero tiene approvedAt
+          lastPaymentDate = business.planUpdatedAt;
+        } else if (business.approvedAt && isValidDate(business.approvedAt)) {
+          // Si no tiene planUpdatedAt pero tiene approvedAt válido
           const approvedDate = new Date(business.approvedAt);
           nextPaymentDate = new Date(approvedDate);
           nextPaymentDate.setDate(nextPaymentDate.getDate() + 30);
+          lastPaymentDate = business.approvedAt;
         } else {
-          // Si no, usar fecha actual + 30 días
+          // Si no tiene fechas válidas, usar fecha actual + 30 días
+          console.warn(`⚠️  ${businessName}: Sin fechas válidas, usando fecha actual`);
           nextPaymentDate = new Date();
           nextPaymentDate.setDate(nextPaymentDate.getDate() + 30);
+          lastPaymentDate = new Date().toISOString();
         }
 
         // Preparar actualización
@@ -98,11 +110,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           paymentStatus: business.paymentStatus || 'active',
         };
 
-        // Si tiene planUpdatedAt, usarlo como lastPaymentDate
-        if (business.planUpdatedAt) {
-          updateData.lastPaymentDate = business.planUpdatedAt;
-        } else if (business.approvedAt) {
-          updateData.lastPaymentDate = business.approvedAt;
+        // Agregar lastPaymentDate si está disponible
+        if (lastPaymentDate) {
+          updateData.lastPaymentDate = lastPaymentDate;
         }
 
         // Actualizar documento (solo si no es dry run)
