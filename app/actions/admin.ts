@@ -258,7 +258,7 @@ export async function approveApplication(
     plan: normalizeString(form.plan, 'free', 30),
     featured: false,
     isOpen: 'si',
-    status: 'draft',
+    status: 'approved', // Cambiado de 'draft' a 'approved' - ya fue revisado por admin
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };

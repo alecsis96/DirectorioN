@@ -220,6 +220,22 @@ export default function BusinessDetailView({ business }: Props) {
 
   const canManage = (isOwnerByUid || isOwnerByEmail || isAdmin) && !!business.id;
 
+  // Debug logs
+  useEffect(() => {
+    if (user && business.id) {
+      console.log('[BusinessDetailView] Ownership check:', {
+        userId: user.uid,
+        userEmail: user.email,
+        businessOwnerId: business.ownerId,
+        businessOwnerEmail: business.ownerEmail,
+        isOwnerByUid,
+        isOwnerByEmail,
+        isAdmin,
+        canManage
+      });
+    }
+  }, [user, business.ownerId, business.ownerEmail, business.id, isOwnerByUid, isOwnerByEmail, isAdmin, canManage]);
+
 
 
   const dashboardHref = business.id ? `/dashboard/${business.id}` : "/dashboard";
