@@ -4,7 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { BsStar, BsStarFill, BsGeoAlt } from "react-icons/bs";
 import { mapsLink, normalizeDigits, waLink } from "../lib/helpers/contact";
-import { sendEvent } from "../lib/telemetry";
+import { trackCTA, trackBusinessInteraction } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
 import { getBusinessStatus } from "./BusinessHours";
 import { useFavorites } from "../context/FavoritesContext";
@@ -53,6 +53,12 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const handleClick = (e: React.MouseEvent) => {
     if (onViewDetails) {
       e.preventDefault();
+      trackBusinessInteraction(
+        'business_card_clicked',
+        businessId || '',
+        business.name,
+        business.category
+      );
       onViewDetails(business);
     }
   };
@@ -168,7 +174,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-green-50 text-green-800 hover:bg-green-100 transition"
               aria-label={`Llamar a ${business.name}`}
               onClick={() => {
-                sendEvent({ t: "cta_call", p: "list", ...(businessId ? { b: businessId } : {}) });
+                trackCTA('call', businessId || '', business.name);
               }}
             >
               Llamar
@@ -182,7 +188,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-green-100 text-green-900 hover:bg-green-200 transition"
               aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
               onClick={() => {
-                sendEvent({ t: "cta_wa", p: "list", ...(businessId ? { b: businessId } : {}) });
+                trackCTA('whatsapp', businessId || '', business.name);
               }}
             >
               WhatsApp
@@ -195,7 +201,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
             aria-label="Como llegar en Google Maps"
             onClick={() => {
-              sendEvent({ t: "cta_maps", p: "list", ...(businessId ? { b: businessId } : {}) });
+              trackCTA('maps', businessId || '', business.name);
             }}
           >
             Como llegar

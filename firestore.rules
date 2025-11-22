@@ -284,6 +284,17 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
 
+    // ============== TELEMETRY EVENTS ==============
+    // Los eventos de telemetría solo son escritos por el API endpoint del servidor
+    // Los admins pueden leerlos desde el dashboard de analytics
+    match /telemetry_events/{eventId} {
+      // Solo admins pueden leer
+      allow read: if isAdmin();
+      
+      // Nadie puede escribir directamente (solo el API server-side)
+      allow write: if false;
+    }
+
     // ============== RECLAMOS (opcional) ==============
     match /claims/{claimId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);

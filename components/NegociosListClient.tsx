@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 
 import BusinessCard from './BusinessCard';
 import { auth, signInWithGoogle } from '../firebaseConfig';
-import { sendEvent } from '../lib/telemetry';
+import { trackPageView } from '../lib/telemetry';
 import { sliceBusinesses } from '../lib/pagination';
 import type { Business, BusinessPreview } from '../types/business';
 import { normalizeColonia } from '../lib/helpers/colonias';
@@ -138,8 +138,11 @@ export default function NegociosListClient({
   }, []);
 
   useEffect(() => {
-    sendEvent({ t: 'pv', p: pageViewType });
-  }, [pageViewType]);
+    trackPageView(pageViewType === 'home' ? 'home' : 'negocios', {
+      totalBusinesses: businesses.length,
+      geoQuery: geoQuery ? 'enabled' : 'disabled',
+    });
+  }, [pageViewType, businesses.length, geoQuery]);
 
   useEffect(() => {
     if (!isFetching) return undefined;
