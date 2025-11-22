@@ -143,7 +143,8 @@ export default function SearchHeader({
     }
     
     const qs = nextParams.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    const newUrl = qs ? `${pathname}?${qs}` : pathname;
+    router.replace(newUrl, { scroll: false });
     
     // Delay para mostrar indicador de búsqueda
     const timer = setTimeout(() => {

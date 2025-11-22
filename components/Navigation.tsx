@@ -8,6 +8,7 @@ import { FormEvent, useState, useEffect, Suspense, useRef } from 'react';
 import { useFavorites } from '../context/FavoritesContext';
 import GeolocationButton from './GeolocationButton';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
+import { useDebounce } from '../hooks/useDebounce';
 
 function NavigationContent() {
   const pathname = usePathname();
@@ -20,7 +21,9 @@ function NavigationContent() {
   const [colonias, setColonias] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const isUserTypingRef = useRef(false);
   const { suggestions, isLoading: loadingSuggestions } = useSearchSuggestions(searchTerm, categories);
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   
   // Determinar si mostrar el buscador basado en la ruta
   const showSearch = pathname === '/' || pathname === '/negocios';
@@ -29,7 +32,36 @@ function NavigationContent() {
   useEffect(() => {
     const q = params?.get('q') || '';
     setSearchTerm(q);
+    isUserTypingRef.current = false;
   }, [params]);
+
+  // Búsqueda instantánea con debounce
+  useEffect(() => {
+    if (!isUserTypingRef.current) return;
+    if (!showSearch) return; // Solo en páginas con buscador
+    
+    const currentQuery = params?.get('q') || '';
+    const trimmedTerm = debouncedSearchTerm.trim();
+    
+    if (trimmedTerm === currentQuery) {
+      isUserTypingRef.current = false;
+      return;
+    }
+    
+    const nextParams = new URLSearchParams(params?.toString() ?? '');
+    if (trimmedTerm) {
+      nextParams.set('q', trimmedTerm);
+    } else {
+      nextParams.delete('q');
+    }
+    nextParams.delete('p'); // Reset page
+    
+    const qs = nextParams.toString();
+    const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+    router.replace(qs ? `${targetPath}?${qs}` : targetPath, { scroll: false });
+    
+    isUserTypingRef.current = false;
+  }, [debouncedSearchTerm, pathname, params, router, showSearch]);
 
   // Cargar filtros cuando se abre el modal
   useEffect(() => {
@@ -119,6 +151,7 @@ function NavigationContent() {
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       setShowSuggestions(true);
+                      isUserTypingRef.current = true;
                     }}
                     onFocus={() => setShowSuggestions(true)}
                     className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none min-w-0"
@@ -130,6 +163,7 @@ function NavigationContent() {
                       onClick={() => {
                         setSearchTerm('');
                         setShowSuggestions(false);
+                        isUserTypingRef.current = true;
                       }}
                       className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                     >
@@ -290,6 +324,7 @@ function NavigationContent() {
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
                         setShowSuggestions(true);
+                        isUserTypingRef.current = true;
                       }}
                       onFocus={() => setShowSuggestions(true)}
                       className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none min-w-0"
@@ -301,6 +336,7 @@ function NavigationContent() {
                         onClick={() => {
                           setSearchTerm('');
                           setShowSuggestions(false);
+                          isUserTypingRef.current = true;
                         }}
                         className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-lg"
                       >

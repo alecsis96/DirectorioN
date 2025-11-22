@@ -3,7 +3,7 @@
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
@@ -69,7 +69,9 @@ export default function NegociosListClient({
   geoQuery = null,
 }: NegociosListClientProps) {
   const pathname = usePathname() || '/negocios';
+  const searchParams = useSearchParams();
   const geoQueryRef = useRef(geoQuery);
+  const lastUrlQueryRef = useRef(initialFilters.query || '');
   const [user, setUser] = useState<User | null>(() => auth.currentUser);
   const [prefersDataSaver, setPrefersDataSaver] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
@@ -112,6 +114,19 @@ export default function NegociosListClient({
   useEffect(() => {
     geoQueryRef.current = geoQuery;
   }, [geoQuery]);
+
+  // Escuchar cambios en la URL para búsqueda instantánea
+  useEffect(() => {
+    const urlQuery = searchParams?.get('q') || '';
+    if (urlQuery !== lastUrlQueryRef.current) {
+      lastUrlQueryRef.current = urlQuery;
+      setUiFilters(prev => ({
+        ...prev,
+        query: urlQuery,
+        page: 1, // Reset page on search
+      }));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (typeof navigator === 'undefined') return undefined;
