@@ -276,6 +276,27 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         ownerEmail: biz.ownerEmail,
       });
       
+      // Notificar al administrador
+      try {
+        const token = await user?.getIdToken();
+        if (token) {
+          await fetch('/api/notify-business-review', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              businessId: id,
+              businessName: form.name || biz.name
+            })
+          });
+        }
+      } catch (notifyError) {
+        console.warn('Error al notificar al admin:', notifyError);
+        // No fallar si la notificación falla
+      }
+      
       // Actualizar estado local
       setBiz((prev: any) => ({ ...prev, status: 'pending' }));
       setMsg('¡Negocio enviado a revisión! Te notificaremos cuando sea aprobado.');
