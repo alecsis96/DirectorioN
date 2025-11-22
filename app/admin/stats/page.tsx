@@ -181,6 +181,12 @@ export default async function AdminStatsPage() {
             🏪 Negocios publicados
           </Link>
           <Link
+            href="/admin/payments"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            💳 Pagos y suspensiones
+          </Link>
+          <Link
             href="/admin/stats"
             className="px-4 py-2 bg-[#38761D] text-white font-semibold rounded hover:bg-[#2d5418]"
           >

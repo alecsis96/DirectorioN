@@ -100,6 +100,12 @@ export default async function AdminApplicationsPage() {
             🏪 Negocios publicados
           </a>
           <a
+            href="/admin/payments"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            💳 Pagos y suspensiones
+          </a>
+          <a
             href="/admin/stats"
             className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
           >

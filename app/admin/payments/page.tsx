@@ -98,12 +98,47 @@ export default async function AdminPaymentsPage() {
 
   return (
     <main className="p-4 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">💳 Gestión de Pagos</h1>
-        <p className="text-gray-600 mt-2">
+      <header className="mb-8">
+        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
+        <h1 className="mt-2 text-3xl font-bold text-[#38761D]">💳 Gestión de Pagos</h1>
+        <p className="text-sm text-gray-600">
           Administra pagos, deshabilita o elimina negocios con problemas de pago
         </p>
-      </div>
+        
+        {/* Navegación */}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a
+            href="/admin/applications"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            📋 Solicitudes iniciales
+          </a>
+          <a
+            href="/admin/pending-businesses"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            🔍 Negocios en revisión
+          </a>
+          <a
+            href="/admin/businesses"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            🏪 Negocios publicados
+          </a>
+          <a
+            href="/admin/payments"
+            className="px-4 py-2 bg-[#38761D] text-white font-semibold rounded hover:bg-[#2d5418]"
+          >
+            💳 Pagos y suspensiones
+          </a>
+          <a
+            href="/admin/stats"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            📊 Estadísticas
+          </a>
+        </div>
+      </header>
 
       <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
