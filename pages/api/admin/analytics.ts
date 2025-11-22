@@ -26,7 +26,7 @@ export default async function handler(
     const decoded = await adminAuth.verifyIdToken(token);
 
     // Verificar que sea admin
-    const isAdmin = await checkAdminOverride({ uid: decoded.uid } as any);
+    const isAdmin = await checkAdminOverride(decoded.email);
     if (!isAdmin) {
       return res.status(403).json({ error: 'Forbidden: Admin access required' });
     }
