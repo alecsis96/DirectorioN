@@ -2,7 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
-import PaymentManager from '../../../components/PaymentManager';
+import PaymentManager from '../../../components/PaymentManagerWrapper';
 
 export const dynamic = 'force-dynamic';
 
