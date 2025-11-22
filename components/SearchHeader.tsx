@@ -112,30 +112,33 @@ export default function SearchHeader({
 
   // Búsqueda instantánea con debounce
   useEffect(() => {
-    // Solo ejecutar si el término ha cambiado y no estamos en la carga inicial
-    if (debouncedTerm !== initialQuery && term.length >= 0) {
-      setIsSearching(true);
-      const searchTerm = debouncedTerm.trim();
-      
-      // Actualizar URL con el término de búsqueda
-      const nextParams = new URLSearchParams(params?.toString() ?? '');
-      if (searchTerm) {
-        nextParams.set('q', searchTerm);
-        // Guardar en historial si hay término
-        if (searchTerm.length >= 2) {
-          addRecentSearch(searchTerm);
-          incrementSearch(searchTerm);
-        }
-      } else {
-        nextParams.delete('q');
+    // No ejecutar en la primera carga o si el término no ha cambiado realmente
+    if (!debouncedTerm && !initialQuery) return;
+    if (debouncedTerm === initialQuery) return;
+    
+    // Marcar que estamos buscando
+    setIsSearching(true);
+    const searchTerm = debouncedTerm.trim();
+    
+    // Actualizar URL con el término de búsqueda
+    const nextParams = new URLSearchParams(params?.toString() ?? '');
+    if (searchTerm) {
+      nextParams.set('q', searchTerm);
+      // Guardar en historial solo si hay término significativo
+      if (searchTerm.length >= 2) {
+        addRecentSearch(searchTerm);
+        incrementSearch(searchTerm);
       }
-      
-      const qs = nextParams.toString();
-      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-      
-      // Pequeño delay para mostrar indicador de búsqueda
-      setTimeout(() => setIsSearching(false), 300);
+    } else {
+      nextParams.delete('q');
     }
+    
+    const qs = nextParams.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    
+    // Delay para mostrar indicador de búsqueda
+    const timer = setTimeout(() => setIsSearching(false), 300);
+    return () => clearTimeout(timer);
   }, [debouncedTerm]);
 
   useEffect(() => {
