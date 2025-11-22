@@ -83,6 +83,11 @@ export interface BusinessPreview {
   featured?: boolean | string;
   plan?: string;
   description?: string;
+  image1?: string | null;
+  image2?: string | null;
+  image3?: string | null;
+  images?: { url?: string | null; publicId?: string }[];
+  location?: { lat: number; lng: number } | null;
 }
 
 export const pickBusinessPreview = (biz: Business): BusinessPreview => {
@@ -103,6 +108,11 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     hasDelivery: biz.hasDelivery === true,
     featured: biz.featured === true || biz.featured === 'true',
     plan: biz.plan,
+    image1: biz.image1,
+    image2: biz.image2,
+    image3: biz.image3,
+    images: biz.images,
+    location: biz.location,
     ...(phone ? { phone } : {}),
     ...(whatsapp ? { WhatsApp: whatsapp } : {}),
     ...(sanitizedHorarios ? { horarios: sanitizedHorarios } : {}),

@@ -82,22 +82,8 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
 
   const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
 
-  // Obtener imagen del negocio
-  const businessImage = (business as any).images?.[0]?.url || (business as any).image1 || null;
-
   return (
     <article className={`${currentStyle.bg} border ${currentStyle.border} rounded-2xl ${currentStyle.shadow} p-5 flex gap-4 transition-all hover:scale-[1.02] overflow-hidden`}>
-      {/* Imagen del negocio */}
-      {businessImage && (
-        <div className="flex-shrink-0">
-          <img
-            src={businessImage}
-            alt={business.name}
-            className="w-24 h-24 object-cover rounded-xl border-2 border-gray-200"
-          />
-        </div>
-      )}
-      
       <div className="flex-1 min-w-0 flex flex-col gap-3">
         {/* Badge de plan */}
         {currentStyle.badge && (
