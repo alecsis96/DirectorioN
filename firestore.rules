@@ -295,6 +295,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ============== BUSINESS REPORTS ==============
+    // Los reportes de negocios solo se crean desde el API
+    // Los admins pueden leerlos y actualizarlos
+    match /business_reports/{reportId} {
+      // Solo admins pueden leer
+      allow read: if isAdmin();
+      
+      // Nadie puede escribir directamente (solo el API server-side)
+      allow write: if false;
+    }
+
     // ============== RECLAMOS (opcional) ==============
     match /claims/{claimId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);

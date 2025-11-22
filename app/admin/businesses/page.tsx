@@ -153,6 +153,12 @@ export default async function AdminBusinessesPage() {
             💳 Pagos y suspensiones
           </Link>
           <Link
+            href="/admin/reports"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            🚨 Reportes
+          </Link>
+          <Link
             href="/admin/analytics"
             className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
           >
