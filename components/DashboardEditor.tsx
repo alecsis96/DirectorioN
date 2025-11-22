@@ -368,12 +368,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
             >
               Editor
             </button>
-            <button
-              onClick={() => router.push(`/dashboard/${id}/reportes`)}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:border-b-2 hover:border-gray-900 transition"
-            >
-              📊 Reportes
-            </button>
+            {(form.plan === 'featured' || form.plan === 'sponsor') && (
+              <button
+                onClick={() => router.push(`/dashboard/${id}/reportes`)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:border-b-2 hover:border-gray-900 transition"
+              >
+                📊 Reportes
+              </button>
+            )}
           </nav>
         </div>
       )}

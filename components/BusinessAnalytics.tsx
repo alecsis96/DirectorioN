@@ -91,7 +91,13 @@ export default function BusinessAnalytics({ businessId }: Props) {
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || 'Error al cargar estadísticas');
+          if (data.requiresUpgrade) {
+            setError('upgrade_required');
+          } else {
+            throw new Error(data.error || 'Error al cargar estadísticas');
+          }
+          setLoading(false);
+          return;
         }
 
         const data = await response.json();
@@ -113,6 +119,32 @@ export default function BusinessAnalytics({ businessId }: Props) {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#38761D] mx-auto"></div>
           <p className="mt-4 text-gray-600">Cargando estadísticas...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error === 'upgrade_required') {
+    return (
+      <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-lg p-8 text-center">
+        <div className="text-6xl mb-4">📊</div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">Reportes Premium</h3>
+        <p className="text-gray-700 mb-6 max-w-md mx-auto">
+          Los reportes y estadísticas detalladas solo están disponibles para negocios con plan <strong>Destacado</strong> o <strong>Patrocinado</strong>.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <a
+            href={`/dashboard/${businessId}`}
+            className="px-6 py-3 bg-[#38761D] text-white rounded-lg font-medium hover:bg-[#2d5a15] transition"
+          >
+            Mejorar Plan
+          </a>
+          <a
+            href="/para-negocios"
+            className="px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition"
+          >
+            Ver Planes
+          </a>
         </div>
       </div>
     );

@@ -49,6 +49,16 @@ export default async function handler(
       return res.status(403).json({ error: 'No tienes permiso para ver estos datos' });
     }
 
+    // Verificar que el negocio tenga plan destacado o patrocinado
+    const plan = businessData?.plan || 'free';
+    if (plan !== 'featured' && plan !== 'sponsor') {
+      return res.status(403).json({ 
+        error: 'Los reportes solo están disponibles para negocios con plan Destacado o Patrocinado',
+        requiresUpgrade: true,
+        currentPlan: plan
+      });
+    }
+
     // Obtener período de tiempo (por defecto últimos 30 días)
     const daysParam = req.query.days ? parseInt(req.query.days as string) : 30;
     const days = Math.min(Math.max(daysParam, 1), 90); // Entre 1 y 90 días

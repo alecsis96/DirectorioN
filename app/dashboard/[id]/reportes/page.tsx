@@ -51,6 +51,14 @@ export default function ReportesPage({ params }: PageProps) {
           return;
         }
 
+        // Verificar que el negocio tenga plan destacado o patrocinado
+        const plan = businessData.plan || 'free';
+        if (plan !== 'featured' && plan !== 'sponsor') {
+          setError('Los reportes solo están disponibles para negocios con plan Destacado o Patrocinado');
+          setLoading(false);
+          return;
+        }
+
         setLoading(false);
       } catch (err: any) {
         console.error('Error initializing page:', err);

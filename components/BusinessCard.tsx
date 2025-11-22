@@ -111,7 +111,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             >
               {business.name}
             </Link>
-            <p className="text-xs text-gray-500 mt-1">Tap para ver detalles sin salir de esta pagina ligera.</p>
+            <p className="text-xs text-gray-500 mt-1">Tap en el titulo para ver detalles.</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
