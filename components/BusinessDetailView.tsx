@@ -22,7 +22,7 @@ import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { optionalPublicEnv } from "../lib/env";
 import { deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { waLink, mapsLink, normalizeDigits } from "../lib/helpers/contact";
-import { sendEvent } from "../lib/telemetry";
+import { trackPageView, trackBusinessInteraction, trackCTA } from "../lib/telemetry";
 
 import { upsertReview, reviewsQuery, ReviewSchema } from "../lib/firestore/reviews";
 import { hasAdminOverride } from "../lib/adminOverrides";
@@ -190,8 +190,12 @@ export default function BusinessDetailView({ business }: Props) {
   }, []);
 
   useEffect(() => {
-    sendEvent({ t: "pv", p: "detail", ...(businessId ? { b: businessId } : {}) });
-  }, [businessId]);
+    trackPageView('detail', {
+      businessId,
+      businessName: business.name,
+      category: business.category,
+    });
+  }, [businessId, business.name, business.category]);
 
 
 
@@ -413,12 +417,13 @@ export default function BusinessDetailView({ business }: Props) {
 
       setErrorMsg("");
 
-      sendEvent({
-        t: "review_submit",
-        p: "detail",
-        ...(businessId ? { b: businessId } : {}),
-        r: parsed.data.rating,
-      });
+      trackBusinessInteraction(
+        'review_submitted',
+        businessId || '',
+        business.name,
+        business.category,
+        { rating: parsed.data.rating }
+      );
 
     } catch (err) {
 
@@ -507,22 +512,30 @@ export default function BusinessDetailView({ business }: Props) {
   const planValue = String((business as any)?.plan ?? "").toLowerCase();
   const hasPremiumGallery = planValue === "featured" || planValue === "sponsor";
 
-  const emitDetailEvent = useCallback(
-    (type: Parameters<typeof sendEvent>[0]["t"], extra?: Partial<Parameters<typeof sendEvent>[0]>) => {
-      sendEvent({
-        t: type,
-        p: "detail",
-        ...(businessId ? { b: businessId } : {}),
-        ...(extra ?? {}),
-      });
+  // Helper para tracking de eventos en esta vista
+  const trackDetailCTA = useCallback(
+    (type: 'call' | 'whatsapp' | 'maps' | 'facebook') => {
+      trackCTA(type, businessId || '', business.name);
     },
-    [businessId]
+    [businessId, business.name]
+  );
+
+  const trackDetailInteraction = useCallback(
+    (event: string) => {
+      trackBusinessInteraction(
+        event as any,
+        businessId || '',
+        business.name,
+        business.category
+      );
+    },
+    [businessId, business.name, business.category]
   );
 
   const handleMapClick = useCallback(() => {
     if (!hasMapLink) return;
-    emitDetailEvent("cta_maps");
-  }, [emitDetailEvent, hasMapLink]);
+    trackDetailCTA('maps');
+  }, [trackDetailCTA, hasMapLink]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
@@ -637,7 +650,7 @@ export default function BusinessDetailView({ business }: Props) {
                 href={callHref}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition"
                 aria-label={`Llamar a ${business.name}`}
-                onClick={() => emitDetailEvent("cta_call")}
+                onClick={() => trackDetailCTA('call')}
               >
                 <PhoneIcon className="w-4 h-4" /> Llamar
               </a>
@@ -649,7 +662,7 @@ export default function BusinessDetailView({ business }: Props) {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition"
                 aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
-                onClick={() => emitDetailEvent("cta_wa")}
+                onClick={() => trackDetailCTA('whatsapp')}
               >
                 <WhatsappIcon className="w-4 h-4" /> WhatsApp
               </a>
@@ -673,7 +686,7 @@ export default function BusinessDetailView({ business }: Props) {
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition"
                 aria-label={`Abrir Facebook de ${business.name}`}
-                onClick={() => emitDetailEvent("cta_fb")}
+                onClick={() => trackDetailCTA('facebook')}
               >
                 <FacebookIcon className="w-4 h-4" /> Facebook
               </a>
@@ -683,7 +696,7 @@ export default function BusinessDetailView({ business }: Props) {
                 href={dashboardHref}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#38761D] text-white text-sm font-semibold hover:bg-[#2f5a1a] transition"
                 aria-label="Gestionar negocio"
-                onClick={() => emitDetailEvent("open_manage")}
+                onClick={() => trackDetailInteraction('dashboard_viewed')}
               >
                 Gestionar negocio
               </a>
