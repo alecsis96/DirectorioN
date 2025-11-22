@@ -699,11 +699,6 @@ export const sendPaymentReminders = functions.pubsub
     try {
       const db = admin.firestore();
       const now = new Date();
-      
-      // Calcular fechas para diferentes alertas
-      const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-      const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       // Obtener negocios con pagos próximos a vencer (3 y 7 días)
       const businessesSnapshot = await db.collection("businesses")
@@ -771,7 +766,6 @@ async function sendPaymentReminderEmail(params: {
 }): Promise<void> {
   const { businessName, ownerEmail, nextPaymentDate, daysUntil, plan } = params;
   
-  const transporter = createTransporter();
   const formattedDate = new Date(nextPaymentDate).toLocaleDateString("es-MX", {
     year: "numeric",
     month: "long",
