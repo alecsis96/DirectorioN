@@ -34,6 +34,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
   const [loading, setLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'disabled' | 'overdue' | 'upcoming'>('all');
   const [showHistory, setShowHistory] = useState(false);
+  const [migrating, setMigrating] = useState(false);
 
   const getDaysUntilPayment = (dateStr?: string) => {
     if (!dateStr) return null;
@@ -171,8 +172,77 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
     }
   };
 
+  const handleMigration = async (dryRun: boolean) => {
+    if (!dryRun && !confirm('¿Estás seguro de ejecutar la migración? Esto actualizará todos los negocios sin fecha de pago.')) {
+      return;
+    }
+
+    setMigrating(true);
+    try {
+      const res = await fetch('/api/migrate-payment-dates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun }),
+      });
+
+      if (!res.ok) throw new Error('Error en la migración');
+
+      const result = await res.json();
+      
+      if (dryRun) {
+        alert(`✅ Simulación completada:\n\n` +
+          `Total: ${result.results.total}\n` +
+          `A actualizar: ${result.results.updated}\n` +
+          `Ya tienen fecha: ${result.results.skipped}\n` +
+          `Errores: ${result.results.errors.length}\n\n` +
+          `Ver consola para detalles`);
+        console.log('Resultados de simulación:', result);
+      } else {
+        alert(`✅ Migración completada:\n\n` +
+          `Actualizados: ${result.results.updated}\n` +
+          `Saltados: ${result.results.skipped}\n` +
+          `Errores: ${result.results.errors.length}`);
+        
+        // Recargar página para ver cambios
+        window.location.reload();
+      }
+    } catch (error: any) {
+      alert('❌ Error: ' + error.message);
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Botones de utilidades */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 className="font-semibold text-blue-900">⚙️ Herramientas de Migración</h3>
+            <p className="text-sm text-blue-700 mt-1">
+              Agrega fechas de pago a negocios existentes que no las tienen
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleMigration(true)}
+              disabled={migrating}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm font-medium"
+            >
+              {migrating ? 'Procesando...' : '🔍 Simular'}
+            </button>
+            <button
+              onClick={() => handleMigration(false)}
+              disabled={migrating}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
+            >
+              {migrating ? 'Procesando...' : '✅ Ejecutar Migración'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Filtros */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         <button
