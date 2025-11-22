@@ -131,18 +131,56 @@ export default function AdminReportsPage() {
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">🚨 Reportes de Negocios</h1>
-              <p className="text-xs uppercase tracking-[0.25em] text-gray-500 mt-1">
-                Panel de control
-              </p>
-            </div>
+          <div className="mb-4">
+            <h1 className="text-3xl font-bold text-gray-900">🚨 Reportes de Negocios</h1>
+            <p className="text-xs uppercase tracking-[0.25em] text-gray-500 mt-1">
+              Panel de control
+            </p>
+          </div>
+          
+          {/* Navegación */}
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/applications"
+              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+            >
+              📋 Solicitudes iniciales
+            </Link>
+            <Link
+              href="/admin/pending-businesses"
+              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+            >
+              🔍 Negocios en revisión
+            </Link>
             <Link
               href="/admin/businesses"
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
             >
-              ← Volver
+              🏪 Negocios publicados
+            </Link>
+            <Link
+              href="/admin/payments"
+              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+            >
+              💳 Pagos y suspensiones
+            </Link>
+            <Link
+              href="/admin/reports"
+              className="px-4 py-2 bg-[#38761D] text-white font-semibold rounded hover:bg-[#2d5418]"
+            >
+              🚨 Reportes
+            </Link>
+            <Link
+              href="/admin/analytics"
+              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+            >
+              📊 Analytics
+            </Link>
+            <Link
+              href="/admin/stats"
+              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+            >
+              📈 Estadísticas
             </Link>
           </div>
         </div>
