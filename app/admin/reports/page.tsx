@@ -29,7 +29,7 @@ export default function AdminReportsPage() {
         return;
       }
 
-      const admin = await hasAdminOverride(user.uid);
+      const admin = await hasAdminOverride(user.email);
       if (!admin) {
         router.push('/');
         return;
