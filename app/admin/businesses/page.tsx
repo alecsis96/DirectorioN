@@ -49,6 +49,9 @@ interface BusinessData {
   reviewCount?: number;
   avgRating?: number;
   stripeSubscriptionStatus?: string;
+  nextPaymentDate?: string;
+  lastPaymentDate?: string;
+  isActive?: boolean;
 }
 
 async function fetchAllBusinesses(): Promise<BusinessData[]> {
@@ -79,6 +82,9 @@ async function fetchAllBusinesses(): Promise<BusinessData[]> {
       reviewCount: data.reviewCount || 0,
       avgRating: data.avgRating || 0,
       stripeSubscriptionStatus: data.stripeSubscriptionStatus,
+      nextPaymentDate: data.nextPaymentDate,
+      lastPaymentDate: data.lastPaymentDate,
+      isActive: data.isActive,
     };
   });
 
@@ -232,6 +238,12 @@ export default async function AdminBusinessesPage() {
                       Estadísticas
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Estadísticas
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Próximo Pago
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Fecha
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -239,8 +251,7 @@ export default async function AdminBusinessesPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {businesses.map((business) => (
+                <tbody className="bg-white divide-y divide-gray-200">\n                  {businesses.map((business) => (
                     <tr key={business.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -269,6 +280,48 @@ export default async function AdminBusinessesPage() {
                           <div>👁️ {business.viewCount || 0} vistas</div>
                           <div>⭐ {business.reviewCount || 0} reseñas ({business.avgRating?.toFixed(1) || '0.0'})</div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {business.plan !== 'free' && business.nextPaymentDate ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="text-gray-900 font-medium">
+                              {new Date(business.nextPaymentDate).toLocaleDateString('es-MX')}
+                            </div>
+                            {business.lastPaymentDate && (
+                              <div className="text-gray-500 text-xs">
+                                Último: {new Date(business.lastPaymentDate).toLocaleDateString('es-MX')}
+                              </div>
+                            )}
+                            {business.isActive === false && (
+                              <span className="text-xs text-red-600 font-semibold">⚠️ Deshabilitado</span>
+                            )}
+                          </div>
+                        ) : business.plan !== 'free' ? (
+                          <span className="text-yellow-600 text-xs">⚠️ Sin fecha</span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">N/A</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {business.plan !== 'free' && business.nextPaymentDate ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="text-gray-900 font-medium">
+                              {new Date(business.nextPaymentDate).toLocaleDateString('es-MX')}
+                            </div>
+                            {business.lastPaymentDate && (
+                              <div className="text-gray-500 text-xs">
+                                Último: {new Date(business.lastPaymentDate).toLocaleDateString('es-MX')}
+                              </div>
+                            )}
+                            {business.isActive === false && (
+                              <span className="text-xs text-red-600 font-semibold">⚠️ Deshabilitado</span>
+                            )}
+                          </div>
+                        ) : business.plan !== 'free' ? (
+                          <span className="text-yellow-600 text-xs">⚠️ Sin fecha</span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">N/A</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {business.approvedAt
@@ -351,6 +404,32 @@ export default async function AdminBusinessesPage() {
                     Calificación: {business.avgRating?.toFixed(1) || '0.0'} / 5.0
                   </div>
                 </div>
+
+                {/* Fecha de pago (solo para planes de pago) */}
+                {business.plan !== 'free' && (
+                  <div className="mb-3 pb-3 border-b border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 uppercase mb-1">💳 Información de Pago</p>
+                    {business.nextPaymentDate ? (
+                      <>
+                        <div className="text-sm text-gray-900">
+                          <span className="font-medium">Próximo pago:</span> {new Date(business.nextPaymentDate).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                        {business.lastPaymentDate && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Último pago: {new Date(business.lastPaymentDate).toLocaleDateString('es-MX')}
+                          </div>
+                        )}
+                        {business.isActive === false && (
+                          <div className="mt-2 px-2 py-1 bg-red-50 border border-red-200 rounded text-xs text-red-700 font-semibold">
+                            ⚠️ Negocio deshabilitado por falta de pago
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm text-yellow-600">⚠️ Sin fecha de pago configurada</div>
+                    )}
+                  </div>
+                )}
 
                 {/* Fecha */}
                 <div className="mb-3">
