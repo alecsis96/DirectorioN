@@ -241,8 +241,25 @@ export async function approveApplication(
   const resolvedOwnerId = ownerId || applicationId;
   const resolvedOwnerEmail = ownerEmail || normalizeString(form.ownerEmail, '', 200);
 
+  // Debug: Log de los datos de la aplicación
+  console.log('[approveApplication] Debug data:', {
+    applicationId,
+    formData: form,
+    appData: { ...appData, formData: undefined }, // Excluir formData duplicado
+    businessName: form.businessName || form.name || appData.businessName || appData.name,
+    extractedOwnerId: resolvedOwnerId,
+    extractedOwnerEmail: resolvedOwnerEmail,
+  });
+
+  // Intentar múltiples campos para el nombre del negocio
+  const businessName = normalizeString(
+    form.businessName || form.name || appData.businessName || appData.name,
+    'Negocio sin nombre',
+    140
+  );
+
   const baseBusiness = {
-    name: normalizeString(form.businessName, 'Negocio sin nombre', 140),
+    name: businessName,
     category: normalizeString(form.category, '', 80),
     description: normalizeString(form.description, '', 1500),
     address: normalizeString(form.address, '', 300),
