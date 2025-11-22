@@ -9,6 +9,7 @@
 
 import {setGlobalOptions} from "firebase-functions";
 import {onRequest} from "firebase-functions/v2/https";
+import {onSchedule} from "firebase-functions/v2/scheduler";
 // import * as logger from "firebase-functions/logger";
 
 // Importar funciones de notificaciones por email
@@ -18,6 +19,7 @@ export {
   onBusinessStatusChange,
   onNewReviewCreated,
   sendPaymentFailedNotification,
+  sendPaymentReminders,
 } from "./emailNotifications";
 
 /**

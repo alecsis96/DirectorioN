@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 import { db } from '../../../firebaseConfig';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-10-29.clover',
@@ -59,14 +59,43 @@ export default async function handler(
       }
 
       try {
+        // Calculate next payment date (30 days from now)
+        const nextPaymentDate = new Date();
+        nextPaymentDate.setDate(nextPaymentDate.getDate() + 30);
+
+        // Get plan price
+        const planPrices: Record<string, number> = {
+          featured: 99,
+          sponsor: 199,
+        };
+        const amount = planPrices[plan as keyof typeof planPrices] || 0;
+
+        // Create payment record
+        const paymentRecord = {
+          id: session.id,
+          amount,
+          date: new Date().toISOString(),
+          plan,
+          status: 'success',
+          stripePaymentIntentId: session.payment_intent,
+        };
+
         // Update business plan in Firestore
         const businessRef = doc(db, 'businesses', businessId);
+        const businessSnap = await getDoc(businessRef);
+        const existingHistory = businessSnap.exists() ? (businessSnap.data()?.paymentHistory || []) : [];
+
         await updateDoc(businessRef, {
           plan,
           planUpdatedAt: new Date().toISOString(),
           stripeSessionId: session.id,
           stripeSubscriptionId: session.subscription,
           stripeCustomerId: session.customer,
+          isActive: true,
+          paymentStatus: 'active',
+          lastPaymentDate: new Date().toISOString(),
+          nextPaymentDate: nextPaymentDate.toISOString(),
+          paymentHistory: [...existingHistory, paymentRecord],
         });
 
         console.log(`✅ Successfully updated business ${businessId} to plan ${plan}`);

@@ -33,7 +33,29 @@ export type Business = {
   images?: { url?: string | null; publicId?: string }[];
   featured?: boolean | string;
   priceRange?: string;
+  // Payment fields
+  isActive?: boolean;
+  paymentStatus?: 'active' | 'pending' | 'overdue' | 'canceled';
+  nextPaymentDate?: string;
+  lastPaymentDate?: string;
+  disabledReason?: string;
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
+  stripeSessionId?: string;
+  stripeSubscriptionStatus?: string;
+  planUpdatedAt?: string;
+  paymentHistory?: PaymentRecord[];
 };
+
+export interface PaymentRecord {
+  id: string;
+  amount: number;
+  date: string;
+  plan: string;
+  status: 'success' | 'failed' | 'refunded';
+  stripeInvoiceId?: string;
+  stripePaymentIntentId?: string;
+}
 
 export interface Review {
   id?: string;

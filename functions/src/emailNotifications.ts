@@ -685,3 +685,226 @@ export const onNewReviewCreated = functions.firestore
       console.error("[onNewReviewCreated] Failed to send review notification", error);
     }
   });
+
+/**
+ * Cloud Function programada para enviar recordatorios de pago
+ * Se ejecuta diariamente a las 9:00 AM (hora del servidor)
+ */
+export const sendPaymentReminders = functions.pubsub
+  .schedule("0 9 * * *")
+  .timeZone("America/Mexico_City")
+  .onRun(async (context) => {
+    console.log("[sendPaymentReminders] Starting scheduled payment reminders");
+
+    try {
+      const db = admin.firestore();
+      const now = new Date();
+      
+      // Calcular fechas para diferentes alertas
+      const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      // Obtener negocios con pagos próximos a vencer (3 y 7 días)
+      const businessesSnapshot = await db.collection("businesses")
+        .where("plan", "in", ["featured", "sponsor"])
+        .where("isActive", "!=", false)
+        .get();
+
+      let remindersSent = 0;
+      const errors: string[] = [];
+
+      for (const doc of businessesSnapshot.docs) {
+        const business = { id: doc.id, ...(doc.data() as any) };
+        
+        if (!business.nextPaymentDate || !business.ownerEmail) {
+          continue;
+        }
+
+        const nextPayment = new Date(business.nextPaymentDate);
+        const daysUntil = Math.ceil((nextPayment.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+        try {
+          // Enviar recordatorio si faltan 7, 3 días o si ya venció (1 día después)
+          if (daysUntil === 7 || daysUntil === 3 || daysUntil === -1) {
+            await sendPaymentReminderEmail({
+              businessId: business.id,
+              businessName: business.name || "Tu negocio",
+              ownerEmail: business.ownerEmail,
+              nextPaymentDate: business.nextPaymentDate,
+              daysUntil,
+              plan: business.plan,
+            });
+            
+            remindersSent++;
+            console.log(`✅ Reminder sent to ${business.ownerEmail} (${daysUntil} days)`);
+          }
+        } catch (error: any) {
+          console.error(`❌ Failed to send reminder for business ${business.id}:`, error);
+          errors.push(`${business.id}: ${error.message}`);
+        }
+      }
+
+      console.log(`[sendPaymentReminders] Sent ${remindersSent} reminders, ${errors.length} errors`);
+      
+      if (errors.length > 0) {
+        console.error("[sendPaymentReminders] Errors:", errors);
+      }
+
+      return { success: true, remindersSent, errors: errors.length };
+    } catch (error) {
+      console.error("[sendPaymentReminders] Fatal error:", error);
+      throw error;
+    }
+  });
+
+/**
+ * Envía un recordatorio de pago por email
+ */
+async function sendPaymentReminderEmail(params: {
+  businessId: string;
+  businessName: string;
+  ownerEmail: string;
+  nextPaymentDate: string;
+  daysUntil: number;
+  plan: string;
+}): Promise<void> {
+  const { businessName, ownerEmail, nextPaymentDate, daysUntil, plan } = params;
+  
+  const transporter = createTransporter();
+  const formattedDate = new Date(nextPaymentDate).toLocaleDateString("es-MX", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  let subject = "";
+  let urgencyLevel = "";
+  let message = "";
+
+  if (daysUntil === 7) {
+    subject = `⏰ Recordatorio: Tu pago vence en 7 días - ${businessName}`;
+    urgencyLevel = "informativo";
+    message = "Tu próximo pago vence en 7 días.";
+  } else if (daysUntil === 3) {
+    subject = `⚠️ Importante: Tu pago vence en 3 días - ${businessName}`;
+    urgencyLevel = "urgente";
+    message = "Tu próximo pago vence en 3 días.";
+  } else if (daysUntil === -1) {
+    subject = `🚨 URGENTE: Tu pago venció ayer - ${businessName}`;
+    urgencyLevel = "crítico";
+    message = "Tu pago venció ayer. Por favor, actualiza tu método de pago lo antes posible.";
+  } else {
+    return; // No enviar para otros días
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const dashboardUrl = `${baseUrl}/dashboard`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              
+              <!-- Header -->
+              <tr>
+                <td style="background: linear-gradient(135deg, #38761D 0%, #2d5418 100%); padding: 30px; text-align: center;">
+                  <h1 style="color: white; margin: 0; font-size: 24px;">💳 Recordatorio de Pago</h1>
+                </td>
+              </tr>
+
+              <!-- Nivel de urgencia -->
+              <tr>
+                <td style="padding: 20px; text-align: center; background-color: ${
+                  daysUntil === 7 ? "#E3F2FD" : daysUntil === 3 ? "#FFF3E0" : "#FFEBEE"
+                }; border-bottom: 3px solid ${
+                  daysUntil === 7 ? "#2196F3" : daysUntil === 3 ? "#FF9800" : "#F44336"
+                };">
+                  <p style="margin: 0; font-size: 18px; font-weight: bold; color: ${
+                    daysUntil === 7 ? "#1976D2" : daysUntil === 3 ? "#F57C00" : "#D32F2F"
+                  }; text-transform: uppercase;">
+                    Nivel: ${urgencyLevel}
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Content -->
+              <tr>
+                <td style="padding: 30px;">
+                  <h2 style="color: #333; margin-top: 0;">Hola,</h2>
+                  
+                  <p style="color: #555; line-height: 1.6; font-size: 16px;">
+                    ${message}
+                  </p>
+
+                  <div style="background-color: #f8f9fa; border-left: 4px solid #38761D; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                    <p style="margin: 5px 0; color: #333;"><strong>Negocio:</strong> ${businessName}</p>
+                    <p style="margin: 5px 0; color: #333;"><strong>Plan:</strong> <span style="text-transform: capitalize;">${plan}</span></p>
+                    <p style="margin: 5px 0; color: #333;"><strong>Fecha de pago:</strong> ${formattedDate}</p>
+                    <p style="margin: 5px 0; color: #333;"><strong>Días restantes:</strong> ${daysUntil > 0 ? daysUntil : "Vencido"}</p>
+                  </div>
+
+                  ${daysUntil < 0 ? `
+                    <div style="background-color: #FFEBEE; border: 2px solid #F44336; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                      <p style="margin: 0; color: #D32F2F; font-weight: bold;">⚠️ ATENCIÓN:</p>
+                      <p style="margin: 10px 0 0 0; color: #C62828;">
+                        Tu negocio puede ser deshabilitado si no actualizas tu método de pago pronto.
+                      </p>
+                    </div>
+                  ` : ""}
+
+                  <p style="color: #555; line-height: 1.6; font-size: 16px;">
+                    Para evitar la interrupción del servicio, asegúrate de que tu método de pago esté actualizado.
+                  </p>
+
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${dashboardUrl}" style="display: inline-block; background-color: #38761D; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                      Ver Mi Dashboard
+                    </a>
+                  </div>
+
+                  <p style="color: #999; font-size: 14px; line-height: 1.6; margin-top: 30px;">
+                    <strong>¿Necesitas ayuda?</strong><br>
+                    Si tienes alguna pregunta o problema, no dudes en contactarnos.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+                  <p style="color: #999; font-size: 12px; margin: 0;">
+                    Este es un correo automático, por favor no respondas directamente.
+                  </p>
+                  <p style="color: #999; font-size: 12px; margin: 10px 0 0 0;">
+                    © ${new Date().getFullYear()} Directorio Yajalón - Todos los derechos reservados
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM || "noreply@directorioyajalon.com",
+    to: ownerEmail,
+    subject,
+    html,
+  });
+
+  console.log(`✅ Payment reminder email sent to ${ownerEmail}`);
+}

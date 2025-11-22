@@ -11,6 +11,7 @@ import { signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import ImageUploader from './ImageUploader';
 import AddressPicker from './AddressPicker';
+import PaymentInfo from './PaymentInfo';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
 import { updateBusinessDetails } from '../app/actions/businesses';
 
@@ -668,6 +669,19 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               <p className="text-xs text-gray-500 mt-2">
                 Puedes cambiar tu plan en cualquier momento
               </p>
+            </div>
+
+            {/* Payment Information */}
+            <div className="md:col-span-2">
+              <PaymentInfo
+                businessId={id!}
+                plan={biz.plan}
+                nextPaymentDate={biz.nextPaymentDate}
+                lastPaymentDate={biz.lastPaymentDate}
+                paymentStatus={biz.paymentStatus}
+                isActive={biz.isActive}
+                disabledReason={biz.disabledReason}
+              />
             </div>
 
             <input

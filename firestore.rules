@@ -220,6 +220,12 @@ service cloud.firestore {
           optionalString(request.resource.data.whatsapp, 30) &&
           (!('featured' in request.resource.data) || request.resource.data.featured is bool) &&
           (!('status' in request.resource.data) || validStatus(request.resource.data.status)) &&
+          (!('isActive' in request.resource.data) || request.resource.data.isActive is bool) &&
+          (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus is string) &&
+          (!('nextPaymentDate' in request.resource.data) || request.resource.data.nextPaymentDate is string) &&
+          (!('lastPaymentDate' in request.resource.data) || request.resource.data.lastPaymentDate is string) &&
+          (!('disabledReason' in request.resource.data) || optionalString(request.resource.data.disabledReason, 500)) &&
+          (!('paymentHistory' in request.resource.data) || request.resource.data.paymentHistory is list) &&
           (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
       }
     }
