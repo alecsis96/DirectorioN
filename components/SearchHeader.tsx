@@ -52,6 +52,7 @@ export default function SearchHeader({
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isSearching, setIsSearching] = useState(false);
+  const isUserTypingRef = useRef(false);
   
   // Debounce del término de búsqueda para búsqueda instantánea
   const debouncedTerm = useDebounce(term, 500);
@@ -112,12 +113,18 @@ export default function SearchHeader({
 
   // Búsqueda instantánea con debounce
   useEffect(() => {
+    // Solo ejecutar si el usuario está escribiendo
+    if (!isUserTypingRef.current) return;
+    
     // Obtener el query actual de la URL
     const currentQuery = params?.get('q') || '';
     const searchTerm = debouncedTerm.trim();
     
     // Solo ejecutar si el término es diferente al que ya está en la URL
-    if (searchTerm === currentQuery) return;
+    if (searchTerm === currentQuery) {
+      isUserTypingRef.current = false;
+      return;
+    }
     
     // Marcar que estamos buscando
     setIsSearching(true);
@@ -139,7 +146,10 @@ export default function SearchHeader({
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     
     // Delay para mostrar indicador de búsqueda
-    const timer = setTimeout(() => setIsSearching(false), 300);
+    const timer = setTimeout(() => {
+      setIsSearching(false);
+      isUserTypingRef.current = false;
+    }, 300);
     return () => clearTimeout(timer);
   }, [debouncedTerm, pathname, params, router, addRecentSearch, incrementSearch]);
 
@@ -413,7 +423,10 @@ export default function SearchHeader({
               type="search"
               placeholder="Buscar un negocio o producto..."
               value={term}
-              onChange={(event) => setTerm(event.target.value)}
+              onChange={(event) => {
+                setTerm(event.target.value);
+                isUserTypingRef.current = true;
+              }}
               onFocus={() => setShowAutocomplete(true)}
               onKeyDown={handleKeyDown}
               className="flex-1 bg-transparent text-sm text-gray-700 focus:outline-none"
@@ -433,6 +446,7 @@ export default function SearchHeader({
                 type="button"
                 onClick={() => {
                   setTerm('');
+                  isUserTypingRef.current = true;
                   setShowAutocomplete(false);
                   searchInputRef.current?.focus();
                 }}
