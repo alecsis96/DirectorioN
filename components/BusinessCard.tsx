@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
+import { BsStar, BsStarFill, BsGeoAlt } from "react-icons/bs";
 import { mapsLink, normalizeDigits, waLink } from "../lib/helpers/contact";
 import { sendEvent } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
@@ -139,7 +140,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               {isFavorite ? "♥" : "♡"}
             </button>
             <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600 whitespace-nowrap" aria-label={`Calificacion ${ratingValue.toFixed(1)} de 5`}>
-              <StarIcon className="w-4 h-4" />
+              <BsStarFill className="w-4 h-4" />
               {ratingValue.toFixed(1)}
             </span>
           </div>
@@ -164,7 +165,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
 
         {/* Ubicación */}
         <p className="text-sm text-gray-700 flex items-center gap-2" aria-label={`Direccion ${addressText}`}>
-          <LocationIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          <BsGeoAlt className="w-4 h-4 text-gray-500 flex-shrink-0" />
           <span className="truncate">{addressText}</span>
         </p>
         
@@ -220,35 +221,3 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
 };
 
 export default React.memo(BusinessCard);
-
-type IconProps = React.SVGProps<SVGSVGElement>;
-
-function StarIcon({ className = "w-4 h-4", ...props }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      role="img"
-      aria-hidden="true"
-      className={className}
-      {...props}
-    >
-      <path d="M10 1.5l2.4 4.9 5.4.78-3.9 3.75.92 5.32L10 13.88l-4.82 2.37.92-5.32-3.9-3.75 5.4-.78z" />
-    </svg>
-  );
-}
-
-function LocationIcon({ className = "w-4 h-4", ...props }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      role="img"
-      aria-hidden="true"
-      className={className}
-      {...props}
-    >
-      <path d="M10 1.75c-3.07 0-5.55 2.48-5.55 5.55 0 3.9 4.77 9.1 5.15 9.5a.5.5 0 0 0 .8 0c.38-.4 5.15-5.6 5.15-9.5 0-3.07-2.48-5.55-5.55-5.55zm0 8.03a2.48 2.48 0 1 1 0-4.96 2.48 2.48 0 0 1 0 4.96z" />
-    </svg>
-  );
-}
