@@ -631,11 +631,33 @@ export default function BusinessDetailView({ business }: Props) {
               {business.colonia && (
                 <span className="bg-gray-100 px-3 py-1 rounded-full">{business.colonia}</span>
               )}
-              <span className="flex items-center gap-1 text-yellow-500 font-semibold">
-                <StarIcon className="w-4 h-4 text-yellow-500" />
-                {Number(business.rating ?? 0).toFixed(1)}
-              </span>
             </div>
+            
+            {/* Rating y reseñas */}
+            {Number(business.rating ?? 0) > 0 && (
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <StarIcon
+                      key={i}
+                      className={`w-5 h-5 ${
+                        i < Math.round(Number(business.rating ?? 0))
+                          ? 'text-yellow-500'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">{Number(business.rating ?? 0).toFixed(1)}</span>
+                  {(business as any).reviewCount > 0 && (
+                    <span className="text-gray-600 ml-1">
+                      ({(business as any).reviewCount} {(business as any).reviewCount === 1 ? 'reseña' : 'reseñas'})
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {business.address && (
               <p className="text-sm text-gray-600 mb-1">

@@ -131,6 +131,12 @@ export default async function PendingBusinessesPage() {
             📊 Analytics
           </a>
           <a
+            href="/admin/reviews"
+            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
+          >
+            ⭐ Reseñas
+          </a>
+          <a
             href="/admin/stats"
             className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
           >

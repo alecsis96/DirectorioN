@@ -131,10 +131,19 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             >
               {isFavorite ? "♥" : "♡"}
             </button>
-            <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600 whitespace-nowrap" aria-label={`Calificacion ${ratingValue.toFixed(1)} de 5`}>
-              <BsStarFill className="w-4 h-4" />
-              {ratingValue.toFixed(1)}
-            </span>
+            {ratingValue > 0 && (
+              <div className="flex flex-col items-end">
+                <span className="inline-flex items-center gap-1 text-sm font-bold text-yellow-600 whitespace-nowrap" aria-label={`Calificacion ${ratingValue.toFixed(1)} de 5`}>
+                  <BsStarFill className="w-4 h-4" />
+                  {ratingValue.toFixed(1)}
+                </span>
+                {(business as any).reviewCount > 0 && (
+                  <span className="text-xs text-gray-500">
+                    {(business as any).reviewCount} {(business as any).reviewCount === 1 ? 'reseña' : 'reseñas'}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
         

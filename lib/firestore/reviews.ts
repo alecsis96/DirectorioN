@@ -33,6 +33,7 @@ export async function upsertReview(
       ...data,
       userId: uid,
       businessId,
+      approved: true, // Por defecto aprobada (admin puede cambiar)
       // created será set la primera vez; updated siempre
       created: serverTimestamp(),
       updated: serverTimestamp(),
@@ -42,6 +43,7 @@ export async function upsertReview(
 }
 
 export function reviewsQuery(db: any, businessId: string) {
+  // Solo reseñas aprobadas (las reglas ya filtran esto)
   return query(
     collection(db, "businesses", businessId, "reviews"),
     orderBy("created", "desc"),

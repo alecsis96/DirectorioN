@@ -232,18 +232,21 @@ service cloud.firestore {
 
     // ============== RESEÑAS (NESTED COLLECTION) ==============
     match /businesses/{bid}/reviews/{uid} {
-      allow read: if true;
+      // Lectura: solo reseñas aprobadas para usuarios normales, admin ve todas
+      allow read: if !('approved' in resource.data) || resource.data.approved == true || isAdmin();
 
       // Crear: usuario autenticado, UID = auth.uid, no es owner, datos válidos
+      // Las nuevas reseñas se crean con approved=true por defecto
       allow create: if isSignedIn()
         && uid == request.auth.uid
         && exists(/databases/$(database)/documents/businesses/$(bid))
         && !isOwner(bid)
         && validReviewCreate();
 
-      // Actualizar: el mismo usuario o admin. No se permite cambiar "created".
+      // Actualizar: el mismo usuario o admin. Admin puede cambiar 'approved'.
       allow update: if isSignedIn()
-        && (uid == request.auth.uid || isAdmin())
+        && ((uid == request.auth.uid && !('approved' in request.resource.data || request.resource.data.approved == resource.data.approved))
+            || isAdmin())
         && validReviewUpdate();
 
       // Borrar: el mismo usuario o admin
@@ -260,7 +263,8 @@ service cloud.firestore {
           (!('created' in request.resource.data) || request.resource.data.created is timestamp) &&
           (!('updated' in request.resource.data) || request.resource.data.updated is timestamp) &&
           (!('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid) &&
-          (!('businessId' in request.resource.data) || request.resource.data.businessId == bid);
+          (!('businessId' in request.resource.data) || request.resource.data.businessId == bid) &&
+          (!('approved' in request.resource.data) || request.resource.data.approved is bool);
       }
 
       function validReviewUpdate() {
@@ -275,7 +279,8 @@ service cloud.firestore {
             : true) &&
           (!('updated' in request.resource.data) || request.resource.data.updated is timestamp) &&
           (!('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId) &&
-          (!('businessId' in request.resource.data) || request.resource.data.businessId == resource.data.businessId);
+          (!('businessId' in request.resource.data) || request.resource.data.businessId == resource.data.businessId) &&
+          (!('approved' in request.resource.data) || request.resource.data.approved is bool);
       }
     }
 
