@@ -82,6 +82,7 @@ export interface BusinessPreview {
   hasDelivery?: boolean;
   featured?: boolean | string;
   plan?: string;
+  description?: string;
 }
 
 export const pickBusinessPreview = (biz: Business): BusinessPreview => {
@@ -97,6 +98,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     rating: typeof biz.rating === "number" ? biz.rating : null,
     isOpen: biz.isOpen === "no" ? "no" : "si",
     address: biz.address ?? "",
+    description: biz.description,
     hours: biz.hours,
     hasDelivery: biz.hasDelivery === true,
     featured: biz.featured === true || biz.featured === 'true',

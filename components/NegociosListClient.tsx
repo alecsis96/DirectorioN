@@ -220,7 +220,7 @@ export default function NegociosListClient({
       if (normalizedCategory && biz.category !== normalizedCategory) return false;
       if (normalizedColonia && normalizeColonia(biz.colonia) !== normalizedColonia) return false;
       if (normalizedQuery) {
-        const haystack = `${biz.name ?? ''} ${biz.address ?? ''} ${biz.category ?? ''}`.toLowerCase();
+        const haystack = `${biz.name ?? ''} ${biz.address ?? ''} ${biz.category ?? ''} ${biz.description ?? ''} ${biz.phone ?? ''} ${biz.WhatsApp ?? ''} ${biz.colonia ?? ''}`.toLowerCase();
         if (!haystack.includes(normalizedQuery)) return false;
       }
       
