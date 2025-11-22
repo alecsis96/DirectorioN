@@ -359,6 +359,25 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     <main className="max-w-3xl mx-auto px-6 py-8">
       <h1 className="text-2xl font-bold mb-4">Editar negocio</h1>
       
+      {/* Tabs de navegación del dashboard */}
+      {id && (
+        <div className="mb-6 border-b border-gray-200">
+          <nav className="flex gap-4">
+            <button
+              className="px-4 py-2 text-[#38761D] border-b-2 border-[#38761D] font-medium"
+            >
+              Editor
+            </button>
+            <button
+              onClick={() => router.push(`/dashboard/${id}/reportes`)}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:border-b-2 hover:border-gray-900 transition"
+            >
+              📊 Reportes
+            </button>
+          </nav>
+        </div>
+      )}
+      
       {/* Header con usuario y navegación */}
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
