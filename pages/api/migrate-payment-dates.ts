@@ -14,24 +14,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
   try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+
+    if (!token) {
+      console.error('[migrate-payment-dates] No token provided');
+      return res.status(401).json({ error: 'No se proporcionó token de autenticación' });
+    }
+
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(token);
+    let decoded;
+    
+    try {
+      decoded = await auth.verifyIdToken(token);
+    } catch (authError: any) {
+      console.error('[migrate-payment-dates] Token verification failed:', authError.message);
+      return res.status(401).json({ error: 'Token inválido o expirado. Por favor, vuelve a iniciar sesión.' });
+    }
     
     if (!(decoded as any).admin && !hasAdminOverride(decoded.email)) {
-      return res.status(403).json({ error: 'Forbidden: Admin access required' });
+      console.error('[migrate-payment-dates] User is not admin:', decoded.email);
+      return res.status(403).json({ error: 'Se requieren permisos de administrador' });
     }
 
     const { dryRun = false } = req.body;
 
-    console.log(`🚀 Iniciando migración de fechas de pago (dryRun: ${dryRun})...`);
+    console.log(`🚀 Iniciando migración de fechas de pago (dryRun: ${dryRun}) por ${decoded.email}...`);
 
     const db = getAdminFirestore();
     
@@ -122,6 +131,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`✅ Actualizados: ${results.updated}`);
     console.log(`⏭️  Saltados: ${results.skipped}`);
     console.log(`❌ Errores: ${results.errors.length}`);
+    
+    if (results.errors.length > 0) {
+      console.error('Errores detallados:', results.errors);
+    }
 
     return res.status(200).json({
       success: true,
@@ -133,7 +146,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   } catch (error: any) {
-    console.error('[migrate-payment-dates] Error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('[migrate-payment-dates] Error fatal:', error);
+    return res.status(500).json({ 
+      error: error.message || 'Error interno del servidor',
+      details: error.stack
+    });
   }
 }

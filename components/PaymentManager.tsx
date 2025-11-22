@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FaTrash, FaBan, FaCheckCircle, FaClock, FaHistory, FaExclamationTriangle } from 'react-icons/fa';
+import { auth } from '../firebaseConfig';
 
 interface Business {
   id: string;
@@ -179,15 +180,28 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
 
     setMigrating(true);
     try {
+      // Obtener token del usuario actual
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No hay usuario autenticado');
+      }
+
+      const token = await user.getIdToken();
+
       const res = await fetch('/api/migrate-payment-dates', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ dryRun }),
       });
 
-      if (!res.ok) throw new Error('Error en la migración');
-
       const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.error || 'Error en la migración');
+      }
       
       if (dryRun) {
         alert(`✅ Simulación completada:\n\n` +
@@ -207,6 +221,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
         window.location.reload();
       }
     } catch (error: any) {
+      console.error('Error en migración:', error);
       alert('❌ Error: ' + error.message);
     } finally {
       setMigrating(false);
