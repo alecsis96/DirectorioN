@@ -112,13 +112,15 @@ export default function SearchHeader({
 
   // Búsqueda instantánea con debounce
   useEffect(() => {
-    // No ejecutar en la primera carga o si el término no ha cambiado realmente
-    if (!debouncedTerm && !initialQuery) return;
-    if (debouncedTerm === initialQuery) return;
+    // Obtener el query actual de la URL
+    const currentQuery = params?.get('q') || '';
+    const searchTerm = debouncedTerm.trim();
+    
+    // Solo ejecutar si el término es diferente al que ya está en la URL
+    if (searchTerm === currentQuery) return;
     
     // Marcar que estamos buscando
     setIsSearching(true);
-    const searchTerm = debouncedTerm.trim();
     
     // Actualizar URL con el término de búsqueda
     const nextParams = new URLSearchParams(params?.toString() ?? '');
@@ -139,7 +141,7 @@ export default function SearchHeader({
     // Delay para mostrar indicador de búsqueda
     const timer = setTimeout(() => setIsSearching(false), 300);
     return () => clearTimeout(timer);
-  }, [debouncedTerm]);
+  }, [debouncedTerm, pathname, params, router, addRecentSearch, incrementSearch]);
 
   useEffect(() => {
     return () => {
