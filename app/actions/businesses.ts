@@ -322,6 +322,26 @@ export async function submitNewBusiness(formData: FormData) {
       console.error('[server-action submitNewBusiness] webhook error', error);
     }
 
+    // Enviar email de bienvenida (solo si es nueva aplicación)
+    if (!snapshot.exists && decoded.email) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        await fetch(`${baseUrl}/api/send-email-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'welcome',
+            to: decoded.email,
+            businessName: asString(payload.businessName, 140),
+            ownerName: asString(payload.ownerName ?? decoded.name, 140),
+          }),
+        });
+      } catch (emailError) {
+        console.warn('[server-action] Failed to send welcome email:', emailError);
+        // No fallar la operación si el email falla
+      }
+    }
+
     return { ok: true, submitted: true, notified };
   }
 

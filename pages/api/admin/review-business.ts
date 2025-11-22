@@ -74,6 +74,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         updatedAt: new Date(),
       });
 
+      // Enviar email de aprobación
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        await fetch(`${baseUrl}/api/send-email-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'approved',
+            to: data.ownerEmail,
+            businessName: data.name,
+            ownerName: data.ownerEmail?.split('@')[0],
+          }),
+        });
+      } catch (emailError) {
+        console.warn('Failed to send approval email:', emailError);
+        // No fallar si el email falla
+      }
+
       return res.status(200).json({ ok: true, message: 'Business approved successfully' });
     } else {
       // Rechazar: cambiar status a "rejected" para que el dueño pueda corregir
@@ -84,6 +102,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         rejectionNotes: notes || 'Sin motivo especificado',
         updatedAt: new Date(),
       });
+
+      // Enviar email de rechazo
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        await fetch(`${baseUrl}/api/send-email-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'rejected',
+            to: data.ownerEmail,
+            businessName: data.name,
+            ownerName: data.ownerEmail?.split('@')[0],
+            rejectionNotes: notes || 'Por favor revisa la información de tu negocio y asegúrate de que esté completa y precisa.',
+          }),
+        });
+      } catch (emailError) {
+        console.warn('Failed to send rejection email:', emailError);
+        // No fallar si el email falla
+      }
 
       return res.status(200).json({ ok: true, message: 'Business rejected successfully' });
     }
