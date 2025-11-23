@@ -608,24 +608,38 @@ export default function BusinessDetailView({ business }: Props) {
 
       {/* Header */}
       {/* Mapa */}
-      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
+      <section className={`relative bg-white border rounded-2xl p-6 overflow-hidden ${
+        (business as any).plan === 'sponsor' 
+          ? 'border-amber-400 border-[3px] shadow-2xl shadow-amber-200 ring-2 ring-amber-300 ring-offset-2' 
+          : (business as any).plan === 'featured'
+          ? 'border-emerald-400 border-[3px] shadow-xl shadow-emerald-200 ring-2 ring-emerald-300 ring-offset-2'
+          : 'border-gray-200 shadow-sm'
+      }`}>
+        {/* Efecto de brillo para premium */}
+        {((business as any).plan === 'sponsor' || (business as any).plan === 'featured') && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
+        )}
+        
+        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-start relative z-10">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">{business.name}</h1>
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <h1 className={`text-3xl font-bold ${
+                (business as any).plan === 'sponsor' ? 'text-amber-900' :
+                (business as any).plan === 'featured' ? 'text-emerald-900' :
+                'text-gray-900'
+              }`}>{business.name}</h1>
               {(business as any).plan === 'sponsor' && (
-                <span className="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
-                  Patrocinado
+                <span className="inline-block bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-4 py-2 rounded-full text-sm font-extrabold shadow-lg shadow-amber-300 animate-pulse uppercase tracking-wide">
+                  👑 Patrocinado
                 </span>
               )}
               {(business as any).plan === 'featured' && (
-                <span className="inline-block bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-lg">
-                  Destacado
+                <span className="inline-block bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-extrabold shadow-md shadow-emerald-300 uppercase tracking-wide">
+                  ⭐ Destacado
                 </span>
               )}
             </div>
-            <div className="flex flex-wrap gap-2 mb-3 text-sm text-gray-600">
-              {business.category && (
+            <div className="flex flex-wrap gap-2 mb-3 text-sm text-gray-600">{business.category && (
                 <span className="bg-gray-100 px-3 py-1 rounded-full">{business.category}</span>
               )}
               {business.colonia && (

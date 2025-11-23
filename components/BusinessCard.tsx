@@ -67,34 +67,53 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const plan = (business as any).plan || 'free';
   const cardStyles = {
     sponsor: {
-      border: 'border-amber-300 border-2',
-      bg: 'bg-gradient-to-br from-amber-50 to-orange-50',
-      shadow: 'shadow-lg shadow-amber-100',
-      badge: { text: '💡 Patrocinado', style: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' }
+      border: 'border-amber-400 border-[3px]',
+      bg: 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50',
+      shadow: 'shadow-2xl shadow-amber-200',
+      badge: { 
+        text: '👑 PATROCINADO', 
+        style: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white animate-pulse',
+        glow: 'shadow-lg shadow-amber-300'
+      },
+      titleColor: 'text-amber-900',
+      ring: 'ring-2 ring-amber-300 ring-offset-2'
     },
     featured: {
-      border: 'border-emerald-300 border-2',
-      bg: 'bg-gradient-to-br from-emerald-50 to-green-50',
-      shadow: 'shadow-md shadow-emerald-100',
-      badge: { text: '✨ Destacado', style: 'bg-gradient-to-r from-emerald-500 to-green-500 text-white' }
+      border: 'border-emerald-400 border-[3px]',
+      bg: 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50',
+      shadow: 'shadow-xl shadow-emerald-200',
+      badge: { 
+        text: '⭐ DESTACADO', 
+        style: 'bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white',
+        glow: 'shadow-md shadow-emerald-300'
+      },
+      titleColor: 'text-emerald-900',
+      ring: 'ring-2 ring-emerald-300 ring-offset-2'
     },
     free: {
       border: 'border-gray-200',
       bg: 'bg-white',
       shadow: 'shadow-sm',
-      badge: null
+      badge: null,
+      titleColor: 'text-gray-900',
+      ring: ''
     }
   };
 
   const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
 
   return (
-    <article className={`${currentStyle.bg} border ${currentStyle.border} rounded-2xl ${currentStyle.shadow} p-5 flex gap-4 transition-all hover:scale-[1.02] overflow-hidden`}>
-      <div className="flex-1 min-w-0 flex flex-col gap-3">
+    <article className={`relative ${currentStyle.bg} border ${currentStyle.border} rounded-2xl ${currentStyle.shadow} ${currentStyle.ring} p-5 flex gap-4 transition-all hover:scale-[1.02] hover:shadow-2xl overflow-hidden`}>
+      {/* Efecto de brillo para premium */}
+      {plan !== 'free' && (
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
+      )}
+      
+      <div className="flex-1 min-w-0 flex flex-col gap-3 relative z-10">
         {/* Badge de plan */}
         {currentStyle.badge && (
           <div className="inline-flex self-start">
-            <span className={`${currentStyle.badge.style} px-3 py-1 rounded-full text-xs font-bold shadow-md`}>
+            <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-4 py-1.5 rounded-full text-xs font-extrabold tracking-wide uppercase`}>
               {currentStyle.badge.text}
             </span>
           </div>
@@ -107,7 +126,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               prefetch={false}
               href={`/negocios/${business.id ?? ""}`}
               onClick={handleClick}
-              className="text-xl font-semibold text-gray-900 hover:text-[#38761D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38761D] block"
+              className={`text-xl font-bold ${currentStyle.titleColor} hover:text-[#38761D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38761D] block transition-colors`}
             >
               {business.name}
             </Link>
