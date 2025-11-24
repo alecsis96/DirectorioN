@@ -27,6 +27,8 @@ export type Business = {
   isOpen?: "si" | "no" | string;
   hasDelivery?: boolean;
   location?: { lat: number; lng: number } | null;
+  logoUrl?: string | null;
+  logoPublicId?: string | null;
   image1?: string | null;
   image2?: string | null;
   image3?: string | null;

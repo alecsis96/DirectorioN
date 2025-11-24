@@ -10,6 +10,7 @@ import { auth, db, signInWithGoogle } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import ImageUploader from './ImageUploader';
+import LogoUploader from './LogoUploader';
 import AddressPicker from './AddressPicker';
 import PaymentInfo from './PaymentInfo';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
@@ -216,6 +217,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       const token = await user.getIdToken();
       const payload = {
         ...rest,
+        hasDelivery: form.hasDelivery, // Incluir servicio de delivery
         address: addr.address || rest.address || '',
         hours: derivedHours,
         horarios, // Agregar horarios detallados por día
@@ -874,6 +876,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
             {busy ? 'Guardando...' : 'Guardar'}
           </button>
           <span className="ml-2 text-sm text-gray-500">{msg}</span>
+
+          <h2 className="mt-6 text-xl font-semibold">Logo del Negocio</h2>
+          <LogoUploader
+            businessId={id!}
+            logoUrl={biz.logoUrl || null}
+            logoPublicId={biz.logoPublicId || null}
+            onChange={(url, publicId) => setBiz((b: any) => ({ ...b, logoUrl: url, logoPublicId: publicId }))}
+          />
 
           <h2 className="mt-6 text-xl font-semibold">Imágenes</h2>
           <ImageUploader

@@ -645,6 +645,9 @@ export default function BusinessDetailView({ business }: Props) {
               {business.colonia && (
                 <span className="bg-gray-100 px-3 py-1 rounded-full">{business.colonia}</span>
               )}
+              {business.hasDelivery && (
+                <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-medium">🚚 Delivery</span>
+              )}
             </div>
             
             {/* Rating y reseñas */}
