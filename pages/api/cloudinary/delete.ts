@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { rateLimit } from '../../../lib/rateLimit';
 import { csrfProtection } from '../../../lib/csrfProtection';
+import { getAdminAuth } from '../../../lib/server/firebaseAdmin';
 
 const limiter = rateLimit({ interval: 60000, uniqueTokenPerInterval: 30 });
 
@@ -18,6 +19,32 @@ export default async function handler(
   // Rate limiting: 30 requests per minute
   if (!limiter.check(req, res, 30)) return;
 
+  // Verificar autenticación
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+
+  const token = authHeader.substring(7);
+  try {
+    const adminAuth = getAdminAuth();
+    await adminAuth.verifyIdToken(token);
+  } catch (error) {
+    console.error('Token inválido:', error);
+    return res.status(401).json({ error: 'Token inválido' });
+  }
+
+  // Verificar variables de entorno
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD;
+  if (!cloudName || 
+      !process.env.CLOUDINARY_API_KEY || 
+      !process.env.CLOUDINARY_API_SECRET) {
+    console.error('Faltan variables de entorno de Cloudinary');
+    return res.status(500).json({ 
+      error: 'Configuración de Cloudinary incompleta. Contacte al administrador.' 
+    });
+  }
+
   try {
     const { publicId } = req.body;
 
@@ -30,7 +57,7 @@ export default async function handler(
       return res.status(400).json({ error: 'Invalid publicId format' });
     }
 
-    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/destroy`;
+    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`;
 
     const timestamp = Math.round(Date.now() / 1000);
     const signature = generateSignature(publicId, timestamp);

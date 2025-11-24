@@ -80,6 +80,8 @@ export default function NegociosListClient({
   const [quickFilterNew, setQuickFilterNew] = useState(false);
   const [quickFilterDelivery, setQuickFilterDelivery] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessPreview | Business | null>(null);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+  const [showCategoriesSection, setShowCategoriesSection] = useState(false);
   const [uiFilters, setUiFilters] = useState<Filters>(() => ({
     category: initialFilters.category || '',
     colonia: initialFilters.colonia || '',
@@ -657,50 +659,60 @@ export default function NegociosListClient({
 
         {/* Categorías Destacadas */}
         {!uiFilters.category && !uiFilters.query && categories.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <span className="text-2xl">🏷️</span>
-              Explora por categoría
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {categories.slice(0, 7).map((cat) => {
-                const count = businesses.filter(b => b.category === cat).length;
-                return (
+          <div className="mb-8" suppressHydrationWarning>
+            <button
+              onClick={() => setShowCategoriesSection(!showCategoriesSection)}
+              className="w-full text-left text-xl font-bold text-gray-800 mb-4 flex items-center justify-between gap-2 hover:text-emerald-600 transition-colors group"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🏷️</span>
+                <span>Explora por categoría</span>
+              </div>
+              <svg 
+                className={`w-6 h-6 transition-transform duration-300 ${showCategoriesSection ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {showCategoriesSection && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-in fade-in slide-in-from-top-2 duration-300" suppressHydrationWarning>
+                {categories.slice(0, 7).map((cat) => {
+                  const count = businesses.filter(b => b.category === cat).length;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => handleCategoryChange(cat)}
+                      className="group rounded-lg bg-white border border-gray-200 p-3 text-left transition-all hover:shadow-md hover:border-emerald-300"
+                    >
+                      <div className="text-sm font-semibold text-gray-800 group-hover:text-emerald-600 mb-1">
+                        {cat}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {count} {count === 1 ? 'negocio' : 'negocios'}
+                      </div>
+                    </button>
+                  );
+                })}
+                
+                {categories.length > 7 && (
                   <button
-                    key={cat}
-                    onClick={() => handleCategoryChange(cat)}
-                    className="group rounded-lg bg-white border border-gray-200 p-3 text-left transition-all hover:shadow-md hover:border-emerald-300"
+                    onClick={() => setShowCategoriesModal(true)}
+                    className="rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 p-3 text-center transition-all hover:shadow-md hover:border-emerald-400 hover:scale-105"
                   >
-                    <div className="text-sm font-semibold text-gray-800 group-hover:text-emerald-600 mb-1">
-                      {cat}
+                    <div className="text-sm font-semibold text-emerald-700">
+                      +{categories.length - 7} más
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {count} {count === 1 ? 'negocio' : 'negocios'}
+                    <div className="text-xs text-emerald-600 mt-1">
+                      Ver todas
                     </div>
                   </button>
-                );
-              })}
-              
-              {categories.length > 7 && (
-                <button
-                  onClick={() => {
-                    const select = document.querySelector('select[name="category"]') as HTMLSelectElement;
-                    if (select) {
-                      select.focus();
-                      select.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                  }}
-                  className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-center transition-all hover:bg-gray-100 hover:border-gray-300"
-                >
-                  <div className="text-sm font-semibold text-gray-600">
-                    +{categories.length - 7} más
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Ver todas
-                  </div>
-                </button>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -893,6 +905,103 @@ export default function NegociosListClient({
           onClose={() => setSelectedBusiness(null)}
         />
       )}
+
+      {/* Modal de categorías */}
+      {showCategoriesModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowCategoriesModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🏷️</span>
+                <h2 className="text-2xl font-bold text-white">Todas las Categorías</h2>
+              </div>
+              <button
+                onClick={() => setShowCategoriesModal(false)}
+                className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all"
+                aria-label="Cerrar"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categories.sort((a, b) => a.localeCompare(b, 'es')).map((cat) => {
+                  const count = businesses.filter(b => b.category === cat).length;
+                  const isSelected = uiFilters.category === cat;
+                  
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        handleCategoryChange(cat);
+                        setShowCategoriesModal(false);
+                      }}
+                      className={`group rounded-xl p-4 text-left transition-all hover:shadow-lg ${
+                        isSelected 
+                          ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border-2 border-emerald-600 shadow-md' 
+                          : 'bg-white border-2 border-gray-200 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className={`text-base font-bold mb-2 ${
+                        isSelected ? 'text-white' : 'text-gray-800 group-hover:text-emerald-600'
+                      }`}>
+                        {cat}
+                      </div>
+                      <div className={`text-sm flex items-center gap-2 ${
+                        isSelected ? 'text-emerald-50' : 'text-gray-600'
+                      }`}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span className="font-semibold">{count}</span>
+                        <span>{count === 1 ? 'negocio' : 'negocios'}</span>
+                      </div>
+                      {isSelected && (
+                        <div className="mt-2 flex items-center gap-1 text-white text-xs font-semibold">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Seleccionada
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Botón para limpiar filtro de categoría */}
+              {uiFilters.category && (
+                <div className="mt-6 pt-6 border-t border-gray-200 flex justify-center">
+                  <button
+                    onClick={() => {
+                      handleCategoryChange('');
+                      setShowCategoriesModal(false);
+                    }}
+                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Limpiar categoría
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
