@@ -40,12 +40,9 @@ export default function LogoUploader({
     setMsg('Subiendo logo...');
 
     try {
-      const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD;
-      const preset = process.env.NEXT_PUBLIC_CLOUDINARY_PRESET;
-      
-      if (!cloud || !preset) {
-        throw new Error('Configuración de Cloudinary faltante');
-      }
+      // Cloudinary config - usar valores directos
+      const cloud = 'ddz9ez9wp';
+      const preset = 'unsigned';
 
       const form = new FormData();
       form.append('file', file);

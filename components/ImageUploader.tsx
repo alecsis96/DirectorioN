@@ -19,9 +19,10 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
     if (!file || !businessId) return;
     setBusy(true);
     try {
-      const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD as string;
-      const preset = process.env.NEXT_PUBLIC_CLOUDINARY_PRESET as string;
-      if (!cloud || !preset) throw new Error('Config de Cloudinary faltante');
+      // Cloudinary config - usar valores directos
+      const cloud = 'ddz9ez9wp';
+      const preset = 'unsigned';
+      
       const form = new FormData();
       form.append('file', file);
       form.append('upload_preset', preset);

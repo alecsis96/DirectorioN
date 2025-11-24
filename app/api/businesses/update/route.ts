@@ -14,6 +14,8 @@ const ALLOWED_FIELDS = new Set([
   'hours',
   'horarios',
   'images',
+  'logoUrl',
+  'logoPublicId',
   'lat',
   'lng',
   'location',
