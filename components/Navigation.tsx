@@ -41,7 +41,7 @@ const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void })
   }, []);
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Mis Negocios', href: '/mis-solicitudes', desc: 'Gestiona tus empresas' },
+    { icon: LayoutDashboard, label: 'Mis Negocios', href: '/mis-negocios', desc: 'Gestiona tus empresas' },
     { icon: Heart, label: 'Favoritos', href: '/favoritos', desc: 'Tus lugares guardados' },
     { icon: History, label: 'Historial', href: '/negocios', desc: 'Visto recientemente' },
     { icon: Bell, label: 'Notificaciones', href: '/mis-solicitudes', desc: 'Avisos importantes' },
