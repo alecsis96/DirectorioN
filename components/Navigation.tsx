@@ -124,6 +124,7 @@ function NavigationContent() {
                 src="/images/logo.png"
                 alt="Directorio Yajalón"
                 fill
+                sizes="(max-width: 640px) 40px, 48px"
                 className="object-contain"
                 priority
               />
