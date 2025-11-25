@@ -28,8 +28,8 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const isFavorite = businessId ? favorites.includes(businessId) : false;
   
-  // Imagen de logo/negocio
-  const logoUrl = (business as any).image1 || (business as any).logoUrl || 'https://via.placeholder.com/80x80?text=Logo';
+  // Imagen de logo/negocio - priorizar logoUrl sobre image1
+  const logoUrl = (business as any).logoUrl || (business as any).image1 || 'https://via.placeholder.com/80x80?text=Logo';
 
   useEffect(() => {
     const schedule = business.hours;

@@ -88,6 +88,7 @@ export interface BusinessPreview {
   image1?: string | null;
   image2?: string | null;
   image3?: string | null;
+  logoUrl?: string | null;
   images?: { url?: string | null; publicId?: string }[];
   location?: { lat: number; lng: number } | null;
 }
@@ -113,6 +114,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     image1: biz.image1,
     image2: biz.image2,
     image3: biz.image3,
+    logoUrl: biz.logoUrl,
     images: biz.images,
     location: biz.location,
     ...(phone ? { phone } : {}),
