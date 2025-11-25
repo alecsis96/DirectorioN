@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { Star, MapPin, Phone, MessageSquare, Map } from "lucide-react";
+import { Star, MapPin, Phone, Map } from "lucide-react";
 import { mapsLink, normalizeDigits, waLink } from "../lib/helpers/contact";
 import { trackCTA, trackBusinessInteraction } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
