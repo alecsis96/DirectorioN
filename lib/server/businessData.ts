@@ -74,6 +74,15 @@ export function normalizeBusiness(data: any, id: string): Business {
   const image3 = asString(data.image3 ?? data.imagen3);
   if (image3) business.image3 = image3;
 
+  // Incluir logoUrl si existe
+  const logoUrl = asString(data.logoUrl);
+  if (logoUrl) business.logoUrl = logoUrl;
+
+  // Incluir hasDelivery si existe
+  if (data.hasDelivery === true) {
+    business.hasDelivery = true;
+  }
+
   if (Array.isArray(data.images) && data.images.length) {
     business.images = data.images
       .filter((img: any) => img && img.url)
