@@ -9,12 +9,122 @@ import { useFavorites } from '../context/FavoritesContext';
 import GeolocationButton from './GeolocationButton';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useDebounce } from '../hooks/useDebounce';
+import { 
+  LogIn, 
+  LayoutDashboard, 
+  Heart, 
+  History, 
+  HelpCircle, 
+  Bell, 
+  BarChart2, 
+  LogOut, 
+  ChevronDown 
+} from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
+
+// Componente de Menú Desplegable de Usuario
+const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cierra el menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const menuItems = [
+    { icon: LayoutDashboard, label: 'Mis Negocios', href: '/mis-solicitudes', desc: 'Gestiona tus empresas' },
+    { icon: Heart, label: 'Favoritos', href: '/favoritos', desc: 'Tus lugares guardados' },
+    { icon: History, label: 'Historial', href: '/negocios', desc: 'Visto recientemente' },
+    { icon: Bell, label: 'Notificaciones', href: '/mis-solicitudes', desc: 'Avisos importantes' },
+    { icon: BarChart2, label: 'Métricas', href: '/mis-solicitudes', desc: 'Rendimiento' },
+    { icon: HelpCircle, label: 'Ayuda y Soporte', href: '/para-negocios', desc: 'Centro de ayuda' },
+  ];
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Botón del Trigger (Avatar del Usuario) */}
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 p-1 pr-3 rounded-full border border-gray-200 hover:bg-gray-50 transition-all"
+      >
+        {user.photoURL ? (
+          <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full object-cover" />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-[#38761D] text-white flex items-center justify-center text-sm font-bold">
+            {user.email?.[0].toUpperCase() || 'U'}
+          </div>
+        )}
+        <span className="text-sm font-medium text-gray-700 hidden sm:block max-w-[100px] truncate">
+          {user.displayName || 'Mi Cuenta'}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Menú Desplegable */}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
+          {/* Header del Menú */}
+          <div className="p-4 bg-gray-50 border-b border-gray-100">
+            <p className="text-sm font-bold text-gray-900">{user.displayName || 'Usuario'}</p>
+            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+          </div>
+
+          {/* Opciones */}
+          <div className="p-2">
+            {menuItems.map((item, index) => (
+              <Link 
+                key={index} 
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+              >
+                <div className="p-2 bg-gray-100 rounded-md group-hover:bg-white group-hover:shadow-sm transition-all">
+                  <item.icon className="w-4 h-4 text-gray-600 group-hover:text-[#38761D]" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold text-gray-800">{item.label}</span>
+                  </div>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Footer / Logout */}
+          <div className="p-2 border-t border-gray-100 bg-gray-50">
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onSignOut();
+              }}
+              className="flex items-center gap-2 w-full p-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Cerrar Sesión
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 function NavigationContent() {
   const pathname = usePathname();
   const router = useRouter();
   const params = useSearchParams();
   const { favorites } = useFavorites();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
@@ -27,6 +137,25 @@ function NavigationContent() {
   
   // Determinar si mostrar el buscador basado en la ruta
   const showSearch = pathname === '/' || pathname === '/negocios';
+
+  // Funciones de autenticación
+  const handleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+  };
   
   // Sincronizar searchTerm con URL
   useEffect(() => {
@@ -276,6 +405,21 @@ function NavigationContent() {
               <BsHeart className="inline mr-2" />
               Favoritos
             </Link>
+            
+            {/* Área de Usuario/Login */}
+            {user ? (
+              <UserDropdown user={user} onSignOut={handleSignOut} />
+            ) : (
+              <button
+                onClick={handleSignIn}
+                className="ml-2 flex items-center gap-2 px-4 py-2 rounded-lg bg-[#38761D] text-white text-sm font-semibold hover:bg-[#2f5a1a] transition shadow-md hover:shadow-lg"
+              >
+                <LogIn className="w-4 h-4" />
+                <span className="hidden sm:inline">Iniciar Sesión</span>
+                <span className="sm:hidden">Entrar</span>
+              </button>
+            )}
+            
             <Link
               href="/para-negocios"
               className={`ml-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
@@ -301,9 +445,23 @@ function NavigationContent() {
             >
               <BsHeart className="text-xl" />
             </Link>
+            
+            {/* Área de Usuario/Login Mobile */}
+            {user ? (
+              <UserDropdown user={user} onSignOut={handleSignOut} />
+            ) : (
+              <button
+                onClick={handleSignIn}
+                className="px-3 py-2 rounded-lg text-xs font-semibold bg-[#38761D] text-white hover:bg-[#2d5418] flex items-center gap-1"
+              >
+                <LogIn className="w-3 h-3" />
+                Entrar
+              </button>
+            )}
+            
             <Link
               href="/para-negocios"
-              className="px-3 py-2 rounded-lg text-xs font-semibold bg-[#38761D] text-white hover:bg-[#2d5418]"
+              className="px-3 py-2 rounded-lg text-xs font-semibold bg-gray-100 text-gray-900 hover:bg-gray-200"
             >
               Registrar
             </Link>
