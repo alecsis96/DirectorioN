@@ -40,24 +40,26 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
         {/* Hero Section */}
-        <section className="relative bg-gradient-to-r from-[#38761D] to-[#2f5a1a] py-20 px-4">
+        <section className="relative bg-gradient-to-r from-[#38761D] to-[#2f5a1a] py-20 px-4" style={{ backgroundColor: '#38761D' }}>
           <div className="max-w-6xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6" style={{ color: '#ffffff' }}>
               Descubre Yajalón
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-white max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto" style={{ color: '#ffffff' }}>
               Tu directorio completo de negocios locales. Encuentra restaurantes, tiendas, servicios profesionales y más cerca de ti.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
                 href="/negocios"
-                className="px-8 py-4 bg-white text-[#38761D] font-bold rounded-full hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="px-8 py-4 bg-white font-bold rounded-full hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                style={{ color: '#38761D' }}
               >
                 Ver Todos los Negocios
               </Link>
               <Link
                 href="/para-negocios"
-                className="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-full hover:bg-white hover:text-[#38761D] transition-all"
+                className="px-8 py-4 bg-transparent border-2 border-white font-bold rounded-full hover:bg-white transition-all"
+                style={{ color: '#ffffff' }}
               >
                 Registra tu Negocio
               </Link>
