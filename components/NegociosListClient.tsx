@@ -470,7 +470,7 @@ export default function NegociosListClient({
                             {/* NUEVO: Contenedor Visual de Carrusel/Video - JUSTIFICACIÓN DEL PRECIO MÁS ALTO */}
                             <div className="mb-4 h-40 w-full overflow-hidden rounded-lg bg-gray-100 border border-gray-200 shadow-xl">
                               <img 
-                                src={business.image1 || business.logoUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100%25" height="100%25"%3E%3Crect fill="%23f0f0f0" width="100%25" height="100%25"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="%23999"%3EVideo/Carrusel Preview%3C/text%3E%3C/svg%3E'}
+                                src={business.coverUrl || business.image1 || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100%25" height="100%25"%3E%3Crect fill="%23f0f0f0" width="100%25" height="100%25"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="%23999"%3EVideo/Carrusel Preview%3C/text%3E%3C/svg%3E'}
                                 alt={`Imagen principal de ${business.name}`}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               />
@@ -623,13 +623,14 @@ export default function NegociosListClient({
                 return featured.map((business) => {
                   // Calcular estado del negocio (Abierto/Cerrado)
                   const now = new Date();
-                  const status = business.hours ? getBusinessStatus(business.hours, now) : { isOpen: false, label: 'Horario no disp.' };
+                  const status = business.hours ? getBusinessStatus(business.hours, now) : { isOpen: false, opensAt: undefined, closesAt: undefined, todayLabel: 'Horario no disp.' };
                   const isOpen = status.isOpen;
                   
                   // Formatear label de horario
                   let hoursLabel = "Horario disponible";
                   if (status.isOpen && status.closesAt) hoursLabel = `Cierra ${status.closesAt}`;
                   else if (!status.isOpen && status.opensAt) hoursLabel = `Abre ${status.opensAt}`;
+                  else if (status.todayLabel) hoursLabel = status.todayLabel;
                   
                   return (
                     <div
@@ -641,7 +642,7 @@ export default function NegociosListClient({
                         ✨ DESTACADO
                       </div>
 
-                      <div className="p-5 flex flex-col h-full">
+                      <div className="p-5 pt-8 flex flex-col h-full">
                         {/* HEADER: Logo, Título y Favorito */}
                         <div className="flex items-start gap-3 mb-3">
                           <img 
@@ -650,28 +651,26 @@ export default function NegociosListClient({
                             className="w-14 h-14 rounded-lg object-cover border border-gray-100 shadow-sm flex-shrink-0 bg-gray-50"
                           />
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition line-clamp-2">
+                            <h3 className="text-lg font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition line-clamp-2 mb-1">
                               {business.name}
                             </h3>
                             
-                            {/* Rating Completo con Reseñas */}
-                            <div className="flex items-center gap-1 mt-1">
-                              {business.rating && business.rating > 0 ? (
-                                <>
-                                  <span className="text-yellow-500 text-sm">★</span>
-                                  <span className="font-bold text-gray-800 text-sm">{business.rating.toFixed(1)}</span>
-                                  <span className="text-xs text-gray-400 ml-0.5">
-                                    ({(business as any).reviewCount || 0} reseñas)
+                            {/* Rating Simplificado y Limpio (Solo Estrella + Número) */}
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {business.rating && business.rating > 0 && (
+                                <div className="flex items-center bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-100">
+                                  <span className="text-yellow-500 text-xs mr-1">★</span>
+                                  <span className="font-bold text-gray-800 text-xs leading-none pt-0.5">
+                                    {business.rating.toFixed(1)}
                                   </span>
-                                </>
-                              ) : (
-                                <span className="text-xs text-gray-400">Sin reseñas</span>
+                                </div>
                               )}
+                              {/* Si no tiene rating, no mostramos nada para mantenerlo limpio */}
                             </div>
                           </div>
                           
                           {/* Botón Favorito */}
-                          <button aria-label="Favorito" className="text-gray-300 hover:text-red-500 transition-colors -mt-1">
+                          <button aria-label="Favorito" className="relative z-20 text-gray-300 hover:text-red-500 transition-colors -mt-1 flex-shrink-0">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                             </svg>

@@ -112,14 +112,16 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
       )}
       
-      {/* COLUMNA IZQUIERDA: Logo */}
-      <div className="flex-shrink-0 relative z-10" suppressHydrationWarning>
-        <img 
-          src={logoUrl} 
-          alt={`Logo de ${business.name}`}
-          className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
-        />
-      </div>
+      {/* COLUMNA IZQUIERDA: Logo - SOLO para planes premium */}
+      {plan !== 'free' && (
+        <div className="flex-shrink-0 relative z-10" suppressHydrationWarning>
+          <img 
+            src={logoUrl} 
+            alt={`Logo de ${business.name}`}
+            className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
+          />
+        </div>
+      )}
       
       {/* COLUMNA DERECHA: Contenido */}
       <div className="flex-1 min-w-0 flex flex-col gap-2.5 relative z-10" suppressHydrationWarning>

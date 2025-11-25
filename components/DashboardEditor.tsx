@@ -879,23 +879,47 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
           <span className="ml-2 text-sm text-gray-500">{msg}</span>
 
           <h2 className="mt-6 text-xl font-semibold">Imagen de Portada</h2>
-          <p className="text-sm text-gray-600 mb-2">
-            La portada aparecerá en la parte superior de la página de tu negocio. Recomendado para planes Premium.
-          </p>
-          <CoverUploader
-            businessId={id!}
-            coverUrl={biz.coverUrl || null}
-            coverPublicId={biz.coverPublicId || null}
-            onChange={(url, publicId) => setBiz((b: any) => ({ ...b, coverUrl: url, coverPublicId: publicId }))}
-          />
+          {(biz.plan === 'sponsor' || biz.plan === 'featured') ? (
+            <>
+              <p className="text-sm text-gray-600 mb-2">
+                La portada aparecerá en la parte superior de la página de tu negocio. Recomendado para planes Premium.
+              </p>
+              <CoverUploader
+                businessId={id!}
+                coverUrl={biz.coverUrl || null}
+                coverPublicId={biz.coverPublicId || null}
+                onChange={(url, publicId) => setBiz((b: any) => ({ ...b, coverUrl: url, coverPublicId: publicId }))}
+              />
+            </>
+          ) : (
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">
+                ✨ <strong>Función Premium:</strong> La imagen de portada está disponible solo para planes Featured y Sponsor.
+              </p>
+              <p className="text-xs text-gray-600">
+                Actualiza tu plan para agregar una portada personalizada que destaque tu negocio.
+              </p>
+            </div>
+          )}
 
           <h2 className="mt-6 text-xl font-semibold">Logo del Negocio</h2>
-          <LogoUploader
-            businessId={id!}
-            logoUrl={biz.logoUrl || null}
-            logoPublicId={biz.logoPublicId || null}
-            onChange={(url, publicId) => setBiz((b: any) => ({ ...b, logoUrl: url, logoPublicId: publicId }))}
-          />
+          {(biz.plan === 'sponsor' || biz.plan === 'featured') ? (
+            <LogoUploader
+              businessId={id!}
+              logoUrl={biz.logoUrl || null}
+              logoPublicId={biz.logoPublicId || null}
+              onChange={(url, publicId) => setBiz((b: any) => ({ ...b, logoUrl: url, logoPublicId: publicId }))}
+            />
+          ) : (
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">
+                ✨ <strong>Función Premium:</strong> El logo personalizado está disponible solo para planes Featured y Sponsor.
+              </p>
+              <p className="text-xs text-gray-600">
+                Actualiza tu plan para agregar un logo que identifique tu marca.
+              </p>
+            </div>
+          )}
 
           <h2 className="mt-6 text-xl font-semibold">Imágenes</h2>
           <ImageUploader
