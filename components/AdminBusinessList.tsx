@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { FaBan, FaCheckCircle, FaTrash } from 'react-icons/fa';
+import { auth } from '../firebaseConfig';
 
 interface BusinessData {
   id: string;
@@ -67,9 +68,19 @@ export default function AdminBusinessList({ businesses }: Props) {
 
     setLoading(businessId);
     try {
+      const user = auth.currentUser;
+      if (!user) {
+        alert('❌ Debes iniciar sesión');
+        return;
+      }
+      
+      const token = await user.getIdToken();
       const res = await fetch('/api/admin/disable-business', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ businessId, reason }),
       });
 
@@ -131,9 +142,19 @@ export default function AdminBusinessList({ businesses }: Props) {
 
     setLoading(businessId);
     try {
+      const user = auth.currentUser;
+      if (!user) {
+        alert('❌ Debes iniciar sesión');
+        return;
+      }
+      
+      const token = await user.getIdToken();
       const res = await fetch('/api/admin/delete-business', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ businessId }),
       });
 
