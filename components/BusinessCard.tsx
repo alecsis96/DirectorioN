@@ -196,6 +196,13 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               🚚 Delivery
             </span>
           )}
+
+          {/* NUEVO: Rango de Precios (Solo para planes de pago) */}
+          {plan !== 'free' && (business as any).priceRange && (
+            <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+              💰 {(business as any).priceRange}
+            </span>
+          )}
         </div>
 
         {/* Ubicación */}

@@ -52,6 +52,12 @@ export function normalizeBusiness(data: any, id: string): Business {
     business.plan = 'free';
   }
 
+  // Incluir priceRange si existe
+  const priceRangeValue = asString(data.priceRange);
+  if (priceRangeValue) {
+    business.priceRange = priceRangeValue;
+  }
+
   // Incluir horarios estructurados si existen
   if (data.horarios && typeof data.horarios === "object") {
     try {

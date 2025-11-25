@@ -84,6 +84,7 @@ export interface BusinessPreview {
   hasDelivery?: boolean;
   featured?: boolean | string;
   plan?: string;
+  priceRange?: string;
   description?: string;
   image1?: string | null;
   image2?: string | null;
@@ -111,6 +112,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     hasDelivery: biz.hasDelivery === true,
     featured: biz.featured === true || biz.featured === 'true',
     plan: biz.plan,
+    priceRange: biz.priceRange,
     image1: biz.image1,
     image2: biz.image2,
     image3: biz.image3,
