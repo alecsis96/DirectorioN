@@ -57,8 +57,9 @@ export default function LogoUploader({
 
       const json = await response.json();
 
-      if (!json?.secure_url || !json?.public_id) {
-        throw new Error('Error al subir el logo');
+      if (!response.ok || !json?.secure_url || !json?.public_id) {
+        console.error('Cloudinary upload error:', json);
+        throw new Error(json?.error?.message || 'Error al subir el logo a Cloudinary');
       }
 
       // Si había logo anterior, eliminarlo
@@ -107,7 +108,8 @@ export default function LogoUploader({
 
     const result: UpdateResponse | null = await response.json().catch(() => null);
     if (!response.ok || !result?.ok) {
-      throw new Error((result as any)?.error || 'No se pudo actualizar el logo');
+      console.error('Error saving logo to database:', result);
+      throw new Error((result as any)?.error || 'No se pudo actualizar el logo en la base de datos');
     }
   }
 
