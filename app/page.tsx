@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { FavoritesProvider } from '../context/FavoritesContext';
-import BusinessCard from '../components/BusinessCard';
 import type { Business, BusinessPreview } from '../types/business';
 import { pickBusinessPreview } from '../types/business';
 import { fetchBusinesses, toNumber } from '../lib/server/businessData';
+import HomeClient from '../components/HomeClient';
 
 export const metadata: Metadata = {
   title: 'Directorio de Negocios Yajalón - Tu Guía Local de Comercios',
@@ -39,8 +38,7 @@ export default async function Home() {
     });
 
   return (
-    <FavoritesProvider>
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
         {/* Hero Section */}
         <section className="relative bg-gradient-to-r from-[#38761D] to-[#2f5a1a] text-white py-20 px-4">
           <div className="max-w-6xl mx-auto text-center">
@@ -117,20 +115,7 @@ export default async function Home() {
                 </Link>
               </div>
               
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {premiumBusinesses.map((business) => (
-                  <BusinessCard
-                    key={business.id}
-                    business={business}
-                    onViewDetails={(biz) => {
-                      // Handle business click - could open modal or navigate
-                      if (typeof window !== 'undefined') {
-                        window.location.href = `/negocios?q=${encodeURIComponent(biz.name)}`;
-                      }
-                    }}
-                  />
-                ))}
-              </div>
+              <HomeClient businesses={premiumBusinesses} />
 
               <div className="mt-8 text-center md:hidden">
                 <Link
@@ -162,6 +147,5 @@ export default async function Home() {
           </div>
         </section>
       </div>
-    </FavoritesProvider>
   );
 }
