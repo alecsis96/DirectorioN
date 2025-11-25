@@ -11,6 +11,7 @@ export default function PushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [hasVapidKey, setHasVapidKey] = useState(false);
 
   useEffect(() => {
     // Verificar si las notificaciones son soportadas
@@ -18,8 +19,12 @@ export default function PushNotifications() {
       setIsSupported(true);
       setPermission(Notification.permission);
       
-      // Mostrar prompt si no se ha decidido
-      if (Notification.permission === 'default') {
+      // Verificar si VAPID key está configurada
+      const vapidConfigured = !!process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      setHasVapidKey(vapidConfigured);
+      
+      // Solo mostrar prompt si Firebase está configurado
+      if (Notification.permission === 'default' && vapidConfigured) {
         // Esperar 10 segundos antes de mostrar el prompt
         const timer = setTimeout(() => {
           setShowPrompt(true);
@@ -31,7 +36,7 @@ export default function PushNotifications() {
   }, []);
 
   useEffect(() => {
-    if (!isSupported || permission !== 'granted' || !user) return;
+    if (!isSupported || permission !== 'granted' || !user || !hasVapidKey) return;
 
     // Inicializar Firebase Messaging
     const initMessaging = async () => {
@@ -77,12 +82,21 @@ export default function PushNotifications() {
           }
         });
       } catch (error) {
-        console.error('Error initializing messaging:', error);
+        // Silenciar errores de push service cuando no está configurado
+        if (error instanceof Error) {
+          if (error.message.includes('push service error') || 
+              error.message.includes('Registration failed') ||
+              error.name === 'AbortError') {
+            // Silenciar estos errores comunes cuando push no está disponible
+            return;
+          }
+          console.error('Error initializing messaging:', error);
+        }
       }
     };
 
     initMessaging();
-  }, [isSupported, permission, user]);
+  }, [isSupported, permission, user, hasVapidKey]);
 
   const requestPermission = async () => {
     if (!isSupported) {

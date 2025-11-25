@@ -119,12 +119,12 @@ function NavigationContent() {
         <div className="flex h-16 items-center justify-between gap-2">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="relative h-10 w-10 sm:h-12 sm:w-12 transition-transform group-hover:scale-105">
+            <div className="relative h-10 w-10 sm:h-12 sm:w-12 transition-transform group-hover:scale-105" suppressHydrationWarning>
               <Image
                 src="/images/logo.png"
                 alt="Directorio Yajalón"
                 fill
-                sizes="(max-width: 640px) 40px, 48px"
+                sizes="48px"
                 className="object-contain"
                 priority
               />
