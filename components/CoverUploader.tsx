@@ -88,9 +88,11 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          id: businessId,
-          coverUrl: newCoverUrl,
-          coverPublicId: newCoverPublicId,
+          businessId: businessId,
+          updates: {
+            coverUrl: newCoverUrl,
+            coverPublicId: newCoverPublicId,
+          },
         }),
       });
 
@@ -146,9 +148,11 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          id: businessId,
-          coverUrl: null,
-          coverPublicId: null,
+          businessId: businessId,
+          updates: {
+            coverUrl: null,
+            coverPublicId: null,
+          },
         }),
       });
 
