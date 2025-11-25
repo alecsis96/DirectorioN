@@ -40,12 +40,12 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
         {/* Hero Section */}
-        <section className="relative bg-gradient-to-r from-[#38761D] to-[#2f5a1a] text-white py-20 px-4">
+        <section className="relative bg-gradient-to-r from-[#38761D] to-[#2f5a1a] py-20 px-4">
           <div className="max-w-6xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white">
               Descubre Yajalón
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-gray-100 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 text-white max-w-3xl mx-auto">
               Tu directorio completo de negocios locales. Encuentra restaurantes, tiendas, servicios profesionales y más cerca de ti.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
