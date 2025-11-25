@@ -106,14 +106,14 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
 
   return (
-    <article className={`relative ${currentStyle.bg} border ${currentStyle.border} rounded-2xl ${currentStyle.shadow} ${currentStyle.ring} p-4 flex flex-row items-start gap-4 transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden`}>
+    <article className={`relative ${currentStyle.bg} border ${currentStyle.border} rounded-2xl ${currentStyle.shadow} ${currentStyle.ring} p-4 flex flex-row items-start gap-4 transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden`} suppressHydrationWarning>
       {/* Efecto de brillo para premium */}
       {plan !== 'free' && (
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
       )}
       
       {/* COLUMNA IZQUIERDA: Logo */}
-      <div className="flex-shrink-0 relative z-10">
+      <div className="flex-shrink-0 relative z-10" suppressHydrationWarning>
         <img 
           src={logoUrl} 
           alt={`Logo de ${business.name}`}
@@ -122,7 +122,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       </div>
       
       {/* COLUMNA DERECHA: Contenido */}
-      <div className="flex-1 min-w-0 flex flex-col gap-2.5 relative z-10">
+      <div className="flex-1 min-w-0 flex flex-col gap-2.5 relative z-10" suppressHydrationWarning>
         {/* Badge de plan */}
         {currentStyle.badge && (
           <div className="inline-flex self-start">
