@@ -467,6 +467,21 @@ export default function NegociosListClient({
                           </div>
                           
                           <div className="flex flex-col h-full">
+                            {/* NUEVO: Logo y botón de favoritos */}
+                            <div className="flex items-start justify-between mb-4">
+                              <img 
+                                src={business.logoUrl || business.image1 || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E'}
+                                alt={`Logo de ${business.name}`}
+                                className="w-16 h-16 rounded-xl object-cover border-2 border-purple-200 shadow-lg flex-shrink-0"
+                              />
+                              <button
+                                aria-label="Agregar a favoritos"
+                                className="text-2xl text-red-400 hover:text-red-500 transition-colors"
+                              >
+                                ♡
+                              </button>
+                            </div>
+                            
                             <div className="mb-4 flex-grow">
                               <h3 className="text-xl font-bold text-gray-900 mb-2 pr-20 group-hover:text-purple-600 transition">
                                 {business.name}
@@ -606,6 +621,21 @@ export default function NegociosListClient({
                     
                     {/* Contenido */}
                     <div className="p-6">
+                      {/* NUEVO: Logo y botón de favoritos */}
+                      <div className="flex items-start justify-between mb-4">
+                        <img 
+                          src={business.logoUrl || business.image1 || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E'}
+                          alt={`Logo de ${business.name}`}
+                          className="w-16 h-16 rounded-xl object-cover border-2 border-yellow-200 shadow-lg flex-shrink-0"
+                        />
+                        <button
+                          aria-label="Agregar a favoritos"
+                          className="text-2xl text-red-400 hover:text-red-500 transition-colors"
+                        >
+                          ♡
+                        </button>
+                      </div>
+                      
                       <div className="mb-4">
                         <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-emerald-600 transition">
                           {business.name}
@@ -617,6 +647,11 @@ export default function NegociosListClient({
                           {business.rating && business.rating > 0 && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
                               ⭐ {business.rating.toFixed(1)}
+                            </span>
+                          )}
+                          {business.hasDelivery && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">
+                              🚚 Delivery
                             </span>
                           )}
                         </div>
@@ -867,16 +902,27 @@ export default function NegociosListClient({
         {(() => {
           const showTopSections = !uiFilters.category && !uiFilters.query && !uiFilters.colonia;
           
-          // Si las secciones superiores están visibles, obtener los IDs de los negocios patrocinados mostrados
+          // Obtener los IDs de los negocios ya mostrados en las secciones Patrocinado y Destacado
+          // Sponsor top 3:
           const sponsoredTopIds = showTopSections 
             ? businesses.filter(b => b.plan === 'sponsor').slice(0, 3).map(b => b.id)
             : [];
           
-          // Aplicar un filtro a la lista paginada para excluir los patrocinados que ya se mostraron arriba
+          // Featured top 3: (Excluyendo patrocinados que ya están arriba)
+          const featuredTopIds = showTopSections 
+            ? businesses.filter(b => b.plan !== 'sponsor' && (b.featured === true || b.featured === 'true' || b.plan === 'featured'))
+              .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+              .slice(0, 3)
+              .map(b => b.id)
+            : [];
+          
+          // Combinar los IDs a excluir de la lista principal
+          const excludedTopIds = [...sponsoredTopIds, ...featuredTopIds];
+          
+          // Aplicar un filtro a la lista paginada para excluir los negocios ya mostrados en las secciones superiores
           const businessesToDisplay = paginated.items.filter(biz => {
-            // Excluir negocios si son patrocinados y su ID está en la lista de los top 3 mostrados,
-            // y solo si la sección superior de patrocinados está activa.
-            if (showTopSections && biz.plan === 'sponsor' && sponsoredTopIds.includes(biz.id)) {
+            // Excluir negocios si su ID está en la lista de IDs excluidos, y solo si la sección superior de patrocinados/destacados está activa
+            if (showTopSections && excludedTopIds.includes(biz.id)) {
               return false;
             }
             return true;
