@@ -863,24 +863,46 @@ export default function NegociosListClient({
           </div>
         )}
 
-        <div id="all-categories" className="space-y-6">
-          {showEmptyState && (
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
-              No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
+        {/* Determinar si las secciones superiores (Sponsor/Featured) se están mostrando */}
+        {(() => {
+          const showTopSections = !uiFilters.category && !uiFilters.query && !uiFilters.colonia;
+          
+          // Si las secciones superiores están visibles, obtener los IDs de los negocios patrocinados mostrados
+          const sponsoredTopIds = showTopSections 
+            ? businesses.filter(b => b.plan === 'sponsor').slice(0, 3).map(b => b.id)
+            : [];
+          
+          // Aplicar un filtro a la lista paginada para excluir los patrocinados que ya se mostraron arriba
+          const businessesToDisplay = paginated.items.filter(biz => {
+            // Excluir negocios si son patrocinados y su ID está en la lista de los top 3 mostrados,
+            // y solo si la sección superior de patrocinados está activa.
+            if (showTopSections && biz.plan === 'sponsor' && sponsoredTopIds.includes(biz.id)) {
+              return false;
+            }
+            return true;
+          });
+
+          return (
+            <div id="all-categories" className="space-y-6">
+              {showEmptyState && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
+                  No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
+                </div>
+              )}
+
+              {!showEmptyState && businessesToDisplay.map((biz) => (
+                <BusinessCard 
+                  key={biz.id} 
+                  business={biz}
+                  onViewDetails={(business) => setSelectedBusiness(business)}
+                />
+              ))}
+
+              {isFetching && businessesToDisplay.length === 0 && <SkeletonList count={3} />}
+              {isFetching && businessesToDisplay.length > 0 && <SkeletonList count={1} />}
             </div>
-          )}
-
-          {!showEmptyState && paginated.items.map((biz) => (
-            <BusinessCard 
-              key={biz.id} 
-              business={biz}
-              onViewDetails={(business) => setSelectedBusiness(business)}
-            />
-          ))}
-
-          {isFetching && paginated.items.length === 0 && <SkeletonList count={3} />}
-          {isFetching && paginated.items.length > 0 && <SkeletonList count={1} />}
-        </div>
+          );
+        })()}
 
         {hasMore && (
           <div className="mt-6 flex flex-col items-center gap-3">

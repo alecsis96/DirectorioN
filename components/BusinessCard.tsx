@@ -72,33 +72,33 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     sponsor: {
       border: 'border-amber-400 border-[3px]',
       bg: 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50',
-      shadow: 'shadow-2xl shadow-amber-200',
+      shadow: 'shadow-2xl shadow-amber-200 hover:shadow-amber-400/50',
       badge: { 
         text: '💎 PATROCINADO', 
         style: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white animate-pulse',
         glow: 'shadow-lg shadow-amber-300'
       },
       titleColor: 'text-amber-900',
-      ring: 'ring-2 ring-amber-300 ring-offset-2'
+      ring: 'ring-4 ring-amber-500 ring-offset-2'
     },
     featured: {
-      border: 'border-emerald-400 border-[3px]',
-      bg: 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50',
-      shadow: 'shadow-xl shadow-emerald-200',
+      border: 'border-blue-500 border-[4px]',
+      bg: 'bg-white',
+      shadow: 'shadow-xl shadow-blue-300 hover:shadow-blue-500/50',
       badge: { 
         text: '✨ DESTACADO', 
-        style: 'bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 text-white',
-        glow: 'shadow-md shadow-emerald-300'
+        style: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white',
+        glow: 'shadow-md shadow-blue-400'
       },
-      titleColor: 'text-emerald-900',
-      ring: 'ring-2 ring-emerald-300 ring-offset-2'
+      titleColor: 'text-blue-900',
+      ring: 'ring-2 ring-blue-300 ring-offset-2'
     },
     free: {
-      border: 'border-gray-200',
+      border: 'border-gray-100 border',
       bg: 'bg-white',
-      shadow: 'shadow-sm',
+      shadow: 'shadow-none',
       badge: null,
-      titleColor: 'text-gray-900',
+      titleColor: 'text-gray-800',
       ring: ''
     }
   };
