@@ -419,18 +419,6 @@ function NavigationContent() {
                 <span className="sm:hidden">Entrar</span>
               </button>
             )}
-            
-            <Link
-              href="/para-negocios"
-              className={`ml-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                pathname === '/para-negocios'
-                  ? 'bg-[#38761D] text-white'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-              }`}
-            >
-              <BsPerson className="inline mr-2" />
-              Para Negocios
-            </Link>
           </div>
 
           {/* Mobile Navigation */}
@@ -458,13 +446,6 @@ function NavigationContent() {
                 Entrar
               </button>
             )}
-            
-            <Link
-              href="/para-negocios"
-              className="px-3 py-2 rounded-lg text-xs font-semibold bg-gray-100 text-gray-900 hover:bg-gray-200"
-            >
-              Registrar
-            </Link>
           </div>
         </div>
 
