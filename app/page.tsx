@@ -28,7 +28,7 @@ export default async function Home() {
   
   // Filtrar solo negocios premium/patrocinados
   const premiumBusinesses: BusinessPreview[] = allBusinesses
-    .filter((biz: Business) => biz.isPremium || biz.isSponsored)
+    .filter((biz: Business) => biz.plan === 'featured' || biz.plan === 'sponsor' || biz.featured === true || biz.featured === 'true')
     .slice(0, 6) // Mostrar máximo 6 negocios premium
     .map((biz: Business) => {
       const preview = pickBusinessPreview(biz);
@@ -122,11 +122,12 @@ export default async function Home() {
                   <BusinessCard
                     key={business.id}
                     business={business}
-                    onClick={(biz) => {
-                      // Handle business click
-                      window.location.href = `/negocios/${biz.id}`;
+                    onViewDetails={(biz) => {
+                      // Handle business click - could open modal or navigate
+                      if (typeof window !== 'undefined') {
+                        window.location.href = `/negocios?q=${encodeURIComponent(biz.name)}`;
+                      }
                     }}
-                    showDetailsButton={true}
                   />
                 ))}
               </div>
