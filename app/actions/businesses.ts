@@ -43,6 +43,7 @@ const ALLOWED_FIELDS = new Set([
   'hours',
   'horarios',
   'images',
+  'hasDelivery',
   'lat',
   'lng',
 ]);
