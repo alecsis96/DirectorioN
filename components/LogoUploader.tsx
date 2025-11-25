@@ -48,7 +48,7 @@ export default function LogoUploader({
       form.append('file', file);
       form.append('upload_preset', preset);
       form.append('folder', `businesses/${businessId}/logo`);
-      form.append('transformation', 'c_fill,w_200,h_200,g_face'); // Cuadrado 200x200
+      // Nota: transformation no funciona con unsigned uploads
 
       const response = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, {
         method: 'POST',
