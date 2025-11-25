@@ -81,7 +81,7 @@ export default async function handler(
     }));
 
     // Calcular métricas
-    const analytics = calculateBusinessAnalytics(events, days);
+    const analytics = calculateBusinessAnalytics(events, days, plan);
 
     return res.status(200).json(analytics);
   } catch (error: any) {
@@ -90,7 +90,7 @@ export default async function handler(
   }
 }
 
-function calculateBusinessAnalytics(events: any[], days: number) {
+function calculateBusinessAnalytics(events: any[], days: number, plan: string) {
   // Total de eventos
   const totalEvents = events.length;
 
@@ -156,26 +156,31 @@ function calculateBusinessAnalytics(events: any[], days: number) {
     .filter(cta => cta.count > 0)
     .sort((a, b) => b.count - a.count);
 
-  // Dispositivos (basado en user agent)
-  const devices = {
-    mobile: events.filter(e => e.userAgent?.toLowerCase().includes('mobile')).length,
-    desktop: events.filter(e => e.userAgent && !e.userAgent.toLowerCase().includes('mobile')).length,
-    unknown: events.filter(e => !e.userAgent).length,
-  };
+  // Dispositivos (basado en user agent) y Horarios Populares: SOLO para plan Sponsor
+  let devices = { mobile: 0, desktop: 0, unknown: 0 };
+  let topHours: Array<{ hour: number; count: number }> = [];
 
-  // Horarios de mayor actividad (hora del día)
-  const hourlyActivity: Record<number, number> = {};
-  events.forEach(e => {
-    if (e.createdAt) {
-      const hour = new Date(e.createdAt).getHours();
-      hourlyActivity[hour] = (hourlyActivity[hour] || 0) + 1;
-    }
-  });
+  if (plan === 'sponsor') {
+    devices = {
+      mobile: events.filter(e => e.userAgent?.toLowerCase().includes('mobile')).length,
+      desktop: events.filter(e => e.userAgent && !e.userAgent.toLowerCase().includes('mobile')).length,
+      unknown: events.filter(e => !e.userAgent).length,
+    };
 
-  const topHours = Object.entries(hourlyActivity)
-    .map(([hour, count]) => ({ hour: parseInt(hour), count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+    // Horarios de mayor actividad (hora del día)
+    const hourlyActivity: Record<number, number> = {};
+    events.forEach(e => {
+      if (e.createdAt) {
+        const hour = new Date(e.createdAt).getHours();
+        hourlyActivity[hour] = (hourlyActivity[hour] || 0) + 1;
+      }
+    });
+
+    topHours = Object.entries(hourlyActivity)
+      .map(([hour, count]) => ({ hour: parseInt(hour), count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }
 
   return {
     period: {

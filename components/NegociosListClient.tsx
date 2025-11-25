@@ -467,25 +467,37 @@ export default function NegociosListClient({
                           </div>
                           
                           <div className="flex flex-col h-full">
-                            {/* NUEVO: Logo y botón de favoritos */}
-                            <div className="flex items-start justify-between mb-4">
+                            {/* NUEVO: Contenedor Visual de Carrusel/Video - JUSTIFICACIÓN DEL PRECIO MÁS ALTO */}
+                            <div className="mb-4 h-40 w-full overflow-hidden rounded-lg bg-gray-100 border border-gray-200 shadow-xl">
                               <img 
-                                src={business.logoUrl || business.image1 || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E'}
-                                alt={`Logo de ${business.name}`}
-                                className="w-16 h-16 rounded-xl object-cover border-2 border-purple-200 shadow-lg flex-shrink-0"
+                                src={business.image1 || business.logoUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100%25" height="100%25"%3E%3Crect fill="%23f0f0f0" width="100%25" height="100%25"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="%23999"%3EVideo/Carrusel Preview%3C/text%3E%3C/svg%3E'}
+                                alt={`Imagen principal de ${business.name}`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               />
+                            </div>
+
+                            {/* Header con Logo, Nombre y Botón de Favoritos (más compactos) */}
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <img 
+                                  src={business.logoUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40"%3E%3Crect fill="%23f0f0f0" width="40" height="40"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="10" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E'}
+                                  alt={`Logo de ${business.name}`}
+                                  className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
+                                />
+                                <h3 className="text-xl font-bold text-gray-900 pr-2 group-hover:text-purple-600 transition truncate">
+                                  {business.name}
+                                </h3>
+                              </div>
                               <button
                                 aria-label="Agregar a favoritos"
-                                className="text-2xl text-red-400 hover:text-red-500 transition-colors"
+                                className="text-2xl text-red-400 hover:text-red-500 transition-colors flex-shrink-0"
                               >
                                 ♡
                               </button>
                             </div>
-                            
+
                             <div className="mb-4 flex-grow">
-                              <h3 className="text-xl font-bold text-gray-900 mb-2 pr-20 group-hover:text-purple-600 transition">
-                                {business.name}
-                              </h3>
+                              {/* Tags: Categoria, Rating, Delivery */}
                               <div className="flex flex-wrap gap-2 mb-3">
                                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full">
                                   📂 {business.category}

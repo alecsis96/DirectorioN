@@ -16,6 +16,8 @@ const ALLOWED_FIELDS = new Set([
   'images',
   'logoUrl',
   'logoPublicId',
+  'coverUrl',
+  'coverPublicId',
   'hasDelivery',
   'lat',
   'lng',

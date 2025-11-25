@@ -11,6 +11,7 @@ import { signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import ImageUploader from './ImageUploader';
 import LogoUploader from './LogoUploader';
+import CoverUploader from './CoverUploader';
 import AddressPicker from './AddressPicker';
 import PaymentInfo from './PaymentInfo';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
@@ -876,6 +877,17 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
             {busy ? 'Guardando...' : 'Guardar'}
           </button>
           <span className="ml-2 text-sm text-gray-500">{msg}</span>
+
+          <h2 className="mt-6 text-xl font-semibold">Imagen de Portada</h2>
+          <p className="text-sm text-gray-600 mb-2">
+            La portada aparecerá en la parte superior de la página de tu negocio. Recomendado para planes Premium.
+          </p>
+          <CoverUploader
+            businessId={id!}
+            coverUrl={biz.coverUrl || null}
+            coverPublicId={biz.coverPublicId || null}
+            onChange={(url, publicId) => setBiz((b: any) => ({ ...b, coverUrl: url, coverPublicId: publicId }))}
+          />
 
           <h2 className="mt-6 text-xl font-semibold">Logo del Negocio</h2>
           <LogoUploader

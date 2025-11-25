@@ -29,6 +29,8 @@ export type Business = {
   location?: { lat: number; lng: number } | null;
   logoUrl?: string | null;
   logoPublicId?: string | null;
+  coverUrl?: string | null;
+  coverPublicId?: string | null;
   image1?: string | null;
   image2?: string | null;
   image3?: string | null;
@@ -90,6 +92,7 @@ export interface BusinessPreview {
   image2?: string | null;
   image3?: string | null;
   logoUrl?: string | null;
+  coverUrl?: string | null;
   images?: { url?: string | null; publicId?: string }[];
   location?: { lat: number; lng: number } | null;
 }
@@ -117,6 +120,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     image2: biz.image2,
     image3: biz.image3,
     logoUrl: biz.logoUrl,
+    coverUrl: biz.coverUrl,
     images: biz.images,
     location: biz.location,
     ...(phone ? { phone } : {}),

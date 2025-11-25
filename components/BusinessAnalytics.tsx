@@ -303,29 +303,53 @@ export default function BusinessAnalytics({ businessId }: Props) {
       </div>
 
       {/* Audiencia */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Dispositivos */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Dispositivos</h3>
-          <div className="space-y-3">
-            <DeviceBar icon={<FaMobileAlt />} label="Móvil" value={audience.devices.mobile} total={overview.businessViews} />
-            <DeviceBar icon={<FaDesktop />} label="Escritorio" value={audience.devices.desktop} total={overview.businessViews} />
-          </div>
-        </div>
-
-        {/* Horarios populares */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Horarios Populares</h3>
-          <div className="space-y-2">
-            {audience.topHours.slice(0, 5).map((item, index) => (
-              <div key={index} className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">{formatHour(item.hour)}</span>
-                <span className="font-medium text-gray-900">{item.count} visitas</span>
+      {(() => {
+        const isAudienceRestricted = audience.devices.mobile === 0 && audience.devices.desktop === 0 && audience.topHours.length === 0;
+        
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {isAudienceRestricted ? (
+              <div className="md:col-span-2 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg p-8 text-center">
+                <div className="text-6xl mb-4">👑</div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Reportes de Audiencia Exclusivos</h3>
+                <p className="text-gray-700 mb-6 max-w-lg mx-auto">
+                  Conoce el tipo de dispositivo y las horas exactas en que tus clientes te buscan. Esta información es crucial para optimizar tu publicidad y solo está disponible con el plan <strong>Patrocinado</strong>.
+                </p>
+                <a
+                  href={`/dashboard/${businessId}`}
+                  className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition shadow-lg"
+                >
+                  Mejorar a Patrocinado
+                </a>
               </div>
-            ))}
+            ) : (
+              <>
+                {/* Dispositivos (Solo se muestra si no está restringido) */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Dispositivos</h3>
+                  <div className="space-y-3">
+                    <DeviceBar icon={<FaMobileAlt />} label="Móvil" value={audience.devices.mobile} total={overview.businessViews} />
+                    <DeviceBar icon={<FaDesktop />} label="Escritorio" value={audience.devices.desktop} total={overview.businessViews} />
+                  </div>
+                </div>
+
+                {/* Horarios populares (Solo se muestra si no está restringido) */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Horarios Populares</h3>
+                  <div className="space-y-2">
+                    {audience.topHours.slice(0, 5).map((item, index) => (
+                      <div key={index} className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">{formatHour(item.hour)}</span>
+                        <span className="font-medium text-gray-900">{item.count} visitas</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        </div>
-      </div>
+        );
+      })()}
     </div>
   );
 }

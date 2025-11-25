@@ -84,6 +84,10 @@ export function normalizeBusiness(data: any, id: string): Business {
   const logoUrl = asString(data.logoUrl);
   if (logoUrl) business.logoUrl = logoUrl;
 
+  // Incluir coverUrl si existe
+  const coverUrl = asString(data.coverUrl);
+  if (coverUrl) business.coverUrl = coverUrl;
+
   // Incluir hasDelivery si existe
   if (data.hasDelivery === true) {
     business.hasDelivery = true;
