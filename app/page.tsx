@@ -43,10 +43,13 @@ export default async function Home() {
         <section className="relative bg-gradient-to-r from-[#38761D] to-[#2f5a1a] py-20 px-4" style={{ backgroundColor: '#38761D' }}>
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6" style={{ color: '#ffffff' }}>
-              Descubre Yajalón
+              Directorio de Negocios en Yajalón
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto" style={{ color: '#ffffff' }}>
-              Tu directorio completo de negocios locales. Encuentra restaurantes, tiendas, servicios profesionales y más cerca de ti.
+              Tu guía completa de comercios locales
+            </p>
+            <p className="text-lg md:text-xl mb-8 max-w-3xl mx-auto" style={{ color: '#ffffff' }}>
+              Descubre, compara y conecta con los mejores negocios de Yajalón. Encuentra restaurantes, tiendas, servicios profesionales y más, todo en un solo lugar. 📍 Cerca de ti, fácil de encontrar
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
@@ -61,8 +64,11 @@ export default async function Home() {
                 className="px-8 py-4 bg-transparent border-2 border-white font-bold rounded-full hover:bg-white transition-all"
                 style={{ color: '#ffffff' }}
               >
-                Registra tu Negocio
+                Regístralo aquí →
               </Link>
+            </div>
+            <div className="mt-6 text-sm" style={{ color: '#ffffff' }}>
+              ¿Tienes un negocio? | <Link href="/mis-solicitudes" className="underline hover:text-gray-200">Verificar solicitud →</Link>
             </div>
           </div>
         </section>
