@@ -117,7 +117,8 @@ export function normalizeBusiness(data: any, id: string): Business {
 export async function fetchBusinesses(): Promise<Business[]> {
   try {
     const db = getAdminFirestore();
-    const snap = await db.collection("businesses").where("status", "==", "approved").get();
+    // Solo mostrar negocios publicados (no drafts pendientes de edición del dueño)
+    const snap = await db.collection("businesses").where("status", "==", "published").get();
     if (!snap.empty) {
       return snap.docs.map((doc) => normalizeBusiness(doc.data(), doc.id));
     }
