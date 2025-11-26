@@ -63,6 +63,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const appData = appSnap.data();
+    
+    console.log('🔍 [review-business] Application data:', {
+      businessId,
+      ownerId: appData?.ownerId,
+      ownerUid: appData?.ownerUid,
+      ownerEmail: appData?.ownerEmail,
+      businessName: appData?.businessName,
+    });
 
     if (action === 'approve') {
       // Crear el negocio en businesses
@@ -70,6 +78,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const now = new Date();
       
       // Mapear correctamente todos los campos
+      // IMPORTANTE: businessId es el UID del usuario (doc path: applications/{uid})
+      const finalOwnerId = appData?.ownerId || appData?.ownerUid || businessId;
+      
+      console.log('📝 [review-business] Creating business with ownerId:', finalOwnerId);
+      
       await businessRef.set({
         name: appData?.businessName || 'Sin nombre',
         category: appData?.category || '',
@@ -81,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         Facebook: appData?.facebookPage || '',
         hours: appData?.hours || '',
         horarios: appData?.horarios || {},
-        ownerId: businessId, // El UID del dueño
+        ownerId: finalOwnerId,
         ownerEmail: appData?.ownerEmail || '',
         ownerName: appData?.ownerName || '',
         plan: 'free', // Siempre inicia como free
@@ -106,7 +119,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Eliminar de applications
       await appRef.delete();
 
-      console.log(`✅ Business ${businessRef.id} created and approved for owner ${businessId}`);
+      console.log(`✅ [review-business] Business ${businessRef.id} created successfully`);
+      console.log(`   - ownerId: ${finalOwnerId}`);
+      console.log(`   - ownerEmail: ${appData?.ownerEmail}`);
+      console.log(`   - businessName: ${appData?.businessName}`);
 
       // Enviar email de aprobación
       try {

@@ -235,19 +235,21 @@ export async function approveApplication(
   const form = (appData.formData as Record<string, any>) || {};
   const ownerId = extractOwnerId(appData, form);
   const ownerEmail = extractOwnerEmail(appData, form);
-  if (!ownerId && !ownerEmail) {
-    throw new Error('No se encontró ownerId ni ownerEmail válido.');
-  }
+  
+  // CRÍTICO: Si no se encuentra ownerId en los campos, usar applicationId que ES el UID del usuario
+  // porque el documento está en applications/{uid}
   const resolvedOwnerId = ownerId || applicationId;
   const resolvedOwnerEmail = ownerEmail || normalizeString(form.ownerEmail, '', 200);
 
   // Debug: Log de los datos de la aplicación
   console.log('[approveApplication] Debug data:', {
     applicationId,
-    formData: form,
-    appData: { ...appData, formData: undefined }, // Excluir formData duplicado
+    'appData.ownerId': appData.ownerId,
+    'appData.ownerUid': appData.ownerUid,
+    'form.ownerId': form.ownerId,
+    'extractedOwnerId': ownerId,
+    'FINAL resolvedOwnerId': resolvedOwnerId,
     businessName: form.businessName || form.name || appData.businessName || appData.name,
-    extractedOwnerId: resolvedOwnerId,
     extractedOwnerEmail: resolvedOwnerEmail,
   });
 
@@ -281,8 +283,18 @@ export async function approveApplication(
   };
 
   const payload = { ...baseBusiness, ...businessOverrides };
+  
+  console.log('✅ [approveApplication] Creating business with payload:', {
+    businessId: 'will be generated',
+    ownerId: payload.ownerId,
+    ownerEmail: payload.ownerEmail,
+    businessName: payload.name,
+  });
+  
   const bizRef = db.collection('businesses').doc();
   await bizRef.set(payload, { merge: false });
+  
+  console.log(`✅ [approveApplication] Business created successfully: ${bizRef.id} for owner: ${payload.ownerId}`);
 
   await appRef.update({
     status: 'approved',

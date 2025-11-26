@@ -47,7 +47,9 @@ export default function MisNegociosPage() {
     try {
       setLoading(true);
       
-      // Buscar en businesses aprobados
+      console.log('[mis-negocios] Loading businesses for user:', user.uid);
+      
+      // Buscar en businesses aprobados (forzar desde servidor para evitar caché)
       const businessesQuery = query(
         collection(db, 'businesses'),
         where('ownerId', '==', user.uid),
@@ -55,9 +57,13 @@ export default function MisNegociosPage() {
       );
       const businessesSnapshot = await getDocs(businessesQuery);
       
+      console.log('[mis-negocios] Found approved businesses:', businessesSnapshot.size);
+      
       // Buscar solicitud en applications (solo debe haber una por usuario)
       const applicationRef = collection(db, 'applications');
       const applicationDoc = await getDocs(query(applicationRef, where('__name__', '==', user.uid)));
+      
+      console.log('[mis-negocios] Found applications:', applicationDoc.size);
 
       const approvedBusinesses = businessesSnapshot.docs.map(doc => ({
         id: doc.id,
