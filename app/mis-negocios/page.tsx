@@ -55,27 +55,37 @@ export default function MisNegociosPage() {
       );
       const businessesSnapshot = await getDocs(businessesQuery);
       
-      // Buscar en solicitudes pendientes
-      const applicationsQuery = query(
-        collection(db, 'businessApplications'),
-        where('ownerId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-      const applicationsSnapshot = await getDocs(applicationsQuery);
+      // Buscar solicitud en applications (solo debe haber una por usuario)
+      const applicationRef = collection(db, 'applications');
+      const applicationDoc = await getDocs(query(applicationRef, where('__name__', '==', user.uid)));
 
       const approvedBusinesses = businessesSnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
-        status: 'approved'
-      })) as Business[];
+        name: doc.data().name || 'Sin nombre',
+        category: doc.data().category || '',
+        plan: doc.data().plan || 'free',
+        status: 'approved' as const,
+        logoUrl: doc.data().logoUrl,
+        image1: doc.data().image1 || doc.data().images?.[0]?.url,
+        createdAt: doc.data().createdAt,
+        views: doc.data().views || 0,
+        rating: doc.data().rating || 0,
+      }));
 
-      const pendingBusinesses = applicationsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        status: doc.data().status || 'pending'
-      })) as Business[];
+      const pendingApplication = applicationDoc.docs.length > 0 ? [{
+        id: user.uid,
+        name: applicationDoc.docs[0].data().businessName || 'Sin nombre',
+        category: applicationDoc.docs[0].data().category || '',
+        plan: applicationDoc.docs[0].data().plan || 'free',
+        status: (applicationDoc.docs[0].data().status || 'pending') as 'pending' | 'approved' | 'rejected',
+        logoUrl: applicationDoc.docs[0].data().logoUrl,
+        image1: applicationDoc.docs[0].data().coverPhoto,
+        createdAt: applicationDoc.docs[0].data().createdAt,
+        views: 0,
+        rating: 0,
+      }] : [];
 
-      const allBusinesses = [...approvedBusinesses, ...pendingBusinesses];
+      const allBusinesses = [...approvedBusinesses, ...pendingApplication];
       setBusinesses(allBusinesses);
     } catch (error) {
       console.error('Error loading businesses:', error);

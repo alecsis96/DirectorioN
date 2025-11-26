@@ -53,26 +53,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const db = getAdminFirestore();
-    const ref = db.doc(`businesses/${businessId}`);
-    const snap = await ref.get();
     
-    if (!snap.exists) {
-      return res.status(404).json({ error: 'Business not found' });
+    // Buscar primero en applications
+    const appRef = db.doc(`applications/${businessId}`);
+    const appSnap = await appRef.get();
+    
+    if (!appSnap.exists) {
+      return res.status(404).json({ error: 'Application not found' });
     }
 
-    const data = snap.data();
-    if (data?.status !== 'pending') {
-      return res.status(400).json({ error: 'Business is not in pending status' });
-    }
+    const appData = appSnap.data();
 
     if (action === 'approve') {
-      // Aprobar: cambiar status a "approved" para que aparezca en el directorio público
-      await ref.update({
+      // Crear el negocio en businesses
+      const businessRef = db.collection('businesses').doc();
+      const now = new Date();
+      
+      await businessRef.set({
+        name: appData?.businessName || 'Sin nombre',
+        category: appData?.category || '',
+        description: appData?.description || '',
+        address: appData?.address || '',
+        colonia: appData?.colonia || '',
+        phone: appData?.phone || '',
+        WhatsApp: appData?.whatsapp || '',
+        Facebook: appData?.facebookPage || '',
+        hours: appData?.hours || '',
+        horarios: appData?.horarios || {},
+        ownerId: businessId, // El UID del dueño
+        ownerEmail: appData?.ownerEmail || '',
+        plan: appData?.plan || 'free',
+        featured: appData?.featured || false,
+        isOpen: 'si',
+        rating: 0,
+        logoUrl: appData?.logoUrl || null,
+        coverUrl: appData?.coverPhoto || null,
+        images: appData?.gallery || [],
+        location: appData?.location || null,
+        hasDelivery: appData?.hasDelivery || false,
         status: 'approved',
-        approvedAt: new Date(),
+        approvedAt: now,
         approvedBy: decoded.uid,
-        updatedAt: new Date(),
+        createdAt: appData?.createdAt || now,
+        updatedAt: now,
       });
+
+      // Eliminar de applications
+      await appRef.delete();
 
       // Enviar email de aprobación
       try {
@@ -82,20 +109,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'approved',
-            to: data.ownerEmail,
-            businessName: data.name,
-            ownerName: data.ownerEmail?.split('@')[0],
+            to: appData?.ownerEmail,
+            businessName: appData?.businessName,
+            ownerName: appData?.ownerName,
           }),
         });
       } catch (emailError) {
         console.warn('Failed to send approval email:', emailError);
-        // No fallar si el email falla
       }
 
-      return res.status(200).json({ ok: true, message: 'Business approved successfully' });
+      return res.status(200).json({ ok: true, message: 'Business approved and created successfully', businessId: businessRef.id });
     } else {
-      // Rechazar: cambiar status a "rejected" para que el dueño pueda corregir
-      await ref.update({
+      // Rechazar: actualizar en applications
+      await appRef.update({
         status: 'rejected',
         rejectedAt: new Date(),
         rejectedBy: decoded.uid,
@@ -111,18 +137,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'rejected',
-            to: data.ownerEmail,
-            businessName: data.name,
-            ownerName: data.ownerEmail?.split('@')[0],
+            to: appData?.ownerEmail,
+            businessName: appData?.businessName,
+            ownerName: appData?.ownerName,
             rejectionNotes: notes || 'Por favor revisa la información de tu negocio y asegúrate de que esté completa y precisa.',
           }),
         });
       } catch (emailError) {
         console.warn('Failed to send rejection email:', emailError);
-        // No fallar si el email falla
       }
 
-      return res.status(200).json({ ok: true, message: 'Business rejected successfully' });
+      return res.status(200).json({ ok: true, message: 'Application rejected successfully' });
     }
   } catch (error) {
     console.error('[admin/review-business] error', error);
