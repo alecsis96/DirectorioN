@@ -15,7 +15,7 @@ type Business = {
   name: string;
   category: string;
   plan: 'free' | 'featured' | 'sponsor';
-  status: 'pending' | 'approved' | 'rejected' | 'draft' | 'published';
+  status: 'pending' | 'approved' | 'rejected' | 'draft' | 'review' | 'published';
   logoUrl?: string;
   image1?: string;
   createdAt: any;
@@ -117,9 +117,10 @@ export default function MisNegociosPage() {
   const getStatusBadge = (status: string) => {
     const badges = {
       published: { text: '✓ Publicado', color: 'bg-green-100 text-green-800' },
-      draft: { text: '📝 Pendiente de Edición', color: 'bg-blue-100 text-blue-800' },
+      review: { text: '🔍 En Revisión', color: 'bg-purple-100 text-purple-800' },
+      draft: { text: '📝 Pendiente de Completar', color: 'bg-blue-100 text-blue-800' },
       approved: { text: '✓ Aprobado', color: 'bg-green-100 text-green-800' },
-      pending: { text: '⏳ En Revisión', color: 'bg-yellow-100 text-yellow-800' },
+      pending: { text: '⏳ En Revisión Inicial', color: 'bg-yellow-100 text-yellow-800' },
       rejected: { text: '✗ Rechazado', color: 'bg-red-100 text-red-800' }
     };
     return badges[status as keyof typeof badges] || badges.pending;

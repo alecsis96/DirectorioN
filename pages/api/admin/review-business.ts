@@ -54,12 +54,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const db = getAdminFirestore();
     
-    // Buscar primero en applications
+    // Primero buscar en businesses (segunda revisión)
+    const businessRef = db.doc(`businesses/${businessId}`);
+    const businessSnap = await businessRef.get();
+    
+    if (businessSnap.exists) {
+      // Es una segunda revisión (negocio ya creado, enviado a revisión por el dueño)
+      const businessData = businessSnap.data();
+      
+      console.log('🔍 [review-business] Reviewing existing business:', {
+        businessId,
+        currentStatus: businessData?.status,
+        ownerId: businessData?.ownerId,
+      });
+      
+      if (action === 'approve') {
+        // Cambiar status a published
+        await businessRef.update({
+          status: 'published',
+          publishedAt: new Date(),
+          publishedBy: decoded.uid,
+          updatedAt: new Date(),
+        });
+        
+        console.log(`✅ [review-business] Business ${businessId} published successfully`);
+        
+        // Enviar email de publicación
+        try {
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+          await fetch(`${baseUrl}/api/send-email-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'published',
+              to: businessData?.ownerEmail,
+              businessName: businessData?.name,
+              ownerName: businessData?.ownerName,
+            }),
+          });
+        } catch (emailError) {
+          console.warn('Failed to send published email:', emailError);
+        }
+        
+        return res.status(200).json({ ok: true, message: 'Business published successfully', businessId });
+      } else {
+        // Rechazar: volver a draft con notas
+        await businessRef.update({
+          status: 'draft',
+          rejectedAt: new Date(),
+          rejectedBy: decoded.uid,
+          rejectionNotes: notes || 'Sin motivo especificado',
+          updatedAt: new Date(),
+        });
+        
+        return res.status(200).json({ ok: true, message: 'Business rejected, returned to draft' });
+      }
+    }
+    
+    // Si no existe en businesses, buscar en applications (primera revisión)
     const appRef = db.doc(`applications/${businessId}`);
     const appSnap = await appRef.get();
     
     if (!appSnap.exists) {
-      return res.status(404).json({ error: 'Application not found' });
+      return res.status(404).json({ error: 'Application or business not found' });
     }
 
     const appData = appSnap.data();

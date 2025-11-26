@@ -58,7 +58,8 @@ export interface PendingBusiness {
 
 async function fetchPendingBusinesses(): Promise<PendingBusiness[]> {
   const db = getAdminFirestore();
-  const snapshot = await db.collection('businesses').where('status', '==', 'pending').get();
+  // Buscar negocios en revisión (enviados por el dueño después de editar)
+  const snapshot = await db.collection('businesses').where('status', '==', 'review').get();
   
   if (snapshot.empty) return [];
 
