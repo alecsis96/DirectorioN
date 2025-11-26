@@ -218,9 +218,7 @@ function buildApplicationPayload(
   const hours = summarizeHorarios(horarios);
   const plan = asString(formData.plan ?? 'free', 20) || 'free';
   const featured = Boolean(formData.featured);
-  const approved = Boolean(formData.approved);
   const notes = asString(formData.notes ?? '', 800);
-  const status = asString(formData.status ?? '', 40) || 'pending';
 
   const payload: Record<string, unknown> = {
     businessName,
@@ -253,13 +251,13 @@ function buildApplicationPayload(
     promocionesActivas,
     horarios,
     hours,
-    plan,
-    featured: featured ? 'si' : 'no',
-    approved,
+    plan: 'free', // Siempre inicia como free hasta que sea aprobado
+    featured: false,
+    ownerId: owner.uid,
     ownerUid: owner.uid,
     notes,
     formData,
-    status,
+    status: 'pending', // Siempre pending hasta aprobación del admin
   };
 
   if (lat != null && lng != null) {

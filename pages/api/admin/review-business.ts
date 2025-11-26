@@ -69,6 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const businessRef = db.collection('businesses').doc();
       const now = new Date();
       
+      // Mapear correctamente todos los campos
       await businessRef.set({
         name: appData?.businessName || 'Sin nombre',
         category: appData?.category || '',
@@ -82,12 +83,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         horarios: appData?.horarios || {},
         ownerId: businessId, // El UID del dueño
         ownerEmail: appData?.ownerEmail || '',
-        plan: appData?.plan || 'free',
-        featured: appData?.featured || false,
+        ownerName: appData?.ownerName || '',
+        plan: 'free', // Siempre inicia como free
+        featured: false,
         isOpen: 'si',
         rating: 0,
         logoUrl: appData?.logoUrl || null,
         coverUrl: appData?.coverPhoto || null,
+        image1: appData?.gallery?.[0] || null,
+        image2: appData?.gallery?.[1] || null,
+        image3: appData?.gallery?.[2] || null,
         images: appData?.gallery || [],
         location: appData?.location || null,
         hasDelivery: appData?.hasDelivery || false,
@@ -100,6 +105,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Eliminar de applications
       await appRef.delete();
+
+      console.log(`✅ Business ${businessRef.id} created and approved for owner ${businessId}`);
 
       // Enviar email de aprobación
       try {
