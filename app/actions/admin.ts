@@ -296,12 +296,10 @@ export async function approveApplication(
   
   console.log(`✅ [approveApplication] Business created successfully: ${bizRef.id} for owner: ${payload.ownerId}`);
 
-  await appRef.update({
-    status: 'approved',
-    approvedAt: admin.firestore.FieldValue.serverTimestamp(),
-    businessId: bizRef.id,
-    processedBy: adminUser.uid,
-  });
+  // Eliminar la solicitud de applications después de crear el negocio
+  await appRef.delete();
+  
+  console.log(`🗑️ [approveApplication] Application ${applicationId} deleted from applications collection`);
 
   try {
     await db.collection('events').add({
