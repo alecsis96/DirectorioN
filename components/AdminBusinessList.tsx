@@ -145,10 +145,13 @@ export default function AdminBusinessList({ businesses }: Props) {
       const user = auth.currentUser;
       if (!user) {
         alert('❌ Debes iniciar sesión');
+        setLoading(null);
         return;
       }
       
       const token = await user.getIdToken();
+      console.log('Deleting business:', businessId);
+      
       const res = await fetch('/api/admin/delete-business', {
         method: 'POST',
         headers: { 
@@ -158,7 +161,9 @@ export default function AdminBusinessList({ businesses }: Props) {
         body: JSON.stringify({ businessId }),
       });
 
+      console.log('Response status:', res.status);
       const data = await res.json();
+      console.log('Response data:', data);
 
       if (!res.ok) {
         throw new Error(data.error || 'Error al eliminar negocio');
@@ -167,6 +172,7 @@ export default function AdminBusinessList({ businesses }: Props) {
       alert('✅ Negocio eliminado permanentemente');
       window.location.reload();
     } catch (error: any) {
+      console.error('Delete error:', error);
       alert('❌ Error: ' + error.message);
     } finally {
       setLoading(null);
