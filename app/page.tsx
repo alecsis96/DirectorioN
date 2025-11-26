@@ -57,18 +57,18 @@ export default async function Home() {
                 className="px-8 py-4 bg-white font-bold rounded-full hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                 style={{ color: '#38761D' }}
               >
-                Ver Todos los Negocios
+                 Ver Todos los Negocios 
               </Link>
               <Link
                 href="/para-negocios"
                 className="px-8 py-4 bg-transparent border-2 border-white font-bold rounded-full hover:bg-white transition-all"
                 style={{ color: '#ffffff' }}
               >
-                Regístralo aquí →
+                 Regístra tu negocio 
               </Link>
             </div>
             <div className="mt-6 text-sm" style={{ color: '#ffffff' }}>
-              ¿Tienes un negocio? | <Link href="/mis-solicitudes" className="underline hover:text-gray-200">Verificar solicitud →</Link>
+              ¿Ya te registraste? | <Link href="/mis-solicitudes" className="underline hover:text-gray-200">Verificar solicitud</Link>
             </div>
           </div>
         </section>

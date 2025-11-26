@@ -142,6 +142,9 @@ function NavigationContent() {
   const handleSignIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
