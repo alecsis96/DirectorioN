@@ -144,7 +144,7 @@ export default async function handler(
                       type: 'plain_text',
                       text: '👀 Ver en Admin',
                     },
-                    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/admin/reports`,
+                    url: `https://directorio-1.vercel.app/admin/reports`,
                   },
                 ],
               },

@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   text: '👀 Ver en Admin Panel',
                   emoji: true
                 },
-                url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/admin/pending-businesses`,
+                url: `https://directorio-1.vercel.app/admin/pending-businesses`,
                 style: 'primary'
               }
             ]
