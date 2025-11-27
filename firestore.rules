@@ -30,7 +30,7 @@ service cloud.firestore {
     }
 
     function validStatus(val) {
-      return val in ['draft','pending','approved','rejected'];
+      return val in ['pending','draft','review','published','rejected'];
     }
 
     // ============== APPLICATIONS (Solicitudes iniciales) ==============
@@ -107,16 +107,16 @@ service cloud.firestore {
 
     // ============== BUSINESSES ==============
     match /businesses/{businessId} {
-      // Lectura individual: pública para approved, restringida para otros
-      allow get: if resource.data.status == 'approved' || 
+      // Lectura individual: pública para published, restringida para otros
+      allow get: if resource.data.status == 'published' || 
                     isOwner(businessId) || 
                     isAdmin();
       
-      // Queries: públicas solo para negocios approved, admin puede ver todo
+      // Queries: públicas solo para negocios published, admin puede ver todo
       allow list: if isAdmin() || 
                     (request.query.limit <= 100 && 
-                     // Solo permitir queries con filtro de status='approved'
-                     ('status' in request.query && request.query.status == 'approved'));
+                     // Solo permitir queries con filtro de status='published'
+                     ('status' in request.query && request.query.status == 'published'));
 
       // Creación: admin puede crear (para el flujo de aprobación)
       // O usuario puede crear draft con su ownerId
@@ -172,15 +172,15 @@ service cloud.firestore {
         let newStatus = ('status' in request.resource.data) ? request.resource.data.status : resource.data.status;
 
         // Transiciones permitidas para el owner:
-        // draft -> draft o draft -> pending
-        // pending -> pending (puede seguir editando)
-        // approved -> approved (puede editar pero no cambiar status)
-        // rejected -> rejected o rejected -> pending (puede reenviar)
+        // draft -> draft o draft -> review
+        // review -> review (puede seguir editando)
+        // published -> published (puede editar pero no cambiar status)
+        // rejected -> rejected o rejected -> review (puede reenviar)
         let transitionAllowed =
-          (oldStatus == 'draft' && (newStatus in ['draft','pending'])) ||
-          (oldStatus == 'pending' && newStatus == 'pending') ||
-          (oldStatus == 'approved' && newStatus == 'approved') ||
-          (oldStatus == 'rejected' && (newStatus in ['rejected','pending']));
+          (oldStatus == 'draft' && (newStatus in ['draft','review'])) ||
+          (oldStatus == 'review' && newStatus == 'review') ||
+          (oldStatus == 'published' && newStatus == 'published') ||
+          (oldStatus == 'rejected' && (newStatus in ['rejected','review']));
 
         let baseChecks =
           sameOwner &&

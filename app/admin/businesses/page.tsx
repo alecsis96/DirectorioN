@@ -60,7 +60,7 @@ async function fetchAllBusinesses(): Promise<BusinessData[]> {
   
   const snapshot = await db
     .collection('businesses')
-    .where('status', '==', 'approved')
+    .where('status', '==', 'published')
     .get();
 
   if (snapshot.empty) return [];
@@ -98,10 +98,10 @@ async function getBusinessStats() {
   const db = getAdminFirestore();
   
   const [totalSnapshot, freeSnapshot, featuredSnapshot, sponsorSnapshot] = await Promise.all([
-    db.collection('businesses').where('status', '==', 'approved').count().get(),
-    db.collection('businesses').where('status', '==', 'approved').where('plan', '==', 'free').count().get(),
-    db.collection('businesses').where('status', '==', 'approved').where('plan', '==', 'featured').count().get(),
-    db.collection('businesses').where('status', '==', 'approved').where('plan', '==', 'sponsor').count().get(),
+    db.collection('businesses').where('status', '==', 'published').count().get(),
+    db.collection('businesses').where('status', '==', 'published').where('plan', '==', 'free').count().get(),
+    db.collection('businesses').where('status', '==', 'published').where('plan', '==', 'featured').count().get(),
+    db.collection('businesses').where('status', '==', 'published').where('plan', '==', 'sponsor').count().get(),
   ]);
 
   return {

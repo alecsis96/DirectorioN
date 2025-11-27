@@ -38,7 +38,7 @@ async function requireAdmin() {
 interface AdminStats {
   // Negocios
   totalBusinesses: number;
-  businessesByStatus: { pending: number; approved: number; rejected: number };
+  businessesByStatus: { pending: number; published: number; rejected: number };
   businessesByPlan: { free: number; featured: number; sponsor: number };
   
   // Solicitudes
@@ -64,13 +64,13 @@ async function getAdminStats(): Promise<AdminStats> {
   const db = getAdminFirestore();
 
   // Negocios por status
-  const [approvedCount, pendingCount, rejectedCount] = await Promise.all([
-    db.collection('businesses').where('status', '==', 'approved').count().get(),
+  const [publishedCount, pendingCount, rejectedCount] = await Promise.all([
+    db.collection('businesses').where('status', '==', 'published').count().get(),
     db.collection('businesses').where('status', '==', 'pending').count().get(),
     db.collection('businesses').where('status', '==', 'rejected').count().get(),
   ]);
 
-  const totalBusinesses = approvedCount.data().count + pendingCount.data().count;
+  const totalBusinesses = publishedCount.data().count + pendingCount.data().count;
 
   // Negocios por plan
   const [freeCount, featuredCount, sponsorCount] = await Promise.all([
@@ -94,7 +94,7 @@ async function getAdminStats(): Promise<AdminStats> {
     : 0;
 
   // Categorías más populares
-  const businessesSnapshot = await db.collection('businesses').where('status', '==', 'approved').get();
+  const businessesSnapshot = await db.collection('businesses').where('status', '==', 'published').get();
   const categoryCount: Record<string, number> = {};
   businessesSnapshot.docs.forEach(doc => {
     const category = doc.data().category || 'Sin categoría';
@@ -130,7 +130,7 @@ async function getAdminStats(): Promise<AdminStats> {
     totalBusinesses,
     businessesByStatus: {
       pending: pendingCount.data().count,
-      approved: approvedCount.data().count,
+      published: publishedCount.data().count,
       rejected: rejectedCount.data().count,
     },
     businessesByPlan: {
@@ -231,7 +231,7 @@ export default async function AdminStatsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-green-600 font-medium">Negocios Activos</p>
-                <p className="text-3xl font-bold text-green-900 mt-2">{stats.businessesByStatus.approved}</p>
+                <p className="text-3xl font-bold text-green-900 mt-2">{stats.businessesByStatus.published}</p>
               </div>
               <div className="text-4xl">✅</div>
             </div>
@@ -360,7 +360,7 @@ export default async function AdminStatsPage() {
                     {cat.count}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                    {((cat.count / stats.businessesByStatus.approved) * 100).toFixed(1)}%
+                    {((cat.count / stats.businessesByStatus.published) * 100).toFixed(1)}%
                   </td>
                 </tr>
               ))}

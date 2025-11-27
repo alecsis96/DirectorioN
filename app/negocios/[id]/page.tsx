@@ -17,13 +17,13 @@ async function fetchBusinessById(id: string): Promise<Business | null> {
   const snapshot = await db.doc(`businesses/${id}`).get();
   if (!snapshot.exists) return null;
   const data = snapshot.data() as Business & { status?: string };
-  if (data.status && data.status !== 'approved' && data.status !== 'draft') return null;
+  if (data.status && data.status !== 'published' && data.status !== 'draft') return null;
   return { id, ...JSON.parse(JSON.stringify(data)) };
 }
 
 export async function generateStaticParams() {
   const db = getAdminFirestore();
-  const snapshot = await db.collection('businesses').where('status', '==', 'approved').get();
+  const snapshot = await db.collection('businesses').where('status', '==', 'published').get();
   return snapshot.docs.map((doc) => ({ id: doc.id }));
 }
 
