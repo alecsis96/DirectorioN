@@ -4,9 +4,9 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
 
 import DashboardBusinessList, {
   type DashboardApplicationStatus,
-  type DashboardBusiness,
 } from '../../components/DashboardBusinessList';
 import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
+import { getOwnerAggregatedMetrics, getBusinessesWithMetrics, type BusinessWithMetrics } from '../../lib/server/ownerMetrics';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,32 +38,6 @@ async function requireAuthenticatedUser(): Promise<DecodedIdToken> {
   }
 }
 
-async function fetchBusinessesForUser(
-  uid: string,
-  email?: string | null,
-): Promise<DashboardBusiness[]> {
-  const db = getAdminFirestore();
-  const result = new Map<string, DashboardBusiness>();
-  const byOwner = await db.collection('businesses').where('ownerId', '==', uid).get();
-  byOwner.forEach((doc) => {
-    result.set(doc.id, { id: doc.id, ...(doc.data() as Record<string, unknown>) });
-  });
-
-  if (email) {
-    const attempts = new Set([email, email.toLowerCase()]);
-    for (const value of attempts) {
-      if (!value) continue;
-      const byEmail = await db.collection('businesses').where('ownerEmail', '==', value).get();
-      byEmail.forEach((doc) => {
-        result.set(doc.id, { id: doc.id, ...(doc.data() as Record<string, unknown>) });
-      });
-      if (!byEmail.empty) break;
-    }
-  }
-
-  return Array.from(result.values());
-}
-
 async function fetchApplicationStatus(uid: string): Promise<DashboardApplicationStatus> {
   const db = getAdminFirestore();
   const appDoc = await db.doc(`applications/${uid}`).get();
@@ -74,15 +48,21 @@ async function fetchApplicationStatus(uid: string): Promise<DashboardApplication
 
 export default async function DashboardPage() {
   const user = await requireAuthenticatedUser();
-  const businesses = await fetchBusinessesForUser(user.uid, user.email ?? null);
-  const status = await fetchApplicationStatus(user.uid);
+  
+  // Obtener métricas agregadas y negocios con sus métricas
+  const [aggregatedMetrics, businessesWithMetrics, status] = await Promise.all([
+    getOwnerAggregatedMetrics(user.uid),
+    getBusinessesWithMetrics(user.uid),
+    fetchApplicationStatus(user.uid),
+  ]);
 
   return (
     <DashboardBusinessList
       ownerId={user.uid}
       ownerEmail={user.email ?? null}
-      initialBusinesses={businesses}
+      initialBusinesses={businessesWithMetrics}
       initialStatus={status}
+      aggregatedMetrics={aggregatedMetrics}
     />
   );
 }
