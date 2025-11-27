@@ -251,7 +251,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     }
   }
 
-  // Enviar negocio a revisión (cambiar status de draft/rejected a pending)
+  // Enviar negocio a revisión (cambiar status de draft/rejected a review)
   async function submitForReview() {
     if (!id || !userCanEdit || !biz) return;
     
@@ -273,7 +273,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     try {
       // Preservar ownerId y ownerEmail que las reglas requieren
       await updateDoc(doc(db, 'businesses', id), {
-        status: 'pending',
+        status: 'review', // Cambiado de 'pending' a 'review' para segunda revisión
         submittedAt: new Date(),
         ownerId: biz.ownerId,
         ownerEmail: biz.ownerEmail,
@@ -301,7 +301,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       }
       
       // Actualizar estado local
-      setBiz((prev: any) => ({ ...prev, status: 'pending' }));
+      setBiz((prev: any) => ({ ...prev, status: 'review' }));
       setMsg('¡Negocio enviado a revisión! Te notificaremos cuando sea aprobado.');
       
     } catch (error) {

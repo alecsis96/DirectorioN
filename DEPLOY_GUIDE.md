@@ -99,7 +99,6 @@ CLOUDINARY_API_SECRET=tu_api_secret
 #### 🌐 URLs
 ```env
 NEXT_PUBLIC_BASE_URL=https://tu-proyecto.vercel.app
-NEXT_PUBLIC_GOOGLE_SHEET_CSV_URL=tu_csv_url
 FIREBASE_FUNCTIONS_URL=https://us-central1-directorion-48816.cloudfunctions.net
 ```
 

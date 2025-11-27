@@ -1,10 +1,6 @@
 import { getAdminFirestore } from "./firebaseAdmin";
 import type { Business } from "../../types/business";
 
-const SHEET_URL =
-  process.env.NEXT_PUBLIC_SHEET_URL ||
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6GXWtda697t29fnUQtwT8u7f4ypU1VH0wmiH9J2GS280NrSKd8L_PWUVVgEPgq8Is1lYgD26bxAoT/pub?output=csv";
-
 export function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim().length) {
@@ -119,30 +115,9 @@ export async function fetchBusinesses(): Promise<Business[]> {
     const db = getAdminFirestore();
     // Solo mostrar negocios publicados (no drafts pendientes de edición del dueño)
     const snap = await db.collection("businesses").where("status", "==", "published").get();
-    if (!snap.empty) {
-      return snap.docs.map((doc) => normalizeBusiness(doc.data(), doc.id));
-    }
+    return snap.docs.map((doc) => normalizeBusiness(doc.data(), doc.id));
   } catch (error) {
-    console.warn("[businessData] Firestore fallback", error);
-  }
-
-  try {
-    const response = await fetch(SHEET_URL);
-    if (!response.ok) throw new Error(`Sheet request failed with ${response.status}`);
-    const csv = await response.text();
-    const [headerLine, ...rows] = csv.split("\n").filter((line) => line.trim().length);
-    if (!headerLine) return [];
-    const headers = headerLine.split(",").map((h) => h.trim());
-    return rows.map((line, index) => {
-      const values = line.split(",");
-      const data: Record<string, unknown> = {};
-      headers.forEach((header, i) => {
-        data[header] = values[i]?.trim();
-      });
-      return normalizeBusiness(data, data.id ? String(data.id) : `sheet-${index}`);
-    });
-  } catch (error) {
-    console.error("[businessData] CSV fallback failed", error);
+    console.error("[businessData] Error fetching from Firestore:", error);
     return [];
   }
 }
