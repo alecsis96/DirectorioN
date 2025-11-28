@@ -3,12 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
-import { getFirestore, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { app } from '../../firebaseConfig';
+import { getIdToken } from 'firebase/auth';
 import Link from 'next/link';
 import { LayoutDashboard, Plus, Search, Store, Calendar, DollarSign, Eye, BarChart2 } from 'lucide-react';
-
-const db = getFirestore(app);
 
 type Business = {
   id: string;
@@ -46,90 +43,52 @@ export default function MisNegociosPage() {
 
     try {
       setLoading(true);
-      const normalizedEmail = (user.email || '').trim().toLowerCase();
+      const idToken = await getIdToken(user, true);
+      const res = await fetch('/api/my-businesses', {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`API error ${res.status}`);
+      }
+      const payload = await res.json();
 
-      console.log('[mis-negocios] Loading businesses for user:', user.uid);
-
-      // Buscar negocios por ownerId y ownerEmail (compatibilidad con registros antiguos)
-      const businessesByIdQuery = query(
-        collection(db, 'businesses'),
-        where('ownerId', '==', user.uid)
-      );
-      const businessesByEmailQuery = normalizedEmail
-        ? query(
-            collection(db, 'businesses'),
-            where('ownerEmail', '==', normalizedEmail)
-          )
-        : null;
-
-      const [businessesSnapshot, businessesByEmailSnapshot] = await Promise.all([
-        getDocs(businessesByIdQuery),
-        businessesByEmailQuery ? getDocs(businessesByEmailQuery) : Promise.resolve(null),
-      ]);
-
-      console.log('[mis-negocios] Found businesses by ownerId:', businessesSnapshot.size);
-      console.log('[mis-negocios] Found businesses by ownerEmail:', businessesByEmailSnapshot?.size ?? 0);
-
-      const businessDocs = [
-        ...businessesSnapshot.docs,
-        ...(businessesByEmailSnapshot?.docs ?? []),
-      ];
-
-      const businessMap = new Map<string, Business>();
-      businessDocs.forEach((doc) => {
-        const data = doc.data();
-        businessMap.set(doc.id, {
-          id: doc.id,
-          name: data.name || 'Sin nombre',
-          category: data.category || '',
-          plan: data.plan || 'free',
-          status: (data.status || 'draft') as Business['status'],
-          logoUrl: data.logoUrl,
-          image1: data.image1 || data.images?.[0]?.url,
-          createdAt: data.createdAt,
-          views: data.views || 0,
-          rating: data.rating || 0,
+      const bizMap = new Map<string, Business>();
+      (payload.businesses as any[] | undefined)?.forEach((biz) => {
+        bizMap.set(biz.id, {
+          id: biz.id,
+          name: biz.name || 'Sin nombre',
+          category: biz.category || '',
+          plan: biz.plan || 'free',
+          status: (biz.status || 'draft') as Business['status'],
+          logoUrl: biz.logoUrl,
+          image1: biz.image1 || biz.images?.[0]?.url,
+          createdAt: biz.createdAt,
+          views: biz.views || 0,
+          rating: biz.rating || 0,
         });
       });
 
-      const approvedBusinesses = Array.from(businessMap.values()).sort((a, b) => {
+      const approvedBusinesses = Array.from(bizMap.values()).sort((a, b) => {
         const aDate = (a.createdAt?.toMillis?.() ?? a.createdAt?.seconds ?? 0) as number;
         const bDate = (b.createdAt?.toMillis?.() ?? b.createdAt?.seconds ?? 0) as number;
         return bDate - aDate;
       });
 
-      // Buscar solicitudes por UID y por correo normalizado
-      const applicationRef = collection(db, 'applications');
-      const applicationQueries = [
-        query(applicationRef, where('__name__', '==', user.uid)),
-        ...(normalizedEmail
-          ? [query(applicationRef, where('ownerEmail', '==', normalizedEmail))]
-          : []),
-      ];
-      const applicationSnapshots = await Promise.all(applicationQueries.map((q) => getDocs(q)));
-      const applicationDocs = applicationSnapshots.flatMap((snap) => snap.docs);
-
-      console.log('[mis-negocios] Found applications:', applicationDocs.length);
-
-      const seenApplications = new Set<string>();
-      const pendingApplication = applicationDocs
-        .filter((doc) => {
-          if (seenApplications.has(doc.id)) return false;
-          seenApplications.add(doc.id);
-          return true;
-        })
-        .map((doc) => ({
-          id: doc.id,
-          name: doc.data().businessName || 'Sin nombre',
-          category: doc.data().category || '',
-          plan: doc.data().plan || 'free',
-          status: (doc.data().status || 'pending') as 'pending' | 'approved' | 'rejected',
-          logoUrl: doc.data().logoUrl,
-          image1: doc.data().coverPhoto,
-          createdAt: doc.data().createdAt,
-          views: 0,
-          rating: 0,
-        }));
+      const apps = (payload.applications as any[] | undefined) ?? [];
+      const pendingApplication = apps.map((doc) => ({
+        id: doc.id,
+        name: doc.businessName || 'Sin nombre',
+        category: doc.category || '',
+        plan: doc.plan || 'free',
+        status: (doc.status || 'pending') as 'pending' | 'approved' | 'rejected',
+        logoUrl: doc.logoUrl,
+        image1: doc.coverPhoto,
+        createdAt: doc.createdAt,
+        views: 0,
+        rating: 0,
+      }));
 
       const allBusinesses = [...approvedBusinesses, ...pendingApplication];
       setBusinesses(allBusinesses);
