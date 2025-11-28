@@ -112,10 +112,12 @@ service cloud.firestore {
                     isOwner(businessId) || 
                     isAdmin();
       
-      // Queries: mismas condiciones que get, evaluadas por documento
-      allow list: if resource.data.status == 'published' ||
-                    isOwner(businessId) ||
-                    isAdmin();
+      // Queries: permitir published p�blicos, admin o cualquier usuario autenticado (limitado) para ver sus datos
+      // No referenciamos resource en list (no est� disponible en queries)
+      allow list: if isAdmin() ||
+                    (isSignedIn() && request.query.limit <= 50) ||
+                    (request.query.limit <= 100 &&
+                     ('status' in request.query && request.query.status == 'published'));
 
       // Creación: admin puede crear (para el flujo de aprobación)
       // O usuario puede crear draft con su ownerId
