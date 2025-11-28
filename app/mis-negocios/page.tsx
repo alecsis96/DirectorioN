@@ -247,7 +247,7 @@ export default function MisNegociosPage() {
 
                     {/* Botones de Acción */}
                     <div className="space-y-2">
-                      {business.status === 'approved' ? (
+                      {business.status === 'approved' || business.status === 'published' ? (
                         <>
                           <Link
                             href={`/dashboard/${business.id}`}
