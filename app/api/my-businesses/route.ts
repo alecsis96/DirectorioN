@@ -34,11 +34,12 @@ export async function GET(req: Request) {
     ];
     const [appByIdSnap, appByEmailSnap] = await Promise.all(appQueries);
     const applications: Record<string, unknown>[] = [];
-    if (appByIdSnap.exists) {
+    if ((appByIdSnap as any)?.exists?.()) {
       applications.push({ id: appByIdSnap.id, ...appByIdSnap.data() });
     }
-    if (appByEmailSnap && !appByEmailSnap.empty) {
-      appByEmailSnap.forEach((doc) => {
+    const appByEmailQuerySnap = appByEmailSnap as FirebaseFirestore.QuerySnapshot | null;
+    if (appByEmailQuerySnap && !appByEmailQuerySnap.empty) {
+      appByEmailQuerySnap.forEach((doc) => {
         if (!applications.find((a) => (a as any).id === doc.id)) {
           applications.push({ id: doc.id, ...doc.data() });
         }
