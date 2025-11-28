@@ -112,10 +112,10 @@ service cloud.firestore {
                     isOwner(businessId) || 
                     isAdmin();
       
-      // Queries: permitir published p�blicos, admin o cualquier usuario autenticado (limitado) para ver sus datos
+      // Queries: p�blicas para published; admin o cualquier usuario autenticado pueden listar
       // No referenciamos resource en list (no est� disponible en queries)
       allow list: if isAdmin() ||
-                    (isSignedIn() && request.query.limit <= 50) ||
+                    isSignedIn() ||
                     (request.query.limit <= 100 &&
                      ('status' in request.query && request.query.status == 'published'));
 
