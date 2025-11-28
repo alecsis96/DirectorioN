@@ -206,9 +206,9 @@ export default function BusinessDetailView({ business }: Props) {
 
   // Normaliza correos
 
-  const ownerEmail = (business.ownerEmail || "").toLowerCase();
+  const ownerEmail = (business.ownerEmail || "").trim().toLowerCase();
 
-  const userEmail = (user?.email || "").toLowerCase();
+  const userEmail = (user?.email || "").trim().toLowerCase();
 
 
 

@@ -71,9 +71,13 @@ export function useAuth() {
 export function canEditBusiness(
   user: User | null,
   isAdmin: boolean,
-  business: { ownerId?: string } | null
+  business: { ownerId?: string; ownerEmail?: string | null } | null
 ): boolean {
   if (!user || !business) return false;
   if (isAdmin) return true;
-  return Boolean(business.ownerId && user.uid === business.ownerId);
+  const normalizedUserEmail = (user.email || "").trim().toLowerCase();
+  const normalizedOwnerEmail = (business.ownerEmail || "").trim().toLowerCase();
+  const isOwnerById = Boolean(business.ownerId && user.uid === business.ownerId);
+  const isOwnerByEmail = Boolean(normalizedUserEmail && normalizedOwnerEmail && normalizedUserEmail === normalizedOwnerEmail);
+  return isOwnerById || isOwnerByEmail;
 }

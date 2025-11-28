@@ -46,50 +46,92 @@ export default function MisNegociosPage() {
 
     try {
       setLoading(true);
-      
+      const normalizedEmail = (user.email || '').trim().toLowerCase();
+
       console.log('[mis-negocios] Loading businesses for user:', user.uid);
-      
-      // Buscar en businesses aprobados (forzar desde servidor para evitar caché)
-      const businessesQuery = query(
+
+      // Buscar negocios por ownerId y ownerEmail (compatibilidad con registros antiguos)
+      const businessesByIdQuery = query(
         collection(db, 'businesses'),
         where('ownerId', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
-      const businessesSnapshot = await getDocs(businessesQuery);
-      
-      console.log('[mis-negocios] Found approved businesses:', businessesSnapshot.size);
-      
-      // Buscar solicitud en applications (solo debe haber una por usuario)
+      const businessesByEmailQuery = normalizedEmail
+        ? query(
+            collection(db, 'businesses'),
+            where('ownerEmail', '==', normalizedEmail),
+            orderBy('createdAt', 'desc')
+          )
+        : null;
+
+      const [businessesSnapshot, businessesByEmailSnapshot] = await Promise.all([
+        getDocs(businessesByIdQuery),
+        businessesByEmailQuery ? getDocs(businessesByEmailQuery) : Promise.resolve(null),
+      ]);
+
+      console.log('[mis-negocios] Found businesses by ownerId:', businessesSnapshot.size);
+      console.log('[mis-negocios] Found businesses by ownerEmail:', businessesByEmailSnapshot?.size ?? 0);
+
+      const businessDocs = [
+        ...businessesSnapshot.docs,
+        ...(businessesByEmailSnapshot?.docs ?? []),
+      ];
+
+      const businessMap = new Map<string, Business>();
+      businessDocs.forEach((doc) => {
+        const data = doc.data();
+        businessMap.set(doc.id, {
+          id: doc.id,
+          name: data.name || 'Sin nombre',
+          category: data.category || '',
+          plan: data.plan || 'free',
+          status: (data.status || 'draft') as Business['status'],
+          logoUrl: data.logoUrl,
+          image1: data.image1 || data.images?.[0]?.url,
+          createdAt: data.createdAt,
+          views: data.views || 0,
+          rating: data.rating || 0,
+        });
+      });
+
+      const approvedBusinesses = Array.from(businessMap.values()).sort((a, b) => {
+        const aDate = (a.createdAt?.toMillis?.() ?? a.createdAt?.seconds ?? 0) as number;
+        const bDate = (b.createdAt?.toMillis?.() ?? b.createdAt?.seconds ?? 0) as number;
+        return bDate - aDate;
+      });
+
+      // Buscar solicitudes por UID y por correo normalizado
       const applicationRef = collection(db, 'applications');
-      const applicationDoc = await getDocs(query(applicationRef, where('__name__', '==', user.uid)));
-      
-      console.log('[mis-negocios] Found applications:', applicationDoc.size);
+      const applicationQueries = [
+        query(applicationRef, where('__name__', '==', user.uid)),
+        ...(normalizedEmail
+          ? [query(applicationRef, where('ownerEmail', '==', normalizedEmail), orderBy('createdAt', 'desc'))]
+          : []),
+      ];
+      const applicationSnapshots = await Promise.all(applicationQueries.map((q) => getDocs(q)));
+      const applicationDocs = applicationSnapshots.flatMap((snap) => snap.docs);
 
-      const approvedBusinesses = businessesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name || 'Sin nombre',
-        category: doc.data().category || '',
-        plan: doc.data().plan || 'free',
-        status: (doc.data().status || 'draft') as 'pending' | 'approved' | 'rejected' | 'draft' | 'published',
-        logoUrl: doc.data().logoUrl,
-        image1: doc.data().image1 || doc.data().images?.[0]?.url,
-        createdAt: doc.data().createdAt,
-        views: doc.data().views || 0,
-        rating: doc.data().rating || 0,
-      }));
+      console.log('[mis-negocios] Found applications:', applicationDocs.length);
 
-      const pendingApplication = applicationDoc.docs.length > 0 ? [{
-        id: user.uid,
-        name: applicationDoc.docs[0].data().businessName || 'Sin nombre',
-        category: applicationDoc.docs[0].data().category || '',
-        plan: applicationDoc.docs[0].data().plan || 'free',
-        status: (applicationDoc.docs[0].data().status || 'pending') as 'pending' | 'approved' | 'rejected',
-        logoUrl: applicationDoc.docs[0].data().logoUrl,
-        image1: applicationDoc.docs[0].data().coverPhoto,
-        createdAt: applicationDoc.docs[0].data().createdAt,
-        views: 0,
-        rating: 0,
-      }] : [];
+      const seenApplications = new Set<string>();
+      const pendingApplication = applicationDocs
+        .filter((doc) => {
+          if (seenApplications.has(doc.id)) return false;
+          seenApplications.add(doc.id);
+          return true;
+        })
+        .map((doc) => ({
+          id: doc.id,
+          name: doc.data().businessName || 'Sin nombre',
+          category: doc.data().category || '',
+          plan: doc.data().plan || 'free',
+          status: (doc.data().status || 'pending') as 'pending' | 'approved' | 'rejected',
+          logoUrl: doc.data().logoUrl,
+          image1: doc.data().coverPhoto,
+          createdAt: doc.data().createdAt,
+          views: 0,
+          rating: 0,
+        }));
 
       const allBusinesses = [...approvedBusinesses, ...pendingApplication];
       setBusinesses(allBusinesses);
