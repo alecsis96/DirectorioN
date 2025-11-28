@@ -77,6 +77,8 @@ export interface BusinessPreview {
   category: string;
   colonia: string;
   rating?: number | null;
+  ownerId?: string;
+  ownerEmail?: string;
   isOpen: "si" | "no";
   address: string;
   phone?: string;
@@ -107,6 +109,8 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     name: biz.name,
     category: biz.category ?? "",
     colonia: biz.colonia ?? biz.neighborhood ?? "",
+    ownerId: biz.ownerId,
+    ownerEmail: biz.ownerEmail,
     rating: typeof biz.rating === "number" ? biz.rating : null,
     isOpen: biz.isOpen === "no" ? "no" : "si",
     address: biz.address ?? "",
