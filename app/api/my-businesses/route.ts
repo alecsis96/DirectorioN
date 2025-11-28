@@ -34,8 +34,8 @@ export async function GET(req: Request) {
     ];
     const [appByIdSnap, appByEmailSnap] = await Promise.all(appQueries);
     const applications: Record<string, unknown>[] = [];
-    const appByIdDoc = appByIdSnap as FirebaseFirestore.DocumentSnapshot | null;
-    if (appByIdDoc && appByIdDoc.exists()) {
+    const appByIdDoc = appByIdSnap as unknown as FirebaseFirestore.DocumentSnapshot | null;
+    if (appByIdDoc && typeof (appByIdDoc as any).exists === 'function' && appByIdDoc.exists()) {
       applications.push({ id: appByIdDoc.id, ...appByIdDoc.data() });
     }
     const appByEmailQuerySnap = appByEmailSnap as FirebaseFirestore.QuerySnapshot | null;
