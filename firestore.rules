@@ -112,11 +112,18 @@ service cloud.firestore {
                     isOwner(businessId) || 
                     isAdmin();
       
-      // Queries: públicas solo para negocios published, admin puede ver todo
+      // Queries: publicas solo para negocios published, admin puede ver todo
+      // Dueno autenticado puede listar sus propios negocios por ownerId o ownerEmail
       allow list: if isAdmin() || 
                     (request.query.limit <= 100 && 
                      // Solo permitir queries con filtro de status='published'
-                     ('status' in request.query && request.query.status == 'published'));
+                     ('status' in request.query && request.query.status == 'published')) ||
+                    (request.query.limit <= 50 &&
+                     isSignedIn() &&
+                     (
+                       ('ownerId' in request.query && request.query.ownerId == request.auth.uid) ||
+                       ('ownerEmail' in request.query && request.query.ownerEmail == request.auth.token.email)
+                     ));
 
       // Creación: admin puede crear (para el flujo de aprobación)
       // O usuario puede crear draft con su ownerId
