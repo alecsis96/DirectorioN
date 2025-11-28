@@ -426,7 +426,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-900">Ubicación</h2>
                 </div>
-                <AddressPicker address={addr.address} onChange={handleAddressChange} />
+                <AddressPicker value={addr} onChange={handleAddressChange} />
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
