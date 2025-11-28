@@ -53,14 +53,12 @@ export default function MisNegociosPage() {
       // Buscar negocios por ownerId y ownerEmail (compatibilidad con registros antiguos)
       const businessesByIdQuery = query(
         collection(db, 'businesses'),
-        where('ownerId', '==', user.uid),
-        orderBy('createdAt', 'desc')
+        where('ownerId', '==', user.uid)
       );
       const businessesByEmailQuery = normalizedEmail
         ? query(
             collection(db, 'businesses'),
-            where('ownerEmail', '==', normalizedEmail),
-            orderBy('createdAt', 'desc')
+            where('ownerEmail', '==', normalizedEmail)
           )
         : null;
 
@@ -105,7 +103,7 @@ export default function MisNegociosPage() {
       const applicationQueries = [
         query(applicationRef, where('__name__', '==', user.uid)),
         ...(normalizedEmail
-          ? [query(applicationRef, where('ownerEmail', '==', normalizedEmail), orderBy('createdAt', 'desc'))]
+          ? [query(applicationRef, where('ownerEmail', '==', normalizedEmail))]
           : []),
       ];
       const applicationSnapshots = await Promise.all(applicationQueries.map((q) => getDocs(q)));
