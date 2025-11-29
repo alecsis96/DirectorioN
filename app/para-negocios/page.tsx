@@ -84,7 +84,7 @@ export const metadata: Metadata = {
 
 export default function ParaNegociosPage() {
   return (
-    <main className="min-h-screen bg-[#f4f7fb] text-gray-800">
+    <main className="min-h-screen bg-gradient-to-b from-[#eef2f7] via-[#f4f7fb] to-[#eef2f7] text-gray-900">
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-600 to-emerald-700 px-6 py-16 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.12),transparent_45%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.18),transparent_40%)]" />
@@ -118,7 +118,7 @@ export default function ParaNegociosPage() {
           </div>
           <div className="relative mx-auto flex h-full max-w-md justify-center md:justify-end">
             <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-            <div className="relative flex h-56 w-56 items-center justify-center rounded-3xl bg-white/10 backdrop-blur-md shadow-2xl">
+            <div className="relative flex h-56 w-56 items-center justify-center rounded-3xl bg-white/15 backdrop-blur-md shadow-2xl">
               <Image src="/images/logo.png" alt="Directorio Yajalon" fill className="object-contain drop-shadow-2xl" priority />
             </div>
           </div>
@@ -154,8 +154,8 @@ export default function ParaNegociosPage() {
       </section>
 
       {/* Planes */}
-      <section id="planes" className="bg-white px-6 py-16">
-        <div className="mx-auto max-w-6xl space-y-10">
+      <section id="planes" className="px-6 py-16">
+        <div className="mx-auto max-w-6xl space-y-10 rounded-[32px] bg-white shadow-lg px-6 py-10">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-gray-900 md:text-4xl">Planes claros, sin letra chica</h2>
             <p className="mt-3 text-lg text-gray-600">Empieza gratis y sube de nivel cuando necesites mas visibilidad.</p>
