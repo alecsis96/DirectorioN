@@ -14,13 +14,19 @@ type Plan = {
   popular?: boolean;
 };
 
-const BENEFITS = [
-  { icon: '+', title: 'Mas clientes', copy: 'Visibilidad inmediata ante personas de Yajalon que buscan lo que vendes.' },
-  { icon: '*', title: 'Reputacion real', copy: 'Resenas verificadas y fotos que generan confianza desde el primer clic.' },
-  { icon: '#', title: 'Contacto directo', copy: 'Botones de WhatsApp, llamada y mapa para que te contacten sin friccion.' },
-  { icon: '>', title: 'Registro express', copy: 'Completa tu ficha en minutos, publica y actualiza cuando quieras.' },
-  { icon: '!', title: 'Gratis para empezar', copy: 'Sin tarjeta ni letras chiquitas. Escala cuando necesites mas visibilidad.' },
-  { icon: '@', title: 'Alcance local', copy: 'Tu negocio aparece a quienes estan cerca y listos para comprar.' },
+type Benefit = {
+  icon: string;
+  title: string;
+  copy: string;
+};
+
+const BENEFITS: Benefit[] = [
+  { icon: '01', title: 'Mas clientes', copy: 'Visibilidad inmediata ante personas de Yajalon que buscan lo que vendes.' },
+  { icon: '02', title: 'Reputacion real', copy: 'Resenas verificadas y fotos que generan confianza desde el primer clic.' },
+  { icon: '03', title: 'Contacto directo', copy: 'Botones de WhatsApp, llamada y mapa para que te contacten sin friccion.' },
+  { icon: '04', title: 'Registro express', copy: 'Completa tu ficha en minutos, publica y actualiza cuando quieras.' },
+  { icon: '05', title: 'Gratis para empezar', copy: 'Sin tarjeta ni letras chiquitas. Escala cuando necesites mas visibilidad.' },
+  { icon: '06', title: 'Alcance local', copy: 'Tu negocio aparece a quienes estan cerca y listos para comprar.' },
 ];
 
 const PLANS: Plan[] = [
@@ -78,16 +84,18 @@ export const metadata: Metadata = {
 
 export default function ParaNegociosPage() {
   return (
-    <main className="min-h-screen bg-[#f5f7fb] text-gray-800">
+    <main className="min-h-screen bg-[#f4f7fb] text-gray-800">
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-600 to-emerald-700 px-6 py-16 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.2),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(199,249,204,0.25),transparent_25%)]" />
-        <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 text-center md:flex-row md:items-center md:text-left">
-          <div className="flex-1 space-y-4">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.12),transparent_45%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.18),transparent_40%)]" />
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 text-center md:grid md:grid-cols-2 md:items-center md:text-left">
+          <div className="space-y-5">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur-sm">
-              <span className="text-yellow-200">*</span> +150 negocios ya confian en nosotros
+              <span className="text-yellow-200">+</span> +150 negocios ya confian en nosotros
             </div>
-            <h1 className="text-4xl font-extrabold leading-tight drop-shadow-sm md:text-5xl">Listo para llegar a mas clientes en Yajalon?</h1>
+            <h1 className="text-4xl font-extrabold leading-tight drop-shadow-sm md:text-5xl">
+              Listo para llegar a mas clientes en Yajalon?
+            </h1>
             <p className="text-lg text-emerald-50 md:text-xl">
               Publica tu negocio gratis, recibe contactos por WhatsApp y aparece primero con nuestros planes destacados.
             </p>
@@ -97,7 +105,7 @@ export default function ParaNegociosPage() {
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-bold text-emerald-700 shadow-2xl transition-all hover:scale-105 hover:shadow-emerald-500/40"
               >
                 Registrar mi negocio gratis
-                <span className="transition-transform group-hover:translate-x-1">→</span>
+                <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
               </Link>
               <Link
                 href="#planes"
@@ -108,30 +116,33 @@ export default function ParaNegociosPage() {
             </div>
             <p className="text-sm text-emerald-100">Sin tarjeta - Activacion inmediata - Cancela cuando quieras</p>
           </div>
-          <div className="relative h-48 w-48 md:h-64 md:w-64">
-            <div className="absolute inset-0 rounded-full bg-white/10 blur-3xl" />
-            <Image src="/images/logo.png" alt="Directorio Yajalon" fill className="object-contain drop-shadow-2xl" priority />
+          <div className="relative mx-auto flex h-full max-w-md justify-center md:justify-end">
+            <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+            <div className="relative flex h-56 w-56 items-center justify-center rounded-3xl bg-white/10 backdrop-blur-md shadow-2xl">
+              <Image src="/images/logo.png" alt="Directorio Yajalon" fill className="object-contain drop-shadow-2xl" priority />
+            </div>
           </div>
         </div>
       </section>
 
       {/* Beneficios */}
       <section className="px-6 py-16">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-6xl space-y-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 md:text-4xl">Beneficios de estar en el directorio</h2>
-            <p className="mt-3 text-lg text-gray-600">Una vitrina completa para tu negocio, lista en minutos.</p>
+            <h2 className="text-3xl font-extrabold text-gray-900 md:text-4xl">Por que registrarte</h2>
+            <p className="mt-3 text-lg text-gray-600">Beneficios claros para crecer tu negocio sin complicaciones.</p>
           </div>
-          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {BENEFITS.map((benefit) => (
               <div
                 key={benefit.title}
                 className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-cyan-500 opacity-0 transition-opacity group-hover:opacity-5" />
-                <div className="relative space-y-2">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-xl font-semibold text-emerald-700">
-                    {benefit.icon}
+                <div className="relative space-y-3">
+                  <div className="inline-flex items-center gap-3 rounded-full bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-bold shadow-inner">{benefit.icon}</span>
+                    Beneficio
                   </div>
                   <h3 className="text-xl font-bold text-gray-900">{benefit.title}</h3>
                   <p className="text-gray-600">{benefit.copy}</p>
@@ -144,12 +155,12 @@ export default function ParaNegociosPage() {
 
       {/* Planes */}
       <section id="planes" className="bg-white px-6 py-16">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-6xl space-y-10">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-gray-900 md:text-4xl">Planes claros, sin letra chica</h2>
             <p className="mt-3 text-lg text-gray-600">Empieza gratis y sube de nivel cuando necesites mas visibilidad.</p>
           </div>
-          <div className="mt-12 grid gap-14 lg:grid-cols-3">
+          <div className="mt-4 grid gap-14 lg:grid-cols-3">
             {PLANS.map((plan) => (
               <div
                 key={plan.title}
@@ -173,7 +184,7 @@ export default function ParaNegociosPage() {
                 <ul className="mt-10 space-y-3">
                   {plan.perks.map((perk) => (
                     <li key={perk} className="flex items-start gap-2 text-gray-700">
-                      <span className="font-bold text-emerald-500">-</span>
+                      <span className="mt-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />
                       <span>{perk}</span>
                     </li>
                   ))}
