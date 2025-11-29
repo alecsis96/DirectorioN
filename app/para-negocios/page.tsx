@@ -94,6 +94,7 @@ const PLANS = [
     popular: true,
     gradient: 'from-emerald-500 to-green-600',
   },
+  
   {
     title: 'Plan Premium',
     subtitle: 'Máxima visibilidad',
