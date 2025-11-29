@@ -42,8 +42,14 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 py-16 px-4">
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_20%,#ffffff,transparent_35%),radial-gradient(circle_at_80%_0%,#c7f9cc,transparent_25%)]" />
+      <section
+        className="relative overflow-hidden py-16 px-4 text-white"
+        style={{
+          backgroundImage:
+            'linear-gradient(135deg, #10b981 0%, #059669 30%, #0ea5e9 100%), radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 35%), radial-gradient(circle at 80% 0%, rgba(199,249,204,0.35), transparent 25%)',
+          backgroundBlendMode: 'overlay',
+        }}
+      >
         <div className="max-w-6xl mx-auto text-center relative">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold shadow-sm">
             Yajalón · Negocios locales
