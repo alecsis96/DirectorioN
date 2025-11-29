@@ -97,7 +97,7 @@ export default function ParaNegociosPage() {
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-bold text-emerald-700 shadow-2xl transition-all hover:scale-105 hover:shadow-emerald-500/40"
               >
                 Registrar mi negocio gratis
-                <span className="transition-transform group-hover:translate-x-1">-></span>
+                <span className="transition-transform group-hover:translate-x-1">→</span>
               </Link>
               <Link
                 href="#planes"
