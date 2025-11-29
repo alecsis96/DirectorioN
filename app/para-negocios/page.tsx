@@ -15,12 +15,12 @@ type Plan = {
 };
 
 const BENEFITS = [
-  { icon: '🔍', title: 'Mas clientes', copy: 'Visibilidad inmediata ante personas de Yajalon que buscan lo que vendes.' },
-  { icon: '⭐', title: 'Reputacion real', copy: 'Resenas verificadas y fotos que generan confianza desde el primer clic.' },
-  { icon: '☎️', title: 'Contacto directo', copy: 'Botones de WhatsApp, llamada y mapa para que te contacten sin friccion.' },
-  { icon: '⚡', title: 'Registro express', copy: 'Completa tu ficha en minutos, publica y actualiza cuando quieras.' },
-  { icon: '🎯', title: 'Gratis para empezar', copy: 'Sin tarjeta ni letras chiquitas. Escala cuando necesites mas visibilidad.' },
-  { icon: '📍', title: 'Alcance local', copy: 'Tu negocio aparece a quienes estan cerca y listos para comprar.' },
+  { icon: '+', title: 'Mas clientes', copy: 'Visibilidad inmediata ante personas de Yajalon que buscan lo que vendes.' },
+  { icon: '*', title: 'Reputacion real', copy: 'Resenas verificadas y fotos que generan confianza desde el primer clic.' },
+  { icon: '#', title: 'Contacto directo', copy: 'Botones de WhatsApp, llamada y mapa para que te contacten sin friccion.' },
+  { icon: '>', title: 'Registro express', copy: 'Completa tu ficha en minutos, publica y actualiza cuando quieras.' },
+  { icon: '!', title: 'Gratis para empezar', copy: 'Sin tarjeta ni letras chiquitas. Escala cuando necesites mas visibilidad.' },
+  { icon: '@', title: 'Alcance local', copy: 'Tu negocio aparece a quienes estan cerca y listos para comprar.' },
 ];
 
 const PLANS: Plan[] = [
@@ -78,14 +78,14 @@ export const metadata: Metadata = {
 
 export default function ParaNegociosPage() {
   return (
-    <main className="min-h-screen bg-[#f7f9fb] text-gray-800">
+    <main className="min-h-screen bg-[#f5f7fb] text-gray-800">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-600 to-emerald-700 px-6 py-16 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.25),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(199,249,204,0.35),transparent_25%)]" />
-        <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-8 text-center md:flex-row md:items-center md:text-left">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-600 to-emerald-700 px-6 py-16 text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.2),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(199,249,204,0.25),transparent_25%)]" />
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 text-center md:flex-row md:items-center md:text-left">
           <div className="flex-1 space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur-sm">
-              <span className="text-yellow-200">⭐</span> +150 negocios ya confian en nosotros
+              <span className="text-yellow-200">*</span> +150 negocios ya confian en nosotros
             </div>
             <h1 className="text-4xl font-extrabold leading-tight drop-shadow-sm md:text-5xl">Listo para llegar a mas clientes en Yajalon?</h1>
             <p className="text-lg text-emerald-50 md:text-xl">
@@ -97,7 +97,7 @@ export default function ParaNegociosPage() {
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-bold text-emerald-700 shadow-2xl transition-all hover:scale-105 hover:shadow-emerald-500/40"
               >
                 Registrar mi negocio gratis
-                <span className="transition-transform group-hover:translate-x-1">→</span>
+                <span className="transition-transform group-hover:translate-x-1">-></span>
               </Link>
               <Link
                 href="#planes"
@@ -106,7 +106,7 @@ export default function ParaNegociosPage() {
                 Ver planes y precios
               </Link>
             </div>
-            <p className="text-sm text-emerald-100">Sin tarjeta • Activacion inmediata • Cancela cuando quieras</p>
+            <p className="text-sm text-emerald-100">Sin tarjeta - Activacion inmediata - Cancela cuando quieras</p>
           </div>
           <div className="relative h-48 w-48 md:h-64 md:w-64">
             <div className="absolute inset-0 rounded-full bg-white/10 blur-3xl" />
@@ -126,13 +126,15 @@ export default function ParaNegociosPage() {
             {BENEFITS.map((benefit) => (
               <div
                 key={benefit.title}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
+                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-cyan-500 opacity-0 transition-opacity group-hover:opacity-5" />
-                <div className="relative">
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-xl">{benefit.icon}</div>
+                <div className="relative space-y-2">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-xl font-semibold text-emerald-700">
+                    {benefit.icon}
+                  </div>
                   <h3 className="text-xl font-bold text-gray-900">{benefit.title}</h3>
-                  <p className="mt-2 text-gray-600">{benefit.copy}</p>
+                  <p className="text-gray-600">{benefit.copy}</p>
                 </div>
               </div>
             ))}
@@ -147,16 +149,16 @@ export default function ParaNegociosPage() {
             <h2 className="text-3xl font-extrabold text-gray-900 md:text-4xl">Planes claros, sin letra chica</h2>
             <p className="mt-3 text-lg text-gray-600">Empieza gratis y sube de nivel cuando necesites mas visibilidad.</p>
           </div>
-          <div className="mt-10 grid gap-8 lg:grid-cols-3">
+          <div className="mt-12 grid gap-14 lg:grid-cols-3">
             {PLANS.map((plan) => (
               <div
                 key={plan.title}
-                className={`relative overflow-hidden rounded-3xl border-2 bg-white p-8 shadow-xl transition-all hover:-translate-y-1 hover:shadow-2xl ${
+                className={`relative overflow-hidden rounded-3xl border-2 bg-white p-10 shadow-xl transition-all hover:-translate-y-1 hover:shadow-2xl ${
                   plan.popular ? 'border-emerald-500 shadow-emerald-500/20' : 'border-gray-200'
                 }`}
               >
                 {plan.badge && (
-                  <div className="absolute -right-12 top-6 rotate-45 bg-gradient-to-r from-emerald-500 to-green-600 px-12 py-1 text-xs font-bold text-white shadow-lg">
+                  <div className="absolute left-4 top-4 rounded-full bg-gradient-to-r from-emerald-600 to-green-600 px-3 py-1 text-xs font-bold uppercase text-white shadow">
                     {plan.badge}
                   </div>
                 )}
@@ -168,17 +170,17 @@ export default function ParaNegociosPage() {
                     <span className="text-gray-500">{plan.period}</span>
                   </div>
                 </div>
-                <ul className="mt-8 space-y-2">
+                <ul className="mt-10 space-y-3">
                   {plan.perks.map((perk) => (
                     <li key={perk} className="flex items-start gap-2 text-gray-700">
-                      <span className="font-bold text-emerald-500">✓</span>
+                      <span className="font-bold text-emerald-500">-</span>
                       <span>{perk}</span>
                     </li>
                   ))}
                 </ul>
                 <Link
                   href="/registro-negocio"
-                  className={`mt-8 block w-full rounded-xl bg-gradient-to-r ${plan.gradient} px-6 py-4 text-center text-lg font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl`}
+                  className={`mt-10 block w-full rounded-xl bg-gradient-to-r ${plan.gradient} px-6 py-4 text-center text-lg font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl`}
                 >
                   {plan.cta}
                 </Link>
@@ -189,7 +191,7 @@ export default function ParaNegociosPage() {
       </section>
 
       {/* CTA Final */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-emerald-600 to-green-700 px-6 py-16 text-white">
+      <section className="relative overflow-hidden bg-gradient-to-r from-emerald-700 via-emerald-600 to-green-700 px-6 py-16 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,#ffffff,transparent_35%),radial-gradient(circle_at_80%_0%,#c7f9cc,transparent_25%)] opacity-20" />
         <div className="relative mx-auto max-w-4xl space-y-4 text-center">
           <h2 className="text-3xl font-extrabold md:text-4xl">Listo para crecer tu negocio?</h2>
@@ -200,7 +202,7 @@ export default function ParaNegociosPage() {
           >
             Registrar mi Negocio Ahora
           </Link>
-          <p className="text-sm text-emerald-100">Solo 5 minutos • 100% gratis para empezar</p>
+          <p className="text-sm text-emerald-100">Solo 5 minutos - 100% gratis para empezar</p>
         </div>
       </section>
     </main>
