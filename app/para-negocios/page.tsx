@@ -4,52 +4,17 @@ import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: '¿Tienes un negocio? Únete gratis al Directorio de Yajalón',
-  description: 'Más de 1,000 clientes potenciales buscan negocios como el tuyo cada mes. Regístrate gratis y empieza a recibir más clientes hoy mismo.',
+  description:
+    'Más de 1,000 clientes potenciales buscan negocios como el tuyo cada mes. Regístrate gratis y empieza a recibir más clientes hoy mismo.',
 };
 
 const BENEFITS = [
-  {
-    icon: '📈',
-    title: 'Más Clientes Garantizados',
-    copy: 'Aparece donde tus clientes buscan. +1,000 visitas mensuales de personas listas para comprar.',
-    color: 'from-blue-500 to-cyan-500',
-    bgColor: 'bg-blue-50',
-  },
-  {
-    icon: '⭐',
-    title: 'Construye tu Reputación',
-    copy: 'Recibe reseñas auténticas y muestra fotos que convencen. El 90% de clientes lee reseñas antes de comprar.',
-    color: 'from-yellow-500 to-orange-500',
-    bgColor: 'bg-yellow-50',
-  },
-  {
-    icon: '📱',
-    title: 'Contacto directo',
-    copy: 'Botones de WhatsApp, teléfono y ubicación. Tus clientes te contactan con un solo click.',
-    color: 'from-green-500 to-emerald-500',
-    bgColor: 'bg-green-50',
-  },
-  {
-    icon: '🚀',
-    title: 'Registro en 5 minutos',
-    copy: 'Sin complicaciones. Completa el formulario, agrega fotos y empieza a recibir clientes el mismo día.',
-    color: 'from-purple-500 to-pink-500',
-    bgColor: 'bg-purple-50',
-  },
-  {
-    icon: '💰',
-    title: 'Gratis para empezar',
-    copy: 'Sin costos ocultos, sin tarjeta de crédito. Prueba todas las funciones y mejora cuando quieras.',
-    color: 'from-emerald-500 to-green-600',
-    bgColor: 'bg-emerald-50',
-  },
-  {
-    icon: '🎯',
-    title: 'Clientes locales',
-    copy: 'Personas de Yajalón buscando exactamente lo que ofreces. Tráfico de calidad, no cantidad.',
-    color: 'from-red-500 to-rose-500',
-    bgColor: 'bg-red-50',
-  },
+  { icon: '🚀', title: 'Más clientes', copy: 'Aparece donde tus clientes buscan. +1,000 visitas mensuales de personas listas para comprar.', color: 'from-blue-500 to-cyan-500', bgColor: 'bg-blue-50' },
+  { icon: '⭐', title: 'Construye reputación', copy: 'Recibe reseñas auténticas y muestra fotos que convencen. El 90% de clientes lee reseñas antes de comprar.', color: 'from-yellow-500 to-orange-500', bgColor: 'bg-yellow-50' },
+  { icon: '💬', title: 'Contacto directo', copy: 'Botones de WhatsApp, teléfono y ubicación. Tus clientes te contactan con un solo clic.', color: 'from-green-500 to-emerald-500', bgColor: 'bg-green-50' },
+  { icon: '⏱️', title: 'Registro en 5 minutos', copy: 'Completa el formulario, agrega fotos y empieza a recibir clientes el mismo día.', color: 'from-purple-500 to-pink-500', bgColor: 'bg-purple-50' },
+  { icon: '🆓', title: 'Gratis para empezar', copy: 'Sin costos ocultos, sin tarjeta de crédito. Prueba y mejora cuando quieras.', color: 'from-emerald-500 to-green-600', bgColor: 'bg-emerald-50' },
+  { icon: '📍', title: 'Clientes locales', copy: 'Personas de Yajalón buscando exactamente lo que ofreces. Tráfico de calidad, no cantidad.', color: 'from-red-500 to-rose-500', bgColor: 'bg-red-50' },
 ];
 
 const STATS = [
@@ -66,12 +31,12 @@ const PLANS = [
     price: '$0',
     period: 'para siempre',
     features: [
-      '✅ Ficha completa con fotos',
-      '✅ Horarios de atención',
-      '✅ Ubicación en mapa',
-      '✅ Botones de contacto directo',
-      '✅ Reseñas ilimitadas',
-      '✅ Actualiza cuando quieras',
+      'Ficha completa con fotos',
+      'Horarios de atención',
+      'Ubicación en mapa',
+      'Botones de contacto directo',
+      'Reseñas ilimitadas',
+      'Actualiza cuando quieras',
     ],
     cta: 'Comenzar Gratis',
     popular: false,
@@ -83,30 +48,29 @@ const PLANS = [
     price: '$199',
     period: 'al mes',
     features: [
-      '✨ Todo del plan gratuito',
-      '🔝 Aparece primero en búsquedas',
-      '⭐ Badge "Negocio Destacado"',
-      '📊 Estadísticas de visitas',
-      '🎨 Galería de hasta 10 fotos',
-      '💬 Soporte prioritario por WhatsApp',
+      'Todo del plan gratuito',
+      'Aparece primero en búsquedas',
+      'Badge "Negocio Destacado"',
+      'Estadísticas de visitas',
+      'Galería de hasta 10 fotos',
+      'Soporte prioritario por WhatsApp',
     ],
     cta: 'Elegir Destacado',
     popular: true,
     gradient: 'from-emerald-500 to-green-600',
   },
-  
   {
     title: 'Plan Premium',
     subtitle: 'Máxima visibilidad',
     price: '$349',
     period: 'al mes',
     features: [
-      '🚀 Todo del plan destacado',
-      '🎯 Banner en página principal',
-      '📱 Campañas en redes sociales',
-      '📈 Análisis mensual personalizado',
-      '🎁 Promociones exclusivas',
-      '👨‍💼 Asesoría de marketing 1 a 1',
+      'Todo del plan destacado',
+      'Banner en página principal',
+      'Campañas en redes sociales',
+      'Análisis mensual personalizado',
+      'Promociones exclusivas',
+      'Asesoría de marketing 1 a 1',
     ],
     cta: 'Ir a Premium',
     popular: false,
@@ -137,22 +101,15 @@ const TESTIMONIALS = [
 
 export default function ParaNegociosPage() {
   return (
-    <main className="min-h-screen bg-white text-gray-800 pb-20 md:pb-0">
+    <main className="min-h-screen bg-white text-gray-800 pb-20">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-600 to-emerald-700 px-6 py-20 text-white">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
         <div className="relative mx-auto max-w-6xl">
           <div className="text-center">
-            {/* Logo */}
             <div className="mb-6 flex justify-center">
               <div className="relative h-24 w-24 md:h-32 md:w-32">
-                <Image
-                  src="/images/logo.png"
-                  alt="Directorio Yajalón"
-                  fill
-                  className="object-contain drop-shadow-2xl"
-                  priority
-                />
+                <Image src="/images/logo.png" alt="Directorio Yajalón" fill className="object-contain drop-shadow-2xl" priority />
               </div>
             </div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-semibold backdrop-blur-sm">
@@ -160,18 +117,18 @@ export default function ParaNegociosPage() {
               <span>+150 negocios ya confían en nosotros</span>
             </div>
             <h1 className="text-4xl font-extrabold leading-tight md:text-6xl">
-              ¿Quieres Más Clientes para<br />tu Negocio en Yajalón?
+              ¿Quieres más Clientes para<br />tu Negocio en Yajalón?
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg md:text-xl text-emerald-50">
               Únete al directorio más visitado de la zona. <strong className="text-white">+1,000 personas</strong> buscan negocios como el tuyo cada mes.
-              <span className="block mt-2 text-emerald-100">¡Regístrate gratis y empieza a recibir más clientes hoy!</span>
+              <span className="block mt-2 text-emerald-100">Regístrate gratis y empieza a recibir más clientes hoy.</span>
             </p>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Link
                 href="/registro-negocio"
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-8 py-4 text-lg font-bold text-emerald-600 shadow-2xl transition-all hover:scale-105 hover:shadow-emerald-500/50"
               >
-                🚀 Registrar mi Negocio Gratis
+                Registrar mi Negocio Gratis
                 <span className="transition-transform group-hover:translate-x-1">→</span>
               </Link>
               <Link
@@ -182,11 +139,10 @@ export default function ParaNegociosPage() {
               </Link>
             </div>
             <p className="mt-4 text-sm text-emerald-100">
-              ✅ Sin tarjeta de crédito • ✅ Activación inmediata • ✅ Cancela cuando quieras
+              Sin tarjeta de crédito · Activación inmediata · Cancela cuando quieras
             </p>
           </div>
 
-          {/* Stats */}
           <div className="mt-16 grid grid-cols-2 gap-6 md:grid-cols-4">
             {STATS.map((stat) => (
               <div key={stat.label} className="rounded-2xl bg-white/10 p-6 text-center backdrop-blur-sm">
@@ -296,8 +252,9 @@ export default function ParaNegociosPage() {
                 </div>
                 <ul className="mt-8 space-y-3">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3 text-gray-700">
-                      <span className="text-lg">{feature}</span>
+                    <li key={feature} className="flex items-start gap-2 text-gray-700 text-base">
+                      <span className="text-emerald-500 font-bold">✓</span>
+                      <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -314,29 +271,6 @@ export default function ParaNegociosPage() {
       </section>
 
       {/* CTA Final */}
-      <section className="bg-gradient-to-r from-emerald-600 to-green-700 px-6 py-20 text-white">
-        <div className="mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl font-extrabold md:text-5xl">
-            ¿Listo para Hacer Crecer tu Negocio?
-          </h2>
-          <p className="mt-4 text-xl text-emerald-50">
-            Únete a los +150 negocios que ya están recibiendo más clientes cada día
-          </p>
-          <div className="mt-8">
-            <Link
-              href="/registro-negocio"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-10 py-5 text-xl font-bold text-emerald-600 shadow-2xl transition-all hover:scale-105"
-            >
-              🚀 Registrar mi Negocio Ahora
-            </Link>
-          </div>
-          <p className="mt-6 text-sm text-emerald-100">
-            Proceso de registro en solo 5 minutos • 100% gratis para empezar
-          </p>
-        </div>
-      </section>
-
-      {/* CTA Final - limpio */}
       <section className="relative overflow-hidden bg-gradient-to-r from-emerald-600 to-green-700 px-6 py-20 text-white">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_30%,#ffffff,transparent_35%),radial-gradient(circle_at_80%_0%,#c7f9cc,transparent_25%)]" />
         <div className="relative mx-auto max-w-4xl text-center space-y-4">
@@ -357,8 +291,6 @@ export default function ParaNegociosPage() {
           </p>
         </div>
       </section>
-
     </main>
   );
 }
-
