@@ -335,6 +335,29 @@ export default function ParaNegociosPage() {
           </p>
         </div>
       </section>
+
+      {/* CTA Final - limpio */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-emerald-600 to-green-700 px-6 py-20 text-white">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_30%,#ffffff,transparent_35%),radial-gradient(circle_at_80%_0%,#c7f9cc,transparent_25%)]" />
+        <div className="relative mx-auto max-w-4xl text-center space-y-4">
+          <h2 className="text-3xl font-extrabold md:text-5xl">¿Listo para Hacer Crecer tu Negocio?</h2>
+          <p className="text-xl text-white font-semibold">
+            Únete a los +150 negocios que ya están recibiendo más clientes cada día
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/registro-negocio"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-10 py-5 text-xl font-bold text-emerald-600 shadow-2xl transition-all hover:scale-105"
+            >
+              Registrar mi Negocio Ahora
+            </Link>
+          </div>
+          <p className="text-sm text-emerald-50">
+            Proceso de registro en solo 5 minutos · 100% gratis para empezar
+          </p>
+        </div>
+      </section>
+
     </main>
   );
 }
