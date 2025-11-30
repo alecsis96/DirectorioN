@@ -28,8 +28,15 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const isFavorite = businessId ? favorites.includes(businessId) : false;
   
-  // Imagen de logo/negocio - priorizar logoUrl sobre image1
-  const logoUrl = (business as any).logoUrl || (business as any).image1 || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E';
+  const plan = (business as any).plan || 'free';
+  const isPremium = plan !== 'free';
+  // Imagen de logo/negocio - priorizar logoUrl sobre image1, usar placeholder premium si aplica
+  const logoUrl =
+    (business as any).logoUrl ||
+    (business as any).image1 ||
+    (isPremium
+      ? '/images/default-premium-logo.svg'
+      : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E');
 
   useEffect(() => {
     const schedule = business.hours;
@@ -67,7 +74,6 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   };
 
   // Determinar estilo según el plan
-  const plan = (business as any).plan || 'free';
   const cardStyles = {
     sponsor: {
       border: 'border-amber-400 border-[3px]',

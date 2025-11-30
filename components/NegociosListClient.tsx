@@ -470,7 +470,11 @@ export default function NegociosListClient({
                             {/* NUEVO: Contenedor Visual de Carrusel/Video - JUSTIFICACIÓN DEL PRECIO MÁS ALTO */}
                             <div className="mb-4 h-40 w-full overflow-hidden rounded-lg bg-gray-100 border border-gray-200 shadow-xl">
                               <img 
-                                src={business.coverUrl || business.image1 || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100%25" height="100%25"%3E%3Crect fill="%23f0f0f0" width="100%25" height="100%25"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="%23999"%3EVideo/Carrusel Preview%3C/text%3E%3C/svg%3E'}
+                                src={
+                                  business.coverUrl ||
+                                  business.image1 ||
+                                  '/images/default-premium-cover.svg'
+                                }
                                 alt={`Imagen principal de ${business.name}`}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               />
@@ -480,7 +484,7 @@ export default function NegociosListClient({
                             <div className="flex items-start justify-between gap-3 mb-3">
                               <div className="flex items-center gap-3 min-w-0">
                                 <img 
-                                  src={business.logoUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40"%3E%3Crect fill="%23f0f0f0" width="40" height="40"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="10" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E'}
+                                  src={business.logoUrl || '/images/default-premium-logo.svg'}
                                   alt={`Logo de ${business.name}`}
                                   className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
                                 />

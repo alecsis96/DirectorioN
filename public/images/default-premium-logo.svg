@@ -1,0 +1,18 @@
+<svg width="320" height="320" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop stop-color="#6B46C1" offset="0%"/>
+      <stop stop-color="#F97316" offset="50%"/>
+      <stop stop-color="#22C55E" offset="100%"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop stop-color="#0EA5E9" offset="0%"/>
+      <stop stop-color="#8B5CF6" offset="100%"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" rx="64" fill="url(#g1)"/>
+  <circle cx="160" cy="160" r="110" fill="white" opacity="0.12"/>
+  <circle cx="160" cy="160" r="86" fill="url(#g2)" opacity="0.9"/>
+  <path d="M96 198l32-86c3-7 7-10 12-10h16c5 0 9 3 11 10l32 86c3 8-1 14-9 14h-20c-7 0-11-3-13-10l-3-9h-13l-4 9c-3 7-6 10-13 10H104c-9 0-12-6-8-14zm69-30l-8-27-9 27h17z" fill="white"/>
+  <text x="50%" y="86%" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800" fill="white">PREMIUM</text>
+</svg>

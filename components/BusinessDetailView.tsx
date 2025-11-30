@@ -645,7 +645,13 @@ export default function BusinessDetailView({ business }: Props) {
       {(plan === 'sponsor' || plan === 'featured') && (
         <div className={`relative w-full ${currentTheme.heroHeight} bg-gray-200 rounded-2xl overflow-hidden shadow-xl`}>
           <img
-            src={business.coverUrl || business.image1 || 'https://via.placeholder.com/800x400?text=Sin+portada'}
+            src={
+              business.coverUrl ||
+              business.image1 ||
+              (business.plan && business.plan !== 'free'
+                ? '/images/default-premium-cover.svg'
+                : 'https://via.placeholder.com/800x400?text=Sin+portada')
+            }
             alt={`Portada de ${business.name}`}
             className="w-full h-full object-cover"
           />
@@ -681,11 +687,16 @@ export default function BusinessDetailView({ business }: Props) {
             {/* Logo SOLO para planes premium (Elevado sobre la portada) */}
             {(plan === 'sponsor' || plan === 'featured') && (
               <div className="bg-white p-1.5 rounded-2xl shadow-lg flex-shrink-0">
-                <img 
-                  src={business.logoUrl || 'https://via.placeholder.com/80?text=Logo'} 
-                  alt={`Logo de ${business.name}`}
-                  className="w-20 h-20 rounded-xl object-cover border border-gray-100"
-                />
+                  <img 
+                    src={
+                      business.logoUrl ||
+                      (business.plan && business.plan !== 'free'
+                        ? '/images/default-premium-logo.svg'
+                        : 'https://via.placeholder.com/80?text=Logo')
+                    } 
+                    alt={`Logo de ${business.name}`}
+                    className="w-20 h-20 rounded-xl object-cover border border-gray-100"
+                  />
               </div>
             )}
 

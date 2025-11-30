@@ -198,7 +198,13 @@ export default function MisNegociosPage() {
             {filteredBusinesses.map((business) => {
               const planBadge = getPlanBadge(business.plan);
               const statusBadge = getStatusBadge(business.status);
-              const logoUrl = business.logoUrl || business.image1 || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E';
+              const isPremium = business.plan !== 'free';
+              const logoUrl =
+                business.logoUrl ||
+                business.image1 ||
+                (isPremium
+                  ? '/images/default-premium-logo.svg'
+                  : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill=\"%23f0f0f0\" width=\"80\" height=\"80\"/%3E%3Ctext x=\"50%25\" y=\"50%25\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"14\" fill=\"%23999\"%3ELogo%3C/text%3E%3C/svg%3E');
 
               return (
                 <div key={business.id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-100">

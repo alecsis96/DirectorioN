@@ -292,7 +292,8 @@ export default function DashboardBusinessList({
                 const planInfo = getPlanBadge(business.plan);
                 const isExpiring = isPlanExpiring(business.planExpiresAt);
                 const businessName = business.name || business.businessName || 'Sin nombre';
-                const imageUrl = business.logoUrl || business.image1 || business.coverUrl;
+                const isPremium = business.plan === 'featured' || business.plan === 'sponsor';
+                const imageUrl = business.logoUrl || business.image1 || business.coverUrl || (isPremium ? '/images/default-premium-cover.svg' : undefined);
 
                 return (
                   <div
