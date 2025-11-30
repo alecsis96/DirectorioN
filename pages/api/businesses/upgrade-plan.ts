@@ -52,10 +52,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       plan,
       featured: plan !== 'free',
       planPaymentMethod: paymentMethod,
-      paymentStatus: paymentMethod === 'transfer' ? 'pending_transfer' : 'active',
+      paymentStatus: 'active',
       planRequestedAt: new Date(),
       planUpdatedAt: new Date(),
       planUpdatedBy: decoded.email || decoded.uid,
+      planActivatedAt: new Date(),
     };
 
     // Si paga por transferencia, limpiamos fechas automáticas de Stripe

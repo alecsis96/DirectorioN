@@ -309,7 +309,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     }
   }
 
-  async function handleUpgradeByTransfer() {
+  async function handleUpgradeByTransfer(targetPlan: 'featured' | 'sponsor' = 'sponsor') {
     if (!id || !biz || !user) return;
     setUpgradeBusy(true);
     setMsg('Guardando solicitud de transferencia...');
@@ -323,7 +323,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         },
         body: JSON.stringify({
           businessId: id,
-          plan: 'sponsor',
+          plan: targetPlan,
           paymentMethod: 'transfer',
         }),
       });
@@ -335,11 +335,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
       setBiz((prev: any) => ({
         ...prev,
-        plan: 'sponsor',
+        plan: targetPlan,
         planPaymentMethod: 'transfer',
-        paymentStatus: 'pending_transfer',
+        paymentStatus: 'active',
       }));
-      setMsg('�o. Solicitud guardada: env��a tu comprobante para activar el plan Premium.');
+      setMsg('�o! Plan Premium activo por transferencia. Env��a tu comprobante para nuestros registros.');
     } catch (error: any) {
       console.error('transfer upgrade error', error);
       setMsg(error?.message || 'No pudimos registrar tu solicitud de transferencia');
@@ -610,7 +610,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       Funciones premium: portada y logo personalizados para planes Featured y Sponsor.
                     </p>
                     <p className="text-xs text-gray-600">Actualiza tu plan para destacar tu marca.</p>
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         onClick={() => handleUpgradePlan('featured')}
                         className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
@@ -623,7 +623,17 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       >
                         Actualizar a Sponsor
                       </button>
+                      <button
+                        onClick={() => handleUpgradeByTransfer('sponsor')}
+                        disabled={upgradeBusy}
+                        className="px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60"
+                      >
+                        Pagar por transferencia
+                      </button>
                     </div>
+                    <p className="text-[11px] text-gray-600 mt-2">
+                      Si eliges transferencia, marcaremos Premium y validaremos tu pago con tu comprobante.
+                    </p>
                   </div>
                 )}
 
@@ -696,8 +706,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                         <p className="font-semibold text-gray-800 mb-1">Datos para transferencia:</p>
                         <p>Banco: BBVA</p>
                         <p>Cuenta/CLABE: 012345678901234567</p>
-                        <p>Beneficiario: Directorio Yajal��n</p>
-                        <p className="mt-1">Env��a tu comprobante a <a className="text-emerald-700 font-semibold" href="mailto:pagos@directorioyajalon.com">pagos@directorioyajalon.com</a> o por WhatsApp al <a className="text-emerald-700 font-semibold" href="https://wa.me/5219990000000" target="_blank" rel="noreferrer">+52 1 999 000 0000</a>. Activaremos tu plan al validar el pago.</p>
+                        <p>Beneficiario: Directorio Yajalón</p>
+                        <p className="mt-1">Envía tu comprobante a <a className="text-emerald-700 font-semibold" href="mailto:pagos@directorioyajalon.com">pagos@directorioyajalon.com</a> o por WhatsApp al <a className="text-emerald-700 font-semibold" href="https://wa.me/5219990000000" target="_blank" rel="noreferrer">+52 1 999 000 0000</a>. Activaremos tu plan al validar el pago.</p>
                       </div>
                     </div>
                   </div>
