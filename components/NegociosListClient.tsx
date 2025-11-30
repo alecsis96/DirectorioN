@@ -643,6 +643,7 @@ export default function NegociosListClient({
                   const now = new Date();
                   const status = business.hours ? getBusinessStatus(business.hours, now) : { isOpen: false, opensAt: undefined, closesAt: undefined, todayLabel: 'Horario no disp.' };
                   const isOpen = status.isOpen;
+                  const isPremium = business.plan && business.plan !== 'free';
                   
                   // Formatear label de horario
                   let hoursLabel = "Horario disponible";
@@ -664,7 +665,13 @@ export default function NegociosListClient({
                         {/* HEADER: Logo, Título y Favorito */}
                         <div className="flex items-start gap-3 mb-3">
                           <img 
-                            src={business.logoUrl || business.image1 || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="56" height="56"%3E%3Crect fill="%23f0f0f0" width="56" height="56"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E'}
+                            src={
+                              business.logoUrl ||
+                              business.image1 ||
+                              (isPremium
+                                ? '/images/default-premium-logo.svg'
+                                : 'data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"56\" height=\"56\"%3E%3Crect fill=\"%23f0f0f0\" width=\"56\" height=\"56\"/%3E%3Ctext x=\"50%25\" y=\"50%25\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"12\" fill=\"%23999\"%3ELogo%3C/text%3E%3C/svg%3E')
+                            }
                             alt={`Logo ${business.name}`}
                             className="w-14 h-14 rounded-lg object-cover border border-gray-100 shadow-sm flex-shrink-0 bg-gray-50"
                           />
