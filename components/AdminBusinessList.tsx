@@ -13,6 +13,7 @@ interface BusinessData {
   category?: string;
   status: string;
   plan: string;
+  planExpiresAt?: string | null;
   createdAt?: string;
   approvedAt?: string;
   viewCount?: number;
@@ -58,7 +59,57 @@ function getSubscriptionStatusBadge(status?: string) {
 }
 
 export default function AdminBusinessList({ businesses }: Props) {
+  const [items, setItems] = useState<BusinessData[]>(businesses);
   const [loading, setLoading] = useState<string | null>(null);
+  const [planLoading, setPlanLoading] = useState<string | null>(null);
+
+  const handlePlanChange = async (businessId: string, plan: string) => {
+    if (!plan) return;
+
+    const user = auth.currentUser;
+    if (!user) {
+      alert('Debes iniciar sesi��n como administrador');
+      return;
+    }
+
+    setPlanLoading(businessId);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/admin/update-plan', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ businessId, plan }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al actualizar plan');
+      }
+
+      setItems((prev) =>
+        prev.map((biz) =>
+          biz.id === businessId
+            ? {
+                ...biz,
+                plan,
+                planExpiresAt: data.planExpiresAt ?? biz.planExpiresAt ?? null,
+                stripeSubscriptionStatus: plan === 'free' ? undefined : biz.stripeSubscriptionStatus,
+              }
+            : biz
+        )
+      );
+
+      alert('Plan actualizado');
+    } catch (error: any) {
+      alert('Error: ' + error.message);
+    } finally {
+      setPlanLoading(null);
+    }
+  };
 
   const handleDisable = async (businessId: string) => {
     const reason = prompt('Motivo de deshabilitación:', 'Violación de términos de servicio');
@@ -211,7 +262,7 @@ export default function AdminBusinessList({ businesses }: Props) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {businesses.map((business) => (
+              {items.map((business) => (
                 <tr key={business.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -240,6 +291,21 @@ export default function AdminBusinessList({ businesses }: Props) {
                     <div className="flex items-center">
                       {getPlanBadge(business.plan, business.stripeSubscriptionStatus)}
                       {business.plan !== 'free' && getSubscriptionStatusBadge(business.stripeSubscriptionStatus)}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <select
+                        value={business.plan}
+                        onChange={(e) => handlePlanChange(business.id, e.target.value)}
+                        disabled={planLoading === business.id}
+                        className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                      >
+                        <option value="free">Plan gratuito</option>
+                        <option value="featured">Plan destacado</option>
+                        <option value="sponsor">Plan patrocinado</option>
+                      </select>
+                      <span className="text-[11px] text-gray-500">
+                        Manual (admin)
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -326,7 +392,7 @@ export default function AdminBusinessList({ businesses }: Props) {
 
       {/* Vista de tarjetas para móvil (oculta en desktop) */}
       <div className="lg:hidden space-y-4">
-        {businesses.map((business) => (
+        {items.map((business) => (
           <div key={business.id} className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
             {/* Header con nombre y plan */}
             <div className="flex items-start justify-between mb-3">
@@ -474,3 +540,4 @@ export default function AdminBusinessList({ businesses }: Props) {
     </>
   );
 }
+

@@ -44,6 +44,7 @@ interface BusinessData {
   category?: string;
   status: string;
   plan: string;
+  planExpiresAt?: string | null;
   createdAt?: string;
   approvedAt?: string;
   viewCount?: number;
@@ -75,6 +76,7 @@ async function fetchAllBusinesses(): Promise<BusinessData[]> {
       category: data.category,
       status: data.status,
       plan: data.plan || 'free',
+      planExpiresAt: data.planExpiresAt?.toDate?.()?.toISOString() || null,
       createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
       approvedAt: data.approvedAt?.toDate?.()?.toISOString() || null,
       viewCount: data.viewCount || 0,
