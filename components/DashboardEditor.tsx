@@ -13,6 +13,7 @@ import LogoUploader from './LogoUploader';
 import CoverUploader from './CoverUploader';
 import AddressPicker from './AddressPicker';
 import PaymentInfo from './PaymentInfo';
+import { BsCreditCard2Front, BsBank } from 'react-icons/bs';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
 import { updateBusinessDetails } from '../app/actions/businesses';
 
@@ -124,6 +125,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState('');
   const [schedule, setSchedule] = useState<WeeklySchedule>(() => mapToScheduleState(normalizedInitial));
+  const [upgradeBusy, setUpgradeBusy] = useState(false);
 
   const applyBusinessData = useCallback((data: Record<string, any>) => {
     setBiz(data);
@@ -304,6 +306,45 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       console.error('Error al iniciar pago:', error);
       setMsg(`Error: ${error.message || 'No se pudo procesar el pago'}`);
       setBusy(false);
+    }
+  }
+
+  async function handleUpgradeByTransfer() {
+    if (!id || !biz || !user) return;
+    setUpgradeBusy(true);
+    setMsg('Guardando solicitud de transferencia...');
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/businesses/upgrade-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          businessId: id,
+          plan: 'sponsor',
+          paymentMethod: 'transfer',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'No pudimos guardar la solicitud');
+      }
+
+      setBiz((prev: any) => ({
+        ...prev,
+        plan: 'sponsor',
+        planPaymentMethod: 'transfer',
+        paymentStatus: 'pending_transfer',
+      }));
+      setMsg('�o. Solicitud guardada: env��a tu comprobante para activar el plan Premium.');
+    } catch (error: any) {
+      console.error('transfer upgrade error', error);
+      setMsg(error?.message || 'No pudimos registrar tu solicitud de transferencia');
+    } finally {
+      setUpgradeBusy(false);
     }
   }
 
@@ -625,6 +666,42 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   isActive={biz.isActive}
                   disabledReason={biz.disabledReason}
                 />
+
+                {biz.plan === 'featured' && (
+                  <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-50 text-purple-700 border border-purple-200">
+                        Upgrade disponible
+                      </span>
+                      <p className="text-sm text-gray-700">Pasa a Premium (Patrocinado) directamente desde tu panel.</p>
+                    </div>
+                    <div className="grid gap-2">
+                      <button
+                        onClick={() => handleUpgradePlan('sponsor')}
+                        disabled={busy}
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition disabled:opacity-60"
+                      >
+                        <BsCreditCard2Front />
+                        Pagar con tarjeta (Stripe)
+                      </button>
+                      <button
+                        onClick={handleUpgradeByTransfer}
+                        disabled={upgradeBusy}
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60"
+                      >
+                        <BsBank />
+                        Pagar por transferencia (activar Premium)
+                      </button>
+                      <div className="text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3">
+                        <p className="font-semibold text-gray-800 mb-1">Datos para transferencia:</p>
+                        <p>Banco: BBVA</p>
+                        <p>Cuenta/CLABE: 012345678901234567</p>
+                        <p>Beneficiario: Directorio Yajal��n</p>
+                        <p className="mt-1">Env��a tu comprobante a <a className="text-emerald-700 font-semibold" href="mailto:pagos@directorioyajalon.com">pagos@directorioyajalon.com</a> o por WhatsApp al <a className="text-emerald-700 font-semibold" href="https://wa.me/5219990000000" target="_blank" rel="noreferrer">+52 1 999 000 0000</a>. Activaremos tu plan al validar el pago.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
