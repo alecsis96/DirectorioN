@@ -117,33 +117,43 @@ export interface PaginatedBusinesses {
 }
 
 export async function fetchBusinesses(
-  limit: number = 20,
+  limit: number = 1000,
   lastId?: string
 ): Promise<PaginatedBusinesses> {
   try {
     const db = getAdminFirestore();
     
-    // Construir consulta base con ordenamiento y límite
-    let query = db
+    // Obtener todos los negocios publicados sin orderBy para evitar índice compuesto
+    // El ordenamiento se hace en memoria después
+    const snap = await db
       .collection("businesses")
       .where("status", "==", "published")
-      .orderBy("name")
-      .limit(limit);
+      .get();
     
-    // Si se proporciona lastId, usar startAfter para paginación por cursor
+    let allDocs = snap.docs;
+    
+    // Ordenar en memoria por nombre
+    allDocs.sort((a, b) => {
+      const nameA = String(a.data().name || '').toLowerCase();
+      const nameB = String(b.data().name || '').toLowerCase();
+      return nameA.localeCompare(nameB, 'es');
+    });
+    
+    // Aplicar paginación por cursor si se proporciona lastId
     if (lastId) {
-      const lastDocSnap = await db.collection("businesses").doc(lastId).get();
-      if (lastDocSnap.exists) {
-        query = query.startAfter(lastDocSnap);
+      const lastIndex = allDocs.findIndex(doc => doc.id === lastId);
+      if (lastIndex !== -1) {
+        allDocs = allDocs.slice(lastIndex + 1);
       }
     }
     
-    const snap = await query.get();
-    const businesses = snap.docs.map((doc) => normalizeBusiness(doc.data(), doc.id));
+    // Aplicar límite
+    const pagedDocs = allDocs.slice(0, limit);
+    const businesses = pagedDocs.map((doc) => normalizeBusiness(doc.data(), doc.id));
     
     // Determinar si hay más resultados
-    const nextId = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1].id : null;
-    const hasMore = snap.docs.length === limit;
+    const nextId = pagedDocs.length > 0 ? pagedDocs[pagedDocs.length - 1].id : null;
+    const hasMore = allDocs.length > limit;
     
     return {
       businesses,
