@@ -1,7 +1,7 @@
 'use client';
 /**
  * Dashboard para editar negocios
- * RediseÃƒÂ±ado para una navegaciÃƒÂ³n mÃƒÂ¡s clara y acciones visibles
+ * Solo pago por transferencia/sucursal (stripe oculto)
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,7 +13,7 @@ import LogoUploader from './LogoUploader';
 import CoverUploader from './CoverUploader';
 import AddressPicker from './AddressPicker';
 import PaymentInfo from './PaymentInfo';
-import { BsCreditCard2Front, BsBank, BsUpload } from 'react-icons/bs';
+import { BsBank, BsUpload } from 'react-icons/bs';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
 import { updateBusinessDetails } from '../app/actions/businesses';
 
@@ -217,7 +217,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       formData.append('updates', JSON.stringify(payload));
       await updateBusinessDetails(id, formData);
 
-      setMsg('Ã‚Â¡Guardado correctamente!');
+      setMsg('Guardado correctamente.');
 
       const snap = await getDoc(doc(db, 'businesses', id));
       if (snap.exists()) {
@@ -235,16 +235,16 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   async function submitForReview() {
     if (!id || !userCanEdit || !biz) return;
     if (biz.status !== 'draft' && biz.status !== 'rejected') {
-      setMsg('Este negocio ya estÃƒÂ¡ en revisiÃƒÂ³n o publicado.');
+      setMsg('Este negocio ya esta en revision o publicado.');
       return;
     }
     if (!form.name?.trim() || !form.description?.trim() || !form.phone?.trim()) {
-      setMsg('Completa al menos: Nombre, DescripciÃƒÂ³n y TelÃƒÂ©fono antes de enviar.');
+      setMsg('Completa al menos: Nombre, Descripcion y Telefono antes de enviar.');
       return;
     }
 
     setSubmitting(true);
-    setMsg('Enviando a revisiÃƒÂ³n...');
+    setMsg('Enviando a revision...');
     try {
       await updateDoc(doc(db, 'businesses', id), {
         status: 'review',
@@ -273,46 +273,12 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       }
 
       setBiz((prev: any) => ({ ...prev, status: 'review' }));
-      setMsg('Ã‚Â¡Negocio enviado a revisiÃƒÂ³n! Te notificaremos cuando sea aprobado.');
+      setMsg('Negocio enviado a revision. Te notificaremos cuando sea aprobado.');
     } catch (error) {
-      console.error('Error al enviar a revisiÃƒÂ³n:', error);
+      console.error('Error al enviar a revision:', error);
       setMsg('Error al enviar. Intenta nuevamente.');
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function handleUpgradePlan(selectedPlan: 'featured' | 'sponsor') {
-    if (!id || !biz || !user) return;
-    if (!receiptFile) {
-      setMsg('Adjunta tu comprobante de pago.');
-      return;
-    }
-    setBusy(true);
-    setMsg('Redirigiendo a Stripe...');
-    try {
-      const token = await user.getIdToken();
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          businessId: id,
-          businessName: biz.name || 'Negocio',
-          plan: selectedPlan,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.url) {
-        throw new Error(data.error || 'Error al crear sesiÃƒÂ³n de pago');
-      }
-      window.location.href = data.url;
-    } catch (error: any) {
-      console.error('Error al iniciar pago:', error);
-      setMsg(`Error: ${error.message || 'No se pudo procesar el pago'}`);
-      setBusy(false);
     }
   }
 
@@ -332,7 +298,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + token,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           businessId: id,
@@ -395,7 +361,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   Estado: {biz.status || 'draft'}
                 </span>
               </div>
-              <p className="text-sm text-gray-600">{user?.email || biz.ownerEmail || 'SesiÃƒÂ³n iniciada'}</p>
+              <p className="text-sm text-gray-600">{user?.email || biz.ownerEmail || 'Sesion iniciada'}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -410,7 +376,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   disabled={submitting}
                   className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-sm font-semibold disabled:opacity-60"
                 >
-                  {submitting ? 'Enviando...' : 'Enviar a revisiÃƒÂ³n'}
+                  {submitting ? 'Enviando...' : 'Enviar a revision'}
                 </button>
               )}
               <button
@@ -427,7 +393,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
             {/* Principal */}
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900">InformaciÃƒÂ³n bÃƒÂ¡sica</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Informacion basica</h2>
                 <div className="grid md:grid-cols-2 gap-4">
                   <input
                     className="border rounded-lg px-3 py-2"
@@ -437,13 +403,13 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   />
                   <input
                     className="border rounded-lg px-3 py-2"
-                    placeholder="CategorÃƒÂ­a"
+                    placeholder="Categoria"
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                   />
                   <input
                     className="border rounded-lg px-3 py-2 md:col-span-2"
-                    placeholder="DirecciÃƒÂ³n"
+                    placeholder="Direccion"
                     value={addr.address}
                     onChange={(e) => setAddr({ ...addr, address: e.target.value })}
                   />
@@ -451,7 +417,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 <textarea
                   className="border rounded-lg px-3 py-2 w-full"
                   rows={3}
-                  placeholder="DescripciÃƒÂ³n breve"
+                  placeholder="Descripcion breve"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
@@ -462,7 +428,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 <div className="grid md:grid-cols-2 gap-4">
                   <input
                     className="border rounded-lg px-3 py-2"
-                    placeholder="TelÃƒÂ©fono"
+                    placeholder="Telefono"
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   />
@@ -483,7 +449,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">UbicaciÃƒÂ³n</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Ubicacion</h2>
                 </div>
                 <AddressPicker value={addr} onChange={handleAddressChange} />
               </div>
@@ -543,43 +509,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       </div>
                     ))}
                     <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-300">
-                      Desmarca los dÃƒÂ­as que permaneces cerrado.
+                      Desmarca los dias que permaneces cerrado.
                     </div>
                   </div>
                 </div>
               </div>
-
-              {(form.category.toLowerCase().includes('comida') ||
-                form.category.toLowerCase().includes('restaurante') ||
-                form.category.toLowerCase().includes('pizzerÃƒÂ­a') ||
-                form.category.toLowerCase().includes('pizzeria') ||
-                form.category.toLowerCase().includes('cafeterÃƒÂ­a') ||
-                form.category.toLowerCase().includes('cafeteria') ||
-                form.category.toLowerCase().includes('panaderÃƒÂ­a') ||
-                form.category.toLowerCase().includes('panaderia') ||
-                form.category.toLowerCase().includes('antojitos') ||
-                form.category.toLowerCase().includes('cocina') ||
-                form.category.toLowerCase().includes('mariscos') ||
-                form.category.toLowerCase().includes('tacos')) && (
-                <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.hasDelivery}
-                      onChange={(e) => setForm({ ...form, hasDelivery: e.target.checked })}
-                      className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500"
-                    />
-                    <div>
-                      <span className="text-base font-bold text-orange-900 flex items-center gap-2">
-                        Ofrece delivery
-                      </span>
-                      <p className="text-sm text-orange-700 mt-1">
-                        Marca esta opciÃƒÂ³n si tu negocio realiza entregas a domicilio. Esto mejora tu visibilidad en la categorÃƒÂ­a de comida.
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              )}
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Destacado</h2>
@@ -593,7 +527,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   <div>
                     <span className="text-base font-bold text-yellow-900">Marcar como Destacado del mes</span>
                     <p className="text-sm text-yellow-700 mt-1">
-                      SecciÃƒÂ³n premium de la pÃƒÂ¡gina principal. Disponible para planes Pro y Premium.
+                      Seccion premium de la pagina principal. Disponible para planes de pago.
                     </p>
                   </div>
                 </label>
@@ -601,7 +535,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Medios</h2>
-                {(biz.plan === 'sponsor' || biz.plan === 'featured') ? (
+                {biz.plan === 'sponsor' || biz.plan === 'featured' ? (
                   <>
                     <div className="space-y-3">
                       <p className="text-sm text-gray-600">Imagen de portada (planes premium)</p>
@@ -625,38 +559,23 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 ) : (
                   <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-gray-700 mb-2">
-                      Funciones premium: portada y logo personalizados para planes Featured y Sponsor.
+                      Funciones premium disponibles por transferencia o pago en sucursal.
                     </p>
-                    <p className="text-xs text-gray-600">Actualiza tu plan para destacar tu marca.</p>
+                    <p className="text-xs text-gray-600">Sube tu comprobante para activar tu plan.</p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleUpgradePlan('featured')}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
-                      >
-                        Actualizar a Featured
-                      </button>
-                      <button
-                        onClick={() => handleUpgradePlan('sponsor')}
-                        className="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition"
-                      >
-                        Actualizar a Sponsor
-                      </button>
                       <button
                         onClick={() => handleUpgradeByTransfer('sponsor')}
                         disabled={upgradeBusy}
                         className="px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60"
                       >
-                        Pagar por transferencia
+                        Enviar comprobante (premium)
                       </button>
                     </div>
-                    <p className="text-[11px] text-gray-600 mt-2">
-                      Si eliges transferencia, marcaremos Premium y validaremos tu pago con tu comprobante.
-                    </p>
                   </div>
                 )}
 
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-600">GalerÃƒÂ­a de imÃƒÂ¡genes</p>
+                  <p className="text-sm text-gray-600">Galeria de imagenes</p>
                   <ImageUploader
                     businessId={id!}
                     images={biz.images || []}
@@ -672,13 +591,13 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               {biz.status === 'draft' && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-2">
                   <h3 className="font-semibold text-yellow-900">Borrador</h3>
-                  <p className="text-sm text-yellow-800">Completa la informaciÃƒÂ³n y envÃƒÂ­a a revisiÃƒÂ³n para publicar.</p>
+                  <p className="text-sm text-yellow-800">Completa la informacion y envia a revision para publicar.</p>
                   <button
                     onClick={submitForReview}
                     disabled={submitting}
                     className="w-full px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-sm font-semibold disabled:opacity-60"
                   >
-                    {submitting ? 'Enviando...' : 'Enviar a revisiÃƒÂ³n'}
+                    {submitting ? 'Enviando...' : 'Enviar a revision'}
                   </button>
                 </div>
               )}
@@ -698,9 +617,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-50 text-purple-700 border border-purple-200">
-                      Pago por transferencia
+                      Pago por transferencia o sucursal
                     </span>
-                    <p className="text-sm text-gray-700">Env�a tu comprobante y activaremos el plan al validarlo.</p>
+                    <p className="text-sm text-gray-700">Envia tu comprobante y activaremos el plan al validarlo.</p>
                   </div>
                   <div className="grid gap-2">
                     <label className="text-xs font-semibold text-gray-700">
@@ -716,7 +635,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     </label>
 
                     <label className="text-xs font-semibold text-gray-700">
-                      Comprobante (PDF/JPG/PNG, m�x 3MB)
+                      Comprobante (PDF/JPG/PNG, max 3MB)
                       <div className="mt-1 flex items-center gap-2">
                         <input
                           type="file"
@@ -738,20 +657,12 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     <div className="flex flex-wrap gap-2">
                       <button
-                        onClick={() => handleUpgradePlan(receiptPlan)}
-                        disabled={busy}
-                        className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition disabled:opacity-60"
-                      >
-                        <BsCreditCard2Front />
-                        Pagar con tarjeta (Stripe)
-                      </button>
-                      <button
                         onClick={() => handleUpgradeByTransfer(receiptPlan)}
                         disabled={upgradeBusy}
                         className="inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60"
                       >
                         <BsBank />
-                        Enviar comprobante (transferencia)
+                        Enviar comprobante (transferencia/sucursal)
                       </button>
                       {receiptFile && (
                         <div className="inline-flex items-center gap-2 text-xs text-gray-600 px-2 py-1 bg-gray-50 border border-dashed border-gray-200 rounded">
@@ -765,13 +676,16 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       <p className="font-semibold text-gray-800 mb-1">Datos para transferencia:</p>
                       <p>Banco: BBVA</p>
                       <p>Cuenta/CLABE: 012345678901234567</p>
-                      <p>Beneficiario: Directorio Yajal�n</p>
-                      <p className="mt-1">Env�a tu comprobante a <a className="text-emerald-700 font-semibold" href="mailto:pagos@directorioyajalon.com">pagos@directorioyajalon.com</a> o por WhatsApp al <a className="text-emerald-700 font-semibold" href="https://wa.me/5219990000000" target="_blank" rel="noreferrer">+52 1 999 000 0000</a>. Activaremos tu plan al validar el pago.</p>
+                      <p>Beneficiario: Directorio Yajalon</p>
+                      <p className="mt-1">Envia tu comprobante a pagos@directorioyajalon.com o por WhatsApp al +52 1 999 000 0000. Activaremos tu plan al validar el pago.</p>
                     </div>
                   </div>
                 </div>
-<h3 className="text-base font-semibold text-gray-900">Estado</h3>
-                <p className="text-sm text-gray-600">Propietario: {biz.ownerEmail || user?.email || 'Ã¢â‚¬â€'}</p>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
+                <h3 className="text-base font-semibold text-gray-900">Estado</h3>
+                <p className="text-sm text-gray-600">Propietario: {biz.ownerEmail || user?.email || 'Sesion'}</p>
                 <p className="text-sm text-gray-600">ID: {biz.id}</p>
                 <p className="text-xs text-gray-500">Mensaje: {msg || 'Sin mensajes'}</p>
                 <div className="flex flex-col gap-2">
@@ -779,7 +693,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     onClick={() => signOut(auth)}
                     className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
                   >
-                    Cerrar sesiÃƒÂ³n
+                    Cerrar sesion
                   </button>
                   {(form.plan === 'featured' || form.plan === 'sponsor') && (
                     <button
@@ -798,6 +712,3 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     </main>
   );
 }
-
-
-
