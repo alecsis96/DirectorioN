@@ -91,7 +91,7 @@ export default function AyudaPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4">
+    <main className="min-h-screen bg-gray-50 py-12 px-4 pb-24">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -188,8 +188,8 @@ export default function AyudaPage() {
         </div>
 
         {/* CTA Final */}
-        <div className="mt-12 text-center">
-          <p className="text-gray-600 mb-4">
+        <div className="mt-12 text-center bg-white rounded-xl shadow-sm p-8">
+          <p className="text-gray-600 mb-4 text-lg">
             ¿No encontraste lo que buscabas?
           </p>
           <a
