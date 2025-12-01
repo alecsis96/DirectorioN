@@ -108,42 +108,53 @@ type TransferReceipt = {
 
 async function getTransferReceipts(): Promise<TransferReceipt[]> {
   const db = getAdminFirestore();
-  const snap = await db
-    .collection('paymentReceipts')
-    .where('status', '==', 'pending')
-    .orderBy('createdAt', 'desc')
-    .limit(50)
-    .get();
+  
+  try {
+    const snap = await db
+      .collection('paymentReceipts')
+      .where('status', '==', 'pending')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
 
-  return snap.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      businessId: data.businessId,
-      businessName: data.businessName || 'Sin nombre',
-      ownerEmail: data.ownerEmail || null,
-      plan: data.plan || 'sponsor',
-      fileName: data.fileName || 'comprobante',
-      fileType: data.fileType || 'application/octet-stream',
-      fileData: data.fileData || '',
-      status: data.status || 'pending',
-      createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
-    };
-  });
+    return snap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        businessId: data.businessId,
+        businessName: data.businessName || 'Sin nombre',
+        ownerEmail: data.ownerEmail || null,
+        plan: data.plan || 'sponsor',
+        fileName: data.fileName || 'comprobante',
+        fileType: data.fileType || 'application/octet-stream',
+        fileData: data.fileData || '',
+        status: data.status || 'pending',
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+      };
+    });
+  } catch (error) {
+    console.error('[getTransferReceipts] Error fetching receipts:', error);
+    // Si el índice no está listo, retornar array vacío temporalmente
+    return [];
+  }
 }
 
 export default async function AdminPaymentsPage() {
-  await requireAdmin();
-  const [businesses, receipts] = await Promise.all([getBusinessesWithPaymentIssues(), getTransferReceipts()]);
+  try {
+    await requireAdmin();
+    const [businesses, receipts] = await Promise.all([
+      getBusinessesWithPaymentIssues(), 
+      getTransferReceipts()
+    ]);
 
-  return (
-    <main className="p-4 max-w-7xl mx-auto">
-      <header className="mb-8">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-3xl font-bold text-[#38761D]">💳 Gestión de Pagos</h1>
-        <p className="text-sm text-gray-600">
-          Administra pagos, deshabilita o elimina negocios con problemas de pago
-        </p>
+    return (
+      <main className="p-4 max-w-7xl mx-auto">
+        <header className="mb-8">
+          <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
+          <h1 className="mt-2 text-3xl font-bold text-[#38761D]">💳 Gestión de Pagos</h1>
+          <p className="text-sm text-gray-600">
+            Administra pagos, deshabilita o elimina negocios con problemas de pago
+          </p>
         
         {/* Navegación */}
         <div className="mt-6 flex flex-wrap gap-3">
@@ -234,4 +245,23 @@ export default async function AdminPaymentsPage() {
       <ReceiptListClient initialReceipts={receipts} />
     </main>
   );
+  } catch (error) {
+    console.error('[AdminPaymentsPage] Error:', error);
+    return (
+      <main className="p-4 max-w-7xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h2 className="text-lg font-bold text-red-900">Error al cargar la página</h2>
+          <p className="text-sm text-red-700 mt-2">
+            Hubo un problema al cargar los datos. Por favor, intenta de nuevo más tarde.
+          </p>
+          <details className="mt-4">
+            <summary className="cursor-pointer text-xs text-red-600">Ver detalles técnicos</summary>
+            <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-auto">
+              {error instanceof Error ? error.message : String(error)}
+            </pre>
+          </details>
+        </div>
+      </main>
+    );
+  }
 }
