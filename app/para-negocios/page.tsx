@@ -43,7 +43,7 @@ const PLANS: Plan[] = [
   {
     title: 'Plan Destacado',
     subtitle: 'El mas popular',
-    price: '$199',
+    price: '$99',
     period: 'al mes',
     perks: [
       'Todo del plan gratuito',
@@ -61,7 +61,7 @@ const PLANS: Plan[] = [
   {
     title: 'Plan Premium',
     subtitle: 'Maxima visibilidad',
-    price: '$349',
+    price: '$199',
     period: 'al mes',
     perks: [
       'Todo del plan destacado',

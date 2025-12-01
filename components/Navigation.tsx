@@ -46,7 +46,7 @@ const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void })
     { icon: History, label: 'Historial', href: '/negocios', desc: 'Visto recientemente' },
     { icon: Bell, label: 'Notificaciones', href: '/mis-solicitudes', desc: 'Avisos importantes' },
     { icon: BarChart2, label: 'Métricas', href: '/mis-solicitudes', desc: 'Rendimiento' },
-    { icon: HelpCircle, label: 'Ayuda y Soporte', href: '/para-negocios', desc: 'Centro de ayuda' },
+    { icon: HelpCircle, label: 'Ayuda y Soporte', href: '/ayuda', desc: 'Centro de ayuda' },
   ];
 
   return (
