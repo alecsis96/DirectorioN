@@ -60,10 +60,12 @@ async function buildBusinessesResult(params: SearchParams) {
     } catch (geoError) {
       console.error('[home] geosearch failed', geoError);
       error = 'No pudimos filtrar por ubicación, mostrando todos los negocios.';
-      allBusinesses = await fetchBusinesses();
+      const { businesses } = await fetchBusinesses();
+      allBusinesses = businesses;
     }
   } else {
-    allBusinesses = await fetchBusinesses();
+    const { businesses } = await fetchBusinesses();
+    allBusinesses = businesses;
   }
 
   const labelByNorm = new Map<string, string>();

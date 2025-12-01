@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const allBusinesses = await fetchBusinesses();
+  const { businesses: allBusinesses } = await fetchBusinesses();
 
   const premiumBusinesses: BusinessPreview[] = allBusinesses
     .filter(

@@ -60,7 +60,7 @@ export default async function BusinessDetailAppPage({ params }: PageProps) {
   const decodedId = decodeURIComponent(id);
   let business = await fetchBusinessById(decodedId);
   if (!business) {
-    const all = await fetchBusinesses();
+    const { businesses: all } = await fetchBusinesses();
     const fallback = all.find((item) => item.id === decodedId);
     business = fallback ?? null;
   }

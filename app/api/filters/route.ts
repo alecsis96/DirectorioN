@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const allBusinesses = await fetchBusinesses();
+    const { businesses: allBusinesses } = await fetchBusinesses();
 
     // Obtener colonias únicas
     const labelByNorm = new Map<string, string>();

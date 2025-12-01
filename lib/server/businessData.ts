@@ -110,15 +110,53 @@ export function normalizeBusiness(data: any, id: string): Business {
   return business;
 }
 
-export async function fetchBusinesses(): Promise<Business[]> {
+export interface PaginatedBusinesses {
+  businesses: Business[];
+  nextId: string | null;
+  hasMore: boolean;
+}
+
+export async function fetchBusinesses(
+  limit: number = 20,
+  lastId?: string
+): Promise<PaginatedBusinesses> {
   try {
     const db = getAdminFirestore();
-    // Solo mostrar negocios publicados (no drafts pendientes de edición del dueño)
-    const snap = await db.collection("businesses").where("status", "==", "published").get();
-    return snap.docs.map((doc) => normalizeBusiness(doc.data(), doc.id));
+    
+    // Construir consulta base con ordenamiento y límite
+    let query = db
+      .collection("businesses")
+      .where("status", "==", "published")
+      .orderBy("name")
+      .limit(limit);
+    
+    // Si se proporciona lastId, usar startAfter para paginación por cursor
+    if (lastId) {
+      const lastDocSnap = await db.collection("businesses").doc(lastId).get();
+      if (lastDocSnap.exists) {
+        query = query.startAfter(lastDocSnap);
+      }
+    }
+    
+    const snap = await query.get();
+    const businesses = snap.docs.map((doc) => normalizeBusiness(doc.data(), doc.id));
+    
+    // Determinar si hay más resultados
+    const nextId = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1].id : null;
+    const hasMore = snap.docs.length === limit;
+    
+    return {
+      businesses,
+      nextId,
+      hasMore
+    };
   } catch (error) {
     console.error("[businessData] Error fetching from Firestore:", error);
-    return [];
+    return {
+      businesses: [],
+      nextId: null,
+      hasMore: false
+    };
   }
 }
 
