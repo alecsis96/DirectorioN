@@ -76,6 +76,74 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       createdBy: decoded.email || decoded.uid,
     });
 
+    // Enviar notificación de Slack
+    try {
+      const slackWebhook = process.env.SLACK_WEBHOOK_URL;
+      if (slackWebhook) {
+        const businessName = bizData?.name || bizData?.businessName || 'Negocio';
+        const ownerEmail = bizData?.ownerEmail || decoded.email || 'Sin email';
+        const planText = plan === 'featured' ? '⭐ Featured' : '🏆 Sponsor';
+        
+        await fetch(slackWebhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: `💳 Nuevo comprobante de pago recibido`,
+            blocks: [
+              {
+                type: 'header',
+                text: {
+                  type: 'plain_text',
+                  text: '💳 Nuevo Comprobante de Pago',
+                  emoji: true
+                }
+              },
+              {
+                type: 'section',
+                fields: [
+                  {
+                    type: 'mrkdwn',
+                    text: `*Negocio:*\n${businessName}`
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: `*Plan solicitado:*\n${planText}`
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: `*Propietario:*\n${ownerEmail}`
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: `*Archivo:*\n${fileName}`
+                  }
+                ]
+              },
+              {
+                type: 'actions',
+                elements: [
+                  {
+                    type: 'button',
+                    text: {
+                      type: 'plain_text',
+                      text: 'Ver comprobantes pendientes',
+                      emoji: true
+                    },
+                    url: 'https://directorion.vercel.app/admin/payments',
+                    style: 'primary'
+                  }
+                ]
+              }
+            ]
+          })
+        });
+        console.log('✅ Slack notification sent for new receipt');
+      }
+    } catch (slackError) {
+      console.error('Error sending Slack notification:', slackError);
+      // No fallar la request si Slack falla
+    }
+
     return res.status(200).json({ ok: true });
   } catch (error) {
     console.error('[upload-transfer] error', error);
