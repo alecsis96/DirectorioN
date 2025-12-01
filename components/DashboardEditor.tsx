@@ -129,9 +129,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptNotes, setReceiptNotes] = useState('');
   const [receiptPlan, setReceiptPlan] = useState<'featured' | 'sponsor'>('sponsor');
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptNotes, setReceiptNotes] = useState('');
-  const [receiptPlan, setReceiptPlan] = useState<'featured' | 'sponsor'>('sponsor');
 
   const applyBusinessData = useCallback((data: Record<string, any>) => {
     setBiz(data);

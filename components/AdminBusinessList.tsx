@@ -97,6 +97,8 @@ export default function AdminBusinessList({ businesses }: Props) {
                 ...biz,
                 plan,
                 planExpiresAt: data.planExpiresAt ?? biz.planExpiresAt ?? null,
+                nextPaymentDate: data.nextPaymentDate ?? biz.nextPaymentDate ?? null,
+                paymentStatus: plan === 'free' ? null : biz.paymentStatus ?? 'active',
                 stripeSubscriptionStatus: plan === 'free' ? undefined : biz.stripeSubscriptionStatus,
               }
             : biz

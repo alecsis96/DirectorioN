@@ -43,11 +43,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Business not found' });
     }
 
+    const now = new Date();
+    const existing = businessSnap.data() as Record<string, any> | undefined;
+
     const updates: Record<string, any> = {
       plan,
       featured: plan !== 'free',
-      updatedAt: new Date(),
-      planUpdatedAt: new Date(),
+      updatedAt: now,
+      planUpdatedAt: now,
       planUpdatedBy: decoded.email || decoded.uid,
     };
 
@@ -56,13 +59,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       updates.planExpiresAt = null;
       updates.stripeSubscriptionStatus = null;
       updates.nextPaymentDate = null;
-    } else if (expiresAt) {
-      const parsed = new Date(expiresAt);
-      if (Number.isNaN(parsed.getTime())) {
-        return res.status(400).json({ error: 'Invalid expiresAt date' });
+      updates.paymentStatus = null;
+      updates.planPaymentMethod = null;
+    } else {
+      // Fecha de expiración opcional
+      if (expiresAt) {
+        const parsed = new Date(expiresAt);
+        if (Number.isNaN(parsed.getTime())) {
+          return res.status(400).json({ error: 'Invalid expiresAt date' });
+        }
+        expires = parsed;
+        updates.planExpiresAt = parsed;
       }
-      expires = parsed;
-      updates.planExpiresAt = parsed;
+
+      // Próximo pago: si no existe, poner 30 días desde hoy
+      const existingNext = existing?.nextPaymentDate?.toDate?.() ?? existing?.nextPaymentDate;
+      const nextPayment =
+        plan === 'free'
+          ? null
+          : existingNext instanceof Date
+          ? existingNext
+          : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      updates.nextPaymentDate = nextPayment;
+      updates.lastPaymentDate =
+        existing?.lastPaymentDate?.toDate?.() ??
+        existing?.lastPaymentDate ??
+        now;
+      updates.paymentStatus = 'active';
+      updates.planPaymentMethod = existing?.planPaymentMethod ?? 'manual';
+      updates.planActivatedAt = existing?.planActivatedAt ?? now;
     }
 
     await businessRef.update(updates);
@@ -70,6 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       ok: true,
       planExpiresAt: expires ? expires.toISOString() : null,
+      nextPaymentDate: updates.nextPaymentDate ? updates.nextPaymentDate.toISOString?.() ?? updates.nextPaymentDate : null,
     });
   } catch (error) {
     console.error('[admin/update-plan] error', error);
