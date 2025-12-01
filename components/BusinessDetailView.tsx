@@ -23,6 +23,7 @@ import { optionalPublicEnv } from "../lib/env";
 import { deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { waLink, mapsLink, normalizeDigits } from "../lib/helpers/contact";
 import { trackPageView, trackBusinessInteraction, trackCTA } from "../lib/telemetry";
+import { useBusinessHistory } from "../hooks/useBusinessHistory";
 
 import { upsertReview, reviewsQuery, ReviewSchema } from "../lib/firestore/reviews";
 import { hasAdminOverride } from "../lib/adminOverrides";
@@ -88,9 +89,8 @@ interface Props {
 export default function BusinessDetailView({ business }: Props) {
   const businessId = typeof business.id === "string" ? business.id : undefined;
 
-
-
-
+  // Guardar en historial
+  useBusinessHistory(business);
 
   // ---------- Galeria ----------
 
