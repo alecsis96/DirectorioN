@@ -9,6 +9,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
 import BusinessCard from './BusinessCard';
+import BusinessesMapView from './BusinessesMapView';
 import { auth, signInWithGoogle } from '../firebaseConfig';
 import { trackPageView } from '../lib/telemetry';
 import { sliceBusinesses } from '../lib/pagination';
@@ -82,6 +83,7 @@ export default function NegociosListClient({
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessPreview | Business | null>(null);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [showCategoriesSection, setShowCategoriesSection] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [uiFilters, setUiFilters] = useState<Filters>(() => ({
     category: initialFilters.category || '',
     colonia: initialFilters.colonia || '',
@@ -961,6 +963,36 @@ export default function NegociosListClient({
           </div>
         </div>
 
+        {/* Toggle Vista Lista / Mapa */}
+        <div className="mb-6 flex items-center justify-center gap-1 bg-gray-100 p-1 rounded-lg w-fit mx-auto">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${
+              viewMode === 'list'
+                ? 'bg-white text-gray-900 shadow-md'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            Vista Lista
+          </button>
+          <button
+            onClick={() => setViewMode('map')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${
+              viewMode === 'map'
+                ? 'bg-white text-gray-900 shadow-md'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            Vista Mapa
+          </button>
+        </div>
+
         {/* Filtros activos - Chips para mostrar filtros seleccionados */}
         {(uiFilters.category || uiFilters.colonia || uiFilters.order !== DEFAULT_ORDER) && (
           <div className="mb-6 flex flex-wrap gap-2">
@@ -1031,23 +1063,52 @@ export default function NegociosListClient({
           });
 
           return (
-            <div id="all-categories" className="space-y-6">
-              {showEmptyState && (
-                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
-                  No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
+            <div id="all-categories">
+              {/* Vista de Mapa */}
+              {viewMode === 'map' && (
+                <div className="mb-6">
+                  {showEmptyState ? (
+                    <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
+                      No encontramos negocios con los filtros seleccionados. Ajusta la búsqueda para ver más opciones.
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200">
+                      <BusinessesMapView
+                        businesses={businessesToDisplay as Business[]}
+                        className="h-[600px] w-full"
+                        onBusinessClick={(business) => setSelectedBusiness(business)}
+                      />
+                    </div>
+                  )}
+                  {businessesToDisplay.length > 0 && (
+                    <p className="text-sm text-gray-600 text-center mt-3">
+                      📍 Mostrando {businessesToDisplay.length} {businessesToDisplay.length === 1 ? 'negocio' : 'negocios'} en el mapa
+                    </p>
+                  )}
                 </div>
               )}
 
-              {!showEmptyState && businessesToDisplay.map((biz) => (
-                <BusinessCard 
-                  key={biz.id} 
-                  business={biz}
-                  onViewDetails={(business) => setSelectedBusiness(business)}
-                />
-              ))}
+              {/* Vista de Lista */}
+              {viewMode === 'list' && (
+                <div className="space-y-6">
+                  {showEmptyState && (
+                    <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
+                      No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
+                    </div>
+                  )}
 
-              {isFetching && businessesToDisplay.length === 0 && <SkeletonList count={3} />}
-              {isFetching && businessesToDisplay.length > 0 && <SkeletonList count={1} />}
+                  {!showEmptyState && businessesToDisplay.map((biz) => (
+                    <BusinessCard 
+                      key={biz.id} 
+                      business={biz}
+                      onViewDetails={(business) => setSelectedBusiness(business)}
+                    />
+                  ))}
+
+                  {isFetching && businessesToDisplay.length === 0 && <SkeletonList count={3} />}
+                  {isFetching && businessesToDisplay.length > 0 && <SkeletonList count={1} />}
+                </div>
+              )}
             </div>
           );
         })()}
