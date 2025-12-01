@@ -11,7 +11,7 @@ interface HistoryItem {
 }
 
 export function useBusinessHistory(business: {
-  id: string;
+  id?: string;
   name?: string;
   businessName?: string;
   category?: string;
