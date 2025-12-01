@@ -23,6 +23,7 @@ interface BusinessData {
   nextPaymentDate?: string;
   lastPaymentDate?: string;
   isActive?: boolean;
+  paymentStatus?: string | null;
 }
 
 interface Props {
