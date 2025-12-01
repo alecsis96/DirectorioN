@@ -41,7 +41,6 @@ async function getUserBusinessMetrics(userId: string) {
   const businessesSnapshot = await db
     .collection('businesses')
     .where('ownerId', '==', userId)
-    .where('status', '==', 'published')
     .get();
 
   const businesses = businessesSnapshot.docs.map(doc => ({
@@ -49,9 +48,11 @@ async function getUserBusinessMetrics(userId: string) {
     ...doc.data()
   }));
 
-  // Filtrar solo negocios premium (Featured o Sponsor)
+  // Filtrar solo negocios premium (Featured o Sponsor) y publicados
   const premiumBusinesses = businesses.filter(
-    (b: any) => b.plan === 'featured' || b.plan === 'sponsor'
+    (b: any) => 
+      (b.plan === 'featured' || b.plan === 'sponsor') && 
+      b.status === 'published'
   );
 
   if (premiumBusinesses.length === 0) {
@@ -64,43 +65,65 @@ async function getUserBusinessMetrics(userId: string) {
 
   const businessIds = premiumBusinesses.map((b: any) => b.id);
   
-  // Obtener eventos de telemetría
+  // Obtener eventos de telemetría para cada negocio
   const metricsPromises = businessIds.map(async (businessId: string) => {
-    const eventsSnapshot = await db
-      .collection('telemetry_events')
-      .where('businessId', '==', businessId)
-      .where('createdAt', '>=', thirtyDaysAgo)
-      .get();
+    try {
+      const eventsSnapshot = await db
+        .collection('telemetry_events')
+        .where('businessId', '==', businessId)
+        .orderBy('createdAt', 'desc')
+        .limit(1000)
+        .get();
 
-    const events = eventsSnapshot.docs.map(doc => doc.data());
-    
-    const views = events.filter((e: any) => e.event === 'business_view').length;
-    const phoneClicks = events.filter((e: any) => e.event === 'phone_click').length;
-    const whatsappClicks = events.filter((e: any) => e.event === 'whatsapp_click').length;
+      // Filtrar por fecha en memoria (para evitar índice compuesto)
+      const events = eventsSnapshot.docs
+        .map(doc => doc.data())
+        .filter((e: any) => {
+          const eventDate = e.createdAt?.toDate?.() || new Date(e.createdAt);
+          return eventDate >= thirtyDaysAgo;
+        });
+      
+      const views = events.filter((e: any) => e.event === 'business_view').length;
+      const phoneClicks = events.filter((e: any) => e.event === 'phone_click').length;
+      const whatsappClicks = events.filter((e: any) => e.event === 'whatsapp_click').length;
 
-    // Obtener reseñas
-    const reviewsSnapshot = await db
-      .collection('reviews')
-      .where('businessId', '==', businessId)
-      .get();
+      // Obtener reseñas
+      const reviewsSnapshot = await db
+        .collection('reviews')
+        .where('businessId', '==', businessId)
+        .get();
 
-    const reviews = reviewsSnapshot.docs.map(doc => doc.data());
-    const avgRating = reviews.length > 0
-      ? reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length
-      : 0;
+      const reviews = reviewsSnapshot.docs.map(doc => doc.data());
+      const avgRating = reviews.length > 0
+        ? reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length
+        : 0;
 
-    const business = premiumBusinesses.find((b: any) => b.id === businessId);
+      const business = premiumBusinesses.find((b: any) => b.id === businessId);
 
-    return {
-      businessId,
-      businessName: business?.name || business?.businessName || 'Sin nombre',
-      plan: business?.plan || 'free',
-      views,
-      phoneClicks,
-      whatsappClicks,
-      totalReviews: reviews.length,
-      avgRating: Math.round(avgRating * 10) / 10,
-    };
+      return {
+        businessId,
+        businessName: business?.name || business?.businessName || 'Sin nombre',
+        plan: business?.plan || 'free',
+        views,
+        phoneClicks,
+        whatsappClicks,
+        totalReviews: reviews.length,
+        avgRating: Math.round(avgRating * 10) / 10,
+      };
+    } catch (error) {
+      console.error(`Error fetching metrics for ${businessId}:`, error);
+      const business = premiumBusinesses.find((b: any) => b.id === businessId);
+      return {
+        businessId,
+        businessName: business?.name || business?.businessName || 'Sin nombre',
+        plan: business?.plan || 'free',
+        views: 0,
+        phoneClicks: 0,
+        whatsappClicks: 0,
+        totalReviews: 0,
+        avgRating: 0,
+      };
+    }
   });
 
   const metrics = await Promise.all(metricsPromises);
