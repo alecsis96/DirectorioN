@@ -45,7 +45,7 @@ async function getUserBusinessMetrics(userId: string) {
 
   const businesses = businessesSnapshot.docs.map(doc => ({
     id: doc.id,
-    ...doc.data()
+    ...(doc.data() as any)
   }));
 
   // Filtrar solo negocios premium (Featured o Sponsor) y publicados
@@ -98,7 +98,7 @@ async function getUserBusinessMetrics(userId: string) {
         ? reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length
         : 0;
 
-      const business = premiumBusinesses.find((b: any) => b.id === businessId);
+      const business: any = premiumBusinesses.find((b: any) => b.id === businessId);
 
       return {
         businessId,
@@ -112,7 +112,7 @@ async function getUserBusinessMetrics(userId: string) {
       };
     } catch (error) {
       console.error(`Error fetching metrics for ${businessId}:`, error);
-      const business = premiumBusinesses.find((b: any) => b.id === businessId);
+      const business: any = premiumBusinesses.find((b: any) => b.id === businessId);
       return {
         businessId,
         businessName: business?.name || business?.businessName || 'Sin nombre',
