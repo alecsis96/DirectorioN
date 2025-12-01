@@ -40,6 +40,7 @@ export default function AdminApplicationsList({ applications }: { applications: 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<AdminApplication | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const getToken = useCallback(async () => {
     const user = auth.currentUser;
@@ -83,6 +84,18 @@ export default function AdminApplicationsList({ applications }: { applications: 
     [getToken],
   );
 
+  // Filtrar solicitudes según el término de búsqueda
+  const filteredApps = apps.filter((app) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      app.businessName?.toLowerCase().includes(term) ||
+      app.email?.toLowerCase().includes(term) ||
+      app.ownerName?.toLowerCase().includes(term) ||
+      app.phone?.toLowerCase().includes(term)
+    );
+  });
+
   if (!apps.length) {
     return (
       <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-600">
@@ -94,7 +107,46 @@ export default function AdminApplicationsList({ applications }: { applications: 
   return (
     <div className="space-y-4">
       {error && <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-      {apps.map((app) => (
+      
+      {/* Buscador */}
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Buscar por nombre, email o teléfono..."
+          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+            aria-label="Limpiar búsqueda"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Mensaje cuando no hay resultados pero hay apps */}
+      {filteredApps.length === 0 && apps.length > 0 && (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
+          <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <p className="text-sm text-gray-600 font-semibold">No se encontraron resultados para tu búsqueda</p>
+          <p className="text-xs text-gray-500 mt-1">Intenta con otros términos de búsqueda</p>
+        </div>
+      )}
+
+      {filteredApps.map((app) => (
         <article key={app.uid} className={cardClass}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
