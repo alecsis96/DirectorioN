@@ -76,31 +76,34 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   // Determinar estilo según el plan
   const cardStyles = {
     sponsor: {
-      border: 'border-amber-400 border-[3px]',
-      bg: 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50',
-      shadow: 'shadow-2xl shadow-amber-200 hover:shadow-amber-400/50',
+      border: 'border-[3px]',
+      borderGradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500',
+      bg: 'bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50',
+      shadow: 'shadow-2xl shadow-purple-200 hover:shadow-purple-400/50',
       badge: { 
-        text: '💎 PATROCINADO', 
-        style: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white animate-pulse',
-        glow: 'shadow-lg shadow-amber-300'
+        text: '👑 SPONSOR', 
+        style: 'bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 text-white animate-pulse',
+        glow: 'shadow-lg shadow-purple-300'
       },
-      titleColor: 'text-amber-900',
-      ring: 'ring-4 ring-amber-500 ring-offset-2'
+      titleColor: 'text-purple-900',
+      ring: 'ring-4 ring-purple-500 ring-offset-2'
     },
     featured: {
-      border: 'border-blue-500 border-[4px]',
-      bg: 'bg-white',
-      shadow: 'shadow-xl shadow-blue-300 hover:shadow-blue-500/50',
+      border: 'border-[3px]',
+      borderGradient: 'bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400',
+      bg: 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50',
+      shadow: 'shadow-xl shadow-amber-300 hover:shadow-amber-500/50',
       badge: { 
-        text: '✨ DESTACADO', 
-        style: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white',
-        glow: 'shadow-md shadow-blue-400'
+        text: '🔥 PATROCINADO', 
+        style: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white',
+        glow: 'shadow-md shadow-amber-400'
       },
-      titleColor: 'text-blue-900',
-      ring: 'ring-2 ring-blue-300 ring-offset-2'
+      titleColor: 'text-amber-900',
+      ring: 'ring-2 ring-amber-300 ring-offset-2'
     },
     free: {
-      border: 'border-gray-100 border',
+      border: 'border',
+      borderGradient: 'bg-gray-100',
       bg: 'bg-white',
       shadow: 'shadow-none',
       badge: null,
@@ -112,14 +115,21 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
 
   return (
-    <article className={`relative ${currentStyle.bg} border ${currentStyle.border} rounded-2xl ${currentStyle.shadow} ${currentStyle.ring} p-4 flex flex-row items-start gap-4 transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden`} suppressHydrationWarning>
-      {/* Efecto de brillo para premium */}
-      {plan !== 'free' && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
-      )}
-      
-      {/* COLUMNA IZQUIERDA: Logo - SOLO para planes premium */}
-      {plan !== 'free' && (
+    <article className={`relative overflow-hidden rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl`} suppressHydrationWarning>
+      {/* Borde con degradado para planes premium */}
+      <div className={`absolute inset-0 ${currentStyle.borderGradient} ${plan !== 'free' ? 'p-[3px]' : 'p-[1px]'} rounded-2xl`}>
+        <div className={`h-full w-full ${currentStyle.bg} rounded-2xl`} />
+      </div>
+
+      {/* Contenido de la tarjeta */}
+      <div className={`relative ${currentStyle.bg} ${currentStyle.shadow} ${currentStyle.ring} rounded-2xl p-4 flex flex-row items-start gap-4`} suppressHydrationWarning>
+        {/* Efecto de brillo para premium */}
+        {plan !== 'free' && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
+        )}
+        
+        {/* COLUMNA IZQUIERDA: Logo - SOLO para planes premium */}
+        {plan !== 'free' && (
         <div className="flex-shrink-0 relative z-10" suppressHydrationWarning>
           <img 
             src={logoUrl} 
@@ -270,6 +280,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             Como llegar
           </a>
         </div>
+      </div>
       </div>
     </article>
   );
