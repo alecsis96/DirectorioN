@@ -115,14 +115,9 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
 
   return (
-    <article className={`relative overflow-hidden rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl`} suppressHydrationWarning>
-      {/* Borde con degradado para planes premium */}
-      <div className={`absolute inset-0 ${currentStyle.borderGradient} ${plan !== 'free' ? 'p-[3px]' : 'p-[1px]'} rounded-2xl`}>
-        <div className={`h-full w-full ${currentStyle.bg} rounded-2xl`} />
-      </div>
-
+    <article className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl ${plan !== 'free' ? 'p-[4px]' : ''} ${plan !== 'free' ? currentStyle.borderGradient : 'bg-white'}`} suppressHydrationWarning>
       {/* Contenido de la tarjeta */}
-      <div className={`relative ${currentStyle.bg} ${currentStyle.shadow} ${currentStyle.ring} rounded-2xl p-4 flex flex-row items-start gap-4`} suppressHydrationWarning>
+      <div className={`relative ${currentStyle.bg} ${currentStyle.shadow} ${currentStyle.ring} rounded-xl p-4 flex flex-row items-start gap-4 overflow-hidden`} suppressHydrationWarning>
         {/* Efecto de brillo para premium */}
         {plan !== 'free' && (
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
