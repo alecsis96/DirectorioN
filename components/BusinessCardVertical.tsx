@@ -88,7 +88,7 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
           </div>
         )}
 
-        {/* Imagen de portada - SOLO para SPONSOR */}
+        {/* Imagen de portada - SOLO para PATROCINADO */}
         {plan === 'sponsor' && (
           <div className="h-40 w-full overflow-hidden bg-gray-100 border-b border-gray-200">
             <img 

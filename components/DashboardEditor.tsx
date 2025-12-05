@@ -632,8 +632,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                         onChange={(e) => setReceiptPlan(e.target.value as 'featured' | 'sponsor')}
                         className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                       >
-                        <option value="featured">Featured (Destacado)</option>
-                        <option value="sponsor">Premium (Patrocinado)</option>
+                        <option value="featured">Destacado</option>
+                        <option value="sponsor">Patrocinado</option>
                       </select>
                     </label>
 

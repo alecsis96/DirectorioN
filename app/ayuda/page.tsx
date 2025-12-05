@@ -21,12 +21,12 @@ export default function AyudaPage() {
       answer: 'Inicia sesión con tu cuenta, ve a "Mis Negocios" y haz clic en "Editar" en el negocio que deseas actualizar.',
     },
     {
-      question: '¿Qué incluye el plan Featured?',
-      answer: 'El plan Featured incluye: aparición prioritaria en búsquedas, destacado con insignia dorada, analytics detallados y soporte prioritario por WhatsApp.',
+      question: '¿Qué incluye el plan Destacado?',
+      answer: 'El plan Destacado incluye: aparición prioritaria en búsquedas, destacado con insignia dorada, analytics detallados y soporte prioritario por WhatsApp.',
     },
     {
-      question: '¿Qué incluye el plan Sponsor?',
-      answer: 'El plan Sponsor incluye todo lo de Featured más: aparición en la sección premium del inicio, logo grande, posición destacada y máxima visibilidad.',
+      question: '¿Qué incluye el plan Patrocinado?',
+      answer: 'El plan Patrocinado incluye todo lo de Destacado más: aparición en la sección premium del inicio, logo grande, posición destacada y máxima visibilidad.',
     },
     {
       question: '¿Cómo agrego horarios de atención?',

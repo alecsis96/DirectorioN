@@ -71,7 +71,7 @@ async function fetchAllBusinesses(): Promise<BusinessData[]> {
     const data = doc.data();
     return {
       id: doc.id,
-      businessName: data.businessName || 'Sin nombre',
+      businessName: data.businessName || data.name || 'Sin nombre',
       ownerName: data.ownerName,
       ownerEmail: data.ownerEmail,
       category: data.category,
@@ -124,10 +124,19 @@ export default async function AdminBusinessesPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6 pl-14 lg:pl-0">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">Negocios Publicados</h1>
-        <p className="text-sm text-gray-600">Gestiona todos los negocios activos en el directorio.</p>
+      <div className="mb-6 pl-14 lg:pl-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
+          <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">Negocios Publicados</h1>
+          <p className="text-sm text-gray-600">Gestiona todos los negocios activos en el directorio.</p>
+        </div>
+        <Link
+          href="/admin/businesses/nuevo"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#38761D] text-white font-semibold rounded-lg hover:bg-[#2d5a16] transition-colors shadow-md"
+        >
+          <span className="text-xl">+</span>
+          <span>Crear Negocio</span>
+        </Link>
       </div>
 
       <div className="grid lg:grid-cols-[280px_1fr] gap-6">

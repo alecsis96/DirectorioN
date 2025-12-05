@@ -81,7 +81,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       bg: 'bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50',
       shadow: 'shadow-xl shadow-purple-200 hover:shadow-purple-400/50',
       badge: { 
-        text: '👑 SPONSOR', 
+        text: '👑 PATROCINADO', 
         style: 'bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 text-white animate-pulse',
         glow: 'shadow-lg shadow-purple-300'
       },
@@ -94,7 +94,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       bg: 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50',
       shadow: 'shadow-xl shadow-amber-300 hover:shadow-amber-500/50',
       badge: { 
-        text: '🔥 PATROCINADO', 
+        text: '🔥 DESTACADO', 
         style: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white',
         glow: 'shadow-md shadow-amber-400'
       },
