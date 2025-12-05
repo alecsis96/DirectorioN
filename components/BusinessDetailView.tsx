@@ -641,7 +641,7 @@ export default function BusinessDetailView({ business }: Props) {
 
       {/* HERO SECTION - Portada SOLO para planes premium */}
       {(plan === 'sponsor' || plan === 'featured') && (
-        <div className={`relative w-full ${allGalleryImages.length > 1 ? 'aspect-square md:h-96' : currentTheme.heroHeight} bg-gray-200 rounded-2xl overflow-hidden shadow-xl`}>
+        <div className={`relative w-full ${allGalleryImages.length > 1 ? 'aspect-square md:h-96' : currentTheme.heroHeight} bg-gray-200 rounded-2xl overflow-hidden shadow-xl mb-4`}>
           {/* Interactive Image Carousel - Show if multiple images exist */}
           {allGalleryImages.length > 1 ? (
             <Swiper
@@ -713,32 +713,31 @@ export default function BusinessDetailView({ business }: Props) {
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
         )}
 
-        <div className={`px-6 pb-6 relative z-10 ${(plan === 'sponsor' || plan === 'featured') ? 'pt-16' : 'pt-6'}`}>
-          <div className={`flex flex-col sm:flex-row gap-4 items-start mb-6 ${(plan === 'sponsor' || plan === 'featured') ? '-mt-12' : ''}`}>
-            
-            {/* Logo SOLO para planes premium (Elevado sobre la portada) */}
-            {(plan === 'sponsor' || plan === 'featured') && (
-              <div className="bg-white p-1.5 rounded-2xl shadow-lg flex-shrink-0">
-                  <img 
-                    src={
-                      business.logoUrl ||
-                      (business.plan && business.plan !== 'free'
-                        ? '/images/default-premium-logo.svg'
-                        : 'https://via.placeholder.com/80?text=Logo')
-                    } 
-                    alt={`Logo de ${business.name}`}
-                    className="w-20 h-20 rounded-xl object-cover border border-gray-100"
-                  />
-              </div>
-            )}
+        <div className="px-6 py-4 relative z-10">
+          {/* Compact Header - Logo inline with Business Name */}
+          <div className="flex items-start gap-3 mb-4">
+            {/* Logo inline (avatar style) - for all plans */}
+            <div className="flex-shrink-0">
+              <img 
+                src={
+                  business.logoUrl ||
+                  business.image1 ||
+                  (business.plan && business.plan !== 'free'
+                    ? '/images/default-premium-logo.svg'
+                    : 'https://via.placeholder.com/64?text=Logo')
+                } 
+                alt={`Logo de ${business.name}`}
+                className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-white"
+              />
+            </div>
 
-            {/* Título y Datos */}
-            <div className="flex-1 min-w-0 pt-2">
+            {/* Business Name and Info */}
+            <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-3xl font-bold text-gray-900 leading-tight">{business.name}</h1>
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight">{business.name}</h1>
                 {/* Icono de Verificado para premium */}
                 {plan !== 'free' && (
-                  <span className="text-blue-500 text-xl" title="Negocio Verificado">✓</span>
+                  <span className="text-blue-500 text-lg" title="Negocio Verificado">✓</span>
                 )}
               </div>
 
@@ -928,44 +927,6 @@ export default function BusinessDetailView({ business }: Props) {
       )}
 
 
-
-      {/* Galeria */}
-      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Galeria</h2>
-        {hasPremiumGallery ? (
-          dataSaverEnabled ? (
-            <p className="text-sm text-gray-500">Modo ahorro de datos activo: omitimos la galeria para cuidar tu plan.</p>
-          ) : galleryItems.length ? (
-            <div className="relative max-w-lg mx-auto">
-              <div className="relative w-full overflow-y-auto touch-pan-y overscroll-y-contain">
-                <ImageGallery
-                  items={galleryItems}
-                  showPlayButton={false}
-                  showFullscreenButton={galleryItems.length > 0}
-                  showThumbnails={false}
-                  showBullets={galleryItems.length > 1}
-                  slideDuration={350}
-                  slideInterval={5000}
-                  renderItem={renderItem}
-                  additionalClass="business-gallery"
-                />
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">Este negocio aun no tiene imagenes.</p>
-          )
-        ) : (
-          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-lg p-6 text-center">
-            <p className="text-lg font-semibold text-gray-800 mb-2">Galeria de fotos</p>
-            <p className="text-sm text-gray-600 mb-4">
-              La galeria completa esta disponible solo para planes <span className="font-bold text-orange-600">Destacado</span> o <span className="font-bold text-purple-600">Patrocinado</span>.
-            </p>
-            <p className="text-xs text-gray-500">
-              Eres dueño? <Link prefetch={false} href="/registro-negocio" className="text-[#38761D] font-semibold underline">Mejora tu plan aqui</Link>
-            </p>
-          </div>
-        )}
-      </section>
 
       {/* Descripcion */}
       <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
