@@ -632,7 +632,7 @@ export default function BusinessDetailView({ business }: Props) {
   const currentTheme = theme[plan as keyof typeof theme] || theme.free;
 
   return (
-    <div className="">
+    <>
       {/* JSON-LD */}
       <script
         type="application/ld+json"
@@ -1181,7 +1181,7 @@ export default function BusinessDetailView({ business }: Props) {
 
       </section>
       </div>
-    </div>
+    </>
   );
 }
 
