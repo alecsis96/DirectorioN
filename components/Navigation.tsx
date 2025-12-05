@@ -18,7 +18,8 @@ import {
   Bell, 
   BarChart2, 
   LogOut, 
-  ChevronDown 
+  ChevronDown,
+  Store
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
@@ -46,6 +47,7 @@ const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void })
     { icon: History, label: 'Historial', href: '/historial', desc: 'Visto recientemente' },
     { icon: Bell, label: 'Notificaciones', href: '/notificaciones', desc: 'Avisos importantes' },
     { icon: BarChart2, label: 'Métricas', href: '/metricas', desc: 'Rendimiento' },
+    { icon: Store, label: 'Registrar Negocio', href: '/registro-negocio', desc: 'Añade tu negocio' },
     { icon: HelpCircle, label: 'Ayuda y Soporte', href: '/ayuda', desc: 'Centro de ayuda' },
   ];
 

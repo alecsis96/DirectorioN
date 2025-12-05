@@ -361,49 +361,6 @@ export default function NegociosListClient({
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800 font-sans">
       <section className="max-w-6xl mx-auto px-6 py-10 pb-24 md:pb-10">
         <header className="mb-8">
-          
-          
-          <div className="mt-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
-              <span className="text-gray-700">
-                ¿Tienes un negocio?
-              </span>
-              <Link
-                prefetch={false}
-                href="/para-negocios"
-                className="text-emerald-600 font-semibold hover:text-emerald-700 hover:underline underline-offset-2 transition"
-              >
-                Regístralo aquí →
-              </Link>
-              <span className="text-gray-400">|</span>
-              <Link
-                prefetch={false}
-                href="/mis-solicitudes"
-                className="text-blue-600 font-semibold hover:text-blue-700 hover:underline underline-offset-2 transition"
-              >
-                Verificar solicitud →
-              </Link>
-            </div>
-            
-            {user ? (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-xs text-gray-500">{user.email}</span>
-                <button
-                  onClick={handleSignOut}
-                  className="rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition"
-                >
-                  Cerrar sesión
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleSignIn}
-                className="rounded bg-[#38761D] px-3 py-1 text-xs font-semibold text-white hover:bg-[#2f5a1a]"
-              >
-                Iniciar sesion
-              </button>
-            )}
-          </div>
         </header>
 
         {/* Banner de Negocios Patrocinados - Máxima visibilidad */}
@@ -603,9 +560,6 @@ export default function NegociosListClient({
                     <div className="col-span-full text-center py-8 bg-yellow-50 rounded-xl border-2 border-dashed border-yellow-200">
                       <p className="text-gray-600 text-sm">
                         🌟 Próximamente aquí aparecerán los negocios destacados del mes.
-                      </p>
-                      <p className="text-gray-500 text-xs mt-2">
-                        ¿Tienes un negocio? <a href="/para-negocios" className="text-emerald-600 font-semibold underline">Conoce nuestros planes premium</a>
                       </p>
                     </div>
                   );
