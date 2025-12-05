@@ -153,9 +153,11 @@ function NavigationContent() {
       } else if (currentScrollY > lastScrollY) {
         // Scrolling down - ocultar
         setIsVisible(false);
+        console.log('Hiding menu, scrolling down', currentScrollY);
       } else {
         // Scrolling up - mostrar
         setIsVisible(true);
+        console.log('Showing menu, scrolling up', currentScrollY);
       }
       
       setLastScrollY(currentScrollY);
@@ -581,11 +583,16 @@ function NavigationContent() {
 
       {/* Mobile Bottom Nav */}
       <div 
-        className="md:hidden fixed left-0 right-0 bg-white border-t border-gray-200 z-50"
+        className="md:hidden w-full bg-white border-t border-gray-200"
         style={{
-          bottom: '0',
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
           transform: isVisible ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 0.3s ease-in-out'
+          transition: 'transform 0.3s ease-in-out',
+          willChange: 'transform'
         }}
       >
         <div className="grid grid-cols-3 gap-1 px-2 py-2">
