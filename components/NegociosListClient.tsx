@@ -384,9 +384,9 @@ export default function NegociosListClient({
                     {sponsored.map((business) => (
                       <div
                         key={business.id}
-                        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-pink-500 to-red-500 p-1 shadow-2xl hover:shadow-purple-500/50 transition-all duration-300"
+                        className="group relative overflow-hidden rounded-2xl bg-white shadow-xl hover:shadow-2xl transition-all duration-300"
                       >
-                        <div className="bg-white rounded-[14px] p-5 h-full">
+                        <div className="p-5 h-full">
                           {/* Badge Patrocinado */}
                           <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
                             <span>👑</span>
@@ -663,7 +663,7 @@ export default function NegociosListClient({
                         <div className="flex flex-col gap-2 mt-auto">
                           <button
                             onClick={() => setSelectedBusiness(business)}
-                            className="w-full py-2 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-bold transition bg-transparent"
+                            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition shadow-md shadow-blue-200"
                           >
                             Ver Detalles
                           </button>
