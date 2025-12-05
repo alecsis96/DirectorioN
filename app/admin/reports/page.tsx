@@ -129,7 +129,7 @@ export default function AdminReportsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6">
+      <div className="mb-6 pl-14 lg:pl-0">
         <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
         <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">🚨 Reportes de Negocios</h1>
         <p className="text-sm text-gray-600">Gestiona y revisa reportes de negocios</p>

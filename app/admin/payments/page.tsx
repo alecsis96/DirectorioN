@@ -149,16 +149,14 @@ export default async function AdminPaymentsPage() {
     ]);
 
     return (
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-        <div className="mb-6">
-          <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-          <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">💳 Gestión de Pagos</h1>
-          <p className="text-sm text-gray-600">
-            Administra pagos, deshabilita o elimina negocios con problemas de pago
-          </p>
-        </div>
-
-        <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+      <div className="mb-6 pl-14 lg:pl-0">
+        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
+        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">💳 Gestión de Pagos</h1>
+        <p className="text-sm text-gray-600">
+          Administra pagos, deshabilita o elimina negocios con problemas de pago
+        </p>
+      </div>        <div className="grid lg:grid-cols-[280px_1fr] gap-6">
           <AdminNavigation variant="sidebar" />
           <div className="lg:col-start-2">
             <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">

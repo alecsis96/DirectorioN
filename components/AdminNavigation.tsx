@@ -42,13 +42,13 @@ export default function AdminNavigation({ variant = 'horizontal' }: AdminNavigat
         {/* Hamburger Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="fixed top-4 left-4 z-50 lg:hidden bg-white border-2 border-gray-200 rounded-lg p-2 shadow-lg hover:bg-gray-50 transition-colors"
+          className="fixed top-4 left-4 z-50 lg:hidden bg-[#38761D] text-white rounded-lg p-2.5 shadow-lg hover:bg-[#2d5a15] transition-colors"
           aria-label="Toggle menu"
         >
           {isOpen ? (
-            <BsX className="w-6 h-6 text-gray-700" />
+            <BsX className="w-6 h-6" />
           ) : (
-            <BsList className="w-6 h-6 text-gray-700" />
+            <BsList className="w-6 h-6" />
           )}
         </button>
 
