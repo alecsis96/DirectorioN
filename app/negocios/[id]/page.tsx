@@ -70,7 +70,7 @@ export default async function BusinessDetailAppPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800">
-      <section className="max-w-5xl mx-auto py-10 pb-24 md:pb-10">
+      <section className="max-w-5xl mx-auto">
         <BusinessDetailView business={business} />
       </section>
     </main>

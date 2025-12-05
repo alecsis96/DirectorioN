@@ -615,8 +615,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 />
 
                 <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-50 text-purple-700 border border-purple-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap inline-block w-fit">
                       Pago por transferencia o sucursal
                     </span>
                     <p className="text-sm text-gray-700">Envia tu comprobante y activaremos el plan al validarlo.</p>
@@ -636,14 +636,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     <label className="text-xs font-semibold text-gray-700">
                       Comprobante (PDF/JPG/PNG, max 3MB)
-                      <div className="mt-1 flex items-center gap-2">
+                      <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2">
                         <input
                           type="file"
                           accept=".pdf,image/*"
                           onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                          className="text-sm"
+                          className="text-xs sm:text-sm w-full"
                         />
-                        {receiptFile && <span className="text-xs text-gray-600 truncate max-w-[160px]">{receiptFile.name}</span>}
+                        {receiptFile && <span className="text-xs text-gray-600 truncate max-w-full sm:max-w-[160px]">{receiptFile.name}</span>}
                       </div>
                     </label>
 
@@ -655,29 +655,30 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       onChange={(e) => setReceiptNotes(e.target.value)}
                     />
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                       <button
                         onClick={() => handleUpgradeByTransfer(receiptPlan)}
                         disabled={upgradeBusy}
-                        className="inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60"
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-xs sm:text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60 w-full sm:w-auto"
                       >
-                        <BsBank />
-                        Enviar comprobante (transferencia/sucursal)
+                        <BsBank className="flex-shrink-0" />
+                        <span className="hidden sm:inline">Enviar comprobante (transferencia/sucursal)</span>
+                        <span className="sm:hidden">Enviar comprobante</span>
                       </button>
                       {receiptFile && (
-                        <div className="inline-flex items-center gap-2 text-xs text-gray-600 px-2 py-1 bg-gray-50 border border-dashed border-gray-200 rounded">
-                          <BsUpload />
-                          {receiptFile.name}
+                        <div className="inline-flex items-center gap-2 text-xs text-gray-600 px-2 py-1 bg-gray-50 border border-dashed border-gray-200 rounded w-full sm:w-auto">
+                          <BsUpload className="flex-shrink-0" />
+                          <span className="truncate">{receiptFile.name}</span>
                         </div>
                       )}
                     </div>
 
-                    <div className="text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3">
+                    <div className="text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3 break-words">
                       <p className="font-semibold text-gray-800 mb-1">Datos para transferencia:</p>
                       <p>Banco: BBVA</p>
-                      <p>Cuenta/CLABE: 012345678901234567</p>
+                      <p className="break-all">Cuenta/CLABE: 012345678901234567</p>
                       <p>Beneficiario: Directorio Yajalon</p>
-                      <p className="mt-1">Envia tu comprobante a pagos@directorioyajalon.com o por WhatsApp al +52 1 999 000 0000. Activaremos tu plan al validar el pago.</p>
+                      <p className="mt-1 break-words">Envia tu comprobante a <span className="break-all">pagos@directorioyajalon.com</span> o por WhatsApp al <span className="whitespace-nowrap">+52 1 999 000 0000</span>. Activaremos tu plan al validar el pago.</p>
                     </div>
                   </div>
                 </div>
