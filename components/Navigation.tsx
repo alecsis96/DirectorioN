@@ -135,8 +135,35 @@ function NavigationContent() {
   const { suggestions, isLoading: loadingSuggestions } = useSearchSuggestions(searchTerm, categories);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   
+  // Estado para controlar visibilidad del nav en scroll
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  
   // Determinar si mostrar el buscador basado en la ruta
   const showSearch = pathname === '/' || pathname === '/negocios';
+
+  // Detectar scroll para ocultar/mostrar navegación
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Solo ocultar si se ha scrolleado más de 100px
+      if (currentScrollY < 100) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        // Scrolling down - ocultar
+        setIsVisible(false);
+      } else {
+        // Scrolling up - mostrar
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   // Funciones de autenticación
   const handleSignIn = async () => {
@@ -246,7 +273,7 @@ function NavigationContent() {
   ].filter(Boolean).length;
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <nav className={`sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-2">
           {/* Logo */}
@@ -553,7 +580,7 @@ function NavigationContent() {
       </div>
 
       {/* Mobile Bottom Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+      <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 transition-transform duration-300 ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}>
         <div className="grid grid-cols-3 gap-1 px-2 py-2">
           <Link
             href="/"
