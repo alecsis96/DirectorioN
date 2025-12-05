@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { getFirestore, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { auth } from '../firebaseConfig';
 
 type ReviewData = {
   id: string;
@@ -26,8 +26,6 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'rating' | 'business'>('date');
   const [loading, setLoading] = useState<string | null>(null);
-
-  const db = getFirestore();
 
   // Filtrar y ordenar reseñas
   const filteredReviews = useMemo(() => {
@@ -69,8 +67,26 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
   const handleApprove = async (review: ReviewData) => {
     setLoading(review.id);
     try {
-      const reviewRef = doc(db, 'businesses', review.businessId, 'reviews', review.id);
-      await updateDoc(reviewRef, { approved: true });
+      const user = auth.currentUser;
+      if (!user) {
+        alert('Debes iniciar sesión');
+        return;
+      }
+
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/admin/reviews/${review.businessId}/${review.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ approved: true }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al aprobar');
+      }
       
       setReviews((prev) =>
         prev.map((r) => (r.id === review.id ? { ...r, approved: true } : r))
@@ -78,7 +94,7 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
       alert('Reseña aprobada exitosamente');
     } catch (error) {
       console.error('Error aprobando reseña:', error);
-      alert('Error al aprobar la reseña');
+      alert(error instanceof Error ? error.message : 'Error al aprobar la reseña');
     } finally {
       setLoading(null);
     }
@@ -87,8 +103,26 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
   const handleReject = async (review: ReviewData) => {
     setLoading(review.id);
     try {
-      const reviewRef = doc(db, 'businesses', review.businessId, 'reviews', review.id);
-      await updateDoc(reviewRef, { approved: false });
+      const user = auth.currentUser;
+      if (!user) {
+        alert('Debes iniciar sesión');
+        return;
+      }
+
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/admin/reviews/${review.businessId}/${review.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ approved: false }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al rechazar');
+      }
       
       setReviews((prev) =>
         prev.map((r) => (r.id === review.id ? { ...r, approved: false } : r))
@@ -96,7 +130,7 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
       alert('Reseña rechazada');
     } catch (error) {
       console.error('Error rechazando reseña:', error);
-      alert('Error al rechazar la reseña');
+      alert(error instanceof Error ? error.message : 'Error al rechazar la reseña');
     } finally {
       setLoading(null);
     }
@@ -107,14 +141,30 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
     
     setLoading(review.id);
     try {
-      const reviewRef = doc(db, 'businesses', review.businessId, 'reviews', review.id);
-      await deleteDoc(reviewRef);
+      const user = auth.currentUser;
+      if (!user) {
+        alert('Debes iniciar sesión');
+        return;
+      }
+
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/admin/reviews/${review.businessId}/${review.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al eliminar');
+      }
       
       setReviews((prev) => prev.filter((r) => r.id !== review.id));
       alert('Reseña eliminada exitosamente');
     } catch (error) {
       console.error('Error eliminando reseña:', error);
-      alert('Error al eliminar la reseña');
+      alert(error instanceof Error ? error.message : 'Error al eliminar la reseña');
     } finally {
       setLoading(null);
     }
