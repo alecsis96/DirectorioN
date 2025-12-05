@@ -85,14 +85,16 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
           </div>
         )}
 
-        {/* Imagen de portada */}
-        <div className="h-40 w-full overflow-hidden bg-gray-100 border-b border-gray-200">
-          <img 
-            src={coverUrl}
-            alt={`Imagen de ${business.name}`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        </div>
+        {/* Imagen de portada - SOLO para SPONSOR */}
+        {plan === 'sponsor' && (
+          <div className="h-40 w-full overflow-hidden bg-gray-100 border-b border-gray-200">
+            <img 
+              src={coverUrl}
+              alt={`Imagen de ${business.name}`}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+        )}
 
         {/* Contenido */}
         <div className="p-4 flex flex-col flex-grow">
@@ -102,7 +104,7 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
               <img 
                 src={logoUrl}
                 alt={`Logo de ${business.name}`}
-                className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
+                className={`${plan === 'sponsor' ? 'w-10 h-10' : 'w-16 h-16'} rounded-full object-cover border-2 border-gray-200 flex-shrink-0`}
               />
               <h3 className="text-lg font-bold text-gray-900 hover:text-purple-600 transition truncate">
                 {business.name}
