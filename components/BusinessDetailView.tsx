@@ -641,7 +641,7 @@ export default function BusinessDetailView({ business }: Props) {
 
       {/* HERO SECTION - Portada SOLO para planes premium */}
       {(plan === 'sponsor' || plan === 'featured') && (
-        <div className={`relative w-full ${currentTheme.heroHeight} bg-gray-200 rounded-2xl overflow-hidden shadow-xl`}>
+        <div className={`relative w-full ${allGalleryImages.length > 1 ? 'aspect-square md:h-96' : currentTheme.heroHeight} bg-gray-200 rounded-2xl overflow-hidden shadow-xl`}>
           {/* Interactive Image Carousel - Show if multiple images exist */}
           {allGalleryImages.length > 1 ? (
             <Swiper
