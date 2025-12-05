@@ -236,7 +236,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 transition bg-transparent"
               aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
               onClick={() => {
                 trackCTA('whatsapp', businessId || '', business.name);
@@ -251,7 +251,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
           {callHref && (
             <a
               href={callHref}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-blue-500 text-blue-600 hover:bg-blue-50 transition bg-transparent"
               aria-label={`Llamar a ${business.name}`}
               onClick={() => {
                 trackCTA('call', businessId || '', business.name);
@@ -265,7 +265,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             href={mapsHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-orange-500 text-orange-600 hover:bg-orange-50 transition bg-transparent"
             aria-label="Como llegar en Google Maps"
             onClick={() => {
               trackCTA('maps', businessId || '', business.name);
