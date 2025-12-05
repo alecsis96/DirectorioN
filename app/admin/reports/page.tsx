@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { auth } from '../../../firebaseConfig';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import Link from 'next/link';
+import AdminNavigation from '../../../components/AdminNavigation';
 import {
   REPORT_REASON_LABELS,
   REPORT_STATUS_LABELS,
@@ -127,72 +128,16 @@ export default function AdminReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">🚨 Reportes de Negocios</h1>
-            <p className="text-xs uppercase tracking-[0.25em] text-gray-500 mt-1">
-              Panel de control
-            </p>
-          </div>
-          
-          {/* Navegación */}
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/admin/applications"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              📋 Solicitudes iniciales
-            </Link>
-            <Link
-              href="/admin/pending-businesses"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              🔍 Negocios en revisión
-            </Link>
-            <Link
-              href="/admin/businesses"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              🏪 Negocios publicados
-            </Link>
-            <Link
-              href="/admin/payments"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              💳 Pagos y suspensiones
-            </Link>
-            <Link
-              href="/admin/reports"
-              className="px-4 py-2 bg-[#38761D] text-white font-semibold rounded hover:bg-[#2d5418]"
-            >
-              🚨 Reportes
-            </Link>
-            <Link
-              href="/admin/analytics"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              📊 Analytics
-            </Link>
-            <Link
-              href="/admin/reviews"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              ⭐ Reseñas
-            </Link>
-            <Link
-              href="/admin/stats"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              📈 Estadísticas
-            </Link>
-          </div>
-        </div>
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+      <div className="mb-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
+        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">🚨 Reportes de Negocios</h1>
+        <p className="text-sm text-gray-600">Gestiona y revisa reportes de negocios</p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+        <AdminNavigation variant="sidebar" />
+        <div className="lg:col-start-2">
         {/* Filter Tabs */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <div className="flex flex-wrap gap-2">
@@ -298,78 +243,79 @@ export default function AdminReportsPage() {
             ))}
           </div>
         )}
-      </div>
 
-      {/* Review Modal */}
-      {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">Revisar Reporte</h3>
-              <p className="text-sm text-gray-600 mt-1">{selectedReport.businessName}</p>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">
-                  <strong>Motivo:</strong> {REPORT_REASON_LABELS[selectedReport.reason]}
-                </p>
-                <p className="text-sm text-gray-800">
-                  <strong>Descripción:</strong> {selectedReport.description}
-                </p>
+        {/* Review Modal */}
+        {selectedReport && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-xl font-bold text-gray-900">Revisar Reporte</h3>
+                <p className="text-sm text-gray-600 mt-1">{selectedReport.businessName}</p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notas de revisión (opcional)
-                </label>
-                <textarea
-                  value={reviewNotes}
-                  onChange={(e) => setReviewNotes(e.target.value)}
-                  placeholder="Agrega notas sobre tu decisión..."
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-                  disabled={isProcessing}
-                />
-              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">
+                    <strong>Motivo:</strong> {REPORT_REASON_LABELS[selectedReport.reason]}
+                  </p>
+                  <p className="text-sm text-gray-800">
+                    <strong>Descripción:</strong> {selectedReport.description}
+                  </p>
+                </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => handleUpdateStatus(selectedReport.id!, 'reviewing')}
-                  disabled={isProcessing}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
-                >
-                  🔍 Marcar en Revisión
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus(selectedReport.id!, 'resolved')}
-                  disabled={isProcessing}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50"
-                >
-                  ✅ Resolver
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus(selectedReport.id!, 'dismissed')}
-                  disabled={isProcessing}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition disabled:opacity-50"
-                >
-                  ❌ Descartar
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedReport(null);
-                    setReviewNotes('');
-                  }}
-                  disabled={isProcessing}
-                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notas de revisión (opcional)
+                  </label>
+                  <textarea
+                    value={reviewNotes}
+                    onChange={(e) => setReviewNotes(e.target.value)}
+                    placeholder="Agrega notas sobre tu decisión..."
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                    disabled={isProcessing}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => handleUpdateStatus(selectedReport.id!, 'reviewing')}
+                    disabled={isProcessing}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                  >
+                    🔍 Marcar en Revisión
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(selectedReport.id!, 'resolved')}
+                    disabled={isProcessing}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50"
+                  >
+                    ✅ Resolver
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(selectedReport.id!, 'dismissed')}
+                    disabled={isProcessing}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition disabled:opacity-50"
+                  >
+                    ❌ Descartar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedReport(null);
+                      setReviewNotes('');
+                    }}
+                    disabled={isProcessing}
+                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+        )}
         </div>
-      )}
-    </div>
+      </div>
+    </main>
   );
 }

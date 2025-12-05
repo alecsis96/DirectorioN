@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { auth } from '../../../firebaseConfig';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import Link from 'next/link';
+import AdminNavigation from '../../../components/AdminNavigation';
 
 type AnalyticsData = {
   totalEvents: number;
@@ -101,72 +102,16 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">📊 Analytics</h1>
-            <p className="text-xs uppercase tracking-[0.25em] text-gray-500 mt-1">
-              Panel de control
-            </p>
-          </div>
-          
-          {/* Navegación */}
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/admin/applications"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              📋 Solicitudes iniciales
-            </Link>
-            <Link
-              href="/admin/pending-businesses"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              🔍 Negocios en revisión
-            </Link>
-            <Link
-              href="/admin/businesses"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              🏪 Negocios publicados
-            </Link>
-            <Link
-              href="/admin/payments"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              💳 Pagos y suspensiones
-            </Link>
-            <Link
-              href="/admin/reports"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              🚨 Reportes
-            </Link>
-            <Link
-              href="/admin/analytics"
-              className="px-4 py-2 bg-[#38761D] text-white font-semibold rounded hover:bg-[#2d5418]"
-            >
-              📊 Analytics
-            </Link>
-            <Link
-              href="/admin/reviews"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              ⭐ Reseñas
-            </Link>
-            <Link
-              href="/admin/stats"
-              className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-            >
-              📈 Estadísticas
-            </Link>
-          </div>
-        </div>
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+      <div className="mb-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
+        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">📊 Analytics</h1>
+        <p className="text-sm text-gray-600">Análisis de uso y métricas del directorio</p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+        <AdminNavigation variant="sidebar" />
+        <div className="lg:col-start-2">
         {/* Time Range Selector */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <div className="flex items-center gap-4">
@@ -366,8 +311,9 @@ export default function AnalyticsPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
 

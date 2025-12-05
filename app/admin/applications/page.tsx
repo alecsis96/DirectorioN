@@ -76,22 +76,15 @@ export default async function AdminApplicationsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6">
+      <div className="mb-6 ml-0 lg:ml-0">
         <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
         <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">Solicitudes pendientes</h1>
         <p className="text-sm text-gray-600">Revisa las aplicaciones que aún están en proceso de aprobación.</p>
       </div>
 
       <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        {/* Sidebar Navigation */}
-        <aside className="hidden lg:block">
-          <AdminNavigation variant="sidebar" />
-        </aside>
-
-        {/* Mobile Navigation */}
-        <div className="lg:hidden mb-6 overflow-x-auto -mx-4 px-4">
-          <AdminNavigation variant="horizontal" />
-        </div>
+        {/* Sidebar Navigation - Always rendered, visibility controlled by component */}
+        <AdminNavigation variant="sidebar" />
 
         {/* Main Content */}
         <div className="lg:col-start-2">

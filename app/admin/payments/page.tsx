@@ -4,6 +4,7 @@ import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdm
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import PaymentManager from '../../../components/PaymentManagerWrapper';
 import ReceiptListClient from '../../../components/ReceiptListClient';
+import AdminNavigation from '../../../components/AdminNavigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,68 +149,19 @@ export default async function AdminPaymentsPage() {
     ]);
 
     return (
-      <main className="p-4 max-w-7xl mx-auto">
-        <header className="mb-8">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+        <div className="mb-6">
           <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-          <h1 className="mt-2 text-3xl font-bold text-[#38761D]">💳 Gestión de Pagos</h1>
+          <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">💳 Gestión de Pagos</h1>
           <p className="text-sm text-gray-600">
             Administra pagos, deshabilita o elimina negocios con problemas de pago
           </p>
-        
-        {/* Navegación */}
-        <div className="mt-6 flex flex-wrap gap-3">
-          <a
-            href="/admin/applications"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            📋 Solicitudes iniciales
-          </a>
-          <a
-            href="/admin/pending-businesses"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            🔍 Negocios en revisión
-          </a>
-          <a
-            href="/admin/businesses"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            🏪 Negocios publicados
-          </a>
-          <a
-            href="/admin/payments"
-            className="px-4 py-2 bg-[#38761D] text-white font-semibold rounded hover:bg-[#2d5418]"
-          >
-            💳 Pagos y suspensiones
-          </a>
-          <a
-            href="/admin/reports"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            🚨 Reportes
-          </a>
-          <a
-            href="/admin/analytics"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            📊 Analytics
-          </a>
-          <a
-            href="/admin/reviews"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            ⭐ Reseñas
-          </a>
-          <a
-            href="/admin/stats"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            📈 Estadísticas
-          </a>
         </div>
-      </header>
 
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+          <AdminNavigation variant="sidebar" />
+          <div className="lg:col-start-2">
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="text-2xl font-bold text-red-700">
             {businesses.filter((b: any) => b.isActive === false).length}
@@ -240,11 +192,13 @@ export default async function AdminPaymentsPage() {
         </div>
       </div>
 
-      <PaymentManager businesses={businesses} />
+            <PaymentManager businesses={businesses} />
 
-      <ReceiptListClient initialReceipts={receipts} />
-    </main>
-  );
+            <ReceiptListClient initialReceipts={receipts} />
+          </div>
+        </div>
+      </main>
+    );
   } catch (error) {
     console.error('[AdminPaymentsPage] Error:', error);
     return (

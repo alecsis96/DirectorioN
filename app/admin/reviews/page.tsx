@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import ReviewsModerationClient from '../../../components/ReviewsModerationClient';
+import AdminNavigation from '../../../components/AdminNavigation';
 
 export const metadata = {
   title: 'Moderación de Reseñas | Admin',
@@ -118,66 +119,18 @@ export default async function ReviewsModerationPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header con navegación */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Moderación de Reseñas</h1>
-          
-          {/* Links de navegación */}
-          <nav className="flex flex-wrap gap-3 mb-6">
-            <a
-              href="/admin/applications"
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-            >
-              Solicitudes
-            </a>
-            <a
-              href="/admin/pending-businesses"
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-            >
-              Negocios en revisión
-            </a>
-            <a
-              href="/admin/businesses"
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-            >
-              Negocios publicados
-            </a>
-            <a
-              href="/admin/payments"
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-            >
-              Pagos
-            </a>
-            <a
-              href="/admin/reports"
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-            >
-              Reportes
-            </a>
-            <a
-              href="/admin/analytics"
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-            >
-              Analytics
-            </a>
-            <a
-              href="/admin/stats"
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-            >
-              Estadísticas
-            </a>
-            <a
-              href="/admin/reviews"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
-            >
-              Reseñas
-            </a>
-          </nav>
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+      <div className="mb-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
+        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">⭐ Moderación de Reseñas</h1>
+        <p className="text-sm text-gray-600">Revisa y modera las reseñas de negocios</p>
+      </div>
 
+      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+        <AdminNavigation variant="sidebar" />
+        <div className="lg:col-start-2">
           {/* Estadísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg shadow p-6">
               <div className="text-sm font-medium text-gray-500 mb-2">Total Reseñas</div>
               <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
@@ -195,12 +148,12 @@ export default async function ReviewsModerationPage() {
               <div className="text-3xl font-bold text-blue-600">{stats.averageRating.toFixed(1)} ⭐</div>
             </div>
           </div>
-        </div>
 
-        {/* Lista de reseñas */}
-        <Suspense fallback={<div className="text-center py-8">Cargando reseñas...</div>}>
-          <ReviewsModerationClient initialReviews={reviews} />
-        </Suspense>
+          {/* Lista de reseñas */}
+          <Suspense fallback={<div className="text-center py-8">Cargando reseñas...</div>}>
+            <ReviewsModerationClient initialReviews={reviews} />
+          </Suspense>
+        </div>
       </div>
     </main>
   );

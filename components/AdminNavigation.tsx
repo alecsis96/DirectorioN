@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { 
   BsClipboardCheck, 
   BsSearch, 
@@ -11,7 +12,9 @@ import {
   BsBarChart,
   BsStar,
   BsGraphUp,
-  BsHouseDoor
+  BsHouseDoor,
+  BsList,
+  BsX
 } from 'react-icons/bs';
 
 type AdminNavigationProps = {
@@ -20,6 +23,7 @@ type AdminNavigationProps = {
 
 export default function AdminNavigation({ variant = 'horizontal' }: AdminNavigationProps) {
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
 
   const navLinks = [
     { href: '/admin/applications', label: 'Solicitudes iniciales', icon: BsClipboardCheck, description: 'Nuevas aplicaciones', emoji: '📋' },
@@ -34,64 +38,97 @@ export default function AdminNavigation({ variant = 'horizontal' }: AdminNavigat
 
   if (variant === 'sidebar') {
     return (
-      <nav className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 sticky top-4 h-fit">
-        <div className="mb-4 pb-4 border-b border-gray-200">
-          <h2 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-wider">Panel Admin</h2>
-        </div>
-        
-        <ul className="space-y-1">
-          {navLinks.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`
-                    flex items-start gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg transition-all group
-                    ${isActive 
-                      ? 'bg-[#38761D] text-white shadow-sm' 
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-[#38761D]'
-                    }
-                  `}
-                >
-                  <Icon 
-                    className={`
-                      flex-shrink-0 mt-0.5 text-base sm:text-lg
-                      ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#38761D]'}
-                    `} 
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className={`
-                      text-xs sm:text-sm font-medium truncate
-                      ${isActive ? 'text-white' : 'text-gray-900'}
-                    `}>
-                      {item.label}
-                    </div>
-                    <div className={`
-                      text-[10px] sm:text-xs truncate hidden sm:block
-                      ${isActive ? 'text-white/80' : 'text-gray-500 group-hover:text-gray-600'}
-                    `}>
-                      {item.description}
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      <>
+        {/* Hamburger Button */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="fixed top-4 left-4 z-50 lg:hidden bg-white border-2 border-gray-200 rounded-lg p-2 shadow-lg hover:bg-gray-50 transition-colors"
+          aria-label="Toggle menu"
+        >
+          {isOpen ? (
+            <BsX className="w-6 h-6 text-gray-700" />
+          ) : (
+            <BsList className="w-6 h-6 text-gray-700" />
+          )}
+        </button>
 
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <Link
-            href="/"
-            className="flex items-center gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-[#38761D] transition-colors rounded-lg hover:bg-gray-50"
-          >
-            <BsHouseDoor className="flex-shrink-0" />
-            <span>Volver al sitio</span>
-          </Link>
-        </div>
-      </nav>
+        {/* Overlay */}
+        {isOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <nav
+          className={`
+            fixed lg:sticky top-0 lg:top-4 left-0 h-screen lg:h-fit w-72 lg:w-full
+            bg-white border border-gray-200 rounded-none lg:rounded-2xl shadow-xl lg:shadow-sm
+            p-4 sm:p-5 z-40 transition-transform duration-300 ease-in-out overflow-y-auto
+            ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}
+        >
+          <div className="mb-4 pb-4 border-b border-gray-200">
+            <h2 className="text-xs sm:text-sm font-semibold text-gray-900 uppercase tracking-wider">Panel Admin</h2>
+          </div>
+          
+          <ul className="space-y-1">
+            {navLinks.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`
+                      flex items-start gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg transition-all group
+                      ${isActive 
+                        ? 'bg-[#38761D] text-white shadow-sm' 
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-[#38761D]'
+                      }
+                    `}
+                  >
+                    <Icon 
+                      className={`
+                        flex-shrink-0 mt-0.5 text-base sm:text-lg
+                        ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#38761D]'}
+                      `} 
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className={`
+                        text-xs sm:text-sm font-medium truncate
+                        ${isActive ? 'text-white' : 'text-gray-900'}
+                      `}>
+                        {item.label}
+                      </div>
+                      <div className={`
+                        text-[10px] sm:text-xs truncate
+                        ${isActive ? 'text-white/80' : 'text-gray-500 group-hover:text-gray-600'}
+                      `}>
+                        {item.description}
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <Link
+              href="/"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-[#38761D] transition-colors rounded-lg hover:bg-gray-50"
+            >
+              <BsHouseDoor className="flex-shrink-0" />
+              <span>Volver al sitio</span>
+            </Link>
+          </div>
+        </nav>
+      </>
     );
   }
 
