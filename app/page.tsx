@@ -25,11 +25,20 @@ export const dynamic = 'force-dynamic';
 export default async function Home() {
   const { businesses: allBusinesses } = await fetchBusinesses();
 
-  const premiumBusinesses: BusinessPreview[] = allBusinesses
-    .filter(
-      (biz: Business) =>
-        biz.plan === 'featured' || biz.plan === 'sponsor' || biz.featured === true || biz.featured === 'true',
-    )
+  // Separar negocios patrocinados y destacados
+  const sponsorBusinesses: BusinessPreview[] = allBusinesses
+    .filter((biz: Business) => biz.plan === 'sponsor')
+    .slice(0, 6)
+    .map((biz: Business) => {
+      const preview = pickBusinessPreview(biz);
+      return {
+        ...preview,
+        rating: toNumber(preview.rating) ?? null,
+      };
+    });
+
+  const featuredBusinesses: BusinessPreview[] = allBusinesses
+    .filter((biz: Business) => biz.plan === 'featured' || biz.featured === true || biz.featured === 'true')
     .slice(0, 6)
     .map((biz: Business) => {
       const preview = pickBusinessPreview(biz);
@@ -110,14 +119,34 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Premium Businesses Section */}
-      {premiumBusinesses.length > 0 && (
+      {/* Sponsor Businesses Section - Negocios Patrocinados */}
+      {sponsorBusinesses.length > 0 && (
         <section className="py-16 px-4 bg-gray-50">
           <div className="max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center gap-3 mb-8">
+              <span className="text-4xl">👑</span>
               <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Negocios Destacados</h2>
-                <p className="text-gray-600">Comercios locales verificados y recomendados</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Negocios Patrocinados</h2>
+                <p className="text-gray-600">Comercios destacados con mayor visibilidad</p>
+              </div>
+            </div>
+
+            <HomeClient businesses={sponsorBusinesses} />
+          </div>
+        </section>
+      )}
+
+      {/* Featured Businesses Section - Negocios Destacados del Mes */}
+      {featuredBusinesses.length > 0 && (
+        <section className="py-16 px-4 bg-white">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl">⭐</span>
+                <div>
+                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Negocios Destacados del Mes</h2>
+                  <p className="text-gray-600">Comercios locales verificados y recomendados</p>
+                </div>
               </div>
               <Link
                 href="/negocios"
@@ -127,7 +156,7 @@ export default async function Home() {
               </Link>
             </div>
 
-            <HomeClient businesses={premiumBusinesses} />
+            <HomeClient businesses={featuredBusinesses} />
 
             <div className="mt-8 text-center md:hidden">
               <Link
