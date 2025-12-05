@@ -77,7 +77,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const cardStyles = {
     sponsor: {
       border: 'border-[3px]',
-      borderGradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500',
+      borderGradient: 'bg-gradient-to-r from-yellow-500 via-pink-500 to-red-500',
       bg: 'bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50',
       shadow: 'shadow-xl shadow-purple-200 hover:shadow-purple-400/50',
       badge: { 

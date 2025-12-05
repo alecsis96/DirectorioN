@@ -1,7 +1,7 @@
 'use client';
 
 import { FavoritesProvider } from '../context/FavoritesContext';
-import BusinessCard from './BusinessCard';
+import BusinessCardVertical from './BusinessCardVertical';
 import type { BusinessPreview } from '../types/business';
 
 type Props = {
@@ -13,7 +13,7 @@ export default function HomeClient({ businesses }: Props) {
     <FavoritesProvider>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {businesses.map((business) => (
-          <BusinessCard
+          <BusinessCardVertical
             key={business.id}
             business={business}
           />
