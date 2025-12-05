@@ -411,7 +411,11 @@ export default function NegociosListClient({
                             <div className="flex items-start justify-between gap-3 mb-3">
                               <div className="flex items-center gap-3 min-w-0">
                                 <img 
-                                  src={business.logoUrl || '/images/default-premium-logo.svg'}
+                                  src={
+                                    business.logoUrl ||
+                                    business.image1 ||
+                                    '/images/default-premium-logo.svg'
+                                  }
                                   alt={`Logo de ${business.name}`}
                                   className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
                                 />

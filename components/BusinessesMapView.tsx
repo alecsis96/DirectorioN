@@ -42,14 +42,12 @@ export default function BusinessesMapView({
       return `https://maps.google.com/maps?q=${business.location!.lat},${business.location!.lng}&z=16&output=embed`;
     }
 
-    // Para múltiples negocios, crear URL con todos los marcadores
-    // Usamos el primer negocio como punto de referencia y agregamos los demás como query
-    const markersQuery = businessesWithLocation
-      .map(b => `${b.location!.lat},${b.location!.lng}`)
-      .join('|');
+    // Para múltiples negocios, usar el centro calculado con zoom apropiado
+    // El iframe de Google Maps no soporta múltiples marcadores directamente,
+    // pero centrar en el promedio de ubicaciones permite ver la zona correcta
+    const zoom = businessesWithLocation.length <= 3 ? 15 : businessesWithLocation.length <= 10 ? 14 : 13;
     
-    // Google Maps iframe con múltiples marcadores usando el formato de búsqueda múltiple
-    return `https://maps.google.com/maps?q=${markersQuery}&z=14&output=embed`;
+    return `https://maps.google.com/maps?q=${center.lat},${center.lng}&z=${zoom}&output=embed`;
   };
 
   const mapUrl = createMapUrl();
