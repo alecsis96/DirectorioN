@@ -28,6 +28,13 @@ import { useBusinessHistory } from "../hooks/useBusinessHistory";
 import { upsertReview, reviewsQuery, ReviewSchema } from "../lib/firestore/reviews";
 import { hasAdminOverride } from "../lib/adminOverrides";
 
+// Swiper for interactive image carousel
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+
 
 
 // Carga dinamica para evitar problemas de SSR con react-image-gallery
@@ -93,40 +100,31 @@ export default function BusinessDetailView({ business }: Props) {
   useBusinessHistory(business);
 
   // ---------- Galeria ----------
-
-  const galleryItems = useMemo<ReactImageGalleryItem[]>(() => {
-
+  // Collect all available images for carousel
+  const allGalleryImages = useMemo<string[]>(() => {
     const urls: string[] = [];
 
     const cloud = (business as any)?.images as { url?: string | null }[] | undefined;
 
     if (cloud?.length) {
-
       urls.push(
-
         ...cloud
-
           .map((item) => (typeof item?.url === "string" ? item.url.trim() : ""))
-
           .filter((u) => /^https?:\/\//i.test(u))
-
       );
-
     }
 
     [business.image1, business.image2, business.image3]
-
       .filter((u): u is string => typeof u === "string" && /^https?:\/\//i.test(u.trim()))
-
       .forEach((u) => urls.push(u.trim()));
 
-
-
     const unique = Array.from(new Set(urls));
-
-    return unique.slice(0, 10).map((url) => ({ original: url, thumbnail: url }));
-
+    return unique.slice(0, 10);
   }, [business]);
+
+  const galleryItems = useMemo<ReactImageGalleryItem[]>(() => {
+    return allGalleryImages.map((url) => ({ original: url, thumbnail: url }));
+  }, [allGalleryImages]);
 
 
 
@@ -644,25 +642,52 @@ export default function BusinessDetailView({ business }: Props) {
       {/* HERO SECTION - Portada SOLO para planes premium */}
       {(plan === 'sponsor' || plan === 'featured') && (
         <div className={`relative w-full ${currentTheme.heroHeight} bg-gray-200 rounded-2xl overflow-hidden shadow-xl`}>
-          <img
-            src={
-              business.coverUrl ||
-              business.image1 ||
-              (business.plan && business.plan !== 'free'
-                ? '/images/default-premium-cover.svg'
-                : 'https://via.placeholder.com/800x400?text=Sin+portada')
-            }
-            alt={`Portada de ${business.name}`}
-            className="w-full h-full object-cover"
-          />
-          
-          {/* Overlay para Sponsor: Gradiente sutil para mejorar contraste */}
-          {plan === 'sponsor' && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+          {/* Interactive Image Carousel - Show if multiple images exist */}
+          {allGalleryImages.length > 1 ? (
+            <Swiper
+              modules={[Navigation, Pagination, Autoplay]}
+              navigation
+              pagination={{ clickable: true }}
+              autoplay={{ delay: 5000, disableOnInteraction: true }}
+              loop={allGalleryImages.length > 2}
+              className="h-full w-full"
+            >
+              {allGalleryImages.map((imageUrl, index) => (
+                <SwiperSlide key={index}>
+                  <div className="relative w-full h-full">
+                    <img
+                      src={imageUrl}
+                      alt={`${business.name} - imagen ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          ) : (
+            /* Static banner for premium businesses without multiple images */
+            <>
+              <img
+                src={
+                  business.coverUrl ||
+                  business.image1 ||
+                  (business.plan && business.plan !== 'free'
+                    ? '/images/default-premium-cover.svg'
+                    : 'https://via.placeholder.com/800x400?text=Sin+portada')
+                }
+                alt={`Portada de ${business.name}`}
+                className="w-full h-full object-cover"
+              />
+              
+              {/* Overlay para Sponsor: Gradiente sutil para mejorar contraste */}
+              {plan === 'sponsor' && (
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+              )}
+            </>
           )}
 
-          {/* Badge de Plan (Flotante en la portada) */}
-          <div className={`absolute bottom-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${currentTheme.badge} border`}>
+          {/* Badge de Plan (Flotante en la portada) - Always on top with high z-index */}
+          <div className={`absolute bottom-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${currentTheme.badge} border z-50 pointer-events-none`}>
             {plan === 'sponsor' ? '👑 PATROCINADO' : '✨ DESTACADO'}
           </div>
         </div>
