@@ -703,7 +703,7 @@ export default function BusinessDetailView({ business }: Props) {
       )}
 
       {/* CONTENT SECTION - Padded business info */}
-      <div className="p-6 space-y-6">
+      <div className="px-4 py-6 space-y-6">
         {/* HEADER CONTENT - Información Principal */}
         <section className={`relative rounded-2xl overflow-hidden ${currentTheme.wrapper} ${
           plan === 'sponsor' || plan === 'featured'
@@ -715,7 +715,7 @@ export default function BusinessDetailView({ business }: Props) {
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
         )}
 
-        <div className="px-6 py-4 relative z-10">
+        <div className="px-4 py-4 relative z-10">
           {/* Compact Header - Logo inline with Business Name */}
           <div className="flex items-start gap-3 mb-4">
             {/* Logo inline (avatar style) - for all plans */}
@@ -931,14 +931,14 @@ export default function BusinessDetailView({ business }: Props) {
 
 
       {/* Descripcion */}
-      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Descripción</h2>
         <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
           {business.description || "Sin descripcion disponible."}
         </p>
       </section>
 
-      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
           🗺️ Ubicación
         </h2>
@@ -977,7 +977,7 @@ export default function BusinessDetailView({ business }: Props) {
       </section>
 
       {/* Resenas */}
-      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Reseas de clientes</h2>
         {errorMsg && <div className="text-sm text-red-500 font-semibold mb-3">{errorMsg}</div>}
 
