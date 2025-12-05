@@ -12,6 +12,7 @@ import {onRequest} from "firebase-functions/v2/https";
 import {onDocumentCreated, onDocumentDeleted, onDocumentUpdated} from "firebase-functions/v2/firestore";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {initializeApp} from "firebase-admin/app";
+import * as https from "https";
 // import * as logger from "firebase-functions/logger";
 
 // Inicializar Firebase Admin
@@ -82,6 +83,23 @@ export const onReviewCreated = onDocumentCreated(
   async (event) => {
     const businessId = event.params.businessId;
     await updateBusinessRating(businessId);
+
+    // Notificar por WhatsApp al admin
+    try {
+      const reviewData = event.data?.data();
+      const businessDoc = await getFirestore().collection('businesses').doc(businessId).get();
+      const businessData = businessDoc.data();
+      
+      if (reviewData && businessData) {
+        await notifyNewReviewWhatsApp(
+          businessData.name || businessData.businessName || 'Negocio sin nombre',
+          reviewData.name || 'Usuario anónimo',
+          reviewData.rating || 0
+        );
+      }
+    } catch (notifyError) {
+      console.warn('[onReviewCreated] WhatsApp notification failed:', notifyError);
+    }
   }
 );
 
@@ -157,6 +175,44 @@ async function updateBusinessRating(businessId: string): Promise<void> {
   } catch (error) {
     console.error(`Error actualizando rating del negocio ${businessId}:`, error);
     throw error;
+  }
+}
+
+/**
+ * Envía notificación de WhatsApp cuando se crea una nueva reseña
+ */
+async function notifyNewReviewWhatsApp(
+  businessName: string,
+  reviewerName: string,
+  rating: number
+): Promise<void> {
+  const adminPhone = process.env.ADMIN_WHATSAPP_NUMBER;
+  const apiKey = process.env.CALLMEBOT_API_KEY;
+
+  if (!adminPhone || !apiKey) {
+    console.log("WhatsApp notifications not configured");
+    return;
+  }
+
+  try {
+    const stars = "⭐".repeat(Math.max(0, Math.min(5, rating)));
+    const message = `⭐ *NUEVA RESEÑA*\n\nNegocio: *${businessName}*\nUsuario: ${reviewerName}\nCalificación: ${stars}\n\n📋 Revisa la reseña en el panel de moderación.`;
+    const encodedMessage = encodeURIComponent(message);
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${adminPhone}&text=${encodedMessage}&apikey=${apiKey}`;
+
+    await new Promise((resolve, reject) => {
+      https.get(url, (res) => {
+        if (res.statusCode === 200) {
+          console.log("✅ WhatsApp notification sent");
+          resolve(true);
+        } else {
+          console.error(`❌ WhatsApp notification failed: ${res.statusCode}`);
+          reject(new Error(`Status ${res.statusCode}`));
+        }
+      }).on("error", reject);
+    });
+  } catch (error) {
+    console.error("Error sending WhatsApp notification:", error);
   }
 }
 

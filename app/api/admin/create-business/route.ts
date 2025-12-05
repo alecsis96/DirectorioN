@@ -112,6 +112,18 @@ export async function POST(req: NextRequest) {
 
     console.log(`[admin/create-business] Negocio creado: ${docRef.id} por ${decoded.email}`);
 
+    // Notificar por WhatsApp (no bloquea la respuesta)
+    try {
+      const { notifyNewRegistration } = await import('../../../../lib/whatsappNotifier');
+      await notifyNewRegistration(
+        businessData.name,
+        businessData.ownerName,
+        businessData.ownerEmail
+      );
+    } catch (notifyError) {
+      console.warn('[admin/create-business] WhatsApp notification failed:', notifyError);
+    }
+
     return NextResponse.json({
       success: true,
       businessId: docRef.id,

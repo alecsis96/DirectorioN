@@ -119,6 +119,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Notificar por WhatsApp (no bloquea la respuesta)
+    try {
+      const { notifyBusinessReview } = await import('../../lib/whatsappNotifier');
+      const businessDoc = await db.collection('businesses').doc(businessId).get();
+      const businessData = businessDoc.data();
+      
+      await notifyBusinessReview(
+        businessData?.name || businessName,
+        businessData?.ownerName,
+        businessData?.ownerEmail
+      );
+    } catch (whatsappError) {
+      console.warn('[notify-business-review] WhatsApp notification failed:', whatsappError);
+    }
+
     return res.status(200).json({ 
       ok: true, 
       message: 'Notification sent successfully' 
