@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Business, BusinessPreview } from '../types/business';
 import { useFavorites } from '../context/FavoritesContext';
 import { trackCTA } from '../lib/telemetry';
@@ -14,6 +14,7 @@ type Props = {
 };
 
 const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
+  const router = useRouter();
   const businessId = typeof (business as any).id === 'string' ? (business as any).id : undefined;
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const isFavorite = businessId ? favorites.includes(businessId) : false;
@@ -54,6 +55,12 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
 
   const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
 
+  const handleCardClick = () => {
+    if (businessId) {
+      router.push(`/negocios/${businessId}`);
+    }
+  };
+
   const handleFavoriteToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -66,9 +73,9 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
   };
 
   return (
-    <Link
-      href={`/negocios/${businessId || ''}`}
-      className={`block relative rounded-2xl transition-all hover:scale-[1.02] hover:shadow-2xl overflow-hidden ${isPremium ? 'p-[4px]' : 'p-[1px]'} ${currentStyle.borderGradient}`}
+    <article
+      onClick={handleCardClick}
+      className={`block relative rounded-2xl transition-all hover:scale-[1.02] hover:shadow-2xl overflow-hidden cursor-pointer ${isPremium ? 'p-[4px]' : 'p-[1px]'} ${currentStyle.borderGradient}`}
     >
       {/* Contenedor interior */}
       <div className="relative bg-white rounded-xl overflow-hidden flex flex-col h-full">
@@ -200,7 +207,7 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
           </div>
         </div>
       </div>
-    </Link>
+    </article>
   );
 };
 
