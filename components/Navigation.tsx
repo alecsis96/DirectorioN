@@ -586,11 +586,12 @@ function NavigationContent() {
         className="md:hidden w-full border-t border-gray-200"
         style={{
           position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
+          top: 'auto',
+          bottom: '0px',
+          left: '0px',
+          right: '0px',
           zIndex: 50,
-          backgroundColor: '#FF0000', // TEMPORAL: Rojo para identificar
+          backgroundColor: 'white',
           transform: isVisible ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.3s ease-in-out',
           willChange: 'transform'
