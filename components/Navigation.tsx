@@ -153,11 +153,9 @@ function NavigationContent() {
       } else if (currentScrollY > lastScrollY) {
         // Scrolling down - ocultar
         setIsVisible(false);
-        console.log('Hiding menu, scrolling down', currentScrollY);
       } else {
         // Scrolling up - mostrar
         setIsVisible(true);
-        console.log('Showing menu, scrolling up', currentScrollY);
       }
       
       setLastScrollY(currentScrollY);
