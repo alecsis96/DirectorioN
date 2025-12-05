@@ -581,8 +581,9 @@ function NavigationContent() {
 
       {/* Mobile Bottom Nav */}
       <div 
-        className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50"
+        className="md:hidden fixed left-0 right-0 bg-white border-t border-gray-200 z-50"
         style={{
+          bottom: '0',
           transform: isVisible ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.3s ease-in-out'
         }}
