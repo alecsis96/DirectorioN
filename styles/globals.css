@@ -17,22 +17,33 @@
 .swiper-button-next,
 .swiper-button-prev {
   color: white !important;
-  background: rgba(0, 0, 0, 0.5) !important;
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 50% !important;
-  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.15) !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .swiper-button-next:after,
 .swiper-button-prev:after {
-  font-size: 18px !important;
-  font-weight: bold;
+  font-size: 20px !important;
+  font-weight: 900;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .swiper-button-next:hover,
 .swiper-button-prev:hover {
-  background: rgba(0, 0, 0, 0.7) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+.swiper-button-next:active,
+.swiper-button-prev:active {
+  transform: scale(0.95);
 }
 
 .swiper-pagination-bullet {
