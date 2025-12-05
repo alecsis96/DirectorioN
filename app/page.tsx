@@ -169,22 +169,6 @@ export default async function Home() {
           </div>
         </section>
       )}
-
-      {/* CTA Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">¿Tienes un negocio en Yajalón?</h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Únete al directorio y aumenta tu visibilidad ante miles de clientes potenciales.
-          </p>
-          <Link
-            href="/para-negocios"
-            className="inline-flex px-10 py-4 bg-[#38761D] text-white font-bold text-lg rounded-full hover:bg-[#2f5a1a] transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            Registrar mi negocio gratis
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

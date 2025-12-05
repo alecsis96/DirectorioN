@@ -437,6 +437,15 @@ function NavigationContent() {
               Favoritos
             </Link>
             
+            {/* CTA Registrar Negocio - Solo Desktop */}
+            <Link
+              href="/registro-negocio"
+              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full border-2 border-[#38761D] text-[#38761D] text-sm font-semibold hover:bg-[#38761D] hover:text-white transition-all"
+            >
+              <BsShop className="w-4 h-4" />
+              Registrar Negocio
+            </Link>
+            
             {/* Área de Usuario/Login */}
             {user ? (
               <UserDropdown user={user} onSignOut={handleSignOut} />
