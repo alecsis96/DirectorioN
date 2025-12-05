@@ -973,9 +973,11 @@ export default function NegociosListClient({
           const excludedTopIds = [...sponsoredTopIds, ...featuredTopIds];
           
           // Aplicar un filtro a la lista paginada para excluir los negocios ya mostrados en las secciones superiores
+          // SOLO en vista lista, en vista mapa mostrar todos
           const businessesToDisplay = paginated.items.filter(biz => {
             // Excluir negocios si su ID está en la lista de IDs excluidos, y solo si la sección superior de patrocinados/destacados está activa
-            if (showTopSections && excludedTopIds.includes(biz.id)) {
+            // PERO: en vista mapa, mostrar todos los negocios sin excluir
+            if (viewMode === 'list' && showTopSections && excludedTopIds.includes(biz.id)) {
               return false;
             }
             return true;
