@@ -581,10 +581,9 @@ function NavigationContent() {
 
       {/* Mobile Bottom Nav */}
       <div 
-        className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 transition-transform duration-300"
-        style={{
-          transform: isVisible ? 'translateY(0)' : 'translateY(100%)'
-        }}
+        className={`md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 transition-all duration-300 ease-in-out ${
+          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+        }`}
       >
         <div className="grid grid-cols-3 gap-1 px-2 py-2">
           <Link
