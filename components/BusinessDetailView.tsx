@@ -603,13 +603,13 @@ export default function BusinessDetailView({ business }: Props) {
 
   const theme = {
     sponsor: {
-      wrapper: 'bg-gradient-to-b from-amber-50 to-white border-t-4 border-amber-500',
-      headerGradient: 'bg-gradient-to-r from-amber-500 to-orange-500',
-      badge: 'bg-amber-100 text-amber-800 border-amber-200',
-      buttonPrimary: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-amber-200',
-      iconColor: 'text-amber-600',
-      heroHeight: 'h-64 sm:h-72',
-      priceBadge: 'bg-amber-100 text-amber-800 border border-amber-300'
+    wrapper: 'bg-white border-t-4 border-purple-500',
+      headerGradient: 'bg-gradient-to-r from-purple-500 to-cyan-500',
+      badge: 'bg-blue-100 text-purple-800 border-purple-200',
+      buttonPrimary: 'bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white shadow-purple-200',
+      iconColor: 'text-purple-600',
+      heroHeight: 'h-48 sm:h-56',
+      priceBadge: 'bg-blue-100 text-purple-800 border border-purple-300'
     },
     featured: {
       wrapper: 'bg-white border-t-4 border-blue-500',

@@ -36,9 +36,20 @@ export default function BusinessesMapView({
       return `https://maps.google.com/maps?q=${encodeURIComponent('Yajalón, Chiapas')}&output=embed`;
     }
 
-    // Para múltiples markers, usamos el centro y zoom adecuado
-    const zoom = businessesWithLocation.length === 1 ? 16 : 14;
-    return `https://maps.google.com/maps?q=${center.lat},${center.lng}&z=${zoom}&output=embed`;
+    // Para un solo negocio, usar marcador directo
+    if (businessesWithLocation.length === 1) {
+      const business = businessesWithLocation[0];
+      return `https://maps.google.com/maps?q=${business.location!.lat},${business.location!.lng}&z=16&output=embed`;
+    }
+
+    // Para múltiples negocios, crear URL con todos los marcadores
+    // Usamos el primer negocio como punto de referencia y agregamos los demás como query
+    const markersQuery = businessesWithLocation
+      .map(b => `${b.location!.lat},${b.location!.lng}`)
+      .join('|');
+    
+    // Google Maps iframe con múltiples marcadores usando el formato de búsqueda múltiple
+    return `https://maps.google.com/maps?q=${markersQuery}&z=14&output=embed`;
   };
 
   const mapUrl = createMapUrl();
