@@ -2,6 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import AdminApplicationsList, { type AdminApplication } from '../../../components/AdminApplicationsList';
+import AdminNavigation from '../../../components/AdminNavigation';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 
@@ -74,64 +75,29 @@ export default async function AdminApplicationsPage() {
   const applications = await fetchPendingApplications();
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-8">
-      <header className="mb-8">
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+      <div className="mb-6">
         <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-3xl font-bold text-[#38761D]">Solicitudes pendientes</h1>
+        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">Solicitudes pendientes</h1>
         <p className="text-sm text-gray-600">Revisa las aplicaciones que aún están en proceso de aprobación.</p>
-        
-        <div className="mt-6 flex flex-wrap gap-3">
-          <a
-            href="/admin/applications"
-            className="px-4 py-2 bg-[#38761D] text-white font-semibold rounded hover:bg-[#2d5418]"
-          >
-            📋 Solicitudes iniciales
-          </a>
-          <a
-            href="/admin/pending-businesses"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            🔍 Negocios en revisión
-          </a>
-          <a
-            href="/admin/businesses"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            🏪 Negocios publicados
-          </a>
-          <a
-            href="/admin/payments"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            💳 Pagos y suspensiones
-          </a>
-          <a
-            href="/admin/reports"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            🚨 Reportes
-          </a>
-          <a
-            href="/admin/analytics"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            📊 Analytics
-          </a>
-          <a
-            href="/admin/reviews"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            ⭐ Reseñas
-          </a>
-          <a
-            href="/admin/stats"
-            className="px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-50"
-          >
-            📈 Estadísticas
-          </a>
+      </div>
+
+      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+        {/* Sidebar Navigation */}
+        <aside className="hidden lg:block">
+          <AdminNavigation variant="sidebar" />
+        </aside>
+
+        {/* Mobile Navigation */}
+        <div className="lg:hidden mb-6 overflow-x-auto -mx-4 px-4">
+          <AdminNavigation variant="horizontal" />
         </div>
-      </header>
-      <AdminApplicationsList applications={applications} />
+
+        {/* Main Content */}
+        <div className="lg:col-start-2">
+          <AdminApplicationsList applications={applications} />
+        </div>
+      </div>
     </main>
   );
 }
