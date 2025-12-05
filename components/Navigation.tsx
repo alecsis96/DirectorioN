@@ -429,7 +429,7 @@ function NavigationContent() {
             </Link>
             <Link
               href="/favoritos"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`hidden md:flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 pathname === '/favoritos'
                   ? 'bg-[#38761D] text-white'
                   : 'text-gray-700 hover:bg-gray-100'
@@ -465,17 +465,6 @@ function NavigationContent() {
 
           {/* Mobile Navigation */}
           <div className="flex md:hidden items-center gap-2">
-            <Link
-              href="/favoritos"
-              className={`p-2 rounded-lg ${
-                pathname === '/favoritos'
-                  ? 'bg-[#38761D] text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <BsHeart className="text-xl" />
-            </Link>
-            
             {/* Área de Usuario/Login Mobile */}
             {user ? (
               <UserDropdown user={user} onSignOut={handleSignOut} />
