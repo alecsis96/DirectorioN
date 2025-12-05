@@ -42,16 +42,12 @@ export default function BusinessesMapView({
       return `https://maps.google.com/maps?q=${business.location!.lat},${business.location!.lng}&z=16&output=embed`;
     }
 
-    // Para múltiples negocios, crear URL base con el centro y luego agregar marcadores individuales
-    // Formato: usar 'markers' parameter para mostrar pins en cada ubicación
+    // Para múltiples negocios, usar el centro calculado y especificar la ubicación
+    // El iframe de Google Maps requiere una búsqueda o ubicación específica
     const zoom = businessesWithLocation.length <= 3 ? 15 : businessesWithLocation.length <= 10 ? 14 : 13;
     
-    // Crear parámetros de marcadores para cada negocio
-    const markersParams = businessesWithLocation
-      .map(b => `&markers=${b.location!.lat},${b.location!.lng}`)
-      .join('');
-    
-    return `https://maps.google.com/maps?z=${zoom}${markersParams}&output=embed`;
+    // Usar el centro calculado como punto de referencia
+    return `https://maps.google.com/maps?q=${center.lat},${center.lng}&z=${zoom}&output=embed`;
   };
 
   const mapUrl = createMapUrl();
