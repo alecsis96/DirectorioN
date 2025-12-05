@@ -334,14 +334,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
   if (authLoading) {
     return (
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <p className="text-gray-500">Cargando...</p>
       </main>
     );
   }
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-8">
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       {!biz ? (
         <p className="text-gray-500">Cargando...</p>
       ) : !userCanEdit ? (
@@ -349,11 +349,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       ) : (
         <>
           {/* Hero */}
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
               <p className="text-sm text-gray-500">Editor de negocio</p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-bold text-gray-900">{form.name || 'Sin nombre'}</h1>
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{form.name || 'Sin nombre'}</h1>
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
                   {biz.plan ? biz.plan.toUpperCase() : 'FREE'}
                 </span>
@@ -363,28 +363,31 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               </div>
               <p className="text-sm text-gray-600">{user?.email || biz.ownerEmail || 'Sesion iniciada'}</p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 w-full md:w-auto">
               <button
                 onClick={() => router.push('/negocios')}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
+                className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs sm:text-sm font-medium flex-1 sm:flex-initial"
               >
-                Ver publicado
+                <span className="hidden sm:inline">Ver publicado</span>
+                <span className="sm:hidden">Ver</span>
               </button>
               {(biz.status === 'draft' || biz.status === 'rejected') && (
                 <button
                   onClick={submitForReview}
                   disabled={submitting}
-                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-sm font-semibold disabled:opacity-60"
+                  className="px-3 sm:px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-xs sm:text-sm font-semibold disabled:opacity-60 flex-1 sm:flex-initial"
                 >
-                  {submitting ? 'Enviando...' : 'Enviar a revision'}
+                  <span className="hidden sm:inline">{submitting ? 'Enviando...' : 'Enviar a revision'}</span>
+                  <span className="sm:hidden">{submitting ? 'Enviando...' : 'Revisar'}</span>
                 </button>
               )}
               <button
                 onClick={save}
                 disabled={busy}
-                className="px-4 py-2 bg-[#38761D] text-white rounded-lg hover:bg-[#2d5a15] transition text-sm font-semibold disabled:opacity-60"
+                className="px-3 sm:px-4 py-2 bg-[#38761D] text-white rounded-lg hover:bg-[#2d5a15] transition text-xs sm:text-sm font-semibold disabled:opacity-60 flex-1 sm:flex-initial"
               >
-                {busy ? 'Guardando...' : 'Guardar cambios'}
+                <span className="hidden sm:inline">{busy ? 'Guardando...' : 'Guardar cambios'}</span>
+                <span className="sm:hidden">{busy ? 'Guardando...' : 'Guardar'}</span>
               </button>
             </div>
           </div>
@@ -392,7 +395,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Principal */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Informacion basica</h2>
                 <div className="grid md:grid-cols-2 gap-4">
                   <input
@@ -423,7 +426,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 />
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Contacto y redes</h2>
                 <div className="grid md:grid-cols-2 gap-4">
                   <input
@@ -447,21 +450,21 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-900">Ubicacion</h2>
                 </div>
                 <AddressPicker value={addr} onChange={handleAddressChange} />
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Horarios</h2>
-                <div className="overflow-x-auto">
-                  <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200 min-w-[500px] md:min-w-0">
+                <div className="overflow-x-auto -mx-2 px-2">
+                  <div className="space-y-3 bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
                     {Object.entries(schedule).map(([day, hours]) => (
-                      <div key={day} className="flex items-center gap-3">
-                        <div className="w-24 flex-shrink-0">
-                          <label className="flex items-center gap-2 cursor-pointer">
+                      <div key={day} className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-20 sm:w-24 flex-shrink-0">
+                          <label className="flex items-center gap-1 sm:gap-2 cursor-pointer">
                             <input
                               type="checkbox"
                               checked={hours.open}
@@ -473,12 +476,12 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                               }
                               className="w-4 h-4 text-[#38761D] rounded focus:ring-[#38761D]"
                             />
-                            <span className="text-sm font-medium capitalize">{day}</span>
+                            <span className="text-xs sm:text-sm font-medium capitalize">{day}</span>
                           </label>
                         </div>
 
                         {hours.open ? (
-                          <div className="flex gap-2 flex-1">
+                          <div className="flex gap-1 sm:gap-2 flex-1">
                             <input
                               type="time"
                               value={hours.start}
@@ -488,9 +491,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                                   [day]: { ...hours, start: e.target.value },
                                 })
                               }
-                              className="border rounded px-2 py-1 text-sm flex-1 min-w-[100px]"
+                              className="border rounded px-1 sm:px-2 py-1 text-xs sm:text-sm flex-1 min-w-0"
                             />
-                            <span className="text-gray-500 self-center">-</span>
+                            <span className="text-gray-500 self-center text-xs sm:text-sm">-</span>
                             <input
                               type="time"
                               value={hours.end}
@@ -500,7 +503,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                                   [day]: { ...hours, end: e.target.value },
                                 })
                               }
-                              className="border rounded px-2 py-1 text-sm flex-1 min-w-[100px]"
+                              className="border rounded px-1 sm:px-2 py-1 text-xs sm:text-sm flex-1 min-w-0"
                             />
                           </div>
                         ) : (
@@ -515,7 +518,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Destacado</h2>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
@@ -533,7 +536,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </label>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Medios</h2>
                 {biz.plan === 'sponsor' || biz.plan === 'featured' ? (
                   <>
@@ -602,7 +605,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               )}
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 space-y-3">
                 <h3 className="text-base font-semibold text-gray-900">Plan y pagos</h3>
                 <PaymentInfo
                   businessId={id!}
@@ -684,7 +687,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 space-y-3">
                 <h3 className="text-base font-semibold text-gray-900">Estado</h3>
                 <p className="text-sm text-gray-600">Propietario: {biz.ownerEmail || user?.email || 'Sesion'}</p>
                 <p className="text-sm text-gray-600">ID: {biz.id}</p>
