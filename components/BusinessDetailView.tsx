@@ -654,11 +654,20 @@ export default function BusinessDetailView({ business }: Props) {
             >
               {allGalleryImages.map((imageUrl, index) => (
                 <SwiperSlide key={index}>
-                  <div className="relative w-full h-full">
+                  <div className="relative w-full h-full overflow-hidden">
+                    {/* Background Layer - Blurred image fills entire container */}
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      aria-hidden="true"
+                      className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 z-0"
+                    />
+                    
+                    {/* Foreground Layer - Sharp image centered and contained */}
                     <img
                       src={imageUrl}
                       alt={`${business.name} - imagen ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="relative z-10 h-full w-auto mx-auto object-contain"
                     />
                   </div>
                 </SwiperSlide>

@@ -48,6 +48,15 @@
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
 
+/* Enhanced blur effect for carousel backgrounds */
+.swiper-slide img[aria-hidden="true"] {
+  filter: blur(20px);
+  transform: scale(1.1);
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
 /* Animación para el modal de filtros */
 @keyframes slide-up {
   from {
