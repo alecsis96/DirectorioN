@@ -632,16 +632,16 @@ export default function BusinessDetailView({ business }: Props) {
   const currentTheme = theme[plan as keyof typeof theme] || theme.free;
 
   return (
-    <div className="space-y-10 md:max-w-5xl md:mx-auto md:px-6 lg:max-w-6xl lg:px-8">
+    <div className="">
       {/* JSON-LD */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ldLocalBusiness) }}
       />
 
-      {/* HERO SECTION - Portada SOLO para planes premium */}
+      {/* FULL BLEED IMAGE HEADER - Edge-to-edge for premium plans */}
       {(plan === 'sponsor' || plan === 'featured') && (
-        <div className={`relative w-full ${allGalleryImages.length > 1 ? 'aspect-square md:h-96' : currentTheme.heroHeight} bg-gray-200 rounded-2xl overflow-hidden shadow-xl mb-4`}>
+        <div className={`relative w-full ${allGalleryImages.length > 1 ? 'aspect-square md:h-96' : currentTheme.heroHeight} bg-gray-200 rounded-t-2xl overflow-hidden`}>
           {/* Interactive Image Carousel - Show if multiple images exist */}
           {allGalleryImages.length > 1 ? (
             <Swiper
@@ -696,18 +696,20 @@ export default function BusinessDetailView({ business }: Props) {
           )}
 
           {/* Badge de Plan (Flotante en la portada) - Always on top with high z-index */}
-          <div className={`absolute bottom-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${currentTheme.badge} border z-50 pointer-events-none`}>
+          <div className={`absolute bottom-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold shadow-xl ${currentTheme.badge} border z-40 pointer-events-none`}>
             {plan === 'sponsor' ? '👑 PATROCINADO' : '✨ DESTACADO'}
           </div>
         </div>
       )}
 
-      {/* HEADER CONTENT - Información Principal */}
-      <section className={`relative rounded-2xl overflow-hidden ${currentTheme.wrapper} ${
-        plan === 'sponsor' || plan === 'featured'
-          ? 'shadow-xl' 
-          : 'shadow-sm'
-      }`}>
+      {/* CONTENT SECTION - Padded business info */}
+      <div className="p-6 space-y-6">
+        {/* HEADER CONTENT - Información Principal */}
+        <section className={`relative rounded-2xl overflow-hidden ${currentTheme.wrapper} ${
+          plan === 'sponsor' || plan === 'featured'
+            ? 'shadow-xl' 
+            : 'shadow-sm'
+        }`}>
         {/* Efecto de brillo para premium */}
         {(plan === 'sponsor' || plan === 'featured') && (
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
@@ -1178,11 +1180,9 @@ export default function BusinessDetailView({ business }: Props) {
         </div>
 
       </section>
-
+      </div>
     </div>
-
   );
-
 }
 
 type IconProps = React.SVGProps<SVGSVGElement>;
