@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import type { Business, BusinessPreview } from '../types/business';
 import { useFavorites } from '../context/FavoritesContext';
 import { trackCTA } from '../lib/telemetry';
@@ -53,13 +54,8 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
 
   const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
 
-  const handleViewDetails = () => {
-    if (onViewDetails) {
-      onViewDetails(business);
-    }
-  };
-
   const handleFavoriteToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     if (!businessId) return;
     if (isFavorite) {
@@ -70,9 +66,9 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
   };
 
   return (
-    <article 
-      className={`relative rounded-2xl transition-all hover:scale-[1.02] hover:shadow-2xl cursor-pointer overflow-hidden ${isPremium ? 'p-[4px]' : 'p-[1px]'} ${currentStyle.borderGradient}`}
-      onClick={handleViewDetails}
+    <Link
+      href={`/negocios/${businessId || ''}`}
+      className={`block relative rounded-2xl transition-all hover:scale-[1.02] hover:shadow-2xl overflow-hidden ${isPremium ? 'p-[4px]' : 'p-[1px]'} ${currentStyle.borderGradient}`}
     >
       {/* Contenedor interior */}
       <div className="relative bg-white rounded-xl overflow-hidden flex flex-col h-full">
@@ -149,12 +145,9 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
 
           {/* Botones de acción */}
           <div className="flex flex-col gap-2 mt-auto">
-            <button
-              onClick={handleViewDetails}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-3 rounded-lg font-bold text-sm hover:from-purple-700 hover:to-pink-700 transition shadow-md"
-            >
+            <div className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-3 rounded-lg font-bold text-sm hover:from-purple-700 hover:to-pink-700 transition shadow-md text-center">
               Ver Detalles
-            </button>
+            </div>
             <div className="grid grid-cols-3 gap-2">
               {whatsappHref && (
                 <a
@@ -162,7 +155,9 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
+                    window.open(whatsappHref, '_blank');
                     trackCTA('whatsapp', businessId || '', business.name);
                   }}
                   className="bg-green-500 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-600 transition shadow-md flex items-center justify-center gap-1"
@@ -177,7 +172,9 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
                 <a
                   href={callHref}
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
+                    window.location.href = callHref;
                     trackCTA('call', businessId || '', business.name);
                   }}
                   className="bg-blue-500 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-blue-600 transition shadow-md flex items-center justify-center gap-1"
@@ -190,7 +187,9 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
+                  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address || business.name)}`, '_blank');
                   trackCTA('maps', businessId || '', business.name);
                 }}
                 className="bg-orange-500 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-orange-600 transition shadow-md flex items-center justify-center gap-1"
@@ -201,7 +200,7 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
           </div>
         </div>
       </div>
-    </article>
+    </Link>
   );
 };
 
