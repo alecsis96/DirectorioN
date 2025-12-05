@@ -669,11 +669,9 @@ export default function BusinessDetailView({ business }: Props) {
       )}
 
       {/* HEADER CONTENT - Información Principal */}
-      <section className={`relative border rounded-2xl overflow-hidden ${currentTheme.wrapper} ${
-        plan === 'sponsor'
-          ? 'border-amber-500 shadow-2xl shadow-amber-200 ring-4 ring-amber-500 ring-offset-2 hover:shadow-amber-300' 
-          : plan === 'featured'
-          ? 'border-blue-500 shadow-xl shadow-blue-200 ring-4 ring-blue-500 ring-offset-2'
+      <section className={`relative rounded-2xl overflow-hidden ${currentTheme.wrapper} ${
+        plan === 'sponsor' || plan === 'featured'
+          ? 'shadow-xl' 
           : 'shadow-sm'
       }`}>
         {/* Efecto de brillo para premium */}
