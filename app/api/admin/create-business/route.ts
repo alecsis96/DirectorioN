@@ -36,6 +36,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Calcular fechas de pago para planes premium
+    const isPremium = businessData.plan === 'featured' || businessData.plan === 'sponsor';
+    const now = new Date();
+    const nextPaymentDate = isPremium ? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) : null; // 30 días
+    const planExpiresAt = isPremium ? nextPaymentDate : null;
+
     // Preparar datos del negocio
     const newBusiness = {
       // Nombres
@@ -70,11 +76,20 @@ export async function POST(req: NextRequest) {
       published: true,
       isActive: true,
       
+      // Fechas de pago (solo para planes premium)
+      ...(isPremium && {
+        planExpiresAt,
+        nextPaymentDate: nextPaymentDate?.toISOString(),
+        lastPaymentDate: now.toISOString(),
+        paymentStatus: 'manual_admin',
+        stripeSubscriptionStatus: null
+      }),
+      
       // Metadata
-      createdAt: new Date(),
+      createdAt: now,
       createdBy: 'admin',
       adminCreator: decoded.email,
-      approvedAt: new Date(),
+      approvedAt: now,
       
       // Estadísticas
       viewCount: 0,

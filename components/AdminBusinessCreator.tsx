@@ -215,6 +215,11 @@ export default function AdminBusinessCreator() {
                 <option value="featured">⭐ Destacado</option>
                 <option value="sponsor">👑 Patrocinado</option>
               </select>
+              {(formData.plan === 'featured' || formData.plan === 'sponsor') && (
+                <p className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                  ℹ️ Se establecerá automáticamente el próximo pago en 30 días
+                </p>
+              )}
             </div>
             
             <div className="md:col-span-2">
@@ -275,7 +280,7 @@ export default function AdminBusinessCreator() {
                 value={formData.municipio}
                 onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#38761D] focus:border-transparent"
-                placeholder="Culiacán"
+                placeholder="Yajalón"
               />
             </div>
           </div>
