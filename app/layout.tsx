@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="msapplication-TileColor" content="#38761D" />
         <meta name="msapplication-TileImage" content="/images/icon-144.png" />
       </head>
-      <body className="min-h-screen bg-white text-gray-900" suppressHydrationWarning>
+      <body className="min-h-screen bg-white text-gray-900 pb-20 md:pb-0" suppressHydrationWarning>
         <Providers>
           <Navigation />
           {children}
