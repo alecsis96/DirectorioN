@@ -775,11 +775,11 @@ export default function BusinessDetailView({ business }: Props) {
               </a>
             )}
             
-            {/* Botón Llamar - Usar color del tema */}
+            {/* Botón Llamar - Azul sólido consistente para todos los planes */}
             {callHref && callHref !== '' && (
               <a
                 href={callHref}
-                className={`flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold shadow-sm transition-all ${currentTheme.buttonPrimary}`}
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all"
                 aria-label={`Llamar a ${business.name}`}
                 onClick={() => trackDetailCTA('call')}
               >
@@ -790,13 +790,13 @@ export default function BusinessDetailView({ business }: Props) {
               </a>
             )}
 
-            {/* Botón Cómo llegar */}
+            {/* Botón Cómo llegar - Estilo outline secundario */}
             {hasMapLink && (
               <a
                 href={mapHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 bg-transparent transition-all"
                 aria-label={`Como llegar a ${business.name}`}
                 onClick={handleMapClick}
               >
