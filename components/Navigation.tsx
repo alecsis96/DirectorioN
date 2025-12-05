@@ -275,8 +275,9 @@ function NavigationContent() {
   ].filter(Boolean).length;
 
   return (
-    <nav className={`sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <>
+      <nav className={`sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-2">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
@@ -581,7 +582,9 @@ function NavigationContent() {
         )}
       </div>
 
-      {/* Mobile Bottom Nav */}
+      </nav>
+
+      {/* Mobile Bottom Nav - FUERA DEL NAV */}
       <div 
         className="md:hidden w-full border-t border-gray-200"
         style={{
@@ -751,7 +754,7 @@ function NavigationContent() {
           </div>
         </div>
       )}
-    </nav>
+    </>
   );
 }
 
