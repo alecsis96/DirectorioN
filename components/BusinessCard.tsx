@@ -79,7 +79,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       border: 'border-[3px]',
       borderGradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500',
       bg: 'bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50',
-      shadow: 'shadow-2xl shadow-purple-200 hover:shadow-purple-400/50',
+      shadow: 'shadow-xl shadow-purple-200 hover:shadow-purple-400/50',
       badge: { 
         text: '👑 SPONSOR', 
         style: 'bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 text-white animate-pulse',
@@ -115,9 +115,9 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
 
   return (
-    <article className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl ${plan !== 'free' ? 'p-[4px]' : ''} ${plan !== 'free' ? currentStyle.borderGradient : 'bg-white'}`} suppressHydrationWarning>
+    <article className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden ${plan !== 'free' ? 'p-[4px]' : ''} ${plan !== 'free' ? currentStyle.borderGradient : 'bg-white'}`} suppressHydrationWarning>
       {/* Contenido de la tarjeta */}
-      <div className={`relative ${currentStyle.bg} ${currentStyle.shadow} ${currentStyle.ring} rounded-xl p-4 flex flex-row items-start gap-4 overflow-hidden`} suppressHydrationWarning>
+      <div className={`relative ${currentStyle.bg} ${currentStyle.shadow} ${currentStyle.ring} rounded-xl p-4 flex flex-row items-start gap-4`} suppressHydrationWarning>
         {/* Efecto de brillo para premium */}
         {plan !== 'free' && (
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
