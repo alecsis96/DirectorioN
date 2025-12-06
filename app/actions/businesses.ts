@@ -339,6 +339,18 @@ export async function submitNewBusiness(formData: FormData) {
         console.warn('[server-action] Failed to send welcome email:', emailError);
         // No fallar la operación si el email falla
       }
+
+      // Notificar al admin por WhatsApp (solo si es nueva aplicación)
+      try {
+        const { notifyNewRegistration } = await import('../../lib/whatsappNotifier');
+        await notifyNewRegistration(
+          asString(payload.businessName, 140),
+          asString(payload.ownerName ?? decoded.name, 140),
+          decoded.email
+        );
+      } catch (whatsappError) {
+        console.warn('[server-action] Failed to send WhatsApp notification:', whatsappError);
+      }
     }
 
     return { ok: true, submitted: true, notified };

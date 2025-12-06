@@ -4,9 +4,10 @@
 
 El sistema ahora envía notificaciones automáticas a tu WhatsApp cuando:
 
-1. **Alguien se registra** - Un nuevo negocio es creado desde el panel admin
-2. **Envío a revisión** - Un negocio es enviado para aprobación
-3. **Nueva reseña** - Un usuario deja una reseña en cualquier negocio
+1. **Alguien se registra (Wizard)** - Un usuario llena el formulario público en `/registro-negocio`
+2. **Alguien se registra (Admin)** - Un negocio es creado desde el panel admin
+3. **Envío a revisión** - Un negocio es enviado para aprobación
+4. **Nueva reseña** - Un usuario deja una reseña en cualquier negocio
 
 ---
 
@@ -73,7 +74,25 @@ El emulador usará el mismo archivo `.env`
 
 ## 📋 Eventos que Generan Notificaciones
 
-### 1. Nuevo Registro (Desde Admin)
+### 1. Nuevo Registro - Wizard (Formulario Público)
+
+**Trigger:** Cuando un usuario llena el formulario de registro en `/registro-negocio`
+
+**Mensaje de WhatsApp:**
+```
+🆕 NUEVO REGISTRO
+
+Negocio: Mi Negocio
+Propietario: Juan Pérez
+Email: juan@example.com
+
+✅ El negocio ha sido registrado.
+📋 Revisa la solicitud en /admin/applications
+```
+
+**Archivo:** `app/actions/businesses.ts` (función `submitNewBusiness`)
+
+### 2. Nuevo Registro - Admin Manual
 
 **Trigger:** Cuando creas un negocio desde `/admin/businesses/nuevo`
 
@@ -91,7 +110,7 @@ Email: juan@example.com
 
 **Archivo:** `app/api/admin/create-business/route.ts`
 
-### 2. Envío a Revisión
+### 3. Envío a Revisión
 
 **Trigger:** Cuando un dueño envía su negocio draft a revisión desde el dashboard
 
@@ -109,7 +128,7 @@ Email: juan@example.com
 
 **Archivo:** `pages/api/notify-business-review.ts`
 
-### 3. Nueva Reseña
+### 4. Nueva Reseña
 
 **Trigger:** Cuando un usuario autenticado deja una reseña
 
@@ -139,17 +158,22 @@ Si no configuras las variables de entorno, el sistema:
 
 ### Probar con configuración completa
 
-1. **Crear negocio desde admin:**
+1. **Registro desde formulario público:**
+   - Ve a `/registro-negocio`
+   - Completa el wizard como un usuario nuevo
+   - Verifica que recibes notificación en WhatsApp
+
+2. **Crear negocio desde admin:**
    - Ve a `/admin/businesses/nuevo`
    - Completa el formulario
    - Verifica que recibes notificación en WhatsApp
 
-2. **Enviar negocio a revisión:**
+3. **Enviar negocio a revisión:**
    - Como dueño, edita un negocio en estado `draft`
    - Haz clic en "Enviar a Revisión"
    - Verifica la notificación
 
-3. **Crear reseña:**
+4. **Crear reseña:**
    - Visita `/negocios/[id]` de cualquier negocio
    - Deja una reseña como usuario autenticado
    - Verifica la notificación
@@ -279,8 +303,9 @@ firebase functions:log --only onReviewCreated
 - [ ] Enviar mensaje de autorización
 - [ ] Recibir API Key
 - [ ] Agregar variables en `.env.local`
-- [ ] Configurar variables en Firebase Functions
+- [ ] Configurar variables en Firebase Functions (`functions/.env`)
 - [ ] Desplegar funciones: `firebase deploy --only functions`
+- [ ] Probar registro desde wizard público
 - [ ] Probar creación de negocio desde admin
 - [ ] Probar envío a revisión
 - [ ] Probar creación de reseña
@@ -291,6 +316,7 @@ firebase functions:log --only onReviewCreated
 ## 🎉 ¡Listo!
 
 Ahora recibirás notificaciones automáticas en tu WhatsApp cada vez que:
+- Un usuario llene el formulario de registro (wizard)
 - Crees un negocio desde el panel admin
 - Un usuario envíe su negocio a revisión
 - Alguien deje una reseña en cualquier negocio
