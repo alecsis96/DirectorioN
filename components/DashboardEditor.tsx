@@ -404,15 +404,37 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
-                  <input
+                  <select
                     className="border rounded-lg px-3 py-2"
-                    placeholder="Categoria"
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  >
+                    <option value="">Selecciona una categoría</option>
+                    <option value="Restaurante">Restaurante</option>
+                    <option value="Cafetería">Cafetería</option>
+                    <option value="Panadería">Panadería</option>
+                    <option value="Comida Rápida">Comida Rápida</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Comercio">Comercio</option>
+                    <option value="Tecnología">Tecnología</option>
+                    <option value="Salud y Belleza">Salud y Belleza</option>
+                    <option value="Educación">Educación</option>
+                    <option value="Entretenimiento">Entretenimiento</option>
+                    <option value="Deportes">Deportes</option>
+                    <option value="Automotriz">Automotriz</option>
+                    <option value="Construcción">Construcción</option>
+                    <option value="Profesional">Profesional</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                  <input
+                    className="border rounded-lg px-3 py-2"
+                    placeholder="Colonia"
+                    value={form.colonia}
+                    onChange={(e) => setForm({ ...form, colonia: e.target.value })}
                   />
                   <input
-                    className="border rounded-lg px-3 py-2 md:col-span-2"
-                    placeholder="Direccion"
+                    className="border rounded-lg px-3 py-2"
+                    placeholder="Dirección (calle y número)"
                     value={addr.address}
                     onChange={(e) => setAddr({ ...addr, address: e.target.value })}
                   />
@@ -680,8 +702,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       <p className="font-semibold text-gray-800 mb-1">Datos para transferencia:</p>
                       <p>Banco: BBVA</p>
                       <p className="break-all">Cuenta/CLABE: 012345678901234567</p>
-                      <p>Beneficiario: Directorio Yajalon</p>
-                      <p className="mt-1 break-words">Envia tu comprobante a <span className="break-all">pagos@directorioyajalon.com</span> o por WhatsApp al <span className="whitespace-nowrap">+52 1 999 000 0000</span>. Activaremos tu plan al validar el pago.</p>
+                      <p>Beneficiario: Oscar Alexis Gonzalez Perez</p>
+                      <p className="mt-1 break-words">Envia tu comprobante a <span className="break-all">pagos@directorioyajalon.com</span> o por WhatsApp al <span className="whitespace-nowrap">5219191565865</span>. Activaremos tu plan al validar el pago.</p>
                     </div>
                   </div>
                 </div>
