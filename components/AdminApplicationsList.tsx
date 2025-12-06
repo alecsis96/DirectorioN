@@ -219,3 +219,5 @@ function AdminApplicationsList({ applications }: { applications: AdminApplicatio
     </div>
   );
 }
+
+export default AdminApplicationsList;

@@ -38,8 +38,8 @@ export type Business = {
   featured?: boolean | string;
   priceRange?: string;
   // Location coordinates
-  lat?: number;
-  lng?: number;
+  lat?: number | null;
+  lng?: number | null;
   // Status field
   status?: 'draft' | 'review' | 'published' | 'rejected';
   // Payment fields
