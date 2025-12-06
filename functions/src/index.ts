@@ -8,6 +8,7 @@
  */
 
 import {setGlobalOptions} from "firebase-functions";
+import * as functions from "firebase-functions";
 import {onRequest} from "firebase-functions/v2/https";
 import {onDocumentCreated, onDocumentDeleted, onDocumentUpdated} from "firebase-functions/v2/firestore";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
@@ -186,8 +187,9 @@ async function notifyNewReviewWhatsApp(
   reviewerName: string,
   rating: number
 ): Promise<void> {
-  const adminPhone = process.env.ADMIN_WHATSAPP_NUMBER;
-  const apiKey = process.env.CALLMEBOT_API_KEY;
+  // Intentar obtener de Firebase config primero, luego de env variables (para local)
+  const adminPhone = functions.config().whatsapp?.admin_phone || process.env.ADMIN_WHATSAPP_NUMBER;
+  const apiKey = functions.config().whatsapp?.api_key || process.env.CALLMEBOT_API_KEY;
 
   if (!adminPhone || !apiKey) {
     console.log("WhatsApp notifications not configured");

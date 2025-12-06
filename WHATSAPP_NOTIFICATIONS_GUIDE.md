@@ -44,21 +44,55 @@ CALLMEBOT_API_KEY=123456
 
 Para las notificaciones de reseñas (que se ejecutan en Cloud Functions):
 
-1. Configura las variables en Firebase Functions:
+**Opción A: Usando Firebase CLI (Producción)**
+
+1. Configura las variables en Firebase:
    ```bash
    firebase functions:config:set whatsapp.admin_phone="5216671234567"
    firebase functions:config:set whatsapp.api_key="123456"
    ```
 
-2. Actualiza el código de Functions para leer estas variables:
-   - En `functions/src/index.ts`, las funciones ya están configuradas para usar:
-     - `process.env.ADMIN_WHATSAPP_NUMBER`
-     - `process.env.CALLMEBOT_API_KEY`
+2. Verifica que se guardaron correctamente:
+   ```bash
+   firebase functions:config:get
+   ```
+   
+   Deberías ver algo como:
+   ```json
+   {
+     "whatsapp": {
+       "admin_phone": "5216671234567",
+       "api_key": "123456"
+     }
+   }
+   ```
 
 3. Despliega las funciones:
    ```bash
    firebase deploy --only functions
    ```
+
+**Opción B: Para pruebas locales**
+
+1. Crea el archivo `functions/.env`:
+   ```bash
+   cd functions
+   ```
+   
+   Crea un archivo `.env` con:
+   ```env
+   ADMIN_WHATSAPP_NUMBER=5216671234567
+   CALLMEBOT_API_KEY=123456
+   ```
+
+2. Ejecuta el emulador:
+   ```bash
+   npm run serve
+   # o
+   firebase emulators:start --only functions
+   ```
+
+**Nota:** El código ahora intenta obtener las variables primero de `functions.config()` (producción) y luego de `process.env` (local), por lo que funcionará en ambos ambientes.
 
 ---
 
