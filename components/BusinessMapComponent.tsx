@@ -13,19 +13,27 @@ export default function BusinessMapComponent({ business, height = '400px', zoom 
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   
+  // Validar que lat/lng sean números válidos
   const lat = business.location?.lat;
   const lng = business.location?.lng;
+  const hasValidCoordinates = 
+    typeof lat === 'number' && 
+    typeof lng === 'number' && 
+    !isNaN(lat) && 
+    !isNaN(lng) &&
+    lat >= -90 && lat <= 90 &&
+    lng >= -180 && lng <= 180;
   
   // URL del mapa embebido usando maps.google.com que es más permisivo
-  const mapUrl = lat && lng
+  const mapUrl = hasValidCoordinates
     ? `https://maps.google.com/maps?q=${lat},${lng}&z=${zoom}&output=embed`
     : `https://maps.google.com/maps?q=${encodeURIComponent(business.address || business.name + ' Yajalón, Chiapas')}&output=embed`;
 
-  const directionsUrl = lat && lng
+  const directionsUrl = hasValidCoordinates
     ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address || business.name + ' Yajalón')}`;
 
-  const openInMapsUrl = lat && lng
+  const openInMapsUrl = hasValidCoordinates
     ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address || business.name + ' Yajalón')}`;
 

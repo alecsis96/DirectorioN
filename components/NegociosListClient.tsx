@@ -4,13 +4,13 @@ import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
 import BusinessCard from './BusinessCard';
 import BusinessesMapView from './BusinessesMapView';
 import { auth, signInWithGoogle } from '../firebaseConfig';
+import { useCurrentUser } from '../hooks/useAuth';
 import { trackPageView } from '../lib/telemetry';
 import { sliceBusinesses } from '../lib/pagination';
 import type { Business, BusinessPreview } from '../types/business';
@@ -73,7 +73,7 @@ export default function NegociosListClient({
   const searchParams = useSearchParams();
   const geoQueryRef = useRef(geoQuery);
   const lastUrlQueryRef = useRef(initialFilters.query || '');
-  const [user, setUser] = useState<User | null>(() => auth.currentUser);
+  const user = useCurrentUser();
   const [prefersDataSaver, setPrefersDataSaver] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [quickFilterOpen, setQuickFilterOpen] = useState(false);
@@ -93,11 +93,6 @@ export default function NegociosListClient({
   }));
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const pageViewType = pathname === '/' ? 'home' : 'list';
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     setUiFilters({

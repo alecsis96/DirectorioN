@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { auth } from '../firebaseConfig';
@@ -35,7 +35,7 @@ function Badge({ tone, children }: { tone?: string; children: ReactNode }) {
   return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${color}`}>{children}</span>;
 }
 
-export default function AdminApplicationsList({ applications }: { applications: AdminApplication[] }) {
+function AdminApplicationsList({ applications }: { applications: AdminApplication[] }) {
   const [apps, setApps] = useState(applications);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,17 +84,17 @@ export default function AdminApplicationsList({ applications }: { applications: 
     [getToken],
   );
 
-  // Filtrar solicitudes según el término de búsqueda
-  const filteredApps = apps.filter((app) => {
-    if (!searchTerm.trim()) return true;
+  // Memoizar filtrado de solicitudes
+  const filteredApps = useMemo(() => {
+    if (!searchTerm.trim()) return apps;
     const term = searchTerm.toLowerCase();
-    return (
+    return apps.filter((app) => 
       app.businessName?.toLowerCase().includes(term) ||
       app.email?.toLowerCase().includes(term) ||
       app.ownerName?.toLowerCase().includes(term) ||
       app.phone?.toLowerCase().includes(term)
     );
-  });
+  }, [apps, searchTerm]);
 
   if (!apps.length) {
     return (

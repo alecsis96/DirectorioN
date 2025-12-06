@@ -17,7 +17,8 @@ type Props = {
 };
 
 const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
-  const businessId = typeof (business as any).id === "string" ? (business as any).id : undefined;
+  // Type-safe extraction de propiedades
+  const businessId = 'id' in business && typeof business.id === 'string' ? business.id : undefined;
   const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
   const [isOpen, setIsOpen] = useState(business.isOpen === "si");
   const [hoursLabel, setHoursLabel] = useState<string>(() => business.hours ? "Actualizando horario..." : "Horario no disponible");
@@ -28,12 +29,13 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const isFavorite = businessId ? favorites.includes(businessId) : false;
   
-  const plan = (business as any).plan || 'free';
+  // Type-safe extraction con verificación de propiedad
+  const plan = ('plan' in business && typeof business.plan === 'string' ? business.plan : 'free') as 'free' | 'featured' | 'sponsor';
   const isPremium = plan !== 'free';
   // Imagen de logo/negocio - priorizar logoUrl sobre image1, usar placeholder premium si aplica
   const logoUrl =
-    (business as any).logoUrl ||
-    (business as any).image1 ||
+    ('logoUrl' in business && typeof business.logoUrl === 'string' ? business.logoUrl : null) ||
+    ('image1' in business && typeof business.image1 === 'string' ? business.image1 : null) ||
     (isPremium
       ? '/images/default-premium-logo.svg'
       : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E');
@@ -186,9 +188,9 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             <span className="text-xl font-bold text-yellow-600" aria-label={`Calificacion ${ratingValue.toFixed(1)} de 5`}>
               {ratingValue.toFixed(1)}
             </span>
-            {(business as any).reviewCount > 0 && (
-              <span className="text-xs text-gray-500 ml-1">
-                ({(business as any).reviewCount} {(business as any).reviewCount === 1 ? 'reseña' : 'reseñas'})
+            {'reviewCount' in business && typeof business.reviewCount === 'number' && business.reviewCount > 0 && (
+              <span className="text-xs text-gray-500">
+                ({business.reviewCount} {business.reviewCount === 1 ? 'reseña' : 'reseñas'})
               </span>
             )}
           </div>
@@ -211,9 +213,9 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
           )}
 
           {/* NUEVO: Rango de Precios (Solo para planes de pago) */}
-          {plan !== 'free' && (business as any).priceRange && (
+          {plan !== 'free' && 'priceRange' in business && business.priceRange && (
             <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
-              💰 {(business as any).priceRange}
+              💰 {business.priceRange}
             </span>
           )}
         </div>

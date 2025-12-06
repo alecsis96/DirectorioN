@@ -17,6 +17,21 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
     const file = e.target.files?.[0];
     e.currentTarget.value = '';
     if (!file || !businessId) return;
+
+    // Validar tipo de archivo
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setMsg('❌ Solo se permiten imágenes (JPG, PNG, WEBP, GIF)');
+      return;
+    }
+
+    // Validar tamaño (máximo 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+    if (file.size > maxSize) {
+      setMsg('❌ La imagen no debe superar 5MB');
+      return;
+    }
+
     setBusy(true);
     try {
       // Cloudinary config - usar valores directos

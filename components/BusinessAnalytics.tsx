@@ -64,21 +64,30 @@ export default function BusinessAnalytics({ businessId }: Props) {
   const [period, setPeriod] = useState(30); // días
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     async function fetchAnalytics() {
       if (!businessId) {
-        setError('ID de negocio no disponible');
-        setLoading(false);
+        if (isMounted) {
+          setError('ID de negocio no disponible');
+          setLoading(false);
+        }
         return;
       }
 
       try {
-        setLoading(true);
-        setError(null);
+        if (isMounted) {
+          setLoading(true);
+          setError(null);
+        }
 
         const user = auth.currentUser;
         if (!user) {
-          setError('Debes iniciar sesión para ver las estadísticas');
-          setLoading(false);
+          if (isMounted) {
+            setError('Debes iniciar sesión para ver las estadísticas');
+            setLoading(false);
+          }
           return;
         }
 
@@ -87,7 +96,10 @@ export default function BusinessAnalytics({ businessId }: Props) {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          signal: controller.signal,
         });
+
+        if (!isMounted) return;
 
         if (!response.ok) {
           const data = await response.json();
@@ -101,16 +113,28 @@ export default function BusinessAnalytics({ businessId }: Props) {
         }
 
         const data = await response.json();
-        setAnalytics(data);
+        if (isMounted) {
+          setAnalytics(data);
+        }
       } catch (err: any) {
+        if (err.name === 'AbortError') return; // Request was cancelled
         console.error('Error fetching analytics:', err);
-        setError(err.message || 'Error al cargar estadísticas');
+        if (isMounted) {
+          setError(err.message || 'Error al cargar estadísticas');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     fetchAnalytics();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [businessId, period]);
 
   if (loading) {

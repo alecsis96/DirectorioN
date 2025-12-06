@@ -16,9 +16,35 @@ import PaymentInfo from './PaymentInfo';
 import { BsBank, BsUpload } from 'react-icons/bs';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
 import { updateBusinessDetails } from '../app/actions/businesses';
+import type { Business } from '../types/business';
 
 type DaySchedule = { open: boolean; start: string; end: string };
 type WeeklySchedule = Record<string, DaySchedule>;
+
+type AddressState = {
+  address: string;
+  lat: number;
+  lng: number;
+};
+
+type FormState = {
+  name: string;
+  category: string;
+  address: string;
+  colonia: string;
+  description: string;
+  phone: string;
+  WhatsApp: string;
+  Facebook: string;
+  hours: string;
+  openTime: string;
+  closeTime: string;
+  plan: string;
+  hasDelivery: boolean;
+  featured: boolean;
+};
+
+
 
 const createDefaultSchedule = (): WeeklySchedule => ({
   lunes: { open: true, start: '09:00', end: '18:00' },
@@ -56,7 +82,7 @@ const defaultFormState = {
   featured: false,
 };
 
-function mapToFormState(data?: Record<string, any>) {
+function mapToFormState(data?: Partial<Business>): FormState {
   if (!data) return { ...defaultFormState };
   const { openTime, closeTime } = parseHours(typeof data.hours === 'string' ? data.hours : undefined);
   return {
@@ -78,22 +104,22 @@ function mapToFormState(data?: Record<string, any>) {
   };
 }
 
-function mapToAddressState(data?: Record<string, any>) {
+function mapToAddressState(data?: Partial<Business>): AddressState {
   return {
     address: data?.address ?? '',
-    lat: typeof data?.lat === 'number' ? data.lat : 0,
-    lng: typeof data?.lng === 'number' ? data.lng : 0,
+    lat: typeof data?.lat === 'number' ? data.lat : (data?.location?.lat ?? 0),
+    lng: typeof data?.lng === 'number' ? data.lng : (data?.location?.lng ?? 0),
   };
 }
 
-function mapToScheduleState(data?: Record<string, any>): WeeklySchedule {
+function mapToScheduleState(data?: Partial<Business>): WeeklySchedule {
   const base = createDefaultSchedule();
   if (!data?.horarios || typeof data.horarios !== 'object') {
     return base;
   }
   const loaded: WeeklySchedule = { ...base };
   Object.entries(base).forEach(([day, fallback]) => {
-    const source = (data.horarios as Record<string, any>)[day];
+    const source = data.horarios?.[day as keyof typeof data.horarios];
     if (!source) return;
     loaded[day] = {
       open: source.abierto !== false,
@@ -106,7 +132,7 @@ function mapToScheduleState(data?: Record<string, any>): WeeklySchedule {
 
 type DashboardEditorProps = {
   businessId?: string;
-  initialBusiness?: Record<string, unknown> | null;
+  initialBusiness?: Business | null;
 };
 
 export default function EditBusiness({ businessId, initialBusiness }: DashboardEditorProps) {
@@ -114,23 +140,34 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   const id = businessId;
   const { user, isAdmin, loading: authLoading } = useAuth();
 
-  const normalizedInitial = (initialBusiness ?? undefined) as Record<string, any> | undefined;
+  const normalizedInitial = initialBusiness ?? undefined;
 
-  const [addr, setAddr] = useState<{ address: string; lat: number; lng: number }>(() =>
-    mapToAddressState(normalizedInitial),
-  );
-  const [biz, setBiz] = useState<any>(normalizedInitial ?? null);
-  const [form, setForm] = useState<any>(() => mapToFormState(normalizedInitial));
-  const [busy, setBusy] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [msg, setMsg] = useState('');
+  // Estados de datos del negocio
+  const [addr, setAddr] = useState<AddressState>(() => mapToAddressState(normalizedInitial));
+  const [biz, setBiz] = useState<Business | null>(normalizedInitial ?? null);
+  const [form, setForm] = useState<FormState>(() => mapToFormState(normalizedInitial));
   const [schedule, setSchedule] = useState<WeeklySchedule>(() => mapToScheduleState(normalizedInitial));
-  const [upgradeBusy, setUpgradeBusy] = useState(false);
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptNotes, setReceiptNotes] = useState('');
-  const [receiptPlan, setReceiptPlan] = useState<'featured' | 'sponsor'>('sponsor');
 
-  const applyBusinessData = useCallback((data: Record<string, any>) => {
+  // Estados de UI consolidados
+  const [uiState, setUiState] = useState({
+    busy: false,
+    submitting: false,
+    upgradeBusy: false,
+    msg: '',
+  });
+
+  // Estados del recibo consolidados
+  const [receiptState, setReceiptState] = useState<{
+    file: File | null;
+    notes: string;
+    plan: 'featured' | 'sponsor';
+  }>({
+    file: null,
+    notes: '',
+    plan: 'sponsor',
+  });
+
+  const applyBusinessData = useCallback((data: Business) => {
     setBiz(data);
     setForm(mapToFormState(data));
     setAddr(mapToAddressState(data));
@@ -139,33 +176,43 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
   useEffect(() => {
     if (initialBusiness) {
-      applyBusinessData(initialBusiness as Record<string, any>);
+      applyBusinessData(initialBusiness);
     }
   }, [initialBusiness, applyBusinessData]);
 
   useEffect(() => {
     if (!id) return;
+    let isMounted = true;
+
     (async () => {
       try {
         const snap = await getDoc(doc(db, 'businesses', id));
+        if (!isMounted) return;
+        
         if (snap.exists()) {
-          const data = { id: snap.id, ...(snap.data() as any) };
+          const data = { id: snap.id, ...snap.data() } as Business;
           applyBusinessData(data);
         } else {
-          setMsg('No encontramos datos para este negocio.');
+          setUiState(prev => ({ ...prev, msg: 'No encontramos datos para este negocio.' }));
         }
       } catch (error) {
         console.error('Error al cargar negocio:', error);
-        setMsg('Error al cargar los datos del negocio');
+        if (isMounted) {
+          setUiState(prev => ({ ...prev, msg: 'Error al cargar los datos del negocio' }));
+        }
       }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id, applyBusinessData]);
 
   const userCanEdit = canEditBusiness(user, isAdmin, biz);
 
-  const handleAddressChange = useCallback((value: { address: string; lat: number; lng: number }) => {
+  const handleAddressChange = useCallback((value: AddressState) => {
     setAddr(value);
-    setForm((prev: any) => ({
+    setForm((prev) => ({
       ...prev,
       address: value.address ?? '',
     }));
@@ -174,12 +221,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   async function save() {
     if (!id) return;
     if (!userCanEdit || !user) {
-      setMsg('Necesitas permisos para editar este negocio.');
+      setUiState(prev => ({ ...prev, msg: 'Necesitas permisos para editar este negocio.' }));
       return;
     }
 
-    setBusy(true);
-    setMsg('Guardando...');
+    setUiState(prev => ({ ...prev, busy: true, msg: 'Guardando...' }));
     try {
       const horarios: Record<string, { abierto: boolean; desde: string; hasta: string }> = {};
       Object.entries(schedule).forEach(([day, hours]) => {
@@ -217,34 +263,33 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       formData.append('updates', JSON.stringify(payload));
       await updateBusinessDetails(id, formData);
 
-      setMsg('Guardado correctamente.');
+      setUiState(prev => ({ ...prev, msg: 'Guardado correctamente.' }));
 
       const snap = await getDoc(doc(db, 'businesses', id));
       if (snap.exists()) {
-        const updatedData = { id: snap.id, ...(snap.data() as any) };
+        const updatedData = { id: snap.id, ...snap.data() } as Business;
         applyBusinessData(updatedData);
       }
     } catch (error) {
       console.error('Error al guardar:', error);
-      setMsg(error instanceof Error ? error.message : 'No pudimos guardar los cambios. Intenta nuevamente.');
+      setUiState(prev => ({ ...prev, msg: error instanceof Error ? error.message : 'No pudimos guardar los cambios. Intenta nuevamente.' }));
     } finally {
-      setBusy(false);
+      setUiState(prev => ({ ...prev, busy: false }));
     }
   }
 
   async function submitForReview() {
     if (!id || !userCanEdit || !biz) return;
     if (biz.status !== 'draft' && biz.status !== 'rejected') {
-      setMsg('Este negocio ya esta en revision o publicado.');
+      setUiState(prev => ({ ...prev, msg: 'Este negocio ya esta en revision o publicado.' }));
       return;
     }
     if (!form.name?.trim() || !form.description?.trim() || !form.phone?.trim()) {
-      setMsg('Completa al menos: Nombre, Descripcion y Telefono antes de enviar.');
+      setUiState(prev => ({ ...prev, msg: 'Completa al menos: Nombre, Descripcion y Telefono antes de enviar.' }));
       return;
     }
 
-    setSubmitting(true);
-    setMsg('Enviando a revision...');
+    setUiState(prev => ({ ...prev, submitting: true, msg: 'Enviando a revision...' }));
     try {
       await updateDoc(doc(db, 'businesses', id), {
         status: 'review',
@@ -272,26 +317,25 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         console.warn('Error al notificar al admin:', notifyError);
       }
 
-      setBiz((prev: any) => ({ ...prev, status: 'review' }));
-      setMsg('Negocio enviado a revision. Te notificaremos cuando sea aprobado.');
+      setBiz((prev) => prev ? ({ ...prev, status: 'review' }) : null);
+      setUiState(prev => ({ ...prev, msg: 'Negocio enviado a revision. Te notificaremos cuando sea aprobado.' }));
     } catch (error) {
       console.error('Error al enviar a revision:', error);
-      setMsg('Error al enviar. Intenta nuevamente.');
+      setUiState(prev => ({ ...prev, msg: 'Error al enviar. Intenta nuevamente.' }));
     } finally {
-      setSubmitting(false);
+      setUiState(prev => ({ ...prev, submitting: false }));
     }
   }
 
   async function handleUpgradeByTransfer(targetPlan: 'featured' | 'sponsor' = 'sponsor') {
     if (!id || !biz || !user) return;
-    if (!receiptFile) {
-      setMsg('Adjunta tu comprobante de pago.');
+    if (!receiptState.file) {
+      setUiState(prev => ({ ...prev, msg: 'Adjunta tu comprobante de pago.' }));
       return;
     }
-    setUpgradeBusy(true);
-    setMsg('Enviando comprobante de transferencia...');
+    setUiState(prev => ({ ...prev, upgradeBusy: true, msg: 'Enviando comprobante de transferencia...' }));
     try {
-      const buffer = await receiptFile.arrayBuffer();
+      const buffer = await receiptState.file.arrayBuffer();
       const base64Data = btoa(String.fromCharCode(...new Uint8Array(buffer)));
       const token = await user.getIdToken();
       const res = await fetch('/api/businesses/upload-transfer', {
@@ -304,9 +348,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
           businessId: id,
           plan: targetPlan,
           paymentMethod: 'transfer',
-          notes: receiptNotes,
-          fileName: receiptFile.name,
-          fileType: receiptFile.type || 'application/octet-stream',
+          notes: receiptState.notes,
+          fileName: receiptState.file.name,
+          fileType: receiptState.file.type || 'application/octet-stream',
           fileData: base64Data,
         }),
       });
@@ -316,19 +360,18 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         throw new Error(data.error || 'No pudimos subir el comprobante');
       }
 
-      setBiz((prev: any) => ({
+      setBiz((prev) => prev ? ({
         ...prev,
         planPaymentMethod: 'transfer',
-        paymentStatus: prev.paymentStatus || 'pending_transfer',
-      }));
-      setReceiptFile(null);
-      setReceiptNotes('');
-      setMsg('Comprobante enviado. Validaremos el pago y activaremos tu plan.');
-    } catch (error: any) {
+        paymentStatus: (prev.paymentStatus || 'pending') as Business['paymentStatus'],
+      }) : null);
+      setReceiptState({ file: null, notes: '', plan: 'sponsor' });
+      setUiState(prev => ({ ...prev, msg: 'Comprobante enviado. Validaremos el pago y activaremos tu plan.' }));
+    } catch (error) {
       console.error('transfer upload error', error);
-      setMsg(error?.message || 'No pudimos registrar tu comprobante');
+      setUiState(prev => ({ ...prev, msg: error instanceof Error ? error.message : 'No pudimos registrar tu comprobante' }));
     } finally {
-      setUpgradeBusy(false);
+      setUiState(prev => ({ ...prev, upgradeBusy: false }));
     }
   }
 
@@ -374,20 +417,20 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               {(biz.status === 'draft' || biz.status === 'rejected') && (
                 <button
                   onClick={submitForReview}
-                  disabled={submitting}
+                  disabled={uiState.submitting}
                   className="px-3 sm:px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-xs sm:text-sm font-semibold disabled:opacity-60 flex-1 sm:flex-initial"
                 >
-                  <span className="hidden sm:inline">{submitting ? 'Enviando...' : 'Enviar a revision'}</span>
-                  <span className="sm:hidden">{submitting ? 'Enviando...' : 'Revisar'}</span>
+                  <span className="hidden sm:inline">{uiState.submitting ? 'Enviando...' : 'Enviar a revision'}</span>
+                  <span className="sm:hidden">{uiState.submitting ? 'Enviando...' : 'Revisar'}</span>
                 </button>
               )}
               <button
                 onClick={save}
-                disabled={busy}
+                disabled={uiState.busy}
                 className="px-3 sm:px-4 py-2 bg-[#38761D] text-white rounded-lg hover:bg-[#2d5a15] transition text-xs sm:text-sm font-semibold disabled:opacity-60 flex-1 sm:flex-initial"
               >
-                <span className="hidden sm:inline">{busy ? 'Guardando...' : 'Guardar cambios'}</span>
-                <span className="sm:hidden">{busy ? 'Guardando...' : 'Guardar'}</span>
+                <span className="hidden sm:inline">{uiState.busy ? 'Guardando...' : 'Guardar cambios'}</span>
+                <span className="sm:hidden">{uiState.busy ? 'Guardando...' : 'Guardar'}</span>
               </button>
             </div>
           </div>
@@ -568,7 +611,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                         businessId={id!}
                         coverUrl={biz.coverUrl || null}
                         coverPublicId={biz.coverPublicId || null}
-                        onChange={(url, publicId) => setBiz((b: any) => ({ ...b, coverUrl: url, coverPublicId: publicId }))}
+                        onChange={(url, publicId) => setBiz((b) => b ? ({ ...b, coverUrl: url, coverPublicId: publicId }) : null)}
                       />
                     </div>
                     <div className="space-y-3">
@@ -577,7 +620,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                         businessId={id!}
                         logoUrl={biz.logoUrl || null}
                         logoPublicId={biz.logoPublicId || null}
-                        onChange={(url, publicId) => setBiz((b: any) => ({ ...b, logoUrl: url, logoPublicId: publicId }))}
+                        onChange={(url, publicId) => setBiz((b) => b ? ({ ...b, logoUrl: url, logoPublicId: publicId }) : null)}
                       />
                     </div>
                   </>
@@ -587,10 +630,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       Funciones premium disponibles por transferencia o pago en sucursal.
                     </p>
                     <p className="text-xs text-gray-600">Sube tu comprobante para activar tu plan.</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => handleUpgradeByTransfer('sponsor')}
-                        disabled={upgradeBusy}
+                        disabled={uiState.upgradeBusy}
                         className="px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60"
                       >
                         Enviar comprobante (premium)
@@ -603,8 +646,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   <p className="text-sm text-gray-600">Galeria de imagenes</p>
                   <ImageUploader
                     businessId={id!}
-                    images={biz.images || []}
-                    onChange={(imgs) => setBiz((b: any) => ({ ...b, images: imgs }))}
+                    images={(biz.images || []).filter((img): img is { url: string; publicId: string } => Boolean(img.url && img.publicId))}
+                    onChange={(imgs) => setBiz((b) => b ? ({ ...b, images: imgs }) : null)}
                     plan={biz.plan}
                   />
                 </div>
@@ -619,10 +662,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   <p className="text-sm text-yellow-800">Completa la informacion y envia a revision para publicar.</p>
                   <button
                     onClick={submitForReview}
-                    disabled={submitting}
+                    disabled={uiState.submitting}
                     className="w-full px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-sm font-semibold disabled:opacity-60"
                   >
-                    {submitting ? 'Enviando...' : 'Enviar a revision'}
+                    {uiState.submitting ? 'Enviando...' : 'Enviar a revision'}
                   </button>
                 </div>
               )}
@@ -650,8 +693,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     <label className="text-xs font-semibold text-gray-700">
                       Plan a activar
                       <select
-                        value={receiptPlan}
-                        onChange={(e) => setReceiptPlan(e.target.value as 'featured' | 'sponsor')}
+                        value={receiptState.plan}
+                        onChange={(e) => setReceiptState(prev => ({ ...prev, plan: e.target.value as 'featured' | 'sponsor' }))}
                         className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                       >
                         <option value="featured">Destacado</option>
@@ -665,10 +708,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                         <input
                           type="file"
                           accept=".pdf,image/*"
-                          onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                          onChange={(e) => setReceiptState(prev => ({ ...prev, file: e.target.files?.[0] || null }))}
                           className="text-xs sm:text-sm w-full"
                         />
-                        {receiptFile && <span className="text-xs text-gray-600 truncate max-w-full sm:max-w-[160px]">{receiptFile.name}</span>}
+                        {receiptState.file && <span className="text-xs text-gray-600 truncate max-w-full sm:max-w-[160px]">{receiptState.file.name}</span>}
                       </div>
                     </label>
 
@@ -676,24 +719,24 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       className="rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                       rows={2}
                       placeholder="Notas adicionales (opcional)"
-                      value={receiptNotes}
-                      onChange={(e) => setReceiptNotes(e.target.value)}
+                      value={receiptState.notes}
+                      onChange={(e) => setReceiptState(prev => ({ ...prev, notes: e.target.value }))}
                     />
 
                     <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                       <button
-                        onClick={() => handleUpgradeByTransfer(receiptPlan)}
-                        disabled={upgradeBusy}
+                        onClick={() => handleUpgradeByTransfer(receiptState.plan)}
+                        disabled={uiState.upgradeBusy}
                         className="inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-xs sm:text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60 w-full sm:w-auto"
                       >
                         <BsBank className="flex-shrink-0" />
                         <span className="hidden sm:inline">Enviar comprobante (transferencia/sucursal)</span>
                         <span className="sm:hidden">Enviar comprobante</span>
                       </button>
-                      {receiptFile && (
+                      {receiptState.file && (
                         <div className="inline-flex items-center gap-2 text-xs text-gray-600 px-2 py-1 bg-gray-50 border border-dashed border-gray-200 rounded w-full sm:w-auto">
                           <BsUpload className="flex-shrink-0" />
-                          <span className="truncate">{receiptFile.name}</span>
+                          <span className="truncate">{receiptState.file.name}</span>
                         </div>
                       )}
                     </div>
@@ -713,7 +756,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 <h3 className="text-base font-semibold text-gray-900">Estado</h3>
                 <p className="text-sm text-gray-600">Propietario: {biz.ownerEmail || user?.email || 'Sesion'}</p>
                 <p className="text-sm text-gray-600">ID: {biz.id}</p>
-                <p className="text-xs text-gray-500">Mensaje: {msg || 'Sin mensajes'}</p>
+                <p className="text-xs text-gray-500">Mensaje: {uiState.msg || 'Sin mensajes'}</p>
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => signOut(auth)}

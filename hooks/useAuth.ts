@@ -59,6 +59,17 @@ export function useAuth() {
  * 
  * @returns {User | null} Usuario autenticado o null
  */
+export function useCurrentUser(): User | null {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  return user;
+}
+
 /**
  * Verifica si el usuario actual puede editar un negocio específico
  * Considera tanto el ownerId como el ownerEmail para compatibilidad

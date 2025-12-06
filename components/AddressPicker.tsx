@@ -36,7 +36,8 @@ export default function AddressPicker({ value, onChange }: Props) {
       draggable: true,
     });
 
-    marker.addListener('dragend', () => {
+    // Guardar referencias a los listeners para limpiarlos
+    const dragendListener = marker.addListener('dragend', () => {
       const p = marker.getPosition();
       if (!p) return;
       const currentAddress = inputRef.current?.value || value.address;
@@ -49,7 +50,7 @@ export default function AddressPicker({ value, onChange }: Props) {
       componentRestrictions: { country: 'mx' },
     });
 
-    ac.addListener('place_changed', () => {
+    const placeChangedListener = ac.addListener('place_changed', () => {
       const place = ac.getPlace();
       const loc = place.geometry?.location;
       const addr = place.formatted_address || inputRef.current?.value || '';
@@ -64,6 +65,13 @@ export default function AddressPicker({ value, onChange }: Props) {
       map.setCenter(position);
       onChange({ address: addr, lat: loc.lat(), lng: loc.lng() });
     });
+
+    // Cleanup: remover listeners cuando el componente se desmonta o las dependencias cambian
+    return () => {
+      google.maps.event.removeListener(dragendListener);
+      google.maps.event.removeListener(placeChangedListener);
+      marker.setMap(null);
+    };
   }, [value.address, value.lat, value.lng, onChange]);
 
   return (

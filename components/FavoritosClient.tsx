@@ -18,7 +18,12 @@ export default function FavoritosClient() {
 
   useEffect(() => {
     async function fetchFavorites() {
-      if (favorites.length === 0) {
+      // Filtrar favoritos válidos (strings no vacíos)
+      const validFavorites = favorites.filter(
+        (id): id is string => typeof id === 'string' && id.trim().length > 0
+      );
+
+      if (validFavorites.length === 0) {
         setBusinesses([]);
         setLoading(false);
         return;
@@ -28,12 +33,12 @@ export default function FavoritosClient() {
         setLoading(true);
         setError(null);
         
-        console.log('[FavoritosClient] Favorites IDs:', favorites);
+        console.log('[FavoritosClient] Valid Favorites IDs:', validFavorites);
         
         // Firestore permite máximo 10 items en un 'in' query, así que dividimos en chunks
         const chunks: string[][] = [];
-        for (let i = 0; i < favorites.length; i += 10) {
-          chunks.push(favorites.slice(i, i + 10));
+        for (let i = 0; i < validFavorites.length; i += 10) {
+          chunks.push(validFavorites.slice(i, i + 10));
         }
 
         const allBusinesses: Business[] = [];

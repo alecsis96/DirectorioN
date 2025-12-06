@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { auth } from '../firebaseConfig';
 
 interface UpdateResponse {
@@ -19,7 +19,7 @@ export default function LogoUploader({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.currentTarget.value = '';
     if (!file || !businessId) return;
@@ -88,13 +88,13 @@ export default function LogoUploader({
     } finally {
       setBusy(false);
     }
-  }
+  }, [businessId, logoPublicId, onChange]);
 
-  async function saveLogo(url: string | null, publicId: string | null) {
+  const saveLogo = useCallback(async (url: string | null, publicId: string | null) => {
     const token = await auth.currentUser?.getIdToken();
     if (!token) throw new Error('Debes iniciar sesión');
 
-    const response = await fetch('/api/businesses/update', {
+    const res = await fetch('/api/businesses/update', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -106,14 +106,14 @@ export default function LogoUploader({
       }),
     });
 
-    const result: UpdateResponse | null = await response.json().catch(() => null);
-    if (!response.ok || !result?.ok) {
+    const result: UpdateResponse | null = await res.json().catch(() => null);
+    if (!res.ok || !result?.ok) {
       console.error('Error saving logo to database:', result);
       throw new Error((result as any)?.error || 'No se pudo actualizar el logo en la base de datos');
     }
-  }
+  }, [businessId]);
 
-  async function handleDelete() {
+  const handleDelete = useCallback(async () => {
     if (!logoPublicId) return;
 
     try {
@@ -144,7 +144,7 @@ export default function LogoUploader({
     } finally {
       setBusy(false);
     }
-  }
+  }, [logoPublicId, onChange, saveLogo]);
 
   return (
     <div className="space-y-3 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">

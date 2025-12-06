@@ -232,15 +232,23 @@ export default function BusinessWizardPro() {
 
   // Carga progreso guardado
   useEffect(() => {
+    let isMounted = true;
+
     async function loadProgress() {
       if (!user?.uid) {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
         return;
       }
       try {
-        setLoading(true);
+        if (isMounted) {
+          setLoading(true);
+        }
         const ref = doc(db, "business_wizard", user.uid);
         const snap = await getDoc(ref);
+        if (!isMounted) return;
+        
         if (snap.exists()) {
           const data = snap.data() as any;
           if (data?.formData) {
@@ -252,12 +260,20 @@ export default function BusinessWizardPro() {
         }
       } catch (e) {
         console.error("wizard load", e);
-        setStatusMsg("No pudimos cargar tu progreso.");
+        if (isMounted) {
+          setStatusMsg("No pudimos cargar tu progreso.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
     loadProgress();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user?.uid, reset]);
 
   // Autocomplete

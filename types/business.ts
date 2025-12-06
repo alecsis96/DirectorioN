@@ -37,9 +37,15 @@ export type Business = {
   images?: { url?: string | null; publicId?: string }[];
   featured?: boolean | string;
   priceRange?: string;
+  // Location coordinates
+  lat?: number;
+  lng?: number;
+  // Status field
+  status?: 'draft' | 'review' | 'published' | 'rejected';
   // Payment fields
   isActive?: boolean;
   paymentStatus?: 'active' | 'pending' | 'overdue' | 'canceled';
+  planPaymentMethod?: 'transfer' | 'stripe' | 'cash';
   nextPaymentDate?: string;
   lastPaymentDate?: string;
   disabledReason?: string;
