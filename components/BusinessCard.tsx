@@ -19,7 +19,6 @@ type Props = {
 const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   // Type-safe extraction de propiedades - asegurar que business.id siempre esté disponible
   const businessId = business?.id || (business as any)?.businessId || undefined;
-  console.log('[BusinessCard] Rendered:', { id: businessId, name: business?.name, hasId: !!businessId });
   
   const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
   const [isOpen, setIsOpen] = useState(business.isOpen === "si");
@@ -34,6 +33,20 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   // Type-safe extraction con verificación de propiedad
   const plan = ('plan' in business && typeof business.plan === 'string' ? business.plan : 'free') as 'free' | 'featured' | 'sponsor';
   const isPremium = plan !== 'free';
+  
+  // Handler de favoritos
+  const handleFavoriteClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!businessId) return;
+    
+    if (isFavorite) {
+      removeFavorite(businessId);
+    } else {
+      addFavorite(businessId);
+    }
+  }, [businessId, isFavorite, addFavorite, removeFavorite]);
+  
   // Imagen de logo/negocio - priorizar logoUrl sobre image1, usar placeholder premium si aplica
   const logoUrl =
     ('logoUrl' in business && typeof business.logoUrl === 'string' ? business.logoUrl : null) ||
@@ -163,37 +176,20 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             <p className="text-[10px] text-gray-500 mt-0.5">Tap para ver detalles</p>
           </div>
           {/* Botón de favoritos - COMPLETAMENTE FUERA DEL FLUJO */}
-          <div className="absolute top-0 right-0 w-10 h-10" style={{ zIndex: 99999, pointerEvents: 'auto' }}>
-            <button
-              type="button"
-              aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-              onClickCapture={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.nativeEvent.stopImmediatePropagation();
-                console.log('[BusinessCard] Favorite clicked:', { businessId, businessName: business.name, plan, isFavorite });
-                if (!businessId) {
-                  console.error('[BusinessCard] No businessId available for:', business);
-                  return;
-                }
-                if (isFavorite) {
-                  console.log('[BusinessCard] Removing favorite:', businessId);
-                  removeFavorite(businessId);
-                } else {
-                  console.log('[BusinessCard] Adding favorite:', businessId);
-                  addFavorite(businessId);
-                }
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              className={`w-full h-full flex items-center justify-center rounded-full text-xl font-semibold transition touch-manipulation ${
-                isFavorite ? "text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100" : "text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100"
-              }`}
-            >
+          <div 
+            onClick={handleFavoriteClick}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center rounded-full cursor-pointer transition touch-manipulation hover:bg-gray-100 active:scale-95"
+            style={{ zIndex: 99999 }}
+            role="button"
+            aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+            tabIndex={0}
+          >
+            <span className={`text-2xl select-none pointer-events-none ${
+              isFavorite ? "text-red-500" : "text-gray-400"
+            }`}>
               {isFavorite ? "♥" : "♡"}
-            </button>
+            </span>
           </div>
         </div>
         

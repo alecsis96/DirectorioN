@@ -21,6 +21,19 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
   const plan = (business as any).plan || 'free';
   const isPremium = plan !== 'free';
 
+  // Handler de favoritos
+  const handleFavoriteClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!businessId) return;
+    
+    if (isFavorite) {
+      removeFavorite(businessId);
+    } else {
+      addFavorite(businessId);
+    }
+  }, [businessId, isFavorite, addFavorite, removeFavorite]);
+
   // Imagen de portada
   const coverUrl = (business as any).coverUrl || (business as any).image1 || '/images/default-premium-cover.svg';
   
@@ -58,20 +71,6 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
   const handleCardClick = () => {
     if (businessId) {
       router.push(`/negocios/${businessId}`);
-    }
-  };
-
-  const handleFavoriteToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.nativeEvent.stopImmediatePropagation();
-    console.log('[BusinessCardVertical] Favorite clicked!', { businessId, isFavorite });
-    if (!businessId) return;
-    
-    if (isFavorite) {
-      removeFavorite(businessId);
-    } else {
-      addFavorite(businessId);
     }
   };
 
@@ -123,20 +122,20 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
               </h3>
             </div>
             {/* Botón de favoritos - ABSOLUTAMENTE POSICIONADO */}
-            <div className="absolute top-0 right-0 w-12 h-12" style={{ zIndex: 99999, pointerEvents: 'auto' }}>
-              <button
-                onClickCapture={handleFavoriteToggle}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-                className={`w-full h-full flex items-center justify-center rounded-full text-2xl transition-colors touch-manipulation ${
-                  isFavorite ? 'text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100' : 'text-gray-400 hover:text-red-400 bg-gray-50 hover:bg-gray-100'
-                }`}
-              >
+            <div 
+              onClick={handleFavoriteClick}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="absolute top-0 right-0 w-12 h-12 flex items-center justify-center rounded-full cursor-pointer transition-colors touch-manipulation hover:bg-gray-100 active:scale-95"
+              style={{ zIndex: 99999 }}
+              role="button"
+              aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+              tabIndex={0}
+            >
+              <span className={`text-3xl select-none pointer-events-none ${
+                isFavorite ? 'text-red-500' : 'text-gray-400'
+              }`}>
                 {isFavorite ? '♥' : '♡'}
-              </button>
+              </span>
             </div>
           </div>
 
