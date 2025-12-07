@@ -17,8 +17,10 @@ type Props = {
 };
 
 const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
-  // Type-safe extraction de propiedades
-  const businessId = 'id' in business && typeof business.id === 'string' ? business.id : undefined;
+  // Type-safe extraction de propiedades - asegurar que business.id siempre esté disponible
+  const businessId = business?.id || (business as any)?.businessId || undefined;
+  console.log('[BusinessCard] Rendered:', { id: businessId, name: business?.name, hasId: !!businessId });
+  
   const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
   const [isOpen, setIsOpen] = useState(business.isOpen === "si");
   const [hoursLabel, setHoursLabel] = useState<string>(() => business.hours ? "Actualizando horario..." : "Horario no disponible");
@@ -167,10 +169,16 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (!businessId) return;
+                console.log('[BusinessCard] Favorite clicked:', { businessId, businessName: business.name, plan, isFavorite });
+                if (!businessId) {
+                  console.error('[BusinessCard] No businessId available for:', business);
+                  return;
+                }
                 if (isFavorite) {
+                  console.log('[BusinessCard] Removing favorite:', businessId);
                   removeFavorite(businessId);
                 } else {
+                  console.log('[BusinessCard] Adding favorite:', businessId);
                   addFavorite(businessId);
                 }
               }}
