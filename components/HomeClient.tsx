@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { FavoritesProvider } from '../context/FavoritesContext';
 import BusinessCardVertical from './BusinessCardVertical';
 import type { BusinessPreview } from '../types/business';
 
@@ -24,7 +23,7 @@ export default function HomeClient({ businesses }: Props) {
   );
 
   return (
-    <FavoritesProvider>
+    <>
       {validBusinesses.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">No hay negocios disponibles en este momento.</p>
@@ -39,6 +38,6 @@ export default function HomeClient({ businesses }: Props) {
           ))}
         </div>
       )}
-    </FavoritesProvider>
+    </>
   );
 }

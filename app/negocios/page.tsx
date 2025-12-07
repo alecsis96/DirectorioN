@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 
 import NegociosListClient from '../../components/NegociosListClient';
-import { FavoritesProvider } from '../../context/FavoritesContext';
 import type { Business, BusinessPreview } from '../../types/business';
 import { pickBusinessPreview } from '../../types/business';
 import { fetchBusinesses, toNumber, sortBusinessesWithSponsors } from '../../lib/server/businessData';
@@ -140,15 +139,13 @@ export default async function NegociosPage({ searchParams }: { searchParams: Pro
   const { businesses, categories, colonias, filters, error, geoQuery } = await buildBusinessesResult(resolvedParams);
 
   return (
-    <FavoritesProvider>
-      <NegociosListClient
-        businesses={businesses}
-        categories={categories}
-        colonias={colonias}
-        initialFilters={filters ?? DEFAULT_FILTER_STATE}
-        initialError={error}
-        geoQuery={geoQuery}
-      />
-    </FavoritesProvider>
+    <NegociosListClient
+      businesses={businesses}
+      categories={categories}
+      colonias={colonias}
+      initialFilters={filters ?? DEFAULT_FILTER_STATE}
+      initialError={error}
+      geoQuery={geoQuery}
+    />
   );
 }

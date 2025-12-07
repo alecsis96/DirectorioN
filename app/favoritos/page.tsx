@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import FavoritosClient from '../../components/FavoritosClient';
-import { FavoritesProvider } from '../../context/FavoritesContext';
 
 export const metadata: Metadata = {
   title: 'Mis Favoritos - Directorio Yajalón',
@@ -14,9 +13,5 @@ export const metadata: Metadata = {
 };
 
 export default function FavoritosPage() {
-  return (
-    <FavoritesProvider>
-      <FavoritosClient />
-    </FavoritesProvider>
-  );
+  return <FavoritosClient />;
 }
