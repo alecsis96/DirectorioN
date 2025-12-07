@@ -164,7 +164,9 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             <button
               type="button"
               aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (!businessId) return;
                 if (isFavorite) {
                   removeFavorite(businessId);
