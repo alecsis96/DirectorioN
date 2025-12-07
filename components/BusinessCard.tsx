@@ -150,8 +150,8 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         )}
         
         {/* Header con título, favorito y rating */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-3 relative">
+          <div className="flex-1 min-w-0 pr-12">
             <Link
               prefetch={false}
               href={`/negocios/${business.id ?? ""}`}
@@ -162,13 +162,15 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             </Link>
             <p className="text-[10px] text-gray-500 mt-0.5">Tap para ver detalles</p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Botón de favoritos - COMPLETAMENTE FUERA DEL FLUJO */}
+          <div className="absolute top-0 right-0 w-10 h-10" style={{ zIndex: 99999, pointerEvents: 'auto' }}>
             <button
               type="button"
               aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-              onClick={(e) => {
+              onClickCapture={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                e.nativeEvent.stopImmediatePropagation();
                 console.log('[BusinessCard] Favorite clicked:', { businessId, businessName: business.name, plan, isFavorite });
                 if (!businessId) {
                   console.error('[BusinessCard] No businessId available for:', business);
@@ -182,8 +184,12 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
                   addFavorite(businessId);
                 }
               }}
-              className={`rounded-full p-1.5 text-base font-semibold transition ${
-                isFavorite ? "text-red-500 hover:text-red-600" : "text-gray-400 hover:text-gray-600"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className={`w-full h-full flex items-center justify-center rounded-full text-xl font-semibold transition touch-manipulation ${
+                isFavorite ? "text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100" : "text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100"
               }`}
             >
               {isFavorite ? "♥" : "♡"}

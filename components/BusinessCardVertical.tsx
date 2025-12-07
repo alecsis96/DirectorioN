@@ -64,6 +64,8 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
   const handleFavoriteToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    console.log('[BusinessCardVertical] Favorite clicked!', { businessId, isFavorite });
     if (!businessId) return;
     
     if (isFavorite) {
@@ -75,8 +77,7 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
 
   return (
     <article
-      onClick={handleCardClick}
-      className={`block relative rounded-2xl transition-all hover:scale-[1.02] hover:shadow-2xl overflow-hidden cursor-pointer ${isPremium ? 'p-[4px]' : 'p-[1px]'} ${currentStyle.borderGradient}`}
+      className={`block relative rounded-2xl transition-all hover:scale-[1.02] hover:shadow-2xl overflow-hidden ${isPremium ? 'p-[4px]' : 'p-[1px]'} ${currentStyle.borderGradient}`}
     >
       {/* Contenedor interior */}
       <div className="relative bg-white rounded-xl overflow-hidden flex flex-col h-full">
@@ -91,7 +92,10 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
 
         {/* Imagen de portada - SOLO para PATROCINADO */}
         {plan === 'sponsor' && (
-          <div className="h-40 w-full overflow-hidden bg-gray-100 border-b border-gray-200">
+          <div 
+            onClick={handleCardClick}
+            className="h-40 w-full overflow-hidden bg-gray-100 border-b border-gray-200 cursor-pointer"
+          >
             <img 
               src={coverUrl}
               alt={`Imagen de ${business.name}`}
@@ -103,26 +107,37 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
         {/* Contenido */}
         <div className="p-4 flex flex-col flex-grow">
           {/* Header con Logo y Nombre */}
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3 mb-3 relative">
+            <div className="flex items-center gap-3 min-w-0 flex-1 pr-12">
               <img 
+                onClick={handleCardClick}
                 src={logoUrl}
                 alt={`Logo de ${business.name}`}
-                className={`${plan === 'sponsor' ? 'w-10 h-10' : 'w-16 h-16'} rounded-full object-cover border-2 border-gray-200 flex-shrink-0`}
+                className={`${plan === 'sponsor' ? 'w-10 h-10' : 'w-16 h-16'} rounded-full object-cover border-2 border-gray-200 flex-shrink-0 cursor-pointer`}
               />
-              <h3 className="text-lg font-bold text-gray-900 hover:text-purple-600 transition truncate">
+              <h3 
+                onClick={handleCardClick}
+                className="text-lg font-bold text-gray-900 hover:text-purple-600 transition truncate cursor-pointer"
+              >
                 {business.name}
               </h3>
             </div>
-            <button
-              onClick={handleFavoriteToggle}
-              aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-              className={`text-xl transition-colors flex-shrink-0 ${
-                isFavorite ? 'text-red-500 hover:text-red-600' : 'text-gray-400 hover:text-red-400'
-              }`}
-            >
-              {isFavorite ? '♥' : '♡'}
-            </button>
+            {/* Botón de favoritos - ABSOLUTAMENTE POSICIONADO */}
+            <div className="absolute top-0 right-0 w-12 h-12" style={{ zIndex: 99999, pointerEvents: 'auto' }}>
+              <button
+                onClickCapture={handleFavoriteToggle}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                className={`w-full h-full flex items-center justify-center rounded-full text-2xl transition-colors touch-manipulation ${
+                  isFavorite ? 'text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100' : 'text-gray-400 hover:text-red-400 bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                {isFavorite ? '♥' : '♡'}
+              </button>
+            </div>
           </div>
 
           {/* Tags */}
