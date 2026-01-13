@@ -361,10 +361,16 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: 'Error de servidor' }));
       if (!res.ok) {
         if (res.status === 413) {
           throw new Error('El archivo es demasiado grande. Intenta con un archivo más pequeño (máx 3MB).');
+        }
+        if (res.status === 401) {
+          throw new Error('Sesión expirada. Por favor, cierra sesión y vuelve a iniciar.');
+        }
+        if (res.status === 500) {
+          throw new Error('Error del servidor. Intenta de nuevo en unos momentos.');
         }
         throw new Error(data.error || 'No pudimos subir el comprobante');
       }
@@ -375,7 +381,12 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         paymentStatus: (prev.paymentStatus || 'pending') as Business['paymentStatus'],
       }) : null);
       setReceiptState({ file: null, notes: '', plan: 'sponsor' });
-      setUiState(prev => ({ ...prev, msg: 'Comprobante enviado. Validaremos el pago y activaremos tu plan.' }));
+      setUiState(prev => ({ ...prev, msg: '✅ Comprobante enviado exitosamente. Validaremos el pago y activaremos tu plan en breve.' }));
+      
+      // Limpiar mensaje de éxito después de 8 segundos
+      setTimeout(() => {
+        setUiState(prev => ({ ...prev, msg: '' }));
+      }, 8000);
     } catch (error) {
       console.error('transfer upload error', error);
       setUiState(prev => ({ ...prev, msg: error instanceof Error ? error.message : 'No pudimos registrar tu comprobante' }));
@@ -766,14 +777,22 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     <label className="text-xs font-semibold text-gray-700">
                       Comprobante (PDF/JPG/PNG, max 3MB)
-                      <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                      <div className="mt-1 flex flex-col gap-2">
                         <input
                           type="file"
                           accept=".pdf,image/*"
                           onChange={(e) => setReceiptState(prev => ({ ...prev, file: e.target.files?.[0] || null }))}
-                          className="text-xs sm:text-sm w-full"
+                          className="text-xs sm:text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer"
                         />
-                        {receiptState.file && <span className="text-xs text-gray-600 truncate max-w-full sm:max-w-[160px]">{receiptState.file.name}</span>}
+                        {receiptState.file && (
+                          <div className="flex items-center gap-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="flex-1 truncate font-medium">{receiptState.file.name}</span>
+                            <span className="text-emerald-600 font-semibold">{(receiptState.file.size / 1024).toFixed(0)} KB</span>
+                          </div>
+                        )}
                       </div>
                     </label>
 
@@ -788,12 +807,24 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                       <button
                         onClick={() => handleUpgradeByTransfer(receiptState.plan)}
-                        disabled={uiState.upgradeBusy}
-                        className="inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-xs sm:text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60 w-full sm:w-auto"
+                        disabled={uiState.upgradeBusy || !receiptState.file}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border-2 text-white rounded-lg text-sm font-semibold transition-all duration-200 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md hover:shadow-lg"
                       >
-                        <BsBank className="flex-shrink-0" />
-                        <span className="hidden sm:inline">Enviar comprobante (transferencia/sucursal)</span>
-                        <span className="sm:hidden">Enviar comprobante</span>
+                        {uiState.upgradeBusy ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Subiendo...</span>
+                          </>
+                        ) : (
+                          <>
+                            <BsBank className="flex-shrink-0" />
+                            <span className="hidden sm:inline">Enviar comprobante (transferencia/sucursal)</span>
+                            <span className="sm:hidden">Enviar comprobante</span>
+                          </>
+                        )}
                       </button>
                       {receiptState.file && (
                         <div className="inline-flex items-center gap-2 text-xs text-gray-600 px-2 py-1 bg-gray-50 border border-dashed border-gray-200 rounded w-full sm:w-auto">
@@ -819,15 +850,39 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 <h3 className="text-base font-semibold text-gray-900">Estado</h3>
                 <p className="text-sm text-gray-600">Propietario: {biz.ownerEmail || user?.email || 'Sesion'}</p>
                 <p className="text-sm text-gray-600">ID: {biz.id}</p>
-                {uiState.msg && (
-                  <div className={`p-3 rounded-lg text-sm font-medium ${
-                    uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') || uiState.msg.includes('demasiado grande')
-                      ? 'bg-red-50 text-red-700 border border-red-200'
-                      : uiState.msg.includes('enviado') || uiState.msg.includes('Validaremos')
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                
+                {/* Indicador de carga */}
+                {uiState.upgradeBusy && (
+                  <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-pulse">
+                    <div className="flex-shrink-0">
+                      <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900">Subiendo comprobante...</p>
+                      <p className="text-xs text-blue-700 mt-1">Por favor espera, esto puede tomar unos segundos</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Mensajes de estado */}
+                {!uiState.upgradeBusy && uiState.msg && (
+                  <div className={`p-4 rounded-lg text-sm font-medium transition-all duration-300 animate-[slideDown_0.3s_ease-out] ${
+                    uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') || uiState.msg.includes('demasiado grande') || uiState.msg.includes('expirada') || uiState.msg.includes('servidor')
+                      ? 'bg-red-50 text-red-800 border-2 border-red-300 shadow-sm'
+                      : uiState.msg.includes('✅') || uiState.msg.includes('exitosamente') || uiState.msg.includes('Validaremos')
+                      ? 'bg-green-50 text-green-800 border-2 border-green-300 shadow-sm'
+                      : 'bg-blue-50 text-blue-800 border-2 border-blue-300 shadow-sm'
                   }`}>
-                    {uiState.msg}
+                    <div className="flex items-start gap-2">
+                      <span className="flex-shrink-0 text-lg">
+                        {uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') ? '❌' : 
+                         uiState.msg.includes('✅') || uiState.msg.includes('exitosamente') ? '✅' : 'ℹ️'}
+                      </span>
+                      <p className="flex-1">{uiState.msg}</p>
+                    </div>
                   </div>
                 )}
                 <div className="flex flex-col gap-2">

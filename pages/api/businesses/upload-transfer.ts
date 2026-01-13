@@ -29,7 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = await auth.verifyIdToken(token).catch((err) => {
+      console.error('[upload-transfer] Token verification failed:', err.message);
+      throw new Error('Token inválido o expirado');
+    });
     const db = getAdminFirestore();
 
     const { businessId, plan, notes, fileName, fileType, fileData } = req.body ?? {};
