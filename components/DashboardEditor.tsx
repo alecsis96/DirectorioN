@@ -337,7 +337,12 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     setUiState(prev => ({ ...prev, upgradeBusy: true, msg: 'Enviando comprobante de transferencia...' }));
     try {
       const buffer = await receiptState.file.arrayBuffer();
-      const base64Data = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64Data = btoa(binary);
       const token = await user.getIdToken();
       const res = await fetch('/api/businesses/upload-transfer', {
         method: 'POST',
