@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
+import admin from 'firebase-admin';
 
 const VALID_PLANS = ['featured', 'sponsor'];
 const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
@@ -57,7 +58,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const now = new Date();
     const receiptRef = db.collection('paymentReceipts').doc();
     await receiptRef.set({
       id: receiptRef.id,
@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       fileType,
       fileData, // base64 (sin cabecera)
       status: 'pending',
-      createdAt: now,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
       createdBy: decoded.email || decoded.uid,
     });
 
