@@ -143,6 +143,52 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
   const normalizedInitial = initialBusiness ?? undefined;
 
+  // Función para comprimir imágenes antes de subirlas
+  const compressImage = useCallback(async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Reducir tamaño si es muy grande
+          const maxSize = 1200;
+          if (width > maxSize || height > maxSize) {
+            if (width > height) {
+              height = (height / width) * maxSize;
+              width = maxSize;
+            } else {
+              width = (width / height) * maxSize;
+              height = maxSize;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('No se pudo crear contexto canvas'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Comprimir a JPEG con calidad 0.7 (70%)
+          const base64 = canvas.toDataURL('image/jpeg', 0.7);
+          // Remover el prefijo 'data:image/jpeg;base64,'
+          resolve(base64.split(',')[1]);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
   // Estados de datos del negocio
   const [addr, setAddr] = useState<AddressState>(() => mapToAddressState(normalizedInitial));
   const [biz, setBiz] = useState<Business | null>(normalizedInitial ?? null);
@@ -334,15 +380,37 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       setUiState(prev => ({ ...prev, msg: 'Adjunta tu comprobante de pago.' }));
       return;
     }
-    setUiState(prev => ({ ...prev, upgradeBusy: true, msg: 'Enviando comprobante de transferencia...' }));
+    setUiState(prev => ({ ...prev, upgradeBusy: true, msg: 'Procesando y subiendo comprobante...' }));
     try {
-      const buffer = await receiptState.file.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i]);
+      let base64Data: string;
+      
+      // Si es imagen, comprimir antes de enviar
+      if (receiptState.file.type.startsWith('image/')) {
+        console.log('[DashboardEditor] Comprimiendo imagen...', { 
+          originalSize: receiptState.file.size, 
+          type: receiptState.file.type 
+        });
+        base64Data = await compressImage(receiptState.file);
+        const compressedSize = Math.ceil((base64Data.length * 3) / 4);
+        console.log('[DashboardEditor] Imagen comprimida', { 
+          originalSize: receiptState.file.size, 
+          compressedSize,
+          reduction: `${((1 - compressedSize / receiptState.file.size) * 100).toFixed(1)}%`
+        });
+      } else {
+        // Para PDFs, convertir directamente
+        console.log('[DashboardEditor] Convirtiendo PDF a base64...', { 
+          size: receiptState.file.size 
+        });
+        const buffer = await receiptState.file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        base64Data = btoa(binary);
       }
-      const base64Data = btoa(binary);
+      
       const token = await user.getIdToken();
       const res = await fetch('/api/businesses/upload-transfer', {
         method: 'POST',
@@ -776,7 +844,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     </label>
 
                     <label className="text-xs font-semibold text-gray-700">
-                      Comprobante (PDF/JPG/PNG, max 3MB)
+                      Comprobante (PDF/JPG/PNG)
+                      <span className="ml-1 text-gray-500 font-normal">(Imágenes se comprimen automáticamente)</span>
                       <div className="mt-1 flex flex-col gap-2">
                         <input
                           type="file"
@@ -791,6 +860,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                             </svg>
                             <span className="flex-1 truncate font-medium">{receiptState.file.name}</span>
                             <span className="text-emerald-600 font-semibold">{(receiptState.file.size / 1024).toFixed(0)} KB</span>
+                            {receiptState.file.type.startsWith('image/') && (
+                              <span className="text-emerald-600 text-[10px]">📷 Se comprimirá</span>
+                            )}
                           </div>
                         )}
                       </div>

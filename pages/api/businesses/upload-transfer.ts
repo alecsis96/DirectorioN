@@ -83,57 +83,88 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const receiptRef = db.collection('paymentReceipts').doc();
     console.log('[upload-transfer] Creating receipt document:', receiptRef.id);
     
-    // Subir archivo a Storage en lugar de guardarlo en Firestore (límite de 1MB)
-    let fileUrl = '';
-    try {
-      console.log('[upload-transfer] Uploading file to Storage...');
-      const storage = getAdminStorage();
-      const bucket = storage.bucket();
-      const fileBuffer = Buffer.from(fileData, 'base64');
-      const filePath = `payment-receipts/${receiptRef.id}/${fileName}`;
-      const file = bucket.file(filePath);
-      
-      await file.save(fileBuffer, {
-        metadata: {
-          contentType: fileType,
-          metadata: {
-            businessId,
-            uploadedBy: decoded.email || decoded.uid,
-            originalName: fileName,
-          }
-        }
-      });
-      
-      // Hacer el archivo público o generar URL firmada
-      await file.makePublic();
-      fileUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
-      console.log('[upload-transfer] File uploaded to Storage:', fileUrl);
-    } catch (storageError) {
-      console.error('[upload-transfer] Storage error:', storageError);
-      throw new Error('Error al subir el archivo: ' + (storageError instanceof Error ? storageError.message : 'Unknown'));
-    }
+    // Verificar si el base64 es muy grande para Firestore (límite ~900KB para dejar margen)
+    const estimatedSize = Math.ceil((fileData.length * 3) / 4);
+    console.log('[upload-transfer] Estimated Firestore doc size:', estimatedSize, 'bytes');
     
-    try {
-      await receiptRef.set({
-        id: receiptRef.id,
-        businessId,
-        businessName: bizData?.name || bizData?.businessName || 'Negocio',
-        ownerEmail: bizData?.ownerEmail || decoded.email || null,
-        ownerId: ownerId ?? decoded.uid,
-        plan,
-        paymentMethod: 'transfer',
-        notes: typeof notes === 'string' ? notes.slice(0, 500) : '',
-        fileName,
-        fileType,
-        fileUrl, // URL del archivo en Storage
-        status: 'pending',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        createdBy: decoded.email || decoded.uid,
-      });
-      console.log('[upload-transfer] Receipt saved successfully');
-    } catch (firestoreError) {
-      console.error('[upload-transfer] Firestore error:', firestoreError);
-      throw new Error('Error al guardar en la base de datos: ' + (firestoreError instanceof Error ? firestoreError.message : 'Unknown'));
+    if (estimatedSize > 900000) {
+      // Si es muy grande, usar Storage
+      try {
+        console.log('[upload-transfer] File too large for Firestore, uploading to Storage...');
+        const storage = getAdminStorage();
+        const bucket = storage.bucket();
+        
+        if (!bucket.name) {
+          throw new Error('Storage bucket not configured. Please set NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET in Vercel.');
+        }
+        
+        const fileBuffer = Buffer.from(fileData, 'base64');
+        const filePath = `payment-receipts/${receiptRef.id}/${fileName}`;
+        const file = bucket.file(filePath);
+        
+        await file.save(fileBuffer, {
+          metadata: {
+            contentType: fileType,
+            metadata: {
+              businessId,
+              uploadedBy: decoded.email || decoded.uid,
+              originalName: fileName,
+            }
+          }
+        });
+        
+        // Hacer el archivo público
+        await file.makePublic();
+        const fileUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        console.log('[upload-transfer] File uploaded to Storage:', fileUrl);
+        
+        // Guardar con URL en lugar de base64
+        await receiptRef.set({
+          id: receiptRef.id,
+          businessId,
+          businessName: bizData?.name || bizData?.businessName || 'Negocio',
+          ownerEmail: bizData?.ownerEmail || decoded.email || null,
+          ownerId: ownerId ?? decoded.uid,
+          plan,
+          paymentMethod: 'transfer',
+          notes: typeof notes === 'string' ? notes.slice(0, 500) : '',
+          fileName,
+          fileType,
+          fileUrl, // URL del archivo en Storage
+          status: 'pending',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: decoded.email || decoded.uid,
+        });
+        console.log('[upload-transfer] Receipt saved with Storage URL');
+      } catch (storageError) {
+        console.error('[upload-transfer] Storage error:', storageError);
+        throw new Error('Archivo demasiado grande y Storage no configurado. Intenta con un archivo más pequeño (máx 500KB).');
+      }
+    } else {
+      // Si cabe en Firestore, usar base64 (más rápido)
+      try {
+        await receiptRef.set({
+          id: receiptRef.id,
+          businessId,
+          businessName: bizData?.name || bizData?.businessName || 'Negocio',
+          ownerEmail: bizData?.ownerEmail || decoded.email || null,
+          ownerId: ownerId ?? decoded.uid,
+          plan,
+          paymentMethod: 'transfer',
+          notes: typeof notes === 'string' ? notes.slice(0, 500) : '',
+          fileName,
+          fileType,
+          fileData, // base64 para archivos pequeños
+          status: 'pending',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdBy: decoded.email || decoded.uid,
+        });
+        console.log('[upload-transfer] Receipt saved successfully with base64');
+      } catch (firestoreError) {
+        console.error('[upload-transfer] Firestore error:', firestoreError);
+        throw new Error('Error al guardar en la base de datos: ' + (firestoreError instanceof Error ? firestoreError.message : 'Unknown'));
+      }
+    }
     }
 
     // Enviar notificación de Slack
