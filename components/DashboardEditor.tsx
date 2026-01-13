@@ -531,6 +531,53 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Horarios</h2>
+                
+                {/* Acciones rápidas de horarios */}
+                <div className="flex flex-wrap gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-900 font-medium w-full mb-1">Acciones rápidas:</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newSchedule = { ...schedule };
+                      ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'].forEach(day => {
+                        newSchedule[day] = { open: true, start: '09:00', end: '18:00' };
+                      });
+                      setSchedule(newSchedule);
+                    }}
+                    className="px-3 py-1.5 bg-white border border-blue-300 text-blue-700 rounded-md text-xs font-medium hover:bg-blue-100 transition"
+                  >
+                    L-V: 9:00-18:00
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lunesHours = schedule.lunes;
+                      const newSchedule = { ...schedule };
+                      ['martes', 'miercoles', 'jueves', 'viernes'].forEach(day => {
+                        newSchedule[day] = { ...lunesHours };
+                      });
+                      setSchedule(newSchedule);
+                    }}
+                    className="px-3 py-1.5 bg-white border border-blue-300 text-blue-700 rounded-md text-xs font-medium hover:bg-blue-100 transition"
+                  >
+                    Copiar lunes a L-V
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lunesHours = schedule.lunes;
+                      const newSchedule = { ...schedule };
+                      Object.keys(newSchedule).forEach(day => {
+                        newSchedule[day] = { ...lunesHours };
+                      });
+                      setSchedule(newSchedule);
+                    }}
+                    className="px-3 py-1.5 bg-white border border-blue-300 text-blue-700 rounded-md text-xs font-medium hover:bg-blue-100 transition"
+                  >
+                    Copiar lunes a todos
+                  </button>
+                </div>
+
                 <div className="overflow-x-auto -mx-2 px-2">
                   <div className="space-y-3 bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
                     {Object.entries(schedule).map(([day, hours]) => (
