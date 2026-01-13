@@ -94,3 +94,19 @@
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+
+/* Estilos para labels de marcadores en Google Maps */
+.map-marker-label {
+  background: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px !important;
+  font-weight: bold !important;
+  color: #1f2937 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

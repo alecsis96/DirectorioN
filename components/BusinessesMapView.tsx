@@ -134,6 +134,13 @@ export default function BusinessesMapView({
             map: map,
             title: business.name,
             animation: window.google.maps.Animation.DROP,
+            label: {
+              text: business.name,
+              color: '#1f2937',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              className: 'map-marker-label'
+            },
             icon: {
               url: business.plan === 'sponsor' 
                 ? 'http://maps.google.com/mapfiles/ms/icons/purple-dot.png'
@@ -147,19 +154,25 @@ export default function BusinessesMapView({
           // Guardar referencia al negocio
           marker.businessId = business.id;
 
-          // Agregar evento click al marker
+          // Agregar evento click al marker - Abrir tarjeta del negocio
           marker.addListener('click', () => {
+            // Si hay callback, usarlo para abrir el modal/detalle
+            if (onBusinessClick) {
+              onBusinessClick(business);
+            }
+            
+            // Mostrar InfoWindow con vista previa rápida
             const contentString = `
-              <div style="padding: 10px; max-width: 250px;">
+              <div style="padding: 12px; max-width: 280px;">
                 ${business.logoUrl ? `
                   <img src="${business.logoUrl}" alt="${business.name}" 
-                       style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover; margin-bottom: 8px;" />
+                       style="width: 70px; height: 70px; border-radius: 10px; object-fit: cover; margin-bottom: 10px; border: 2px solid #e5e7eb;" />
                 ` : ''}
-                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #1f2937;">
+                <h3 style="margin: 0 0 8px 0; font-size: 17px; font-weight: bold; color: #1f2937;">
                   ${business.name}
                 </h3>
                 ${business.category ? `
-                  <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">
+                  <p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;">
                     📂 ${business.category}
                   </p>
                 ` : ''}
@@ -169,20 +182,13 @@ export default function BusinessesMapView({
                   </p>
                 ` : ''}
                 ${business.rating ? `
-                  <p style="margin: 0 0 8px 0; font-size: 12px; color: #f59e0b; font-weight: bold;">
+                  <p style="margin: 0 0 10px 0; font-size: 13px; color: #f59e0b; font-weight: bold;">
                     ⭐ ${business.rating.toFixed(1)} / 5.0
                   </p>
                 ` : ''}
-                ${business.phone ? `
-                  <a href="tel:${business.phone}" 
-                     style="display: inline-block; margin-right: 8px; padding: 6px 12px; background: #10b981; color: white; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                    📞 Llamar
-                  </a>
-                ` : ''}
-                <button onclick="window.location.href='/negocios/${business.id}'" 
-                        style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">
-                  Ver detalles →
-                </button>
+                <p style="margin: 8px 0 0 0; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #9ca3af; text-align: center;">
+                  💡 Haz click en el negocio del listado para ver más detalles
+                </p>
               </div>
             `;
 
