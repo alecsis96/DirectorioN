@@ -165,7 +165,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw new Error('Error al guardar en la base de datos: ' + (firestoreError instanceof Error ? firestoreError.message : 'Unknown'));
       }
     }
-    }
 
     // Enviar notificación de Slack
     try {
