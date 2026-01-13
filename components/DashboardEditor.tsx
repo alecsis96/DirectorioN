@@ -17,6 +17,7 @@ import { BsBank, BsUpload } from 'react-icons/bs';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
 import { updateBusinessDetails } from '../app/actions/businesses';
 import type { Business } from '../types/business';
+import { YAJALON_COLONIAS } from '../lib/helpers/colonias';
 
 type DaySchedule = { open: boolean; start: string; end: string };
 type WeeklySchedule = Record<string, DaySchedule>;
@@ -469,12 +470,18 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     <option value="Profesional">Profesional</option>
                     <option value="Otro">Otro</option>
                   </select>
-                  <input
+                  <select
                     className="border rounded-lg px-3 py-2"
-                    placeholder="Colonia"
                     value={form.colonia}
                     onChange={(e) => setForm({ ...form, colonia: e.target.value })}
-                  />
+                  >
+                    <option value="">Selecciona una colonia</option>
+                    {YAJALON_COLONIAS.map((colonia) => (
+                      <option key={colonia} value={colonia}>
+                        {colonia}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     className="border rounded-lg px-3 py-2"
                     placeholder="Dirección (calle y número)"
