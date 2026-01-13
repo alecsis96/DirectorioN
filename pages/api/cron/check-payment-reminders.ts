@@ -1,10 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '../../../lib/server/firebaseAdmin';
+import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 
 /**
  * Cron job para verificar pagos próximos a vencer
- * Se ejecuta diariamente para enviar recordatorios por email y WhatsApp
- * Notifica 7, 3 y 1 días antes del vencimiento
+ * Se ejecuta diariamente (9:00 AM) para enviar recordatorios automáticos
+ * 
+ * ¿Para qué sirve este cron?
+ * - Revisa todos los negocios con planes premium (featured/sponsor)
+ * - Identifica cuáles tienen pagos próximos a vencer
+ * - Envía recordatorios por EMAIL y WHATSAPP en 3 momentos:
+ *   • 7 días antes: Recordatorio informativo
+ *   • 3 días antes: Recordatorio de advertencia  
+ *   • 1 día antes: Recordatorio URGENTE
+ * 
+ * Esto evita que los negocios pierdan su plan por olvido del pago.
  */
 
 const REMINDER_DAYS = [7, 3, 1]; // Días antes de vencer para enviar recordatorio
@@ -21,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     console.log('🔔 Starting payment reminder check...');
     
+    const db = getAdminFirestore();
     const now = new Date();
     const businesses = await db.collection('businesses')
       .where('plan', 'in', ['featured', 'sponsor'])
