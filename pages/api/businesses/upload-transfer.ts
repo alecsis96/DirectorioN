@@ -29,10 +29,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(token).catch((err) => {
-      console.error('[upload-transfer] Token verification failed:', err.message);
-      throw new Error('Token inválido o expirado');
-    });
+    let decoded;
+    try {
+      decoded = await auth.verifyIdToken(token);
+    } catch (tokenError) {
+      console.error('[upload-transfer] Token verification failed:', tokenError);
+      return res.status(401).json({ error: 'Token inválido o expirado. Por favor, cierra sesión y vuelve a iniciar.' });
+    }
+    
     const db = getAdminFirestore();
 
     const { businessId, plan, notes, fileName, fileType, fileData } = req.body ?? {};
@@ -44,23 +48,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Invalid plan' });
     }
     if (!fileName || !fileType || !fileData || typeof fileData !== 'string') {
-      return res.status(400).json({ error: 'Missing file' });
+      console.error('[upload-transfer] Missing file data');
+      return res.status(400).json({ error: 'Falta el archivo o datos inválidos' });
     }
     if (!ALLOWED_TYPES.includes(fileType)) {
-      return res.status(400).json({ error: 'Tipo de archivo no permitido' });
+      console.error('[upload-transfer] Invalid file type:', fileType);
+      return res.status(400).json({ error: 'Tipo de archivo no permitido. Usa PDF, JPG o PNG' });
     }
 
     // Validar tamaño (base64 ~1.37x)
     const sizeBytes = Math.ceil((fileData.length * 3) / 4);
+    console.log('[upload-transfer] File size:', sizeBytes, 'bytes');
     if (sizeBytes > MAX_FILE_SIZE) {
-      return res.status(400).json({ error: 'Archivo demasiado grande (max 3MB)' });
+      console.error('[upload-transfer] File too large:', sizeBytes);
+      return res.status(400).json({ error: `Archivo demasiado grande (${(sizeBytes/1024/1024).toFixed(2)}MB). Máximo 3MB` });
     }
 
     // Validar ownership/admin
     const bizRef = db.doc(`businesses/${businessId}`);
+    console.log('[upload-transfer] Fetching business:', businessId);
     const bizSnap = await bizRef.get();
     if (!bizSnap.exists) {
-      return res.status(404).json({ error: 'Business not found' });
+      console.error('[upload-transfer] Business not found:', businessId);
+      return res.status(404).json({ error: 'Negocio no encontrado' });
     }
     const bizData = bizSnap.data() as Record<string, unknown> | undefined;
     const ownerId = bizData?.ownerId;
@@ -71,22 +81,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const receiptRef = db.collection('paymentReceipts').doc();
-    await receiptRef.set({
-      id: receiptRef.id,
-      businessId,
-      businessName: bizData?.name || bizData?.businessName || 'Negocio',
-      ownerEmail: bizData?.ownerEmail || decoded.email || null,
-      ownerId: ownerId ?? decoded.uid,
-      plan,
-      paymentMethod: 'transfer',
-      notes: typeof notes === 'string' ? notes.slice(0, 500) : '',
-      fileName,
-      fileType,
-      fileData, // base64 (sin cabecera)
-      status: 'pending',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdBy: decoded.email || decoded.uid,
-    });
+    console.log('[upload-transfer] Creating receipt document:', receiptRef.id);
+    
+    try {
+      await receiptRef.set({
+        id: receiptRef.id,
+        businessId,
+        businessName: bizData?.name || bizData?.businessName || 'Negocio',
+        ownerEmail: bizData?.ownerEmail || decoded.email || null,
+        ownerId: ownerId ?? decoded.uid,
+        plan,
+        paymentMethod: 'transfer',
+        notes: typeof notes === 'string' ? notes.slice(0, 500) : '',
+        fileName,
+        fileType,
+        fileData, // base64 (sin cabecera)
+        status: 'pending',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdBy: decoded.email || decoded.uid,
+      });
+      console.log('[upload-transfer] Receipt saved successfully');
+    } catch (firestoreError) {
+      console.error('[upload-transfer] Firestore error:', firestoreError);
+      throw new Error('Error al guardar en la base de datos: ' + (firestoreError instanceof Error ? firestoreError.message : 'Unknown'));
+    }
 
     // Enviar notificación de Slack
     try {
@@ -159,6 +177,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ ok: true });
   } catch (error) {
     console.error('[upload-transfer] error', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    const errorDetails = error instanceof Error ? error.stack : String(error);
+    console.error('[upload-transfer] error details:', errorDetails);
+    return res.status(500).json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? errorDetails : undefined 
+    });
   }
 }
