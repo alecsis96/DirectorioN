@@ -12,7 +12,8 @@ type TransferReceipt = {
   plan: string;
   fileName: string;
   fileType: string;
-  fileData: string;
+  fileData?: string; // Legacy - base64
+  fileUrl?: string;  // Nueva - URL de Storage
   status: string;
   createdAt?: string;
 };
@@ -58,7 +59,8 @@ export default function ReceiptListClient({ initialReceipts }: ReceiptListClient
             </thead>
             <tbody className="divide-y divide-gray-100">
               {receipts.map((r) => {
-                const dataUrl = r.fileData ? `data:${r.fileType};base64,${r.fileData}` : null;
+                // Soportar tanto fileUrl (nuevo) como fileData (legacy)
+                const fileLink = r.fileUrl || (r.fileData ? `data:${r.fileType};base64,${r.fileData}` : null);
                 return (
                   <tr key={r.id} className="hover:bg-gray-50">
                     <td className="px-4 py-2">
@@ -68,13 +70,18 @@ export default function ReceiptListClient({ initialReceipts }: ReceiptListClient
                     <td className="px-4 py-2 text-gray-700">{r.ownerEmail || 'Sin correo'}</td>
                     <td className="px-4 py-2 capitalize">{r.plan}</td>
                     <td className="px-4 py-2">
-                      {dataUrl ? (
+                      {fileLink ? (
                         <a
-                          href={dataUrl}
+                          href={fileLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           download={r.fileName}
-                          className="text-emerald-700 font-semibold hover:underline"
+                          className="text-emerald-700 font-semibold hover:underline inline-flex items-center gap-1"
                         >
-                          {r.fileName}
+                          <span>{r.fileName}</span>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
                         </a>
                       ) : (
                         <span className="text-gray-500">N/A</span>

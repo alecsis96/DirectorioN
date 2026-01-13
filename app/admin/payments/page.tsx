@@ -102,7 +102,8 @@ type TransferReceipt = {
   plan: string;
   fileName: string;
   fileType: string;
-  fileData: string;
+  fileData?: string;  // Legacy
+  fileUrl?: string;   // Nuevo
   status: string;
   createdAt?: string;
 };
@@ -128,7 +129,8 @@ async function getTransferReceipts(): Promise<TransferReceipt[]> {
         plan: data.plan || 'sponsor',
         fileName: data.fileName || 'comprobante',
         fileType: data.fileType || 'application/octet-stream',
-        fileData: data.fileData || '',
+        fileData: data.fileData || undefined,
+        fileUrl: data.fileUrl || undefined,
         status: data.status || 'pending',
         createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
       };

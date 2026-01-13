@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { getAdminAuth, getAdminFirestore, getAdminStorage } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import admin from 'firebase-admin';
 
@@ -83,6 +83,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const receiptRef = db.collection('paymentReceipts').doc();
     console.log('[upload-transfer] Creating receipt document:', receiptRef.id);
     
+    // Subir archivo a Storage en lugar de guardarlo en Firestore (límite de 1MB)
+    let fileUrl = '';
+    try {
+      console.log('[upload-transfer] Uploading file to Storage...');
+      const storage = getAdminStorage();
+      const bucket = storage.bucket();
+      const fileBuffer = Buffer.from(fileData, 'base64');
+      const filePath = `payment-receipts/${receiptRef.id}/${fileName}`;
+      const file = bucket.file(filePath);
+      
+      await file.save(fileBuffer, {
+        metadata: {
+          contentType: fileType,
+          metadata: {
+            businessId,
+            uploadedBy: decoded.email || decoded.uid,
+            originalName: fileName,
+          }
+        }
+      });
+      
+      // Hacer el archivo público o generar URL firmada
+      await file.makePublic();
+      fileUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+      console.log('[upload-transfer] File uploaded to Storage:', fileUrl);
+    } catch (storageError) {
+      console.error('[upload-transfer] Storage error:', storageError);
+      throw new Error('Error al subir el archivo: ' + (storageError instanceof Error ? storageError.message : 'Unknown'));
+    }
+    
     try {
       await receiptRef.set({
         id: receiptRef.id,
@@ -95,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         notes: typeof notes === 'string' ? notes.slice(0, 500) : '',
         fileName,
         fileType,
-        fileData, // base64 (sin cabecera)
+        fileUrl, // URL del archivo en Storage
         status: 'pending',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         createdBy: decoded.email || decoded.uid,
