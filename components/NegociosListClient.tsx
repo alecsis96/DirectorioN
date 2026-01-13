@@ -1011,18 +1011,106 @@ export default function NegociosListClient({
                       No encontramos negocios con los filtros seleccionados. Ajusta la búsqueda para ver más opciones.
                     </div>
                   ) : (
-                    <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200">
-                      <BusinessesMapView
-                        businesses={businessesToDisplay as Business[]}
-                        className="h-[600px] w-full"
-                        onBusinessClick={(business) => setSelectedBusiness(business)}
-                      />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Columna izquierda: Mapa */}
+                      <div className="lg:col-span-2">
+                        <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-gray-200 mb-4">
+                          <BusinessesMapView
+                            businesses={businessesToDisplay as Business[]}
+                            className="h-[600px] w-full"
+                            onBusinessClick={(business) => setSelectedBusiness(business)}
+                          />
+                        </div>
+                        
+                        {/* Leyenda debajo del mapa */}
+                        <div className="bg-white rounded-lg shadow-md px-4 py-3 border border-gray-200">
+                          <p className="font-bold text-gray-700 mb-2 text-sm flex items-center gap-2">
+                            <span>📌</span>
+                            Leyenda de colores
+                          </p>
+                          <div className="flex flex-wrap gap-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                              <span className="text-sm text-gray-600">Patrocinado</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                              <span className="text-sm text-gray-600">Destacado</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                              <span className="text-sm text-gray-600">Regular</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Columna derecha: Lista de negocios */}
+                      <div className="lg:col-span-1">
+                        <div className="bg-white rounded-xl shadow-md border border-gray-200 sticky top-4">
+                          <div className="p-4 border-b border-gray-200">
+                            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                              <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                              </svg>
+                              <span>{businessesToDisplay.length} {businessesToDisplay.length === 1 ? 'negocio' : 'negocios'}</span>
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-1">Haz click para ubicar en el mapa</p>
+                          </div>
+                          
+                          <div className="p-3 space-y-2 max-h-[520px] overflow-y-auto">
+                            {businessesToDisplay.map((business) => (
+                              <button
+                                key={business.id}
+                                onClick={() => setSelectedBusiness(business)}
+                                className="w-full text-left p-3 rounded-lg hover:bg-emerald-50 transition-colors border border-gray-100 hover:border-emerald-300 hover:shadow-sm group"
+                              >
+                                <div className="flex items-start gap-3">
+                                  {business.logoUrl && (
+                                    <img
+                                      src={business.logoUrl}
+                                      alt={business.name}
+                                      className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-gray-200"
+                                    />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                      <p className="text-sm font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
+                                        <span className="line-clamp-1">{business.name}</span>
+                                        {business.plan === 'sponsor' && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 ml-1">
+                                            👑 PATROCINADO
+                                          </span>
+                                        )}
+                                        {business.plan === 'featured' && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-100 text-yellow-700 ml-1">
+                                            🔥 DESTACADO
+                                          </span>
+                                        )}
+                                      </p>
+                                    </div>
+                                    <p className="text-xs text-gray-600 line-clamp-1 mb-1">{business.address}</p>
+                                    <div className="flex items-center gap-2">
+                                      {business.category && (
+                                        <span className="inline-block text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                          📂 {business.category}
+                                        </span>
+                                      )}
+                                      {business.rating && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-yellow-500 text-xs">★</span>
+                                          <span className="text-xs font-semibold text-gray-700">{business.rating.toFixed(1)}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  {businessesToDisplay.length > 0 && (
-                    <p className="text-sm text-gray-600 text-center mt-3">
-                      📍 Mostrando {businessesToDisplay.length} {businessesToDisplay.length === 1 ? 'negocio' : 'negocios'} en el mapa
-                    </p>
                   )}
                 </div>
               )}

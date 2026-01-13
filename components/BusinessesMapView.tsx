@@ -23,7 +23,6 @@ export default function BusinessesMapView({
 }: BusinessesMapViewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [isListCollapsed, setIsListCollapsed] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -177,7 +176,7 @@ export default function BusinessesMapView({
           map.fitBounds(bounds);
           
           // Agregar padding para que no queden muy pegados a los bordes
-          const padding = { top: 50, right: 50, bottom: 180, left: 50 };
+          const padding = { top: 50, right: 50, bottom: 50, left: 50 };
           map.fitBounds(bounds, padding);
         }
 
@@ -243,106 +242,14 @@ export default function BusinessesMapView({
             style={{ minHeight: '400px' }}
           />
 
-          {/* Lista de negocios - Más compacta y menos invasiva */}
-          {!isLoading && businessesWithLocation.length > 0 && (
-            <div className={`absolute left-4 right-4 bg-white/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-200/50 transition-all duration-300 ${
-              isListCollapsed ? 'bottom-4 max-h-14' : 'bottom-4 max-h-52'
-            }`}>
-              <div className="p-3">
-                {/* Header colapsable */}
-                <button
-                  onClick={() => setIsListCollapsed(!isListCollapsed)}
-                  className="w-full flex items-center justify-between mb-2 hover:bg-gray-50 rounded-md px-2 py-1 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-xs font-bold text-gray-900">
-                      {businessesWithLocation.length} {businessesWithLocation.length === 1 ? 'negocio' : 'negocios'}
-                    </span>
-                  </div>
-                  <svg 
-                    className={`w-4 h-4 text-gray-500 transition-transform ${isListCollapsed ? '' : 'rotate-180'}`} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {/* Lista de negocios */}
-                {!isListCollapsed && (
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                    {businessesWithLocation.map((business) => (
-                      <button
-                        key={business.id}
-                        onClick={() => {
-                          centerOnBusiness(business);
-                          onBusinessClick?.(business);
-                        }}
-                        className="w-full text-left p-2 rounded-md hover:bg-emerald-50/80 transition-colors border border-transparent hover:border-emerald-200 group"
-                      >
-                        <div className="flex items-center gap-2">
-                          {business.logoUrl && (
-                            <img
-                              src={business.logoUrl}
-                              alt={business.name}
-                              className="w-8 h-8 rounded-md object-cover flex-shrink-0 border border-gray-200"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-900 group-hover:text-emerald-700 transition-colors truncate">
-                              {business.name}
-                              {business.plan === 'sponsor' && <span className="ml-1 text-[10px]">👑</span>}
-                              {business.plan === 'featured' && <span className="ml-1 text-[10px]">🔥</span>}
-                            </p>
-                            <p className="text-[10px] text-gray-500 truncate">{business.category}</p>
-                          </div>
-                          {business.rating && (
-                            <div className="flex items-center gap-0.5 flex-shrink-0">
-                              <span className="text-yellow-500 text-[10px]">★</span>
-                              <span className="text-[10px] font-semibold text-gray-700">{business.rating.toFixed(1)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Leyenda - Más pequeña y discreta */}
-          {!isLoading && businessesWithLocation.length > 0 && (
-            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md rounded-md shadow-md px-2 py-1.5 border border-gray-200/50">
-              <div className="flex items-center gap-3 text-[10px]">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                  <span className="text-gray-600">Patrocinado</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                  <span className="text-gray-600">Destacado</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                  <span className="text-gray-600">Regular</span>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Botón para abrir en Google Maps */}
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('negocios Yajalón, Chiapas')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute top-4 right-4 bg-white/90 backdrop-blur-md rounded-md shadow-md px-2 py-1.5 text-[10px] font-semibold text-gray-700 hover:bg-white transition-colors border border-gray-200/50 flex items-center gap-1.5"
+            className="absolute top-4 right-4 bg-white/95 backdrop-blur-md rounded-md shadow-md px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-white transition-colors border border-gray-200/50 flex items-center gap-2 hover:shadow-lg z-10"
           >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
             Abrir en Google Maps
