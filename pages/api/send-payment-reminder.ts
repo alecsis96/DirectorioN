@@ -112,17 +112,22 @@ async function sendWhatsAppReminder(
       `Hola, tu plan *${planName}* para "${businessName}" vence *MAÑANA* (${formattedDate}).\n\n` +
       `Para mantener tu negocio activo:\n` +
       `💰 *Transferencia Bancaria*\n` +
-      `BBVA - CLABE: 012345678901234567\n` +
+      `Banco: NU MEXICO\n` +
+      `CLABE: 638180010198636464\n` +
+      `Cuenta: 01019863646\n` +
       `Beneficiario: Oscar Alexis Gonzalez Perez\n\n` +
-      `📧 Envía tu comprobante a: pagos@directorioyajalon.com\n` +
+      `📧 Envía tu comprobante a: al36xiz@gmail.com\n` +
       `📱 O por WhatsApp al: 5219191565865\n\n` +
       `🏢 También puedes pagar en nuestra sucursal.\n\n` +
       `¿Necesitas ayuda? Responde este mensaje.`
     : `${urgencyEmoji} *Recordatorio de Pago*\n\n` +
       `Hola, tu plan *${planName}* para "${businessName}" vence en *${daysUntilDue} días* (${formattedDate}).\n\n` +
       `Renueva ahora para mantener todos los beneficios:\n` +
-      `💰 Transferencia: BBVA - CLABE 012345678901234567\n` +
-      `📧 Comprobante a: pagos@directorioyajalon.com\n` +
+      `💰 Transferencia:\n` +
+      `Banco: NU MEXICO\n` +
+      `CLABE: 638180010198636464\n` +
+      `Cuenta: 01019863646\n` +
+      `📧 Comprobante a: al36xiz@gmail.com\n` +
       `📱 WhatsApp: 5219191565865\n\n` +
       `Gracias por confiar en Directorio Yajalón 🙏`;
 
@@ -160,7 +165,7 @@ function getEmailTemplate(
     day: 'numeric'
   });
 
-  const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/dashboard`;
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://directorio-1.vercel.app/'}/dashboard`;
   
   const urgencyColors = {
     urgent: { bg: '#DC2626', text: '#FEE2E2', border: '#991B1B' },
@@ -214,8 +219,9 @@ function getEmailTemplate(
             <div style="margin-bottom: 16px;">
               <strong style="color: #1f2937;">Transferencia Bancaria:</strong>
               <div style="background-color: white; padding: 12px; border-radius: 6px; margin-top: 8px; font-family: 'Courier New', monospace; font-size: 14px;">
-                <div>🏦 Banco: <strong>BBVA</strong></div>
-                <div>💳 CLABE: <strong>012345678901234567</strong></div>
+                <div>🏦 Banco: <strong>NU MEXICO</strong></div>
+                <div>💳 CLABE: <strong>638180010198636464</strong></div>
+                <div>💳 Cuenta: <strong>01019863646</strong></div>
                 <div>👤 Beneficiario: <strong>Oscar Alexis Gonzalez Perez</strong></div>
               </div>
             </div>
@@ -223,8 +229,8 @@ function getEmailTemplate(
             <div style="margin-bottom: 16px;">
               <strong style="color: #1f2937;">📧 Envía tu comprobante a:</strong>
               <div style="margin-top: 8px;">
-                <a href="mailto:pagos@directorioyajalon.com" style="color: #2563EB; text-decoration: none;">
-                  pagos@directorioyajalon.com
+                <a href="mailto:al36xiz@gmail.com" style="color: #2563EB; text-decoration: none;">
+                  al36xiz@gmail.com
                 </a>
               </div>
             </div>
