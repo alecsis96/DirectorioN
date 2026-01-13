@@ -91,7 +91,7 @@ export default function PWAUpdater() {
             ¡Nueva Versión Disponible!
           </h3>
           <p className="text-sm text-gray-600 mb-4">
-            Hay una nueva versión de Directorio Yajalón disponible con mejoras y correcciones.
+            Hay una nueva versión de YajaGon disponible con mejoras y correcciones.
           </p>
           <div className="flex gap-2">
             <button

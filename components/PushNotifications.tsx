@@ -73,7 +73,7 @@ export default function PushNotifications() {
           
           // Mostrar notificación personalizada
           if (payload.notification) {
-            new Notification(payload.notification.title || 'Directorio Yajalón', {
+            new Notification(payload.notification.title || 'YajaGon', {
               body: payload.notification.body,
               icon: payload.notification.icon || '/images/icon-192.png',
               badge: '/images/badge-72.png',

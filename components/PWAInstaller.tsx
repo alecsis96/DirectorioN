@@ -105,7 +105,7 @@ export default function PWAInstaller() {
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-gray-900 mb-1">
-              Instalar Directorio Yajalón
+              Instalar YajaGon
             </h3>
             <p className="text-sm text-gray-600 mb-3">
               Instala la app para acceder más rápido y usarla sin conexión
@@ -145,7 +145,7 @@ export default function PWAInstaller() {
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-gray-900 mb-1">
-              Instalar Directorio Yajalón
+              Instalar YajaGon
             </h3>
             <p className="text-sm text-gray-600 mb-3">
               Accede más rápido y úsala sin conexión. Solo ocupa ~2MB

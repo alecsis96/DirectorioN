@@ -284,7 +284,7 @@ function NavigationContent() {
             <div className="relative h-10 w-10 sm:h-12 sm:w-12 transition-transform group-hover:scale-105" suppressHydrationWarning>
               <Image
                 src="/images/logo.png"
-                alt="Directorio Yajalón"
+                alt="YajaGon"
                 fill
                 sizes="48px"
                 className="object-contain"
@@ -293,10 +293,10 @@ function NavigationContent() {
             </div>
             <div className="hidden sm:block">
               <div className="text-lg font-bold text-gray-900 leading-tight">
-                DIRECTORIO
+                YajaGon
               </div>
               <div className="text-sm text-gray-600">
-                Yajalón
+                Directorio de Negocios
               </div>
             </div>
           </Link>
@@ -766,7 +766,7 @@ export default function Navigation() {
               <div className="relative h-10 w-10 sm:h-12 sm:w-12">
                 <Image
                   src="/images/logo.png"
-                  alt="Directorio Yajalón"
+                  alt="YajaGon"
                   fill
                   className="object-contain"
                   priority
