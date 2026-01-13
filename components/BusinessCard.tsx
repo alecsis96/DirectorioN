@@ -23,6 +23,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
   const [isOpen, setIsOpen] = useState(business.isOpen === "si");
   const [hoursLabel, setHoursLabel] = useState<string>(() => business.hours ? "Actualizando horario..." : "Horario no disponible");
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const addressText = business.address || "Sin direccion";
   const mapsHref = mapsLink(undefined, undefined, business.address || business.name);
   const callHref = business.phone ? `tel:${normalizeDigits(business.phone)}` : null;
@@ -76,6 +77,34 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     }
   };
 
+  const handleFavoriteToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!businessId || isTogglingFavorite) {
+      console.log('[BusinessCard] Favorite toggle blocked:', { businessId, isTogglingFavorite });
+      return;
+    }
+
+    console.log('[BusinessCard] Toggle favorite:', businessId, 'isFavorite:', isFavorite);
+    setIsTogglingFavorite(true);
+
+    try {
+      if (isFavorite) {
+        removeFavorite(businessId);
+      } else {
+        addFavorite(businessId);
+      }
+      
+      // Pequeño delay para feedback visual
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error) {
+      console.error('[BusinessCard] Error toggling favorite:', error);
+    } finally {
+      setIsTogglingFavorite(false);
+    }
+  };
+
   // Determinar estilo según el plan
   const cardStyles = {
     sponsor: {
@@ -121,22 +150,24 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     <article 
       className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl ${plan !== 'free' ? 'p-[4px]' : ''} ${plan !== 'free' ? currentStyle.borderGradient : 'bg-white'}`}
     >
-      {/* Botón de favoritos SIMPLE */}
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          console.log('CLICK FAVORITO!', businessId);
-          if (!businessId) return;
-          if (isFavorite) removeFavorite(businessId);
-          else addFavorite(businessId);
-        }}
-        className="absolute top-2 right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg hover:scale-110 transition-transform cursor-pointer"
-        style={{ zIndex: 10 }}
+      {/* Botón de favoritos mejorado */}
+      <button
+        type="button"
+        onClick={handleFavoriteToggle}
+        disabled={isTogglingFavorite}
+        className={`absolute top-2 right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
+          isTogglingFavorite ? 'scale-90 opacity-70' : 'hover:scale-110 active:scale-95'
+        }`}
+        aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
       >
-        <span className={`text-2xl ${isFavorite ? "text-red-500" : "text-gray-400"}`}>
+        <span 
+          className={`text-2xl transition-all duration-200 ${
+            isFavorite ? 'text-red-500 animate-pulse' : 'text-gray-400'
+          }`}
+        >
           {isFavorite ? "♥" : "♡"}
         </span>
-      </div>
+      </button>
 
       {/* Contenido de la tarjeta */}
       <div 

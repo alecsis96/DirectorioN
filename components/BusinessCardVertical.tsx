@@ -18,6 +18,7 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
   const businessId = typeof (business as any).id === 'string' ? (business as any).id : undefined;
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const isFavorite = businessId ? favorites.includes(businessId) : false;
+  const [isTogglingFavorite, setIsTogglingFavorite] = React.useState(false);
   const plan = (business as any).plan || 'free';
   const isPremium = plan !== 'free';
 
@@ -58,6 +59,34 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
       onViewDetails(business);
     } else if (businessId) {
       router.push(`/negocios/${businessId}`);
+    }
+  };
+
+  const handleFavoriteToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!businessId || isTogglingFavorite) {
+      console.log('[BusinessCardVertical] Favorite toggle blocked:', { businessId, isTogglingFavorite });
+      return;
+    }
+
+    console.log('[BusinessCardVertical] Toggle favorite:', businessId, 'isFavorite:', isFavorite);
+    setIsTogglingFavorite(true);
+
+    try {
+      if (isFavorite) {
+        removeFavorite(businessId);
+      } else {
+        addFavorite(businessId);
+      }
+      
+      // Pequeño delay para feedback visual
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error) {
+      console.error('[BusinessCardVertical] Error toggling favorite:', error);
+    } finally {
+      setIsTogglingFavorite(false);
     }
   };
 
@@ -137,18 +166,14 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
               </div>
             )}
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!businessId) return;
-                if (isFavorite) {
-                  removeFavorite(businessId);
-                } else {
-                  addFavorite(businessId);
-                }
-              }}
+              type="button"
+              onClick={handleFavoriteToggle}
+              disabled={isTogglingFavorite}
               aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-              className={`text-2xl transition-colors flex-shrink-0 ${plan === 'featured' ? '-mt-1' : ''} ${ 
-                isFavorite ? 'text-red-500' : plan === 'featured' ? 'text-gray-300 hover:text-red-500' : 'text-red-400 hover:text-red-500'
+              className={`text-2xl transition-all duration-200 flex-shrink-0 ${plan === 'featured' ? '-mt-1' : ''} ${
+                isTogglingFavorite ? 'scale-90 opacity-70' : 'hover:scale-110 active:scale-95'
+              } ${ 
+                isFavorite ? 'text-red-500 animate-pulse' : plan === 'featured' ? 'text-gray-300 hover:text-red-500' : 'text-gray-400 hover:text-red-500'
               }`}
             >
               {isFavorite ? '♥' : '♡'}
