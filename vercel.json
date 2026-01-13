@@ -22,5 +22,11 @@
       "destination": "/admin/pending-businesses",
       "permanent": false
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/check-payment-reminders",
+      "schedule": "0 9 * * *"
+    }
   ]
 }
