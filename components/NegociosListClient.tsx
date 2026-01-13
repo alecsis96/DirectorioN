@@ -17,6 +17,7 @@ import type { Business, BusinessPreview } from '../types/business';
 import { normalizeColonia } from '../lib/helpers/colonias';
 import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, PAGE_SIZE, type Filters, type SortMode } from '../lib/negociosFilters';
 import { getBusinessStatus } from './BusinessHours';
+import { useFavorites } from '../context/FavoritesContext';
 
 const BusinessModalWrapper = dynamic(() => import('./BusinessModalWrapper'), { ssr: false });
 
@@ -74,6 +75,7 @@ export default function NegociosListClient({
   const geoQueryRef = useRef(geoQuery);
   const lastUrlQueryRef = useRef(initialFilters.query || '');
   const user = useCurrentUser();
+  const { favorites, addFavorite, removeFavorite } = useFavorites();
   const [prefersDataSaver, setPrefersDataSaver] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [quickFilterOpen, setQuickFilterOpen] = useState(false);
@@ -385,7 +387,7 @@ export default function NegociosListClient({
                           {/* Badge Patrocinado */}
                           <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
                             <span>👑</span>
-                            SPONSOR
+                            PATROCINADO
                           </div>
                           
                           <div className="flex flex-col h-full">
@@ -419,10 +421,18 @@ export default function NegociosListClient({
                                 </h3>
                               </div>
                               <button
-                                aria-label="Agregar a favoritos"
-                                className="text-2xl text-red-400 hover:text-red-500 transition-colors flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const isFav = favorites.includes(business.id);
+                                  if (isFav) removeFavorite(business.id);
+                                  else addFavorite(business.id);
+                                }}
+                                aria-label={favorites.includes(business.id) ? "Quitar de favoritos" : "Agregar a favoritos"}
+                                className={`text-2xl transition-colors flex-shrink-0 ${ 
+                                  favorites.includes(business.id) ? 'text-red-500' : 'text-red-400 hover:text-red-500'
+                                }`}
                               >
-                                ♡
+                                {favorites.includes(business.id) ? '♥' : '♡'}
                               </button>
                             </div>
 
@@ -615,10 +625,19 @@ export default function NegociosListClient({
                           </div>
                           
                           {/* Botón Favorito */}
-                          <button aria-label="Favorito" className="relative z-20 text-gray-300 hover:text-red-500 transition-colors -mt-1 flex-shrink-0">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const isFav = favorites.includes(business.id);
+                              if (isFav) removeFavorite(business.id);
+                              else addFavorite(business.id);
+                            }}
+                            aria-label={favorites.includes(business.id) ? "Quitar de favoritos" : "Agregar a favoritos"}
+                            className={`text-2xl transition-colors flex-shrink-0 -mt-1 ${
+                              favorites.includes(business.id) ? 'text-red-500' : 'text-gray-300 hover:text-red-500'
+                            }`}
+                          >
+                            {favorites.includes(business.id) ? '♥' : '♡'}
                           </button>
                         </div>
 

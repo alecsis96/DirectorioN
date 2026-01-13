@@ -34,19 +34,6 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const plan = ('plan' in business && typeof business.plan === 'string' ? business.plan : 'free') as 'free' | 'featured' | 'sponsor';
   const isPremium = plan !== 'free';
   
-  // Handler de favoritos
-  const handleFavoriteClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!businessId) return;
-    
-    if (isFavorite) {
-      removeFavorite(businessId);
-    } else {
-      addFavorite(businessId);
-    }
-  }, [businessId, isFavorite, addFavorite, removeFavorite]);
-  
   // Imagen de logo/negocio - priorizar logoUrl sobre image1, usar placeholder premium si aplica
   const logoUrl =
     ('logoUrl' in business && typeof business.logoUrl === 'string' ? business.logoUrl : null) ||
@@ -79,7 +66,6 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
 
   const handleClick = (e: React.MouseEvent) => {
     if (onViewDetails) {
-      e.preventDefault();
       trackBusinessInteraction(
         'business_card_clicked',
         businessId || '',
@@ -132,27 +118,49 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
 
   return (
-    <article className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden ${plan !== 'free' ? 'p-[4px]' : ''} ${plan !== 'free' ? currentStyle.borderGradient : 'bg-white'}`} suppressHydrationWarning>
+    <article 
+      className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl ${plan !== 'free' ? 'p-[4px]' : ''} ${plan !== 'free' ? currentStyle.borderGradient : 'bg-white'}`}
+    >
+      {/* Botón de favoritos SIMPLE */}
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log('CLICK FAVORITO!', businessId);
+          if (!businessId) return;
+          if (isFavorite) removeFavorite(businessId);
+          else addFavorite(businessId);
+        }}
+        className="absolute top-2 right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg hover:scale-110 transition-transform cursor-pointer"
+        style={{ zIndex: 10 }}
+      >
+        <span className={`text-2xl ${isFavorite ? "text-red-500" : "text-gray-400"}`}>
+          {isFavorite ? "♥" : "♡"}
+        </span>
+      </div>
+
       {/* Contenido de la tarjeta */}
-      <div className={`relative ${currentStyle.bg} ${currentStyle.shadow} ${currentStyle.ring} rounded-xl p-4 flex flex-row items-start gap-4`} suppressHydrationWarning>
-        {/* Efecto de brillo para premium */}
-        {plan !== 'free' && (
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
+      <div 
+        onClick={handleClick}
+        className={`relative ${currentStyle.bg} ${currentStyle.shadow} ${currentStyle.ring} rounded-xl p-4 flex flex-row items-start gap-4 cursor-pointer`}
+      >
+          {/* Efecto de brillo para premium */}
+          {plan !== 'free' && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
+          )}
+          
+          {/* COLUMNA IZQUIERDA: Logo - SOLO para planes premium */}
+          {plan !== 'free' && (
+          <div className="flex-shrink-0 relative z-10">
+            <img 
+              src={logoUrl} 
+              alt={`Logo de ${business.name}`}
+              className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
+            />
+          </div>
         )}
         
-        {/* COLUMNA IZQUIERDA: Logo - SOLO para planes premium */}
-        {plan !== 'free' && (
-        <div className="flex-shrink-0 relative z-10" suppressHydrationWarning>
-          <img 
-            src={logoUrl} 
-            alt={`Logo de ${business.name}`}
-            className="w-20 h-20 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
-          />
-        </div>
-      )}
-      
-      {/* COLUMNA DERECHA: Contenido */}
-      <div className="flex-1 min-w-0 flex flex-col gap-2.5 relative z-10" suppressHydrationWarning>
+        {/* COLUMNA DERECHA: Contenido */}
+        <div className="flex-1 min-w-0 flex flex-col gap-2.5 relative z-10">
         {/* Badge de plan */}
         {currentStyle.badge && (
           <div className="inline-flex self-start">
@@ -162,34 +170,17 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
           </div>
         )}
         
-        {/* Header con título, favorito y rating */}
+        {/* Header con título y rating */}
         <div className="flex items-start justify-between gap-3 relative">
-          <div className="flex-1 min-w-0 pr-12">
+          <div className="flex-1 min-w-0">
             <Link
               prefetch={false}
               href={`/negocios/${business.id ?? ""}`}
-              onClick={handleClick}
-              className={`text-lg font-bold ${currentStyle.titleColor} hover:text-[#38761D] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#38761D] block transition-colors line-clamp-1`}
+              className={`text-lg font-bold ${currentStyle.titleColor} hover:text-[#38761D] block transition-colors line-clamp-1`}
             >
               {business.name}
             </Link>
             <p className="text-[10px] text-gray-500 mt-0.5">Tap para ver detalles</p>
-          </div>
-          {/* Botón de favoritos - COMPLETAMENTE FUERA DEL FLUJO */}
-          <div 
-            onClick={handleFavoriteClick}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center rounded-full cursor-pointer transition touch-manipulation hover:bg-gray-100 active:scale-95"
-            style={{ zIndex: 99999 }}
-            role="button"
-            aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-            tabIndex={0}
-          >
-            <span className={`text-2xl select-none pointer-events-none ${
-              isFavorite ? "text-red-500" : "text-gray-400"
-            }`}>
-              {isFavorite ? "♥" : "♡"}
-            </span>
           </div>
         </div>
         
@@ -290,8 +281,8 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
           </a>
         </div>
       </div>
-      </div>
-    </article>
+        </div>
+      </article>
   );
 };
 
