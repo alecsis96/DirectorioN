@@ -1,6 +1,6 @@
 {
-  "name": "Directorio Yajalón",
-  "short_name": "Directorio",
+  "name": "YajaGon",
+  "short_name": "YajaGon",
   "description": "Descubre negocios locales en Yajalón. Restaurantes, tiendas, servicios y más.",
   "start_url": "/",
   "display": "standalone",

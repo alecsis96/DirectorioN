@@ -79,7 +79,7 @@ async function sendEmail(options: EmailOptions): Promise<void> {
     }
 
     await transporter.sendMail({
-      from: `"Directorio Yajalón" <${gmailEmail}>`,
+      from: `"YajaGon" <${gmailEmail}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -112,7 +112,7 @@ function getApplicationReceivedTemplate(ownerName: string, businessName: string,
     <body>
       <div class="container">
         <div class="header">
-          <img src="https://directorio-1.vercel.app/images/logo.png" alt="Directorio Yajalón" class="logo" />
+          <img src="https://directorio-1.vercel.app/images/logo.png" alt="YajaGon" class="logo" />
           <h1>¡Solicitud Recibida!</h1>
         </div>
         <div class="content">
@@ -170,7 +170,7 @@ function getApplicationApprovedTemplate(ownerName: string, businessName: string,
     <body>
       <div class="container">
         <div class="header">
-          <img src="https://directorio-1.vercel.app/images/logo.png" alt="Directorio Yajalón" class="logo" />
+          <img src="https://directorio-1.vercel.app/images/logo.png" alt="YajaGon" class="logo" />
           <h1>¡Solicitud Aprobada!</h1>
         </div>
         <div class="content">
@@ -455,7 +455,7 @@ export const onApplicationCreated = functions.firestore
 
     await sendEmail({
       to: data.ownerEmail,
-      subject: "✅ Solicitud recibida - Directorio Yajalón",
+      subject: "✅ Solicitud recibida - YajaGon",
       html: getApplicationReceivedTemplate(
         data.ownerName,
         data.businessName || "tu negocio",
@@ -493,7 +493,7 @@ export const onApplicationStatusChange = functions.firestore
       
       await sendEmail({
         to: after.ownerEmail,
-        subject: "🎉 ¡Solicitud Aprobada! Completa los datos - Directorio Yajalón",
+        subject: "🎉 ¡Solicitud Aprobada! Completa los datos - YajaGon",
         html: getApplicationApprovedTemplate(
           after.ownerName,
           after.businessName || "tu negocio",
@@ -601,7 +601,7 @@ export const onBusinessStatusChange = functions.firestore
     if (before.status !== "approved" && after.status === "approved") {
       await sendEmail({
         to: after.ownerEmail,
-        subject: "🎉 ¡Tu negocio está publicado! - Directorio Yajalón",
+        subject: "🎉 ¡Tu negocio está publicado! - YajaGon",
         html: getBusinessPublishedTemplate(
           after.ownerName,
           after.businessName || "tu negocio",
@@ -614,7 +614,7 @@ export const onBusinessStatusChange = functions.firestore
     if (before.status !== "rejected" && after.status === "rejected") {
       await sendEmail({
         to: after.ownerEmail,
-        subject: "⚠️ Solicitud requiere cambios - Directorio Yajalón",
+        subject: "⚠️ Solicitud requiere cambios - YajaGon",
         html: getRejectionTemplate(
           after.ownerName,
           after.businessName || "tu negocio",
@@ -647,7 +647,7 @@ export async function sendPaymentFailedNotification(businessId: string): Promise
     
     await sendEmail({
       to: business.ownerEmail,
-      subject: "⚠️ Problema con tu suscripción - Directorio Yajalón",
+      subject: "⚠️ Problema con tu suscripción - YajaGon",
       html: getPaymentFailedTemplate(
         business.ownerName,
         business.businessName || "tu negocio",
@@ -880,7 +880,7 @@ async function sendPaymentReminderEmail(params: {
                     Este es un correo automático, por favor no respondas directamente.
                   </p>
                   <p style="color: #999; font-size: 12px; margin: 10px 0 0 0;">
-                    © ${new Date().getFullYear()} Directorio Yajalón - Todos los derechos reservados
+                    © ${new Date().getFullYear()} YajaGon - Todos los derechos reservados
                   </p>
                 </td>
               </tr>

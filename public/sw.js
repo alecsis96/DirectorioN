@@ -202,7 +202,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received:', event);
   
-  let data = { title: 'Directorio Yajalón', body: 'Nueva notificación' };
+  let data = { title: 'YajaGon', body: 'Nueva notificación' };
   
   if (event.data) {
     try {

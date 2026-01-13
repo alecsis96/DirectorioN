@@ -54,9 +54,9 @@ export default function AyudaPage() {
     {
       icon: Mail,
       title: 'Email',
-      description: 'contacto@directorioyajalon.com',
+      description: 'al36xiz@gmail.com',
       action: 'Enviar email',
-      href: 'mailto:contacto@directorioyajalon.com',
+      href: 'mailto:al36xiz@gmail.com',
       color: 'bg-blue-50 text-blue-700 border-blue-200',
     },
     {

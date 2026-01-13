@@ -75,7 +75,7 @@ async function sendEmailReminder(
   const html = getEmailTemplate(businessName, planName, daysUntilDue, nextPaymentDate, urgencyLevel);
 
   await transporter.sendMail({
-    from: `"Directorio Yajalón" <${process.env.EMAIL_USER}>`,
+    from: `"YajaGon" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html,
@@ -129,7 +129,7 @@ async function sendWhatsAppReminder(
       `Cuenta: 01019863646\n` +
       `📧 Comprobante a: al36xiz@gmail.com\n` +
       `📱 WhatsApp: 5219191565865\n\n` +
-      `Gracias por confiar en Directorio Yajalón 🙏`;
+      `Gracias por confiar en YajaGon 🙏`;
 
   // CallMeBot API - Simple y gratuito
   const normalizedPhone = to.replace(/\D/g, '');
@@ -260,7 +260,7 @@ function getEmailTemplate(
         <!-- Footer -->
         <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
           <p style="margin: 0; color: #6b7280; font-size: 14px;">
-            Directorio Yajalón - Tu negocio, más visible
+            YajaGon - Tu negocio, más visible
           </p>
           <p style="margin: 8px 0 0 0; color: #9ca3af; font-size: 12px;">
             Este es un mensaje automático, por favor no respondas a este correo.

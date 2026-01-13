@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
 
       case 'welcome':
-        subject = `👋 Bienvenido a Directorio Yajalón`;
+        subject = `👋 Bienvenido a YajaGon`;
         html = getWelcomeTemplate(ownerName || 'Estimado usuario', businessName);
         break;
 
@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     await transporter.sendMail({
-      from: `"Directorio Yajalón" <${process.env.EMAIL_USER}>`,
+      from: `"YajaGon" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,
@@ -189,7 +189,7 @@ function getApprovedTemplate(businessName: string, ownerName: string): string {
                     Gracias por ser parte del Directorio de Yajalón
                   </p>
                   <p style="color: #ccc; font-size: 12px; margin: 0;">
-                    © ${new Date().getFullYear()} Directorio Yajalón
+                    © ${new Date().getFullYear()} YajaGon
                   </p>
                 </td>
               </tr>
@@ -298,7 +298,7 @@ function getRejectedTemplate(businessName: string, ownerName: string, rejectionN
                     Estamos aquí para ayudarte
                   </p>
                   <p style="color: #ccc; font-size: 12px; margin: 0;">
-                    © ${new Date().getFullYear()} Directorio Yajalón
+                    © ${new Date().getFullYear()} YajaGon
                   </p>
                 </td>
               </tr>
@@ -400,7 +400,7 @@ function getWelcomeTemplate(ownerName: string, businessName: string): string {
                     ¡Nos alegra tenerte en nuestra comunidad!
                   </p>
                   <p style="color: #ccc; font-size: 12px; margin: 0;">
-                    © ${new Date().getFullYear()} Directorio Yajalón
+                    © ${new Date().getFullYear()} YajaGon
                   </p>
                 </td>
               </tr>

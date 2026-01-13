@@ -19,7 +19,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Directorio Yajalón',
+    title: 'YajaGon',
     description: 'Descubre y conecta con negocios locales en Yajalón',
     images: ['/images/logo.png'],
   },
@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="apple-touch-icon" sizes="180x180" href="/images/icon-180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Directorio Yajalón" />
+        <meta name="apple-mobile-web-app-title" content="YajaGon" />
         
         {/* Splash Screens para iOS */}
         <link rel="apple-touch-startup-image" href="/images/splash-2048x2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)" />
