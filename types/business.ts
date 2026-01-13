@@ -54,6 +54,8 @@ export type Business = {
   stripeSessionId?: string;
   stripeSubscriptionStatus?: string;
   planUpdatedAt?: string;
+  previousPlan?: string; // Plan anterior antes de degradar a free
+  downgradedAt?: string; // Fecha de degradación
   paymentHistory?: PaymentRecord[];
 };
 
