@@ -797,8 +797,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     <div className="text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3 break-words">
                       <p className="font-semibold text-gray-800 mb-1">Datos para transferencia:</p>
-                      <p>Banco: BBVA</p>
-                      <p className="break-all">Cuenta/CLABE: 012345678901234567</p>
+                      <p>Entidad: NU MEXICO</p>
+                      <p className="break-all">Número CLABE: 638180010198636464</p>
+                      <p className="break-all">Número de cuenta: 01019863646</p>
                       <p>Beneficiario: Oscar Alexis Gonzalez Perez</p>
                       <p className="mt-1 break-words">Envia tu comprobante a <span className="break-all">pagos@directorioyajalon.com</span> o por WhatsApp al <span className="whitespace-nowrap">5219191565865</span>. Activaremos tu plan al validar el pago.</p>
                     </div>

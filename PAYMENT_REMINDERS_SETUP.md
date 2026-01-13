@@ -38,10 +38,8 @@ CRON_SECRET=tu_clave_secreta_aleatoria_aqui
 EMAIL_USER=tu_email@gmail.com
 EMAIL_PASS=tu_app_password
 
-# WhatsApp (Twilio - opcional)
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=tu_auth_token
-TWILIO_WHATSAPP_NUMBER=+14155238886
+# WhatsApp (CallMeBot - GRATIS, sin tarjeta de crédito)
+CALLMEBOT_API_KEY=tu_api_key_de_callmebot
 
 # Base URL
 NEXT_PUBLIC_BASE_URL=https://tu-dominio.vercel.app
@@ -70,35 +68,42 @@ NEXT_PUBLIC_BASE_URL=https://tu-dominio.vercel.app
    ```
    Vercel detectará automáticamente el cron y lo programará.
 
-## 📱 Configuración de WhatsApp con Twilio
+## 📱 Configuración de WhatsApp con CallMeBot
 
-### Paso 1: Crear Cuenta en Twilio
-1. Regístrate en [twilio.com](https://www.twilio.com/try-twilio)
-2. Verifica tu número de teléfono
+### ✅ Ventajas de CallMeBot:
+- **100% GRATIS** - Sin costos ni límites
+- **Sin registro** - No necesitas crear cuenta
+- **Sin tarjeta de crédito** - Cero pagos
+- **Setup en 2 minutos** - Súper rápido
 
-### Paso 2: Activar WhatsApp Sandbox
-1. En el dashboard de Twilio, ve a **Messaging** → **Try it out** → **Send a WhatsApp message**
-2. Sigue las instrucciones para unir tu número al sandbox
-3. Envía el código de activación desde tu WhatsApp
+### Paso 1: Agregar el Contacto de CallMeBot
+1. Abre WhatsApp en tu teléfono
+2. Agrega este número a tus contactos: **+34 644 34 78 89**
+3. Nómbralo como "CallMeBot" o similar
 
-### Paso 3: Obtener Credenciales
-- **Account SID**: En el dashboard principal
-- **Auth Token**: Click en "Show" junto al Auth Token
-- **WhatsApp Number**: Número del sandbox (ej: `+14155238886`)
+### Paso 2: Obtener tu API Key
+1. Envía un mensaje a ese contacto con el texto exacto:
+   ```
+   I allow callmebot to send me messages
+   ```
+2. Recibirás una respuesta automática con tu **API key**
+3. Guarda ese código, lo necesitarás para configurar
 
-### Paso 4: Configurar Variables
+### Paso 3: Configurar Variables
 Agrega en Vercel y `.env.local`:
 ```env
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxxxxxx
-TWILIO_WHATSAPP_NUMBER=+14155238886
+CALLMEBOT_API_KEY=tu_api_key_aqui
 ```
 
-### Paso 5: Producción (Opcional)
-Para usar un número propio de WhatsApp:
-1. Solicita aprobación de WhatsApp Business en Twilio
-2. Configura tu número verificado
-3. Actualiza `TWILIO_WHATSAPP_NUMBER` con tu número
+### Paso 4: ¡Listo!
+Ya puedes recibir notificaciones de WhatsApp automáticas. No necesitas nada más.
+
+### 📝 Notas sobre CallMeBot:
+- Los mensajes se envían desde tu propio número
+- Es completamente gratuito y sin límites
+- Funciona internacionalmente
+- No requiere aprobación ni verificación
+- Perfecto para recordatorios de pago
 
 ## 📧 Contenido de las Notificaciones
 
@@ -211,13 +216,14 @@ const REMINDER_DAYS = [7, 3, 1]; // Cambia a tus preferencias
 - Revisa logs del endpoint
 
 ### No llegan WhatsApp
-- Verifica credenciales de Twilio
-- Confirma que el sandbox esté activo
-- Verifica formato del número (`+521` para México)
+- Verifica `CALLMEBOT_API_KEY` en Vercel
+- Confirma que enviaste el mensaje de activación correctamente
+- Verifica formato del número (`521` para México)
+- Revisa que el contacto de CallMeBot esté guardado
 
 ## 📝 Notas Importantes
 
-1. **Costo de WhatsApp:** Twilio cobra por mensaje. Sandbox es gratis para pruebas.
+1. **Costo de WhatsApp:** CallMeBot es 100% gratuito, sin límites.
 2. **Límites de Gmail:** Máximo ~500 emails/día con cuenta personal.
 3. **Zona Horaria:** El cron usa UTC. Ajusta según tu zona.
 4. **Duplicados:** El sistema registra recordatorios enviados para evitar duplicados.

@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 
 /**
  * API para enviar recordatorios de pago por email y WhatsApp
+ * WhatsApp usa CallMeBot (gratuito, sin necesidad de Twilio)
  */
 
 // Configurar transporter de email
@@ -15,7 +16,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const isEmailConfigured = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
-const isWhatsAppConfigured = Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+const isWhatsAppConfigured = Boolean(process.env.CALLMEBOT_API_KEY);
 
 interface ReminderRequest {
   type: 'email' | 'whatsapp';
@@ -93,7 +94,7 @@ async function sendWhatsAppReminder(
   nextPaymentDate: string
 ) {
   if (!isWhatsAppConfigured) {
-    console.warn('WhatsApp (Twilio) not configured. Skipping WhatsApp reminder.');
+    console.warn('CallMeBot not configured. Skipping WhatsApp reminder.');
     return res.status(200).json({ ok: true, message: 'WhatsApp not configured, skipped' });
   }
 
@@ -125,22 +126,21 @@ async function sendWhatsAppReminder(
       `📱 WhatsApp: 5219191565865\n\n` +
       `Gracias por confiar en Directorio Yajalón 🙏`;
 
-  // Enviar mensaje via Twilio (o tu proveedor de WhatsApp)
-  const twilio = require('twilio')(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
-
+  // CallMeBot API - Simple y gratuito
   const normalizedPhone = to.replace(/\D/g, '');
-  const whatsappNumber = normalizedPhone.startsWith('521') ? `+${normalizedPhone}` : `+521${normalizedPhone}`;
+  const phone = normalizedPhone.startsWith('521') ? normalizedPhone : `521${normalizedPhone}`;
+  const encodedMessage = encodeURIComponent(message);
+  const apiKey = process.env.CALLMEBOT_API_KEY;
+  
+  const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encodedMessage}&apikey=${apiKey}`;
+  
+  const response = await fetch(url, { method: 'GET' });
+  
+  if (!response.ok) {
+    throw new Error(`CallMeBot API error: ${response.status}`);
+  }
 
-  await twilio.messages.create({
-    from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-    to: `whatsapp:${whatsappNumber}`,
-    body: message,
-  });
-
-  console.log(`✅ WhatsApp reminder sent to ${to} (${daysUntilDue} days)`);
+  console.log(`✅ WhatsApp reminder sent to ${to} (${daysUntilDue} days) via CallMeBot`);
   return res.status(200).json({ ok: true, message: 'WhatsApp reminder sent' });
 }
 
