@@ -363,6 +363,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error('El archivo es demasiado grande. Intenta con un archivo más pequeño (máx 3MB).');
+        }
         throw new Error(data.error || 'No pudimos subir el comprobante');
       }
 
@@ -816,7 +819,17 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 <h3 className="text-base font-semibold text-gray-900">Estado</h3>
                 <p className="text-sm text-gray-600">Propietario: {biz.ownerEmail || user?.email || 'Sesion'}</p>
                 <p className="text-sm text-gray-600">ID: {biz.id}</p>
-                <p className="text-xs text-gray-500">Mensaje: {uiState.msg || 'Sin mensajes'}</p>
+                {uiState.msg && (
+                  <div className={`p-3 rounded-lg text-sm font-medium ${
+                    uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') || uiState.msg.includes('demasiado grande')
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : uiState.msg.includes('enviado') || uiState.msg.includes('Validaremos')
+                      ? 'bg-green-50 text-green-700 border border-green-200'
+                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                  }`}>
+                    {uiState.msg}
+                  </div>
+                )}
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => signOut(auth)}

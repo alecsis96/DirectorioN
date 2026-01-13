@@ -7,6 +7,15 @@ const VALID_PLANS = ['featured', 'sponsor'];
 const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'image/jpg'];
 
+// Configurar límite de body size para esta API
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
