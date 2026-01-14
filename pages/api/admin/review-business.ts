@@ -79,21 +79,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         console.log(`✅ [review-business] Business ${businessId} published successfully`);
         
-        // Enviar email de publicación
-        try {
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-          await fetch(`${baseUrl}/api/send-email-notification`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'published',
-              to: businessData?.ownerEmail,
-              businessName: businessData?.name,
-              ownerName: businessData?.ownerName,
-            }),
-          });
-        } catch (emailError) {
-          console.warn('Failed to send published email:', emailError);
+        // Enviar notificaciones (email y WhatsApp)
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const ownerEmail = businessData?.ownerEmail;
+        const ownerPhone = businessData?.phone || businessData?.WhatsApp;
+        const businessName = businessData?.name;
+        const ownerName = businessData?.ownerName;
+        
+        // Enviar email
+        if (ownerEmail) {
+          try {
+            await fetch(`${baseUrl}/api/send-email-notification`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'approved',
+                to: ownerEmail,
+                businessName,
+                ownerName,
+              }),
+            });
+            console.log(`📧 Email notification sent to ${ownerEmail}`);
+          } catch (emailError) {
+            console.warn('Failed to send email notification:', emailError);
+          }
+        }
+        
+        // Enviar WhatsApp
+        if (ownerPhone) {
+          try {
+            // Normalizar número de teléfono (agregar +52 si no tiene código)
+            let phoneNumber = ownerPhone.replace(/\D/g, '');
+            if (!phoneNumber.startsWith('52') && phoneNumber.length === 10) {
+              phoneNumber = '52' + phoneNumber;
+            }
+            if (!phoneNumber.startsWith('+')) {
+              phoneNumber = '+' + phoneNumber;
+            }
+            
+            await fetch(`${baseUrl}/api/send-whatsapp-notification`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'approved',
+                to: phoneNumber,
+                businessName,
+                ownerName,
+              }),
+            });
+            console.log(`📱 WhatsApp notification sent to ${phoneNumber}`);
+          } catch (whatsappError) {
+            console.warn('Failed to send WhatsApp notification:', whatsappError);
+          }
         }
         
         return res.status(200).json({ ok: true, message: 'Business published successfully', businessId });
@@ -181,21 +218,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log(`   - ownerEmail: ${appData?.ownerEmail}`);
       console.log(`   - businessName: ${appData?.businessName}`);
 
-      // Enviar email de aprobación
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        await fetch(`${baseUrl}/api/send-email-notification`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'approved',
-            to: appData?.ownerEmail,
-            businessName: appData?.businessName,
-            ownerName: appData?.ownerName,
-          }),
-        });
-      } catch (emailError) {
-        console.warn('Failed to send approval email:', emailError);
+      // Enviar notificaciones (email y WhatsApp)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const ownerEmail = appData?.ownerEmail;
+      const ownerPhone = appData?.phone || appData?.whatsapp;
+      const businessName = appData?.businessName;
+      const ownerName = appData?.ownerName;
+      
+      // Enviar email
+      if (ownerEmail) {
+        try {
+          await fetch(`${baseUrl}/api/send-email-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'approved',
+              to: ownerEmail,
+              businessName,
+              ownerName,
+            }),
+          });
+          console.log(`📧 Email notification sent to ${ownerEmail}`);
+        } catch (emailError) {
+          console.warn('Failed to send email notification:', emailError);
+        }
+      }
+      
+      // Enviar WhatsApp
+      if (ownerPhone) {
+        try {
+          // Normalizar número de teléfono (agregar +52 si no tiene código)
+          let phoneNumber = ownerPhone.replace(/\D/g, '');
+          if (!phoneNumber.startsWith('52') && phoneNumber.length === 10) {
+            phoneNumber = '52' + phoneNumber;
+          }
+          if (!phoneNumber.startsWith('+')) {
+            phoneNumber = '+' + phoneNumber;
+          }
+          
+          await fetch(`${baseUrl}/api/send-whatsapp-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'approved',
+              to: phoneNumber,
+              businessName,
+              ownerName,
+            }),
+          });
+          console.log(`📱 WhatsApp notification sent to ${phoneNumber}`);
+        } catch (whatsappError) {
+          console.warn('Failed to send WhatsApp notification:', whatsappError);
+        }
       }
 
       return res.status(200).json({ ok: true, message: 'Business approved and created successfully', businessId: businessRef.id });
