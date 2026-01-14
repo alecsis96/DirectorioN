@@ -576,6 +576,55 @@ function NavigationContent() {
                 )}
               </button>
             </div>
+            
+            {/* Filtros rápidos tipo chips - Solo móvil */}
+            <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              <button
+                type="button"
+                onClick={() => setShowFiltersModal(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border flex-shrink-0 transition-all ${
+                  activeFiltersCount > 0
+                    ? 'bg-[#38761D] text-white border-[#38761D]'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <BsFilter className="text-sm" />
+                Filtros
+                {activeFiltersCount > 0 && (
+                  <span className="bg-white text-[#38761D] rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+              
+              {categories.slice(0, 6).map((cat) => {
+                const isActive = params?.get('category') === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      const nextParams = new URLSearchParams(params?.toString() ?? '');
+                      if (isActive) {
+                        nextParams.delete('category');
+                      } else {
+                        nextParams.set('category', cat);
+                      }
+                      nextParams.delete('p');
+                      const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                      router.push(`${targetPath}?${nextParams.toString()}`);
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                      isActive
+                        ? 'bg-[#38761D] text-white border-[#38761D]'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

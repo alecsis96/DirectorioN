@@ -203,6 +203,21 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     msg: '',
   });
 
+  // Estado para controlar el toast
+  const [showToast, setShowToast] = useState(false);
+
+  // Efecto para auto-ocultar toast
+  useEffect(() => {
+    if (uiState.msg && !uiState.upgradeBusy) {
+      setShowToast(true);
+      const timer = setTimeout(() => {
+        setShowToast(false);
+        setTimeout(() => setUiState(prev => ({ ...prev, msg: '' })), 300);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [uiState.msg, uiState.upgradeBusy]);
+
   // Estados del recibo consolidados
   const [receiptState, setReceiptState] = useState<{
     file: File | null;
@@ -472,7 +487,81 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   }
 
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <>
+      {/* Toast Notification - Aparece arriba */}
+      {showToast && uiState.msg && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4 transition-all duration-300 ${
+          showToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
+        }`}>
+          <div className={`p-4 rounded-xl shadow-2xl border-2 backdrop-blur-sm ${
+            uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') || uiState.msg.includes('demasiado grande') || uiState.msg.includes('expirada') || uiState.msg.includes('servidor')
+              ? 'bg-red-50/95 text-red-900 border-red-300'
+              : uiState.msg.includes('✅') || uiState.msg.includes('exitosamente') || uiState.msg.includes('Validaremos') || uiState.msg.includes('Guardado')
+              ? 'bg-green-50/95 text-green-900 border-green-300'
+              : 'bg-blue-50/95 text-blue-900 border-blue-300'
+          }`}>
+            <div className="flex items-start gap-3">
+              <span className="text-xl flex-shrink-0">
+                {uiState.msg.includes('Error') ? '❌' : uiState.msg.includes('✅') ? '✅' : 'ℹ️'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">{uiState.msg}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowToast(false);
+                  setTimeout(() => setUiState(prev => ({ ...prev, msg: '' })), 300);
+                }}
+                className="flex-shrink-0 text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast para proceso de carga */}
+      {uiState.upgradeBusy && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4">
+          <div className="p-4 rounded-xl shadow-2xl border-2 bg-blue-50/95 text-blue-900 border-blue-300 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">Procesando comprobante...</p>
+                <p className="text-xs text-blue-700">Esto puede tardar unos momentos</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Botón flotante de guardar */}
+      {biz && userCanEdit && (
+        <button
+          onClick={save}
+          disabled={uiState.busy}
+          className="fixed bottom-6 right-6 z-40 px-6 py-4 bg-[#38761D] text-white rounded-full shadow-2xl hover:bg-[#2d5a15] transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3 group"
+        >
+          {uiState.busy ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span className="font-semibold">Guardando...</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-semibold">Guardar cambios</span>
+            </>
+          )}
+        </button>
+      )}
+
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 pb-32">
       {!biz ? (
         <p className="text-gray-500">Cargando...</p>
       ) : !userCanEdit ? (
@@ -979,5 +1068,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         </>
       )}
     </main>
+    </>
   );
 }
