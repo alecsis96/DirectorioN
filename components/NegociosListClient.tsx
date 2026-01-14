@@ -129,6 +129,15 @@ export default function NegociosListClient({
     }
   }, [searchParams]);
 
+  // Sincronizar filtros rápidos desde URL
+  useEffect(() => {
+    const quickFilter = searchParams?.get('quickFilter');
+    setQuickFilterOpen(quickFilter === 'open');
+    setQuickFilterTopRated(quickFilter === 'topRated');
+    setQuickFilterDelivery(quickFilter === 'delivery');
+    setQuickFilterNew(quickFilter === 'new');
+  }, [searchParams]);
+
   useEffect(() => {
     if (typeof navigator === 'undefined') return undefined;
     const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;

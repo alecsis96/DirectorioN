@@ -597,33 +597,101 @@ function NavigationContent() {
                 )}
               </button>
               
-              {categories.slice(0, 6).map((cat) => {
-                const isActive = params?.get('category') === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => {
-                      const nextParams = new URLSearchParams(params?.toString() ?? '');
-                      if (isActive) {
-                        nextParams.delete('category');
-                      } else {
-                        nextParams.set('category', cat);
-                      }
-                      nextParams.delete('p');
-                      const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
-                      router.push(`${targetPath}?${nextParams.toString()}`);
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
-                      isActive
-                        ? 'bg-[#38761D] text-white border-[#38761D]'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                );
-              })}
+              {/* Abierto ahora */}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextParams = new URLSearchParams(params?.toString() ?? '');
+                  const current = nextParams.get('quickFilter');
+                  if (current === 'open') {
+                    nextParams.delete('quickFilter');
+                  } else {
+                    nextParams.set('quickFilter', 'open');
+                  }
+                  nextParams.delete('p');
+                  const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                  router.push(`${targetPath}?${nextParams.toString()}`);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                  params?.get('quickFilter') === 'open'
+                    ? 'bg-[#38761D] text-white border-[#38761D]'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                ⏰ Abierto ahora
+              </button>
+              
+              {/* Mejor valorados */}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextParams = new URLSearchParams(params?.toString() ?? '');
+                  const current = nextParams.get('quickFilter');
+                  if (current === 'topRated') {
+                    nextParams.delete('quickFilter');
+                  } else {
+                    nextParams.set('quickFilter', 'topRated');
+                  }
+                  nextParams.delete('p');
+                  const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                  router.push(`${targetPath}?${nextParams.toString()}`);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                  params?.get('quickFilter') === 'topRated'
+                    ? 'bg-[#38761D] text-white border-[#38761D]'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                ⭐ Mejor valorados
+              </button>
+              
+              {/* Delivery */}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextParams = new URLSearchParams(params?.toString() ?? '');
+                  const current = nextParams.get('quickFilter');
+                  if (current === 'delivery') {
+                    nextParams.delete('quickFilter');
+                  } else {
+                    nextParams.set('quickFilter', 'delivery');
+                  }
+                  nextParams.delete('p');
+                  const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                  router.push(`${targetPath}?${nextParams.toString()}`);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                  params?.get('quickFilter') === 'delivery'
+                    ? 'bg-[#38761D] text-white border-[#38761D]'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                🚚 Delivery
+              </button>
+              
+              {/* Nuevos */}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextParams = new URLSearchParams(params?.toString() ?? '');
+                  const current = nextParams.get('quickFilter');
+                  if (current === 'new') {
+                    nextParams.delete('quickFilter');
+                  } else {
+                    nextParams.set('quickFilter', 'new');
+                  }
+                  nextParams.delete('p');
+                  const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                  router.push(`${targetPath}?${nextParams.toString()}`);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                  params?.get('quickFilter') === 'new'
+                    ? 'bg-[#38761D] text-white border-[#38761D]'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                🆕 Nuevos
+              </button>
             </div>
           </div>
         )}
