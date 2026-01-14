@@ -463,27 +463,9 @@ function NavigationContent() {
             )}
           </div>
 
-          {/* Mobile Navigation */}
-          <div className="flex md:hidden items-center gap-2">
-            {/* Área de Usuario/Login Mobile */}
-            {user ? (
-              <UserDropdown user={user} onSignOut={handleSignOut} />
-            ) : (
-              <button
-                onClick={handleSignIn}
-                className="px-3 py-2 rounded-lg text-xs font-semibold bg-[#38761D] text-white hover:bg-[#2d5418] flex items-center gap-1"
-              >
-                <LogIn className="w-3 h-3" />
-                Entrar
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Mobile Search Bar */}
-        {showSearch && (
-          <div className="md:hidden pb-3 pt-2 px-1">
-            <div className="flex items-center gap-1.5">
+          {/* Mobile Navigation - Solo buscador */}
+          {showSearch && (
+            <div className="flex md:hidden items-center gap-2 flex-1">
               <div className="relative flex-1 min-w-0" ref={searchRef}>
                 <form onSubmit={handleSearchSubmit}>
                   <div className="relative flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-2 shadow-sm">
@@ -553,29 +535,13 @@ function NavigationContent() {
                   </div>
                 )}
               </div>
-              
-              <div className="flex-shrink-0">
-                <GeolocationButton
-                  radiusKm={5}
-                  variant="compact"
-                  label=""
-                  className=""
-                />
-              </div>
-              
-              <button
-                type="button"
-                onClick={() => setShowFiltersModal(true)}
-                className="relative inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-700 hover:bg-gray-50 transition flex-shrink-0"
-              >
-                <BsFilter className="text-lg" />
-                {activeFiltersCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
             </div>
+          )}
+        </div>
+
+        {/* Mobile Search Bar con filtros */}
+        {showSearch && (
+          <div className="md:hidden pb-3 pt-2 px-4">
             
             {/* Filtros rápidos tipo chips - Solo móvil */}
             <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -715,10 +681,10 @@ function NavigationContent() {
           willChange: 'transform'
         }}
       >
-        <div className="grid grid-cols-3 gap-1 px-2 py-2">
+        <div className="grid grid-cols-4 gap-1 px-2 py-2">
           <Link
             href="/"
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-lg text-xs font-medium transition-colors ${
+            className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
               pathname === '/'
                 ? 'bg-[#38761D] text-white'
                 : 'text-gray-600 hover:bg-gray-100'
@@ -729,7 +695,7 @@ function NavigationContent() {
           </Link>
           <Link
             href="/negocios"
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-lg text-xs font-medium transition-colors ${
+            className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
               pathname === '/negocios'
                 ? 'bg-[#38761D] text-white'
                 : 'text-gray-600 hover:bg-gray-100'
@@ -740,7 +706,7 @@ function NavigationContent() {
           </Link>
           <Link
             href="/favoritos"
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-lg text-xs font-medium transition-colors ${
+            className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
               pathname === '/favoritos'
                 ? 'bg-[#38761D] text-white'
                 : 'text-gray-600 hover:bg-gray-100'
@@ -749,6 +715,29 @@ function NavigationContent() {
             <BsHeart className="text-xl" />
             <span>Favoritos</span>
           </Link>
+          
+          {/* Botón de Perfil/Login en bottom nav */}
+          {user ? (
+            <Link
+              href="/mis-negocios"
+              className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
+                pathname === '/mis-negocios' || pathname === '/dashboard'
+                  ? 'bg-[#38761D] text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <BsPerson className="text-xl" />
+              <span>Perfil</span>
+            </Link>
+          ) : (
+            <button
+              onClick={handleSignIn}
+              className="flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <BsPerson className="text-xl" />
+              <span>Entrar</span>
+            </button>
+          )}
         </div>
       </div>
 
