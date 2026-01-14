@@ -129,6 +129,7 @@ function NavigationContent() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [colonias, setColonias] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -718,17 +719,17 @@ function NavigationContent() {
           
           {/* Botón de Perfil/Login en bottom nav */}
           {user ? (
-            <Link
-              href="/mis-negocios"
+            <button
+              onClick={() => setShowProfileModal(true)}
               className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
-                pathname === '/mis-negocios' || pathname === '/dashboard'
+                showProfileModal
                   ? 'bg-[#38761D] text-white'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               <BsPerson className="text-xl" />
               <span>Perfil</span>
-            </Link>
+            </button>
           ) : (
             <button
               onClick={handleSignIn}
@@ -740,6 +741,168 @@ function NavigationContent() {
           )}
         </div>
       </div>
+
+      {/* Modal de Perfil Móvil */}
+      {showProfileModal && user && (
+        <div 
+          className="fixed inset-0 z-50 flex items-end bg-black/50 md:hidden" 
+          onClick={() => setShowProfileModal(false)}
+        >
+          <div 
+            className="bg-white rounded-t-3xl w-full max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del Modal */}
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 rounded-t-3xl">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-bold text-gray-900">Mi Cuenta</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              {/* Info del Usuario */}
+              <div className="flex items-center gap-3 py-3">
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="User" className="w-14 h-14 rounded-full object-cover border-2 border-gray-100" />
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-[#38761D] text-white flex items-center justify-center text-xl font-bold">
+                    {user.email?.[0].toUpperCase() || 'U'}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-bold text-gray-900 truncate">{user.displayName || 'Usuario'}</p>
+                  <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Opciones del Menú */}
+            <div className="p-4">
+              <Link 
+                href="/mis-negocios"
+                onClick={() => setShowProfileModal(false)}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
+                  <LayoutDashboard className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-gray-900">Mis Negocios</p>
+                  <p className="text-xs text-gray-500">Gestiona tus empresas</p>
+                </div>
+              </Link>
+
+              <Link 
+                href="/favoritos"
+                onClick={() => setShowProfileModal(false)}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
+                  <Heart className="w-6 h-6 text-red-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-gray-900">Favoritos</p>
+                  <p className="text-xs text-gray-500">Tus lugares guardados</p>
+                </div>
+              </Link>
+
+              <Link 
+                href="/historial"
+                onClick={() => setShowProfileModal(false)}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                  <History className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-gray-900">Historial</p>
+                  <p className="text-xs text-gray-500">Visto recientemente</p>
+                </div>
+              </Link>
+
+              <Link 
+                href="/notificaciones"
+                onClick={() => setShowProfileModal(false)}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                  <Bell className="w-6 h-6 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-gray-900">Notificaciones</p>
+                  <p className="text-xs text-gray-500">Avisos importantes</p>
+                </div>
+              </Link>
+
+              <Link 
+                href="/metricas"
+                onClick={() => setShowProfileModal(false)}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center">
+                  <BarChart2 className="w-6 h-6 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-gray-900">Métricas</p>
+                  <p className="text-xs text-gray-500">Rendimiento</p>
+                </div>
+              </Link>
+
+              <Link 
+                href="/registro-negocio"
+                onClick={() => setShowProfileModal(false)}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center">
+                  <Store className="w-6 h-6 text-teal-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-gray-900">Registrar Negocio</p>
+                  <p className="text-xs text-gray-500">Añade tu negocio</p>
+                </div>
+              </Link>
+
+              <Link 
+                href="/ayuda"
+                onClick={() => setShowProfileModal(false)}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              >
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                  <HelpCircle className="w-6 h-6 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-gray-900">Ayuda y Soporte</p>
+                  <p className="text-xs text-gray-500">Centro de ayuda</p>
+                </div>
+              </Link>
+
+              {/* Cerrar Sesión */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    setShowProfileModal(false);
+                    handleSignOut();
+                  }}
+                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors w-full"
+                >
+                  <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
+                    <LogOut className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-base font-semibold text-red-600">Cerrar Sesión</p>
+                    <p className="text-xs text-red-400">Salir de tu cuenta</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Filtros */}
       {showFiltersModal && (
