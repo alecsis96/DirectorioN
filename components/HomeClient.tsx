@@ -1,7 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import BusinessCardVertical from './BusinessCardVertical';
+import BusinessModalWrapper from './BusinessModalWrapper';
 import type { BusinessPreview } from '../types/business';
 
 type Props = {
@@ -9,6 +11,10 @@ type Props = {
 };
 
 export default function HomeClient({ businesses }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [selectedBusiness, setSelectedBusiness] = useState<BusinessPreview | null>(null);
+
   // Memoizar validación de businesses para evitar recálculos en cada render
   const validBusinesses = useMemo(() => 
     Array.isArray(businesses) ? businesses.filter(
@@ -22,6 +28,29 @@ export default function HomeClient({ businesses }: Props) {
     [businesses]
   );
 
+  // Manejar modal desde query params
+  useEffect(() => {
+    const businessId = searchParams.get('negocio');
+    if (businessId) {
+      const business = validBusinesses.find(b => b.id === businessId);
+      if (business) {
+        setSelectedBusiness(business);
+      }
+    } else {
+      setSelectedBusiness(null);
+    }
+  }, [searchParams, validBusinesses]);
+
+  const handleOpenModal = (business: BusinessPreview) => {
+    setSelectedBusiness(business);
+    router.push(`/?negocio=${business.id}`, { scroll: false });
+  };
+
+  const handleCloseModal = () => {
+    setSelectedBusiness(null);
+    router.push('/', { scroll: false });
+  };
+
   return (
     <>
       {validBusinesses.length === 0 ? (
@@ -34,9 +63,18 @@ export default function HomeClient({ businesses }: Props) {
             <BusinessCardVertical
               key={business.id}
               business={business}
+              onViewDetails={handleOpenModal}
             />
           ))}
         </div>
+      )}
+
+      {/* Modal de detalle */}
+      {selectedBusiness && (
+        <BusinessModalWrapper
+          businessPreview={selectedBusiness}
+          onClose={handleCloseModal}
+        />
       )}
     </>
   );

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useFavorites } from '../context/FavoritesContext';
 import BusinessCard from './BusinessCard';
+import BusinessModalWrapper from './BusinessModalWrapper';
 import type { Business } from '../types/business';
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import { app } from '../firebaseConfig';
@@ -11,10 +13,13 @@ import { app } from '../firebaseConfig';
 const db = getFirestore(app);
 
 export default function FavoritosClient() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { favorites } = useFavorites();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
   useEffect(() => {
     async function fetchFavorites() {
@@ -71,6 +76,31 @@ export default function FavoritosClient() {
 
     fetchFavorites();
   }, [favorites]);
+
+  // Manejar modal desde query params
+  useEffect(() => {
+    if (!searchParams) return;
+    
+    const businessId = searchParams.get('negocio');
+    if (businessId) {
+      const business = businesses.find(b => b.id === businessId);
+      if (business) {
+        setSelectedBusiness(business);
+      }
+    } else {
+      setSelectedBusiness(null);
+    }
+  }, [searchParams, businesses]);
+
+  const handleOpenModal = (business: Business) => {
+    setSelectedBusiness(business);
+    router.push(`/favoritos?negocio=${business.id}`, { scroll: false });
+  };
+
+  const handleCloseModal = () => {
+    setSelectedBusiness(null);
+    router.push('/favoritos', { scroll: false });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -164,7 +194,11 @@ export default function FavoritosClient() {
             </div>
             
             {businesses.map((business) => (
-              <BusinessCard key={business.id} business={business} />
+              <BusinessCard 
+                key={business.id} 
+                business={business}
+                onViewDetails={handleOpenModal}
+              />
             ))}
 
             {businesses.length < favorites.length && (
@@ -175,6 +209,14 @@ export default function FavoritosClient() {
           </div>
         )}
       </div>
+
+      {/* Modal de detalle */}
+      {selectedBusiness && (
+        <BusinessModalWrapper
+          businessPreview={selectedBusiness}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }
