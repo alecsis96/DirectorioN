@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import BusinessCardVertical from './BusinessCardVertical';
 import BusinessModalWrapper from './BusinessModalWrapper';
@@ -10,7 +10,7 @@ type Props = {
   businesses: BusinessPreview[];
 };
 
-export default function HomeClient({ businesses }: Props) {
+function HomeClientContent({ businesses }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessPreview | null>(null);
@@ -30,6 +30,8 @@ export default function HomeClient({ businesses }: Props) {
 
   // Manejar modal desde query params
   useEffect(() => {
+    if (!searchParams) return;
+    
     const businessId = searchParams.get('negocio');
     if (businessId) {
       const business = validBusinesses.find(b => b.id === businessId);
@@ -72,10 +74,28 @@ export default function HomeClient({ businesses }: Props) {
       {/* Modal de detalle */}
       {selectedBusiness && (
         <BusinessModalWrapper
-          businessId={selectedBusiness.id}
+          businessPreview={selectedBusiness}
           onClose={handleCloseModal}
         />
       )}
     </>
+  );
+}
+
+export default function HomeClient({ businesses }: Props) {
+  return (
+    <Suspense fallback={
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-2xl p-6 animate-pulse">
+            <div className="h-48 bg-gray-200 rounded-lg mb-4" />
+            <div className="h-6 bg-gray-200 rounded mb-2" />
+            <div className="h-4 bg-gray-200 rounded w-2/3" />
+          </div>
+        ))}
+      </div>
+    }>
+      <HomeClientContent businesses={businesses} />
+    </Suspense>
   );
 }
