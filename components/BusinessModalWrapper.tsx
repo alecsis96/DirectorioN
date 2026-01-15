@@ -66,100 +66,32 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
   useEffect(() => {
     // Bloquear scroll del body cuando el modal está abierto
     document.body.style.overflow = 'hidden';
-    // Ocultar appbar y navegación inferior
     document.body.classList.add('modal-open');
     
-    // Función para ocultar elementos de navegación de forma agresiva
-    const hideNavigationElements = () => {
-      // Seleccionar todos los elementos de navegación posibles
-      const selectors = [
-        'nav',
-        'header',
-        '[role="navigation"]',
-        '[class*="Navigation"]',
-        '[class*="navigation"]',
-        '[class*="nav-bar"]',
-        '[class*="navbar"]',
-        '[class*="bottom-menu"]',
-        '[class*="app-bar"]',
-        '[class*="appbar"]'
-      ];
-      
-      selectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-          (el as HTMLElement).style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
-        });
-      });
-    };
-    
-    // Aplicar inmediatamente
-    hideNavigationElements();
-    
-    // Aplicar de nuevo después de un pequeño delay para asegurar
-    const timeoutId = setTimeout(hideNavigationElements, 10);
-    
-    // Observar cambios en el DOM por si se agregan nuevos elementos
-    const observer = new MutationObserver(hideNavigationElements);
-    observer.observe(document.body, { 
-      childList: true, 
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['style', 'class']
-    });
-    
-    // Agregar estilos dinámicos como backup
+    // Agregar estilos para ocultar navegación una sola vez
     const style = document.createElement('style');
     style.id = 'modal-navigation-hide';
     style.textContent = `
       body.modal-open nav,
       body.modal-open header,
-      body.modal-open [role="navigation"],
-      body.modal-open > div > nav,
-      body.modal-open > div > header,
-      body.modal-open nav[class*="Navigation"],
-      body.modal-open [class*="navigation"],
-      body.modal-open [class*="nav-bar"],
-      body.modal-open [class*="navbar"],
-      body.modal-open [class*="bottom-menu"],
-      body.modal-open [class*="app-bar"],
-      body.modal-open [class*="appbar"] {
+      body.modal-open [role="navigation"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
-        transform: translateY(-100%) !important;
       }
     `;
     document.head.appendChild(style);
     
     return () => {
-      clearTimeout(timeoutId);
-      observer.disconnect();
       document.body.style.overflow = 'unset';
       document.body.classList.remove('modal-open');
       const styleElement = document.getElementById('modal-navigation-hide');
       if (styleElement) {
         styleElement.remove();
       }
-      
-      // Restaurar estilos de navegación
-      const selectors = [
-        'nav',
-        'header',
-        '[role="navigation"]',
-        '[class*="Navigation"]',
-        '[class*="navigation"]'
-      ];
-      
-      selectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-          (el as HTMLElement).style.cssText = '';
-        });
-      });
     };
-  }, []);
+  }, []); // Solo ejecutar una vez
 
   // Cerrar con tecla Escape
   useEffect(() => {
