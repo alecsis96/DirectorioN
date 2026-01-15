@@ -640,7 +640,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         <button
           onClick={save}
           disabled={uiState.busy}
-          className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-40 px-4 sm:px-6 py-3 sm:py-4 bg-[#38761D] text-white rounded-full shadow-2xl hover:bg-[#2d5a15] transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 sm:gap-3 group"
+          className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[9999] px-4 sm:px-6 py-3 sm:py-4 bg-[#38761D] text-white rounded-full shadow-2xl hover:bg-[#2d5a15] transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 sm:gap-3 group"
         >
           {uiState.busy ? (
             <>
