@@ -3,7 +3,7 @@
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
@@ -72,6 +72,7 @@ export default function NegociosListClient({
 }: NegociosListClientProps) {
   const pathname = usePathname() || '/negocios';
   const searchParams = useSearchParams();
+  const router = useRouter();
   const geoQueryRef = useRef(geoQuery);
   const lastUrlQueryRef = useRef(initialFilters.query || '');
   const user = useCurrentUser();

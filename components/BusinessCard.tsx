@@ -1,6 +1,5 @@
 'use client';
 
-import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { Star, MapPin, Phone, Map } from "lucide-react";
 import { mapsLink, normalizeDigits, waLink } from "../lib/helpers/contact";
@@ -204,13 +203,11 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         {/* Header con título y rating */}
         <div className="flex items-start justify-between gap-3 relative">
           <div className="flex-1 min-w-0">
-            <Link
-              prefetch={false}
-              href={`/negocios/${business.id ?? ""}`}
-              className={`text-lg font-bold ${currentStyle.titleColor} hover:text-[#38761D] block transition-colors line-clamp-1`}
+            <h3
+              className={`text-lg font-bold ${currentStyle.titleColor} hover:text-[#38761D] transition-colors line-clamp-1 cursor-pointer`}
             >
               {business.name}
-            </Link>
+            </h3>
             <p className="text-[10px] text-gray-500 mt-0.5">Tap para ver detalles</p>
           </div>
         </div>
