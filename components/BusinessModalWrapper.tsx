@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import type { Business, BusinessPreview } from '../types/business';
@@ -15,6 +16,13 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
   const [fullBusiness, setFullBusiness] = useState<Business | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Solo renderizar en el cliente
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     // Prevenir ejecución múltiple
@@ -66,35 +74,9 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
   useEffect(() => {
     // Bloquear scroll del body cuando el modal está abierto
     document.body.style.overflow = 'hidden';
-    document.body.classList.add('modal-open');
-    
-    // Agregar estilos para ocultar navegación una sola vez
-    const style = document.createElement('style');
-    style.id = 'modal-navigation-hide';
-    style.textContent = `
-      body.modal-open nav,
-      body.modal-open header,
-      body.modal-open [role="navigation"],
-      body.modal-open nav[class*="sticky"],
-      body.modal-open nav[class*="fixed"],
-      body.modal-open nav[class*="Navigation"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-        z-index: -9999 !important;
-        transform: translateY(-200%) !important;
-      }
-    `;
-    document.head.appendChild(style);
     
     return () => {
       document.body.style.overflow = 'unset';
-      document.body.classList.remove('modal-open');
-      const styleElement = document.getElementById('modal-navigation-hide');
-      if (styleElement) {
-        styleElement.remove();
-      }
     };
   }, []); // Solo ejecutar una vez
 
@@ -107,10 +89,13 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  const modalContent = (
     <div
-      className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 md:py-0"
+      className="fixed inset-0 z-[99999] flex items-start md:items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-4 md:py-0"
       onClick={onClose}
+      style={{ isolation: 'isolate' }}
     >
       <div
         className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl my-auto overflow-hidden"
@@ -120,10 +105,10 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
         {/* Close Button - Posición absoluta sobre el modal */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-[10000] w-14 h-14 flex items-center justify-center rounded-full bg-gray-900/95 hover:bg-gray-900 backdrop-blur-md transition-all shadow-2xl border-3 border-white/40 hover:scale-110 active:scale-95"
+          className="absolute top-4 right-4 z-[100000] w-9 h-9 flex items-center justify-center rounded-full bg-gray-400/70 hover:bg-gray-500/80 transition-colors shadow-md"
           aria-label="Cerrar"
         >
-          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3.5}>
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -145,4 +130,7 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
       </div>
     </div>
   );
+
+  // Renderizar usando portal directamente bajo body
+  return createPortal(modalContent, document.body);
 }

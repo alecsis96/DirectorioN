@@ -715,7 +715,7 @@ export default function BusinessDetailView({ business }: Props) {
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
         )}
 
-        <div className="px-4 py-4 relative z-10">
+        <div className="px-4 py-4  relative z-10">
           {/* Compact Header - Logo inline with Business Name */}
           <div className="flex items-start gap-3 mb-4">
             {/* Logo inline (avatar style) - SOLO para planes premium */}
@@ -734,12 +734,12 @@ export default function BusinessDetailView({ business }: Props) {
             )}
 
             {/* Business Name and Info */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 pr-2">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold text-gray-900 leading-tight">{business.name}</h1>
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight line-clamp-2 break-words">{business.name}</h1>
                 {/* Icono de Verificado para premium */}
                 {plan !== 'free' && (
-                  <span className="text-blue-500 text-lg" title="Negocio Verificado">✓</span>
+                  <span className="text-blue-500 text-lg flex-shrink-0" title="Negocio Verificado">✓</span>
                 )}
               </div>
 
@@ -763,36 +763,36 @@ export default function BusinessDetailView({ business }: Props) {
               )}
             </div>
             </div>
-            
-            {/* Rating y reseñas */}
-            {Number(business.rating ?? 0) > 0 && (
-              <div className="flex items-center gap-3 mb-3">
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <StarIcon
-                      key={i}
-                      className={`w-5 h-5 ${
-                        i < Math.round(Number(business.rating ?? 0))
-                          ? 'text-yellow-500'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">{Number(business.rating ?? 0).toFixed(1)}</span>
-                  {(business as any).reviewCount > 0 && (
-                    <span className="text-gray-600 ml-1">
-                      ({(business as any).reviewCount} {(business as any).reviewCount === 1 ? 'reseña' : 'reseñas'})
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
+          {/* Rating y reseñas - Reubicado antes de los botones */}
+          {Number(business.rating ?? 0) > 0 && (
+            <div className="flex items-center gap-3 py-4 border-t border-gray-100">
+              <div className="flex items-center gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <StarIcon
+                    key={i}
+                    className={`w-5 h-5 ${
+                      i < Math.round(Number(business.rating ?? 0))
+                        ? 'text-yellow-500'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="text-sm">
+                <span className="font-bold text-gray-900">{Number(business.rating ?? 0).toFixed(1)}</span>
+                {(business as any).reviewCount > 0 && (
+                  <span className="text-gray-600 ml-1">
+                    ({(business as any).reviewCount} {(business as any).reviewCount === 1 ? 'reseña' : 'reseñas'})
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* ACTION BUTTONS (Botones de llamada a la acción con temas) */}
-          <div className="flex flex-wrap gap-3 mt-6">
+          <div className="flex flex-wrap gap-3 mt-4">
             {/* Botón WhatsApp - Siempre verde */}
             {whatsappHref && whatsappHref !== '#' && (
               <a
