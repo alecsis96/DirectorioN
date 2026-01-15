@@ -72,7 +72,7 @@ export default function HomeClient({ businesses }: Props) {
       {/* Modal de detalle */}
       {selectedBusiness && (
         <BusinessModalWrapper
-          businessPreview={selectedBusiness}
+          businessId={selectedBusiness.id}
           onClose={handleCloseModal}
         />
       )}
