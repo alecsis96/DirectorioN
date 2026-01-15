@@ -74,11 +74,16 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
     style.textContent = `
       body.modal-open nav,
       body.modal-open header,
-      body.modal-open [role="navigation"] {
+      body.modal-open [role="navigation"],
+      body.modal-open nav[class*="sticky"],
+      body.modal-open nav[class*="fixed"],
+      body.modal-open nav[class*="Navigation"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
+        z-index: -9999 !important;
+        transform: translateY(-200%) !important;
       }
     `;
     document.head.appendChild(style);
