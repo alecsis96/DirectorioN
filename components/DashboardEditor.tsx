@@ -3,7 +3,7 @@
  * Dashboard para editar negocios
  * Solo pago por transferencia/sucursal (stripe oculto)
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -215,6 +215,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   // Estado para errores de validación
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+  // Ref para saber si ya se cargaron los datos iniciales
+  const isInitialLoadRef = useRef(true);
+
   // Efecto para auto-ocultar toast
   useEffect(() => {
     if (uiState.msg && !uiState.upgradeBusy) {
@@ -227,9 +230,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     }
   }, [uiState.msg, uiState.upgradeBusy]);
 
-  // Detectar cambios en el formulario
+  // Detectar cambios en el formulario (solo después de carga inicial)
   useEffect(() => {
-    setHasUnsavedChanges(true);
+    if (!isInitialLoadRef.current) {
+      setHasUnsavedChanges(true);
+    }
   }, [form, schedule, addr]);
 
   // Confirmación antes de salir con cambios sin guardar
@@ -302,10 +307,21 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   });
 
   const applyBusinessData = useCallback((data: Business) => {
+    // Marcar que estamos cargando datos (no detectar cambios)
+    isInitialLoadRef.current = true;
+    
     setBiz(data);
     setForm(mapToFormState(data));
     setAddr(mapToAddressState(data));
     setSchedule(mapToScheduleState(data));
+    setHasUnsavedChanges(false);
+    
+    // Esperar a que los estados se actualicen antes de permitir detección de cambios
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isInitialLoadRef.current = false;
+      });
+    });
   }, []);
 
   useEffect(() => {
@@ -405,9 +421,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         applyBusinessData(updatedData);
       }
       
-      // Actualizar timestamp de guardado
+      // Actualizar timestamp de guardado (ya no es necesario setHasUnsavedChanges aquí)
       setLastSaved(new Date());
-      setHasUnsavedChanges(false);
       
       // Scroll suave hacia arriba
       window.scrollTo({ top: 0, behavior: 'smooth' });

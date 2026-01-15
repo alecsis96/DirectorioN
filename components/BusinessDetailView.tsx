@@ -718,20 +718,20 @@ export default function BusinessDetailView({ business }: Props) {
         <div className="px-4 py-4 relative z-10">
           {/* Compact Header - Logo inline with Business Name */}
           <div className="flex items-start gap-3 mb-4">
-            {/* Logo inline (avatar style) - for all plans */}
-            <div className="flex-shrink-0">
-              <img 
-                src={
-                  business.logoUrl ||
-                  business.image1 ||
-                  (business.plan && business.plan !== 'free'
-                    ? '/images/default-premium-logo.svg'
-                    : 'https://via.placeholder.com/64?text=Logo')
-                } 
-                alt={`Logo de ${business.name}`}
-                className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-white"
-              />
-            </div>
+            {/* Logo inline (avatar style) - SOLO para planes premium */}
+            {plan !== 'free' && (
+              <div className="flex-shrink-0">
+                <img 
+                  src={
+                    business.logoUrl ||
+                    business.image1 ||
+                    '/images/default-premium-logo.svg'
+                  } 
+                  alt={`Logo de ${business.name}`}
+                  className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-white"
+                />
+              </div>
+            )}
 
             {/* Business Name and Info */}
             <div className="flex-1 min-w-0">

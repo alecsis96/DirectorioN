@@ -11,7 +11,7 @@
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
-import type { Business, Review } from "../../types/business";
+import type { Business, Review } from "./types/business";
 
 // Inicializar Firebase Admin si no está inicializado
 if (!admin.apps.length) {

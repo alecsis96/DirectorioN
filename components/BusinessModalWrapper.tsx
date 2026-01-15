@@ -50,8 +50,33 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
   useEffect(() => {
     // Bloquear scroll del body cuando el modal está abierto
     document.body.style.overflow = 'hidden';
+    // Ocultar appbar y navegación inferior
+    document.body.classList.add('modal-open');
+    
+    // Agregar estilos dinámicos para ocultar navegación
+    const style = document.createElement('style');
+    style.id = 'modal-navigation-hide';
+    style.textContent = `
+      body.modal-open nav,
+      body.modal-open header,
+      body.modal-open [role="navigation"],
+      body.modal-open > div > nav,
+      body.modal-open > div > header {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
     return () => {
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('modal-open');
+      const styleElement = document.getElementById('modal-navigation-hide');
+      if (styleElement) {
+        styleElement.remove();
+      }
     };
   }, []);
 
@@ -66,7 +91,7 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start md:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 md:py-0"
+      className="fixed inset-0 z-[9999] flex items-start md:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 md:py-0"
       onClick={onClose}
     >
       <div
@@ -77,12 +102,11 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
         {/* Close Button - Floating over content with backdrop */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-sm transition text-white shadow-lg"
-          style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+          className="sticky top-4 left-full -ml-16 z-[10000] w-12 h-12 flex items-center justify-center rounded-full bg-gray-900/90 hover:bg-gray-900 backdrop-blur-md transition-all shadow-2xl border-2 border-white/30 hover:scale-110 active:scale-95"
           aria-label="Cerrar"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
