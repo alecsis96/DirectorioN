@@ -206,6 +206,15 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   // Estado para controlar el toast
   const [showToast, setShowToast] = useState(false);
 
+  // Estado para último guardado
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // Estado para detectar cambios sin guardar
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Estado para errores de validación
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
   // Efecto para auto-ocultar toast
   useEffect(() => {
     if (uiState.msg && !uiState.upgradeBusy) {
@@ -217,6 +226,69 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       return () => clearTimeout(timer);
     }
   }, [uiState.msg, uiState.upgradeBusy]);
+
+  // Detectar cambios en el formulario
+  useEffect(() => {
+    setHasUnsavedChanges(true);
+  }, [form, schedule, addr]);
+
+  // Confirmación antes de salir con cambios sin guardar
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Calcular completitud del perfil
+  const calculateCompleteness = useCallback(() => {
+    if (!biz) return 0;
+    let completed = 0;
+    const total = 12;
+
+    if (form.name?.trim()) completed++;
+    if (form.category) completed++;
+    if (form.description?.trim() && form.description.length >= 20) completed++;
+    if (form.phone?.trim()) completed++;
+    if (form.address?.trim()) completed++;
+    if (form.colonia) completed++;
+    if (addr.lat && addr.lng) completed++;
+    if (form.WhatsApp?.trim()) completed++;
+    if (Object.values(schedule).some(h => h.open)) completed++;
+    if (biz.images && biz.images.length > 0) completed++;
+    if (biz.logoUrl) completed++;
+    if (biz.coverUrl) completed++;
+
+    return Math.round((completed / total) * 100);
+  }, [form, biz, addr, schedule]);
+
+  // Validar campos requeridos
+  const validateForm = useCallback(() => {
+    const errors: Record<string, string> = {};
+    
+    if (!form.name?.trim()) {
+      errors.name = 'El nombre es obligatorio';
+    }
+    if (!form.category) {
+      errors.category = 'Selecciona una categoría';
+    }
+    if (!form.description?.trim() || form.description.length < 20) {
+      errors.description = 'La descripción debe tener al menos 20 caracteres';
+    }
+    if (!form.phone?.trim()) {
+      errors.phone = 'El teléfono es obligatorio';
+    }
+    if (!form.colonia) {
+      errors.colonia = 'Selecciona una colonia';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [form]);
 
   // Estados del recibo consolidados
   const [receiptState, setReceiptState] = useState<{
@@ -332,6 +404,13 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         const updatedData = { id: snap.id, ...snap.data() } as Business;
         applyBusinessData(updatedData);
       }
+      
+      // Actualizar timestamp de guardado
+      setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+      
+      // Scroll suave hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       console.error('Error al guardar:', error);
       setUiState(prev => ({ ...prev, msg: error instanceof Error ? error.message : 'No pudimos guardar los cambios. Intenta nuevamente.' }));
@@ -346,8 +425,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       setUiState(prev => ({ ...prev, msg: 'Este negocio ya esta en revision o publicado.' }));
       return;
     }
-    if (!form.name?.trim() || !form.description?.trim() || !form.phone?.trim()) {
-      setUiState(prev => ({ ...prev, msg: 'Completa al menos: Nombre, Descripcion y Telefono antes de enviar.' }));
+    
+    // Validar formulario completo
+    if (!validateForm()) {
+      setUiState(prev => ({ ...prev, msg: 'Por favor completa todos los campos obligatorios marcados con *' }));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -569,27 +651,75 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       ) : (
         <>
           {/* Hero */}
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-1">
-              <p className="text-sm text-gray-500">Editor de negocio</p>
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{form.name || 'Sin nombre'}</h1>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                  {biz.plan ? biz.plan.toUpperCase() : 'FREE'}
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                  Estado: {biz.status || 'draft'}
-                </span>
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 mb-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
+              <div className="space-y-1">
+                <p className="text-sm text-gray-500">Editor de negocio</p>
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                  <h1 className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{form.name || 'Sin nombre'}</h1>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                    {biz.plan ? biz.plan.toUpperCase() : 'FREE'}
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    Estado: {biz.status || 'draft'}
+                  </span>
+                  {hasUnsavedChanges && (
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 animate-pulse">
+                      ● Cambios sin guardar
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <p className="text-sm text-gray-600">{user?.email || biz.ownerEmail || 'Sesion iniciada'}</p>
+                  {lastSaved && !hasUnsavedChanges && (
+                    <p className="text-xs text-gray-500">
+                      ✓ Guardado hace {Math.round((Date.now() - lastSaved.getTime()) / 60000)} min
+                    </p>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-gray-600">{user?.email || biz.ownerEmail || 'Sesion iniciada'}</p>
             </div>
-            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+            
+            {/* Barra de progreso de completitud */}
+            <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-gray-700">Completitud del perfil</span>
+                <span className="text-lg font-bold text-purple-600">{calculateCompleteness()}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500 rounded-full"
+                  style={{ width: `${calculateCompleteness()}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                {calculateCompleteness() === 100 ? (
+                  <span className="text-green-600 font-semibold">🎉 ¡Perfil completo! Tu negocio está optimizado</span>
+                ) : calculateCompleteness() >= 75 ? (
+                  <span>¡Casi listo! Completa algunos detalles más</span>
+                ) : calculateCompleteness() >= 50 ? (
+                  <span>Buen progreso. Agrega más información para destacar</span>
+                ) : (
+                  <span>Completa tu perfil para atraer más clientes</span>
+                )}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4">
               <button
-                onClick={() => router.push('/negocios')}
-                className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs sm:text-sm font-medium flex-1 sm:flex-initial"
+                onClick={() => {
+                  if (biz.id) {
+                    window.open(`/negocios/${biz.id}`, '_blank');
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs sm:text-sm font-medium flex-1 sm:flex-initial"
               >
-                <span className="hidden sm:inline">Ver publicado</span>
-                <span className="sm:hidden">Ver</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <span className="hidden sm:inline">Vista previa</span>
+                <span className="sm:hidden">Preview</span>
               </button>
               {(biz.status === 'draft' || biz.status === 'rejected') && (
                 <button
@@ -658,12 +788,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       </option>
                     ))}
                   </select>
-                  <input
-                    className="border rounded-lg px-3 py-2"
-                    placeholder="Dirección (calle y número)"
-                    value={addr.address}
-                    onChange={(e) => setAddr({ ...addr, address: e.target.value })}
-                  />
                 </div>
                 <textarea
                   className="border rounded-lg px-3 py-2 w-full"
@@ -814,64 +938,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900">Destacado</h2>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.featured}
-                    onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-                    className="w-5 h-5 text-yellow-600 rounded focus:ring-yellow-500"
-                  />
-                  <div>
-                    <span className="text-base font-bold text-yellow-900">Marcar como Destacado del mes</span>
-                    <p className="text-sm text-yellow-700 mt-1">
-                      Seccion premium de la pagina principal. Disponible para planes de pago.
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900">Medios</h2>
-                {biz.plan === 'sponsor' || biz.plan === 'featured' ? (
-                  <>
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600">Imagen de portada (planes premium)</p>
-                      <CoverUploader
-                        businessId={id!}
-                        coverUrl={biz.coverUrl || null}
-                        coverPublicId={biz.coverPublicId || null}
-                        onChange={(url, publicId) => setBiz((b) => b ? ({ ...b, coverUrl: url, coverPublicId: publicId }) : null)}
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600">Logo</p>
-                      <LogoUploader
-                        businessId={id!}
-                        logoUrl={biz.logoUrl || null}
-                        logoPublicId={biz.logoPublicId || null}
-                        onChange={(url, publicId) => setBiz((b) => b ? ({ ...b, logoUrl: url, logoPublicId: publicId }) : null)}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-gray-700 mb-2">
-                      Funciones premium disponibles por transferencia o pago en sucursal.
-                    </p>
-                    <p className="text-xs text-gray-600">Sube tu comprobante para activar tu plan.</p>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleUpgradeByTransfer('sponsor')}
-                        disabled={uiState.upgradeBusy}
-                        className="px-3 py-2 border border-gray-300 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-60"
-                      >
-                        Enviar comprobante (premium)
-                      </button>
-                    </div>
-                  </div>
-                )}
-
+                <h2 className="text-lg font-semibold text-gray-900">Galería</h2>
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600">Galeria de imagenes</p>
                   <ImageUploader
@@ -900,8 +967,112 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               )}
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 space-y-3">
-                <h3 className="text-base font-semibold text-gray-900">Plan y pagos</h3>
+              {/* Banner atractivo de planes premium para usuarios gratuitos */}
+              {biz.plan === 'free' && (
+                <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 rounded-2xl shadow-xl p-6 text-white">
+                  {/* Decoración de fondo */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
+                  
+                  <div className="relative z-10 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">✨</span>
+                      <h3 className="text-xl font-bold">¡Destaca tu negocio!</h3>
+                    </div>
+                    
+                    <p className="text-purple-100 text-sm leading-relaxed">
+                      Aumenta tu visibilidad y atrae más clientes con nuestros planes premium
+                    </p>
+
+                    {/* Beneficios */}
+                    <div className="space-y-2 bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">🚀</span>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">Aparece primero</p>
+                          <p className="text-xs text-purple-100">Tu negocio siempre en los primeros resultados</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">📊</span>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">Analíticas avanzadas</p>
+                          <p className="text-xs text-purple-100">Conoce a tu audiencia y optimiza tu perfil</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">🎨</span>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">Diseño destacado</p>
+                          <p className="text-xs text-purple-100">Badge premium y diseño visual único</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">📸</span>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">Galería ilimitada</p>
+                          <p className="text-xs text-purple-100">Muestra todos tus productos y servicios</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Comparación visual */}
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                        <p className="font-bold mb-2 flex items-center gap-1">
+                          <span>😐</span> GRATIS
+                        </p>
+                        <ul className="space-y-1 text-purple-100">
+                          <li>• Listado básico</li>
+                          <li>• 3 imágenes max</li>
+                          <li>• Sin estadísticas</li>
+                          <li>• Posición baja</li>
+                        </ul>
+                      </div>
+                      <div className="bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm rounded-lg p-3 border-2 border-yellow-300/50">
+                        <p className="font-bold mb-2 flex items-center gap-1">
+                          <span>⭐</span> PREMIUM
+                        </p>
+                        <ul className="space-y-1 text-white font-medium">
+                          <li>• Posición top ✨</li>
+                          <li>• Imágenes ilimitadas</li>
+                          <li>• Reportes completos</li>
+                          <li>• Badge destacado</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Testimonial */}
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                      <p className="text-xs italic text-purple-100 mb-2">
+                        "Desde que actualicé a premium, mis visitas aumentaron 5x en el primer mes"
+                      </p>
+                      <p className="text-[10px] text-purple-200 font-semibold">— Carlos M., Restaurante La Cocina</p>
+                    </div>
+
+                    {/* CTA */}
+                    <button
+                      onClick={() => {
+                        const paymentSection = document.querySelector('[data-payment-section]');
+                        paymentSection?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="w-full bg-white text-purple-600 font-bold py-3 rounded-lg hover:bg-purple-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm"
+                    >
+                      🎯 Ver planes y precios
+                    </button>
+                    
+                    <p className="text-center text-[10px] text-purple-200">
+                      Desde $99/mes • Cancela cuando quieras
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 space-y-4" data-payment-section>
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <span>💎</span> Planes y precios
+                </h3>
+                
                 <PaymentInfo
                   businessId={id!}
                   plan={biz.plan}
@@ -912,7 +1083,122 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   disabledReason={biz.disabledReason}
                 />
 
-                <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
+                {/* Tarjetas de planes con precios */}
+                {biz.plan === 'free' && (
+                  <div className="space-y-3 pt-2">
+                    <p className="text-sm text-gray-600 font-medium">Elige el plan perfecto para tu negocio:</p>
+                    
+                    {/* Plan Destacado */}
+                    <div className="relative overflow-hidden border-2 border-blue-300 rounded-xl p-4 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-lg transition-shadow">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-lg font-bold text-blue-900">⭐ Plan Destacado</h4>
+                            <span className="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full">POPULAR</span>
+                          </div>
+                          <p className="text-sm text-blue-700">Aparece en sección destacada</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-blue-900">$99</p>
+                          <p className="text-xs text-blue-600">por mes</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1.5 text-sm text-blue-900">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Aparece en sección destacada del home</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Badge premium dorado</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Hasta 10 imágenes en galería</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Reportes básicos de visitas</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Prioridad en búsquedas</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Plan Patrocinado */}
+                    <div className="relative overflow-hidden border-2 border-purple-400 rounded-xl p-4 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 hover:shadow-lg transition-shadow">
+                      <div className="absolute top-0 right-0 bg-gradient-to-br from-yellow-400 to-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+                        PREMIUM MAX
+                      </div>
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-lg font-bold text-purple-900">🚀 Plan Patrocinado</h4>
+                          </div>
+                          <p className="text-sm text-purple-700">Máxima visibilidad garantizada</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-purple-900">$199</p>
+                          <p className="text-xs text-purple-600">por mes</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1.5 text-sm text-purple-900">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span className="font-semibold">Todo lo del plan Destacado +</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Aparece SIEMPRE en la parte superior</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Badge VIP con animación</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Imágenes ILIMITADAS en galería</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Logo y portada personalizada</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Reportes completos + analíticas avanzadas</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600">✓</span>
+                          <span>Soporte prioritario</span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 p-2 bg-white/60 rounded-lg border border-purple-200">
+                        <p className="text-xs text-purple-900 font-semibold text-center">
+                          🔥 Ideal para negocios que buscan dominar su sector
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Garantía y beneficios */}
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <span className="text-xl">🎁</span>
+                        <div className="flex-1 text-xs text-green-900">
+                          <p className="font-bold mb-1">✓ Sin permanencia - Cancela cuando quieras</p>
+                          <p>✓ Activación inmediata tras validar tu pago</p>
+                          <p>✓ Soporte por WhatsApp y email</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3 border-t border-gray-200 pt-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap inline-block w-fit">
                       Pago por transferencia o sucursal
