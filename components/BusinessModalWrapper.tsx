@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import type { Business, BusinessPreview } from '../types/business';
@@ -15,9 +15,15 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
   const [fullBusiness, setFullBusiness] = useState<Business | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Estabilizar la referencia del businessPreview usando solo el ID
+  const businessId = useMemo(() => businessPreview.id, [businessPreview.id]);
+
   useEffect(() => {
+    console.log('[BusinessModalWrapper] Loading business:', businessId);
+    
     // Si ya es un Business completo, usarlo directamente
     if ('description' in businessPreview && businessPreview.description !== undefined) {
+      console.log('[BusinessModalWrapper] Using full business directly');
       setFullBusiness(businessPreview as Business);
       setIsLoading(false);
       return;
@@ -25,27 +31,33 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
 
     // Si no, cargar el documento completo desde Firestore
     const fetchFullBusiness = async () => {
-      if (!businessPreview.id) {
+      if (!businessId) {
+        console.log('[BusinessModalWrapper] No business ID');
         setIsLoading(false);
         return;
       }
 
+      console.log('[BusinessModalWrapper] Fetching from Firestore:', businessId);
+      
       try {
-        const docRef = doc(db, 'businesses', businessPreview.id);
+        const docRef = doc(db, 'businesses', businessId);
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
+          console.log('[BusinessModalWrapper] Business loaded successfully');
           setFullBusiness({ id: docSnap.id, ...docSnap.data() } as Business);
+        } else {
+          console.log('[BusinessModalWrapper] Business not found');
         }
       } catch (error) {
-        console.error('Error fetching business:', error);
+        console.error('[BusinessModalWrapper] Error fetching business:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchFullBusiness();
-  }, [businessPreview]);
+  }, [businessId]); // Solo depender del ID, no del objeto completo
 
   useEffect(() => {
     // Bloquear scroll del body cuando el modal está abierto
