@@ -42,6 +42,8 @@ type FormState = {
   closeTime: string;
   plan: string;
   hasDelivery: boolean;
+  deliveryCost: string;
+  deliveryInfo: string;
   featured: boolean;
 };
 
@@ -80,6 +82,8 @@ const defaultFormState = {
   closeTime: '',
   plan: 'free',
   hasDelivery: false,
+  deliveryCost: 'free',
+  deliveryInfo: '',
   featured: false,
 };
 
@@ -101,6 +105,8 @@ function mapToFormState(data?: Partial<Business>): FormState {
     closeTime,
     plan: data.plan ?? 'free',
     hasDelivery: data.hasDelivery === true,
+    deliveryCost: (data as any).deliveryCost ?? 'free',
+    deliveryInfo: (data as any).deliveryInfo ?? '',
     featured: data.featured === true || data.featured === 'true',
   };
 }
@@ -402,6 +408,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       const payload = {
         ...rest,
         hasDelivery: form.hasDelivery,
+        deliveryCost: form.deliveryCost,
+        deliveryInfo: form.deliveryInfo,
         address: addr.address || rest.address || '',
         hours: derivedHours,
         horarios,
@@ -836,6 +844,122 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     onChange={(e) => setForm({ ...form, Facebook: e.target.value })}
                   />
                 </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🚚</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Opciones de envío</h2>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Checkbox principal de envío */}
+                  <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={form.hasDelivery}
+                      onChange={(e) => {
+                        setForm({ 
+                          ...form, 
+                          hasDelivery: e.target.checked,
+                          // Si desactiva envío, resetear campos
+                          deliveryCost: e.target.checked ? form.deliveryCost : 'free',
+                          deliveryInfo: e.target.checked ? form.deliveryInfo : ''
+                        });
+                      }}
+                      className="w-5 h-5 text-[#38761D] rounded focus:ring-[#38761D] mt-0.5 flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <span className="font-medium text-gray-900">Ofrezco servicio de envío a domicilio</span>
+                      <p className="text-sm text-gray-600 mt-1">Marca esta opción si entregas productos o servicios</p>
+                    </div>
+                  </label>
+
+                  {/* Opciones adicionales cuando está activado */}
+                  {form.hasDelivery && (
+                    <div className="ml-8 space-y-4 pl-4 border-l-2 border-emerald-200">
+                      {/* Costo de envío */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Costo del envío
+                        </label>
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="deliveryCost"
+                              value="free"
+                              checked={form.deliveryCost === 'free'}
+                              onChange={(e) => setForm({ ...form, deliveryCost: e.target.value })}
+                              className="w-4 h-4 text-[#38761D] focus:ring-[#38761D]"
+                            />
+                            <span className="text-sm font-medium text-gray-900">🎁 Gratis</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="deliveryCost"
+                              value="paid"
+                              checked={form.deliveryCost === 'paid'}
+                              onChange={(e) => setForm({ ...form, deliveryCost: e.target.value })}
+                              className="w-4 h-4 text-[#38761D] focus:ring-[#38761D]"
+                            />
+                            <span className="text-sm font-medium text-gray-900">💵 Tiene costo</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="deliveryCost"
+                              value="varies"
+                              checked={form.deliveryCost === 'varies'}
+                              onChange={(e) => setForm({ ...form, deliveryCost: e.target.value })}
+                              className="w-4 h-4 text-[#38761D] focus:ring-[#38761D]"
+                            />
+                            <span className="text-sm font-medium text-gray-900">📍 Depende de la ubicación</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Información adicional del envío */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Información adicional (opcional)
+                        </label>
+                        <textarea
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D] focus:border-transparent"
+                          rows={3}
+                          placeholder="Ej: Envío gratis en compras mayores a $500, Costo $30 dentro de la ciudad, Zona de cobertura: centro y colonias cercanas"
+                          value={form.deliveryInfo}
+                          onChange={(e) => setForm({ ...form, deliveryInfo: e.target.value })}
+                        />
+                        <p className="text-xs text-gray-500">
+                          💡 Tip: Menciona zonas de cobertura, tiempo de entrega, o condiciones especiales
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Vista previa */}
+                {form.hasDelivery && (
+                  <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <p className="text-xs font-semibold text-emerald-900 mb-1">Vista previa para clientes:</p>
+                    <div className="flex items-start gap-2 text-sm text-emerald-800">
+                      <span className="text-lg">🚚</span>
+                      <div>
+                        <p className="font-medium">
+                          Servicio de envío disponible
+                          {form.deliveryCost === 'free' && ' - Gratis'}
+                          {form.deliveryCost === 'paid' && ' - Con costo'}
+                          {form.deliveryCost === 'varies' && ' - Costo según ubicación'}
+                        </p>
+                        {form.deliveryInfo && (
+                          <p className="text-xs mt-1 text-emerald-700">{form.deliveryInfo}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">

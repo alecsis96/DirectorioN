@@ -26,6 +26,8 @@ export type Business = {
   plan?: "free" | "featured" | "sponsor" | string;
   isOpen?: "si" | "no" | string;
   hasDelivery?: boolean;
+  deliveryCost?: "free" | "paid" | "varies" | string;
+  deliveryInfo?: string;
   location?: { lat: number; lng: number } | null;
   logoUrl?: string | null;
   logoPublicId?: string | null;
