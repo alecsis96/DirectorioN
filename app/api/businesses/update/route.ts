@@ -18,7 +18,7 @@ const ALLOWED_FIELDS = new Set([
   'logoPublicId',
   'coverUrl',
   'coverPublicId',
-  'hasDelivery',
+  'hasEnvio',
   'lat',
   'lng',
   'location',

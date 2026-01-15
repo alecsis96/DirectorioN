@@ -261,7 +261,7 @@ export default function NegociosListClient({
         if (!status.isOpen) return false;
       }
       if (quickFilterTopRated && (biz.rating ?? 0) < 4.5) return false;
-      if (quickFilterDelivery && biz.hasDelivery !== true) return false;
+      if (quickFilterDelivery && biz.hasEnvio !== true) return false;
       if (quickFilterNew) {
         const created = (biz as any).createdAt;
         if (created) {
@@ -457,9 +457,9 @@ export default function NegociosListClient({
                                     ⭐ {business.rating.toFixed(1)}
                                   </span>
                                 )}
-                                {business.hasDelivery && (
+                                {business.hasEnvio && (
                                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">
-                                    🚚 Delivery
+                                    🚚 Envío
                                   </span>
                                 )}
                               </div>
@@ -667,9 +667,9 @@ export default function NegociosListClient({
                             </span>
 
                             {/* Delivery Tag */}
-                            {business.hasDelivery && (
+                            {business.hasEnvio && (
                               <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 font-medium flex items-center gap-1">
-                                🚚 <span className="hidden sm:inline">Delivery</span>
+                                🚚 <span className="hidden sm:inline">Envío</span>
                               </span>
                             )}
                           </div>
@@ -876,10 +876,10 @@ export default function NegociosListClient({
               }`}
             >
               <span className="text-lg">🚚</span>
-              Delivery
+              Envío
               {quickFilterDelivery && (
                 <span className="bg-white text-orange-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                  {businesses.filter(b => b.hasDelivery === true).length}
+                  {businesses.filter(b => b.hasEnvio === true).length}
                 </span>
               )}
             </button>

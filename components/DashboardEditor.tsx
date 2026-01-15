@@ -41,9 +41,9 @@ type FormState = {
   openTime: string;
   closeTime: string;
   plan: string;
-  hasDelivery: boolean;
-  deliveryCost: string;
-  deliveryInfo: string;
+  hasEnvio: boolean;
+  envioCost: string;
+  envioInfo: string;
   featured: boolean;
 };
 
@@ -81,9 +81,9 @@ const defaultFormState = {
   openTime: '',
   closeTime: '',
   plan: 'free',
-  hasDelivery: false,
-  deliveryCost: 'free',
-  deliveryInfo: '',
+  hasEnvio: false,
+  envioCost: 'free',
+  envioInfo: '',
   featured: false,
 };
 
@@ -104,9 +104,9 @@ function mapToFormState(data?: Partial<Business>): FormState {
     openTime,
     closeTime,
     plan: data.plan ?? 'free',
-    hasDelivery: data.hasDelivery === true,
-    deliveryCost: (data as any).deliveryCost ?? 'free',
-    deliveryInfo: (data as any).deliveryInfo ?? '',
+    hasEnvio: data.hasEnvio === true,
+    envioCost: (data as any).envioCost ?? 'free',
+    envioInfo: (data as any).envioInfo ?? '',
     featured: data.featured === true || data.featured === 'true',
   };
 }
@@ -407,9 +407,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       const token = await user.getIdToken();
       const payload = {
         ...rest,
-        hasDelivery: form.hasDelivery,
-        deliveryCost: form.deliveryCost,
-        deliveryInfo: form.deliveryInfo,
+        hasEnvio: form.hasEnvio,
+        envioCost: form.envioCost,
+        envioInfo: form.envioInfo,
         address: addr.address || rest.address || '',
         hours: derivedHours,
         horarios,
@@ -857,14 +857,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
                     <input
                       type="checkbox"
-                      checked={form.hasDelivery}
+                      checked={form.hasEnvio}
                       onChange={(e) => {
                         setForm({ 
                           ...form, 
-                          hasDelivery: e.target.checked,
+                          hasEnvio: e.target.checked,
                           // Si desactiva envío, resetear campos
-                          deliveryCost: e.target.checked ? form.deliveryCost : 'free',
-                          deliveryInfo: e.target.checked ? form.deliveryInfo : ''
+                          envioCost: e.target.checked ? form.envioCost : 'free',
+                          envioInfo: e.target.checked ? form.envioInfo : ''
                         });
                       }}
                       className="w-5 h-5 text-[#38761D] rounded focus:ring-[#38761D] mt-0.5 flex-shrink-0"
@@ -876,7 +876,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   </label>
 
                   {/* Opciones adicionales cuando está activado */}
-                  {form.hasDelivery && (
+                  {form.hasEnvio && (
                     <div className="ml-8 space-y-4 pl-4 border-l-2 border-emerald-200">
                       {/* Costo de envío */}
                       <div className="space-y-2">
@@ -887,10 +887,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
                               type="radio"
-                              name="deliveryCost"
+                              name="envioCost"
                               value="free"
-                              checked={form.deliveryCost === 'free'}
-                              onChange={(e) => setForm({ ...form, deliveryCost: e.target.value })}
+                              checked={form.envioCost === 'free'}
+                              onChange={(e) => setForm({ ...form, envioCost: e.target.value })}
                               className="w-4 h-4 text-[#38761D] focus:ring-[#38761D]"
                             />
                             <span className="text-sm font-medium text-gray-900">🎁 Gratis</span>
@@ -898,10 +898,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
                               type="radio"
-                              name="deliveryCost"
+                              name="envioCost"
                               value="paid"
-                              checked={form.deliveryCost === 'paid'}
-                              onChange={(e) => setForm({ ...form, deliveryCost: e.target.value })}
+                              checked={form.envioCost === 'paid'}
+                              onChange={(e) => setForm({ ...form, envioCost: e.target.value })}
                               className="w-4 h-4 text-[#38761D] focus:ring-[#38761D]"
                             />
                             <span className="text-sm font-medium text-gray-900">💵 Tiene costo</span>
@@ -909,10 +909,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
                               type="radio"
-                              name="deliveryCost"
+                              name="envioCost"
                               value="varies"
-                              checked={form.deliveryCost === 'varies'}
-                              onChange={(e) => setForm({ ...form, deliveryCost: e.target.value })}
+                              checked={form.envioCost === 'varies'}
+                              onChange={(e) => setForm({ ...form, envioCost: e.target.value })}
                               className="w-4 h-4 text-[#38761D] focus:ring-[#38761D]"
                             />
                             <span className="text-sm font-medium text-gray-900">📍 Depende de la ubicación</span>
@@ -929,8 +929,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D] focus:border-transparent"
                           rows={3}
                           placeholder="Ej: Envío gratis en compras mayores a $500, Costo $30 dentro de la ciudad, Zona de cobertura: centro y colonias cercanas"
-                          value={form.deliveryInfo}
-                          onChange={(e) => setForm({ ...form, deliveryInfo: e.target.value })}
+                          value={form.envioInfo}
+                          onChange={(e) => setForm({ ...form, envioInfo: e.target.value })}
                         />
                         <p className="text-xs text-gray-500">
                           💡 Tip: Menciona zonas de cobertura, tiempo de entrega, o condiciones especiales
@@ -941,7 +941,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
 
                 {/* Vista previa */}
-                {form.hasDelivery && (
+                {form.hasEnvio && (
                   <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                     <p className="text-xs font-semibold text-emerald-900 mb-1">Vista previa para clientes:</p>
                     <div className="flex items-start gap-2 text-sm text-emerald-800">
@@ -949,12 +949,12 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       <div>
                         <p className="font-medium">
                           Servicio de envío disponible
-                          {form.deliveryCost === 'free' && ' - Gratis'}
-                          {form.deliveryCost === 'paid' && ' - Con costo'}
-                          {form.deliveryCost === 'varies' && ' - Costo según ubicación'}
+                          {form.envioCost === 'free' && ' - Gratis'}
+                          {form.envioCost === 'paid' && ' - Con costo'}
+                          {form.envioCost === 'varies' && ' - Costo según ubicación'}
                         </p>
-                        {form.deliveryInfo && (
-                          <p className="text-xs mt-1 text-emerald-700">{form.deliveryInfo}</p>
+                        {form.envioInfo && (
+                          <p className="text-xs mt-1 text-emerald-700">{form.envioInfo}</p>
                         )}
                       </div>
                     </div>

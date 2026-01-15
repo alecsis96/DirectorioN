@@ -189,9 +189,9 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
                     📂 {business.category}
                   </span>
                   
-                  {business.hasDelivery && (
+                  {business.hasEnvio && (
                     <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 font-medium flex items-center gap-1">
-                      🚚 <span className="hidden sm:inline">Delivery</span>
+                      🚚 <span className="hidden sm:inline">Envío</span>
                     </span>
                   )}
                 </div>
@@ -217,9 +217,9 @@ const BusinessCardVertical: React.FC<Props> = ({ business, onViewDetails }) => {
                       ⭐ {business.rating.toFixed(1)}
                     </span>
                   )}
-                  {business.hasDelivery && (
+                  {business.hasEnvio && (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">
-                      🚚 Delivery
+                      🚚 Envío
                     </span>
                   )}
                 </div>

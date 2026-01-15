@@ -84,9 +84,9 @@ export function normalizeBusiness(data: any, id: string): Business {
   const coverUrl = asString(data.coverUrl);
   if (coverUrl) business.coverUrl = coverUrl;
 
-  // Incluir hasDelivery si existe
-  if (data.hasDelivery === true) {
-    business.hasDelivery = true;
+  // Incluir hasEnvio si existe
+  if (data.hasEnvio === true) {
+    business.hasEnvio = true;
   }
 
   if (Array.isArray(data.images) && data.images.length) {

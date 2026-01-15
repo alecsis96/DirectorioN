@@ -25,9 +25,9 @@ export type Business = {
   ownerEmail?: string;
   plan?: "free" | "featured" | "sponsor" | string;
   isOpen?: "si" | "no" | string;
-  hasDelivery?: boolean;
-  deliveryCost?: "free" | "paid" | "varies" | string;
-  deliveryInfo?: string;
+  hasEnvio?: boolean;
+  envioCost?: "free" | "paid" | "varies" | string;
+  envioInfo?: string;
   location?: { lat: number; lng: number } | null;
   logoUrl?: string | null;
   logoPublicId?: string | null;
@@ -95,7 +95,7 @@ export interface BusinessPreview {
   WhatsApp?: string;
   hours?: string;
   horarios?: Business["horarios"];
-  hasDelivery?: boolean;
+  hasEnvio?: boolean;
   featured?: boolean | string;
   plan?: string;
   priceRange?: string;
@@ -126,7 +126,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     address: biz.address ?? "",
     description: biz.description,
     hours: biz.hours,
-    hasDelivery: biz.hasDelivery === true,
+    hasEnvio: biz.hasEnvio === true,
     featured: biz.featured === true || biz.featured === 'true',
     plan: biz.plan,
     priceRange: biz.priceRange,

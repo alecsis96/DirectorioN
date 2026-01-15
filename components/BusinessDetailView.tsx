@@ -758,7 +758,7 @@ export default function BusinessDetailView({ business }: Props) {
                 </span>
               )}
 
-              {business.hasDelivery && (
+              {business.hasEnvio && (
                 <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-medium">🚚 Delivery</span>
               )}
             </div>

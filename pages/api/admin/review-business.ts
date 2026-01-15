@@ -202,7 +202,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         image3: appData?.gallery?.[2] || null,
         images: appData?.gallery || [],
         location: appData?.location || null,
-        hasDelivery: appData?.hasDelivery || false,
+        hasEnvio: appData?.hasEnvio || false,
         status: 'draft', // Cambiado a 'draft' - necesita edición del dueño antes de publicar
         approvedAt: now,
         approvedBy: decoded.uid,

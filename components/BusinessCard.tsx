@@ -237,7 +237,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
           >
             {isOpen ? "Abierto" : "Cerrado"}
           </span>
-          {business.hasDelivery && (
+          {business.hasEnvio && (
             <span className="bg-orange-100 text-orange-700 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
               🚚 Delivery
             </span>
