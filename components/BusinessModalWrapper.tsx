@@ -61,11 +61,19 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
       body.modal-open header,
       body.modal-open [role="navigation"],
       body.modal-open > div > nav,
-      body.modal-open > div > header {
+      body.modal-open > div > header,
+      body.modal-open nav[class*="Navigation"],
+      body.modal-open [class*="navigation"],
+      body.modal-open [class*="nav-bar"],
+      body.modal-open [class*="navbar"],
+      body.modal-open [class*="bottom-menu"],
+      body.modal-open [class*="app-bar"],
+      body.modal-open [class*="appbar"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
+        transform: translateY(-100%) !important;
       }
     `;
     document.head.appendChild(style);
@@ -99,13 +107,13 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
         style={{ maxHeight: 'calc(100vh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button - Floating over content with backdrop */}
+        {/* Close Button - Posición absoluta sobre el modal */}
         <button
           onClick={onClose}
-          className="sticky top-4 left-full -ml-16 z-[10000] w-12 h-12 flex items-center justify-center rounded-full bg-gray-900/90 hover:bg-gray-900 backdrop-blur-md transition-all shadow-2xl border-2 border-white/30 hover:scale-110 active:scale-95"
+          className="absolute top-4 right-4 z-[10000] w-14 h-14 flex items-center justify-center rounded-full bg-gray-900/95 hover:bg-gray-900 backdrop-blur-md transition-all shadow-2xl border-3 border-white/40 hover:scale-110 active:scale-95"
           aria-label="Cerrar"
         >
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
