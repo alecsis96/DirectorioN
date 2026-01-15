@@ -14,33 +14,36 @@ type Props = {
 export default function BusinessModalWrapper({ businessPreview, onClose }: Props) {
   const [fullBusiness, setFullBusiness] = useState<Business | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Estabilizar la referencia del businessPreview usando solo el ID
-  const businessId = useMemo(() => businessPreview.id, [businessPreview.id]);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    console.log('[BusinessModalWrapper] Loading business:', businessId);
+    // Prevenir ejecución múltiple
+    if (hasLoaded) return;
+    
+    console.log('[BusinessModalWrapper] Loading business:', businessPreview.id);
     
     // Si ya es un Business completo, usarlo directamente
     if ('description' in businessPreview && businessPreview.description !== undefined) {
       console.log('[BusinessModalWrapper] Using full business directly');
       setFullBusiness(businessPreview as Business);
       setIsLoading(false);
+      setHasLoaded(true);
       return;
     }
 
     // Si no, cargar el documento completo desde Firestore
     const fetchFullBusiness = async () => {
-      if (!businessId) {
+      if (!businessPreview.id) {
         console.log('[BusinessModalWrapper] No business ID');
         setIsLoading(false);
+        setHasLoaded(true);
         return;
       }
 
-      console.log('[BusinessModalWrapper] Fetching from Firestore:', businessId);
+      console.log('[BusinessModalWrapper] Fetching from Firestore:', businessPreview.id);
       
       try {
-        const docRef = doc(db, 'businesses', businessId);
+        const docRef = doc(db, 'businesses', businessPreview.id);
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
@@ -53,11 +56,12 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
         console.error('[BusinessModalWrapper] Error fetching business:', error);
       } finally {
         setIsLoading(false);
+        setHasLoaded(true);
       }
     };
 
     fetchFullBusiness();
-  }, [businessId]); // Solo depender del ID, no del objeto completo
+  }, []); // Solo ejecutar una vez al montar
 
   useEffect(() => {
     // Bloquear scroll del body cuando el modal está abierto
