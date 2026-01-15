@@ -640,19 +640,20 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         <button
           onClick={save}
           disabled={uiState.busy}
-          className="fixed bottom-6 right-6 z-40 px-6 py-4 bg-[#38761D] text-white rounded-full shadow-2xl hover:bg-[#2d5a15] transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3 group"
+          className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-40 px-4 sm:px-6 py-3 sm:py-4 bg-[#38761D] text-white rounded-full shadow-2xl hover:bg-[#2d5a15] transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 sm:gap-3 group"
         >
           {uiState.busy ? (
             <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span className="font-semibold">Guardando...</span>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white flex-shrink-0"></div>
+              <span className="font-semibold text-sm sm:text-base whitespace-nowrap">Guardando...</span>
             </>
           ) : (
             <>
-              <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="font-semibold">Guardar cambios</span>
+              <span className="font-semibold text-sm sm:text-base hidden xs:inline whitespace-nowrap">Guardar cambios</span>
+              <span className="font-semibold text-sm xs:hidden">Guardar</span>
             </>
           )}
         </button>
@@ -1241,18 +1242,22 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                           type="file"
                           accept=".pdf,image/*"
                           onChange={(e) => setReceiptState(prev => ({ ...prev, file: e.target.files?.[0] || null }))}
-                          className="text-xs sm:text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer"
+                          className="text-xs sm:text-sm w-full file:mr-2 sm:file:mr-4 file:py-2 file:px-2 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer"
                         />
                         {receiptState.file && (
-                          <div className="flex items-center gap-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800">
-                            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span className="flex-1 truncate font-medium">{receiptState.file.name}</span>
-                            <span className="text-emerald-600 font-semibold">{(receiptState.file.size / 1024).toFixed(0)} KB</span>
-                            {receiptState.file.type.startsWith('image/') && (
-                              <span className="text-emerald-600 text-[10px]">📷 Se comprimirá</span>
-                            )}
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 sm:p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span className="flex-1 truncate font-medium break-all">{receiptState.file.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 justify-between sm:justify-end flex-shrink-0">
+                              <span className="text-emerald-600 font-semibold whitespace-nowrap">{(receiptState.file.size / 1024).toFixed(0)} KB</span>
+                              {receiptState.file.type.startsWith('image/') && (
+                                <span className="text-emerald-600 text-[10px] whitespace-nowrap">📷 Se comprimirá</span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1270,39 +1275,46 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       <button
                         onClick={() => handleUpgradeByTransfer(receiptState.plan)}
                         disabled={uiState.upgradeBusy || !receiptState.file}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border-2 text-white rounded-lg text-sm font-semibold transition-all duration-200 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md hover:shadow-lg"
+                        className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border-2 text-white rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-md hover:shadow-lg"
                       >
                         {uiState.upgradeBusy ? (
                           <>
-                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg className="animate-spin h-4 w-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            <span>Subiendo...</span>
+                            <span className="whitespace-nowrap">Subiendo...</span>
                           </>
                         ) : (
                           <>
                             <BsBank className="flex-shrink-0" />
-                            <span className="hidden sm:inline">Enviar comprobante (transferencia/sucursal)</span>
-                            <span className="sm:hidden">Enviar comprobante</span>
+                            <span className="hidden sm:inline whitespace-nowrap">Enviar comprobante (transferencia/sucursal)</span>
+                            <span className="sm:hidden whitespace-nowrap">Enviar comprobante</span>
                           </>
                         )}
                       </button>
                       {receiptState.file && (
-                        <div className="inline-flex items-center gap-2 text-xs text-gray-600 px-2 py-1 bg-gray-50 border border-dashed border-gray-200 rounded w-full sm:w-auto">
+                        <div className="flex items-center gap-2 text-xs text-gray-600 px-2 py-1 bg-gray-50 border border-dashed border-gray-200 rounded w-full sm:w-auto min-w-0">
                           <BsUpload className="flex-shrink-0" />
-                          <span className="truncate">{receiptState.file.name}</span>
+                          <span className="truncate flex-1 min-w-0">{receiptState.file.name}</span>
                         </div>
                       )}
                     </div>
 
                     <div className="text-xs text-gray-600 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3 break-words">
-                      <p className="font-semibold text-gray-800 mb-1">Datos para transferencia:</p>
-                      <p>Entidad: NU MEXICO</p>
-                      <p className="break-all">Número CLABE: 638180010198636464</p>
-                      <p className="break-all">Número de cuenta: 01019863646</p>
-                      <p>Beneficiario: Oscar Alexis Gonzalez Perez</p>
-                      <p className="mt-1 break-words">Envia tu comprobante a <span className="break-all">al36xiz@gmail.com</span> o por WhatsApp al <span className="whitespace-nowrap">5219191565865</span>. Activaremos tu plan al validar el pago.</p>
+                      <p className="font-semibold text-gray-800 mb-2">Datos para transferencia:</p>
+                      <div className="space-y-1">
+                        <p><span className="font-medium text-gray-700">Entidad:</span> NU MEXICO</p>
+                        <p><span className="font-medium text-gray-700">CLABE:</span> <span className="break-all font-mono text-[11px]">638180010198636464</span></p>
+                        <p><span className="font-medium text-gray-700">Cuenta:</span> <span className="break-all font-mono text-[11px]">01019863646</span></p>
+                        <p><span className="font-medium text-gray-700">Beneficiario:</span> Oscar Alexis Gonzalez Perez</p>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-gray-300">
+                        <p className="font-medium text-gray-700 mb-1">Envía tu comprobante:</p>
+                        <p className="break-words">📧 Email: <span className="break-all font-mono text-[11px] text-blue-600">al36xiz@gmail.com</span></p>
+                        <p className="break-words mt-1">📱 WhatsApp: <span className="break-all font-mono text-[11px] text-green-600">+52 919 156 5865</span></p>
+                        <p className="mt-2 text-gray-500">Activaremos tu plan al validar el pago.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
