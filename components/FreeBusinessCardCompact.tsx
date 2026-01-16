@@ -24,14 +24,16 @@ export default function FreeBusinessCardCompact({ business, onViewDetails }: Fre
 
   // Verificar si es un plan premium para mostrar el logo
   const isPremium = business.plan === 'destacado' || business.plan === 'patrocinado';
+  const hasImage = !!(business.logoUrl || business.image1);
+  const showAvatar = !isPremium && !hasImage;
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow p-4">
       <div className="flex gap-3">
-        {/* Logo o placeholder - SOLO para planes destacado/patrocinado */}
+        {/* Logo para planes premium */}
         {isPremium && (
           <div className="flex-shrink-0">
-            {business.logoUrl || business.image1 ? (
+            {hasImage ? (
               <img
                 src={business.logoUrl || business.image1 || ''}
                 alt={business.name}
@@ -42,6 +44,17 @@ export default function FreeBusinessCardCompact({ business, onViewDetails }: Fre
                 <span className="text-2xl">🏪</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Avatar con inicial para plan gratis sin imagen */}
+        {showAvatar && (
+          <div className="flex-shrink-0">
+            <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center">
+              <span className="text-sm font-semibold text-gray-600">
+                {business.name.charAt(0).toUpperCase()}
+              </span>
+            </div>
           </div>
         )}
 
