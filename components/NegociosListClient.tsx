@@ -8,6 +8,7 @@ import { signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
 import BusinessCard from './BusinessCard';
+import FreeBusinessCardCompact from './FreeBusinessCardCompact';
 import BusinessesMapView from './BusinessesMapView';
 import { auth, signInWithGoogle } from '../firebaseConfig';
 import { useCurrentUser } from '../hooks/useAuth';
@@ -1073,13 +1074,33 @@ export default function NegociosListClient({
                     </div>
                   )}
 
-                  {!showEmptyState && businessesToDisplay.map((biz) => (
-                    <BusinessCard 
-                      key={biz.id} 
-                      business={biz}
-                      onViewDetails={(business) => setSelectedBusiness(business)}
-                    />
-                  ))}
+                  {!showEmptyState && businessesToDisplay.map((biz) => {
+                    const isFreeOrNoPlan = !biz.plan || biz.plan === 'free';
+                    
+                    // En móvil: usar tarjeta compacta para negocios gratis
+                    // En desktop: usar BusinessCard normal para todos
+                    return (
+                      <div key={biz.id}>
+                        {/* Tarjeta compacta solo en móvil para gratis */}
+                        {isFreeOrNoPlan && (
+                          <div className="block md:hidden">
+                            <FreeBusinessCardCompact
+                              business={biz}
+                              onViewDetails={(business) => setSelectedBusiness(business)}
+                            />
+                          </div>
+                        )}
+                        
+                        {/* BusinessCard normal en desktop o para premium */}
+                        <div className={isFreeOrNoPlan ? "hidden md:block" : "block"}>
+                          <BusinessCard 
+                            business={biz}
+                            onViewDetails={(business) => setSelectedBusiness(business)}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
 
                   {isFetching && businessesToDisplay.length === 0 && <SkeletonList count={3} />}
                   {isFetching && businessesToDisplay.length > 0 && <SkeletonList count={1} />}
