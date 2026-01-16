@@ -89,6 +89,7 @@ export default function NegociosListClient({
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [showCategoriesSection, setShowCategoriesSection] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [freeBusinessesLimit, setFreeBusinessesLimit] = useState(10);
   const [uiFilters, setUiFilters] = useState<Filters>(() => ({
     category: initialFilters.category || '',
     colonia: initialFilters.colonia || '',
@@ -206,6 +207,11 @@ export default function NegociosListClient({
   useEffect(() => {
     syncUrl(uiFilters);
   }, [uiFilters, syncUrl]);
+
+  // Resetear límite de negocios gratuitos cuando cambien filtros o búsqueda
+  useEffect(() => {
+    setFreeBusinessesLimit(10);
+  }, [uiFilters.category, uiFilters.colonia, uiFilters.order, uiFilters.query]);
 
   const handleCategoryChange = useCallback(
     (eventOrValue: ChangeEvent<HTMLSelectElement> | string) => {
@@ -1074,33 +1080,77 @@ export default function NegociosListClient({
                     </div>
                   )}
 
-                  {!showEmptyState && businessesToDisplay.map((biz) => {
-                    const isFreeOrNoPlan = !biz.plan || biz.plan === 'free';
+                  {!showEmptyState && (() => {
+                    // Separar negocios premium (patrocinado/destacado) de gratuitos
+                    const premiumBusinesses = businessesToDisplay.filter(biz => 
+                      biz.plan === 'sponsor' || biz.plan === 'patrocinado' || biz.plan === 'featured' || biz.plan === 'destacado'
+                    );
+                    const freeBusinesses = businessesToDisplay.filter(biz => 
+                      !biz.plan || biz.plan === 'free'
+                    );
                     
-                    // En móvil: usar tarjeta compacta para negocios gratis
-                    // En desktop: usar BusinessCard normal para todos
+                    // Aplicar límite solo a negocios gratuitos
+                    const displayedFreeBusinesses = freeBusinesses.slice(0, freeBusinessesLimit);
+                    const hasMoreFreeBusinesses = freeBusinesses.length > displayedFreeBusinesses.length;
+                    
                     return (
-                      <div key={biz.id}>
-                        {/* Tarjeta compacta solo en móvil para gratis */}
-                        {isFreeOrNoPlan && (
-                          <div className="block md:hidden">
-                            <FreeBusinessCardCompact
+                      <>
+                        {/* Renderizar negocios premium (sin límite) */}
+                        {premiumBusinesses.map((biz) => (
+                          <div key={biz.id}>
+                            <BusinessCard 
                               business={biz}
                               onViewDetails={(business) => setSelectedBusiness(business)}
                             />
                           </div>
-                        )}
+                        ))}
                         
-                        {/* BusinessCard normal en desktop o para premium */}
-                        <div className={isFreeOrNoPlan ? "hidden md:block" : "block"}>
-                          <BusinessCard 
-                            business={biz}
-                            onViewDetails={(business) => setSelectedBusiness(business)}
-                          />
-                        </div>
-                      </div>
+                        {/* Renderizar negocios gratuitos (con límite) */}
+                        {displayedFreeBusinesses.map((biz) => {
+                          const isFreeOrNoPlan = !biz.plan || biz.plan === 'free';
+                          
+                          // En móvil: usar tarjeta compacta para negocios gratis
+                          // En desktop: usar BusinessCard normal para todos
+                          return (
+                            <div key={biz.id}>
+                              {/* Tarjeta compacta solo en móvil para gratis */}
+                              {isFreeOrNoPlan && (
+                                <div className="block md:hidden">
+                                  <FreeBusinessCardCompact
+                                    business={biz}
+                                    onViewDetails={(business) => setSelectedBusiness(business)}
+                                  />
+                                </div>
+                              )}
+                              
+                              {/* BusinessCard normal en desktop o para premium */}
+                              <div className={isFreeOrNoPlan ? "hidden md:block" : "block"}>
+                                <BusinessCard 
+                                  business={biz}
+                                  onViewDetails={(business) => setSelectedBusiness(business)}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                        
+                        {/* Botón "Cargar más" para negocios gratuitos */}
+                        {hasMoreFreeBusinesses && (
+                          <div className="flex justify-center mt-6">
+                            <button
+                              onClick={() => setFreeBusinessesLimit(prev => prev + 10)}
+                              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-[#38761D] text-white text-sm font-semibold hover:bg-[#2f5a1a] transition shadow-md hover:shadow-lg"
+                            >
+                              Cargar más negocios
+                              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </>
                     );
-                  })}
+                  })()}
 
                   {isFetching && businessesToDisplay.length === 0 && <SkeletonList count={3} />}
                   {isFetching && businessesToDisplay.length > 0 && <SkeletonList count={1} />}
