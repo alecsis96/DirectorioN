@@ -275,29 +275,50 @@ export default function NegociosListClient({
       
       return true;
     });
-    const sorted = [...filtered];
-    if (uiFilters.order === 'az') {
-      sorted.sort((a, b) => a.name.localeCompare(b.name, 'es'));
-    } else if (uiFilters.order === 'rating') {
-      sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-    } else {
-      sorted.sort((a, b) => {
-        // Calcular estado en tiempo real para ordenar
-        const aOpen = a.hours ? getBusinessStatus(a.hours, now).isOpen : false;
-        const bOpen = b.hours ? getBusinessStatus(b.hours, now).isOpen : false;
-        if (aOpen !== bOpen) {
-          return aOpen ? -1 : 1;
-        }
-        return (b.rating ?? 0) - (a.rating ?? 0);
-      });
-    }
+    
+    // Separar por planes ANTES de ordenar
+    const patrocinados = filtered.filter(b => b.plan === 'sponsor');
+    const destacados = filtered.filter(b => b.plan === 'featured');
+    const gratis = filtered.filter(b => !b.plan || b.plan === 'free');
+    
+    // Función para ordenar cada grupo
+    const sortGroup = (group: BusinessPreview[]) => {
+      const sorted = [...group];
+      if (uiFilters.order === 'az') {
+        sorted.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+      } else if (uiFilters.order === 'rating') {
+        sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      } else {
+        sorted.sort((a, b) => {
+          const aOpen = a.hours ? getBusinessStatus(a.hours, now).isOpen : false;
+          const bOpen = b.hours ? getBusinessStatus(b.hours, now).isOpen : false;
+          if (aOpen !== bOpen) {
+            return aOpen ? -1 : 1;
+          }
+          return (b.rating ?? 0) - (a.rating ?? 0);
+        });
+      }
+      return sorted;
+    };
+    
+    const sortedPatrocinados = sortGroup(patrocinados);
+    const sortedDestacados = sortGroup(destacados);
+    const sortedGratis = sortGroup(gratis);
+    
+    // Combinar en orden: patrocinados -> destacados -> gratis
+    const allSorted = [...sortedPatrocinados, ...sortedDestacados, ...sortedGratis];
+    
     const pageCount = Math.max(1, uiFilters.page);
-    const currentSlice = sliceBusinesses(sorted, pageCount, PAGE_SIZE);
+    const currentSlice = sliceBusinesses(allSorted, pageCount, PAGE_SIZE);
     const previousEnd = (pageCount - 1) * PAGE_SIZE;
-    const accumulated = pageCount > 1 ? sorted.slice(0, previousEnd).concat(currentSlice) : currentSlice;
+    const accumulated = pageCount > 1 ? allSorted.slice(0, previousEnd).concat(currentSlice) : currentSlice;
+    
     return {
       items: accumulated,
-      total: sorted.length,
+      patrocinados: accumulated.filter(b => b.plan === 'sponsor'),
+      destacados: accumulated.filter(b => b.plan === 'featured'),
+      gratis: accumulated.filter(b => !b.plan || b.plan === 'free'),
+      total: allSorted.length,
     };
   }, [businesses, uiFilters, quickFilterOpen, quickFilterTopRated, quickFilterNew, quickFilterDelivery]);
 
@@ -802,114 +823,7 @@ export default function NegociosListClient({
           </div>
         )}
 
-        {/* Filtros Rápidos con Chips */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <span>⚡</span>
-              Filtros rápidos
-            </h3>
-            {(quickFilterOpen || quickFilterTopRated || quickFilterNew || quickFilterDelivery) && (
-              <button
-                onClick={() => {
-                  setQuickFilterOpen(false);
-                  setQuickFilterTopRated(false);
-                  setQuickFilterNew(false);
-                  setQuickFilterDelivery(false);
-                }}
-                className="text-xs text-gray-500 hover:text-gray-700 underline"
-              >
-                Limpiar filtros rápidos
-              </button>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {/* Abierto Ahora */}
-            <button
-              onClick={() => setQuickFilterOpen(!quickFilterOpen)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                quickFilterOpen
-                  ? 'bg-green-500 text-white shadow-lg scale-105'
-                  : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-green-300 hover:bg-green-50'
-              }`}
-            >
-              <span className="text-lg">⏰</span>
-              Abierto ahora
-              {quickFilterOpen && (
-                <span className="bg-white text-green-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                  {(() => {
-                    const now = new Date();
-                    return businesses.filter(b => {
-                      if (!b.hours) return false;
-                      return getBusinessStatus(b.hours, now).isOpen;
-                    }).length;
-                  })()}
-                </span>
-              )}
-            </button>
-
-            {/* Mejor Valorados */}
-            <button
-              onClick={() => setQuickFilterTopRated(!quickFilterTopRated)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                quickFilterTopRated
-                  ? 'bg-yellow-500 text-white shadow-lg scale-105'
-                  : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-yellow-300 hover:bg-yellow-50'
-              }`}
-            >
-              <span className="text-lg">⭐</span>
-              Mejor valorados
-              {quickFilterTopRated && (
-                <span className="bg-white text-yellow-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                  {businesses.filter(b => (b.rating ?? 0) >= 4.5).length}
-                </span>
-              )}
-            </button>
-
-            {/* Delivery */}
-            <button
-              onClick={() => setQuickFilterDelivery(!quickFilterDelivery)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                quickFilterDelivery
-                  ? 'bg-orange-500 text-white shadow-lg scale-105'
-                  : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50'
-              }`}
-            >
-              <span className="text-lg">🚚</span>
-              Envío
-              {quickFilterDelivery && (
-                <span className="bg-white text-orange-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                  {businesses.filter(b => b.hasEnvio === true).length}
-                </span>
-              )}
-            </button>
-
-            {/* Nuevos */}
-            <button
-              onClick={() => setQuickFilterNew(!quickFilterNew)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                quickFilterNew
-                  ? 'bg-purple-500 text-white shadow-lg scale-105'
-                  : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-purple-300 hover:bg-purple-50'
-              }`}
-            >
-              <span className="text-lg">🆕</span>
-              Nuevos
-              {quickFilterNew && (
-                <span className="bg-white text-purple-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                  {businesses.filter(b => {
-                    const created = (b as any).createdAt;
-                    if (!created) return false;
-                    const createdDate = created.toDate ? created.toDate() : new Date(created);
-                    const daysDiff = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-                    return daysDiff <= 30;
-                  }).length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
+        
         {/* Toggle Vista Lista / Mapa */}
         <div className="mb-6 flex items-center justify-center gap-1 bg-gray-100 p-1 rounded-lg w-fit mx-auto">
           <button
@@ -1127,20 +1041,91 @@ export default function NegociosListClient({
 
               {/* Vista de Lista */}
               {viewMode === 'list' && (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {showEmptyState && (
                     <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
                       No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
                     </div>
                   )}
 
-                  {!showEmptyState && businessesToDisplay.map((biz) => (
-                    <BusinessCard 
-                      key={biz.id} 
-                      business={biz}
-                      onViewDetails={(business) => setSelectedBusiness(business)}
-                    />
-                  ))}
+                  {!showEmptyState && (
+                    <>
+                      {/* Sección 1: Negocios Patrocinados */}
+                      {paginated.patrocinados.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-shrink-0 w-1 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
+                            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                              <span className="text-3xl">👑</span>
+                              Negocios Patrocinados
+                            </h2>
+                            <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
+                              {paginated.patrocinados.length}
+                            </span>
+                          </div>
+                          <div className="space-y-6">
+                            {paginated.patrocinados.map((biz) => (
+                              <BusinessCard 
+                                key={biz.id} 
+                                business={biz}
+                                onViewDetails={(business) => setSelectedBusiness(business)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sección 2: Negocios Destacados del Mes */}
+                      {paginated.destacados.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-shrink-0 w-1 h-8 bg-gradient-to-b from-yellow-400 to-orange-400 rounded-full"></div>
+                            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                              <span className="text-3xl">⭐</span>
+                              Negocios Destacados del Mes
+                            </h2>
+                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-semibold rounded-full">
+                              {paginated.destacados.length}
+                            </span>
+                          </div>
+                          <div className="space-y-6">
+                            {paginated.destacados.map((biz) => (
+                              <BusinessCard 
+                                key={biz.id} 
+                                business={biz}
+                                onViewDetails={(business) => setSelectedBusiness(business)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sección 3: Todos los Negocios */}
+                      {paginated.gratis.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-shrink-0 w-1 h-8 bg-gradient-to-b from-gray-400 to-gray-600 rounded-full"></div>
+                            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                              <span className="text-3xl">🏪</span>
+                              Todos los Negocios
+                            </h2>
+                            <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-semibold rounded-full">
+                              {paginated.gratis.length}
+                            </span>
+                          </div>
+                          <div className="space-y-6">
+                            {paginated.gratis.map((biz) => (
+                              <BusinessCard 
+                                key={biz.id} 
+                                business={biz}
+                                onViewDetails={(business) => setSelectedBusiness(business)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
 
                   {isFetching && businessesToDisplay.length === 0 && <SkeletonList count={3} />}
                   {isFetching && businessesToDisplay.length > 0 && <SkeletonList count={1} />}
