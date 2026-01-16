@@ -22,6 +22,15 @@
   scrollbar-width: none;
 }
 
+/* Utilidad para ocultar scrollbar (usable con Tailwind) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Prevent react-image-gallery from bloquear el scroll vertical en móvil */
 .image-gallery,
 .image-gallery-content,

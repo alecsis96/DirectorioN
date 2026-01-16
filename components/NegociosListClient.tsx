@@ -414,11 +414,28 @@ export default function NegociosListClient({
                     </h2>
                   </div>
                   
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {/* Carrusel horizontal en móvil, grid en desktop */}
+                  <div className="
+                    flex md:grid
+                    overflow-x-auto md:overflow-visible
+                    snap-x snap-mandatory md:snap-none
+                    gap-4 md:gap-6
+                    px-4 -mx-4 md:px-0 md:mx-0
+                    pb-4 md:pb-0
+                    md:grid-cols-2 lg:grid-cols-3
+                    scrollbar-hide
+                  ">
                     {sponsored.map((business) => (
                       <div
                         key={business.id}
-                        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-pink-500 to-red-500 p-1 shadow-2xl hover:shadow-purple-500/50 transition-all duration-300"
+                        className="
+                          group relative overflow-hidden rounded-2xl 
+                          bg-gradient-to-br from-purple-600 via-pink-500 to-red-500 
+                          p-1 shadow-2xl hover:shadow-purple-500/50 transition-all duration-300
+                          w-[85%] md:w-auto
+                          flex-shrink-0 md:flex-shrink
+                          snap-center md:snap-align-none
+                        "
                       >
                         <div className="bg-white rounded-[14px] p-5 h-full">
                           {/* Badge Patrocinado */}
