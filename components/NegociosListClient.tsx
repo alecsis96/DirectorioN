@@ -414,11 +414,15 @@ export default function NegociosListClient({
               
               return (
                 <div className="mb-8">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="mb-4">
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                       <span className="text-3xl">👑</span>
                       Negocios Patrocinados
+                      <span className="text-lg font-semibold text-purple-600">({allSponsored.length})</span>
                     </h2>
+                    <p className="text-sm text-gray-500 mt-1 ml-11">
+                      Los patrocinados aparecen primero y se rotan para dar visibilidad a todos.
+                    </p>
                   </div>
                   
                   {/* Carrusel horizontal en móvil, grid en desktop */}
@@ -585,6 +589,16 @@ export default function NegociosListClient({
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <span className="text-3xl">⭐</span>
                 Negocios Destacados del Mes
+                <span className="text-lg font-semibold text-yellow-600">({(() => {
+                  return businesses.filter(b => {
+                    if (b.plan === 'sponsor') return false;
+                    const isFeatured = b.featured === true || b.featured === 'true';
+                    const hasPremiumPlan = b.plan === 'featured';
+                    const featuredWithoutPlan = isFeatured && !b.plan;
+                    const isPremiumOnly = hasPremiumPlan;
+                    return (isFeatured && hasPremiumPlan) || featuredWithoutPlan || isPremiumOnly;
+                  }).length;
+                })()})</span>
               </h2>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
