@@ -18,6 +18,7 @@ import { normalizeColonia } from '../lib/helpers/colonias';
 import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, PAGE_SIZE, type Filters, type SortMode } from '../lib/negociosFilters';
 import { getBusinessStatus } from './BusinessHours';
 import { useFavorites } from '../context/FavoritesContext';
+import { selectSponsoredRotation } from '../lib/sponsoredRotation';
 
 const BusinessModalWrapper = dynamic(() => import('./BusinessModalWrapper'), { ssr: false });
 
@@ -277,7 +278,9 @@ export default function NegociosListClient({
     });
     
     // Separar por planes ANTES de ordenar
-    const patrocinados = filtered.filter(b => b.plan === 'sponsor');
+    // Para patrocinados: aplicar rotación justa (máx 6 por sesión)
+    const allPatrocinados = filtered.filter(b => b.plan === 'sponsor');
+    const patrocinados = selectSponsoredRotation(allPatrocinados, 6);
     const destacados = filtered.filter(b => b.plan === 'featured');
     const gratis = filtered.filter(b => !b.plan || b.plan === 'free');
     
@@ -395,7 +398,10 @@ export default function NegociosListClient({
         {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && (
           <>
             {(() => {
-              const sponsored = businesses.filter(b => b.plan === 'sponsor').slice(0, 3);
+              // Aplicar rotación justa: máx 6 patrocinados por sesión, mostrar 3 en banner
+              const allSponsored = businesses.filter(b => b.plan === 'sponsor');
+              const rotatedSponsored = selectSponsoredRotation(allSponsored, 6);
+              const sponsored = rotatedSponsored.slice(0, 3);
               
               if (sponsored.length === 0) return null;
               
@@ -898,9 +904,11 @@ export default function NegociosListClient({
           const showTopSections = !uiFilters.category && !uiFilters.query && !uiFilters.colonia;
           
           // Obtener los IDs de los negocios ya mostrados en las secciones Patrocinado y Destacado
-          // Sponsor top 3:
+          // Sponsor: aplicar misma rotación justa que en banner (consistencia)
+          const allSponsoredForTop = businesses.filter(b => b.plan === 'sponsor');
+          const rotatedSponsoredForTop = selectSponsoredRotation(allSponsoredForTop, 6);
           const sponsoredTopIds = showTopSections 
-            ? businesses.filter(b => b.plan === 'sponsor').slice(0, 3).map(b => b.id)
+            ? rotatedSponsoredForTop.slice(0, 3).map(b => b.id)
             : [];
           
           // Featured top 3: (Excluyendo patrocinados que ya están arriba)
@@ -1041,91 +1049,20 @@ export default function NegociosListClient({
 
               {/* Vista de Lista */}
               {viewMode === 'list' && (
-                <div className="space-y-8">
+                <div className="space-y-6">
                   {showEmptyState && (
                     <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
                       No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
                     </div>
                   )}
 
-                  {!showEmptyState && (
-                    <>
-                      {/* Sección 1: Negocios Patrocinados */}
-                      {paginated.patrocinados.length > 0 && (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="flex-shrink-0 w-1 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
-                            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                              <span className="text-3xl">👑</span>
-                              Negocios Patrocinados
-                            </h2>
-                            <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
-                              {paginated.patrocinados.length}
-                            </span>
-                          </div>
-                          <div className="space-y-6">
-                            {paginated.patrocinados.map((biz) => (
-                              <BusinessCard 
-                                key={biz.id} 
-                                business={biz}
-                                onViewDetails={(business) => setSelectedBusiness(business)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Sección 2: Negocios Destacados del Mes */}
-                      {paginated.destacados.length > 0 && (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="flex-shrink-0 w-1 h-8 bg-gradient-to-b from-yellow-400 to-orange-400 rounded-full"></div>
-                            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                              <span className="text-3xl">⭐</span>
-                              Negocios Destacados del Mes
-                            </h2>
-                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-semibold rounded-full">
-                              {paginated.destacados.length}
-                            </span>
-                          </div>
-                          <div className="space-y-6">
-                            {paginated.destacados.map((biz) => (
-                              <BusinessCard 
-                                key={biz.id} 
-                                business={biz}
-                                onViewDetails={(business) => setSelectedBusiness(business)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Sección 3: Todos los Negocios */}
-                      {paginated.gratis.length > 0 && (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="flex-shrink-0 w-1 h-8 bg-gradient-to-b from-gray-400 to-gray-600 rounded-full"></div>
-                            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                              <span className="text-3xl">🏪</span>
-                              Todos los Negocios
-                            </h2>
-                            <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-semibold rounded-full">
-                              {paginated.gratis.length}
-                            </span>
-                          </div>
-                          <div className="space-y-6">
-                            {paginated.gratis.map((biz) => (
-                              <BusinessCard 
-                                key={biz.id} 
-                                business={biz}
-                                onViewDetails={(business) => setSelectedBusiness(business)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
+                  {!showEmptyState && businessesToDisplay.map((biz) => (
+                    <BusinessCard 
+                      key={biz.id} 
+                      business={biz}
+                      onViewDetails={(business) => setSelectedBusiness(business)}
+                    />
+                  ))}
 
                   {isFetching && businessesToDisplay.length === 0 && <SkeletonList count={3} />}
                   {isFetching && businessesToDisplay.length > 0 && <SkeletonList count={1} />}
