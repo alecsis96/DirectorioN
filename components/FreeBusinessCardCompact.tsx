@@ -22,23 +22,28 @@ export default function FreeBusinessCardCompact({ business, onViewDetails }: Fre
   const status = business.hours ? getBusinessStatus(business.hours, now) : { isOpen: false };
   const isOpen = status.isOpen;
 
+  // Verificar si es un plan premium para mostrar el logo
+  const isPremium = business.plan === 'destacado' || business.plan === 'patrocinado';
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow p-4">
       <div className="flex gap-3">
-        {/* Logo o placeholder */}
-        <div className="flex-shrink-0">
-          {business.logoUrl || business.image1 ? (
-            <img
-              src={business.logoUrl || business.image1 || ''}
-              alt={business.name}
-              className="w-16 h-16 rounded-lg object-cover border border-gray-200"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200">
-              <span className="text-2xl">🏪</span>
-            </div>
-          )}
-        </div>
+        {/* Logo o placeholder - SOLO para planes destacado/patrocinado */}
+        {isPremium && (
+          <div className="flex-shrink-0">
+            {business.logoUrl || business.image1 ? (
+              <img
+                src={business.logoUrl || business.image1 || ''}
+                alt={business.name}
+                className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200">
+                <span className="text-2xl">🏪</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Contenido principal */}
         <div className="flex-1 min-w-0 flex flex-col justify-between">
