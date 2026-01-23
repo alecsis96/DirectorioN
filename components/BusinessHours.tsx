@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 
 type StructuredHorario = {
   abierto: boolean;
@@ -269,15 +269,6 @@ const formatSummary = (schedule: Schedule) => {
 
 export default function BusinessHours({ hours, horarios }: BusinessHoursProps) {
   const { schedule, hasData } = useMemo(() => buildSchedule(hours, horarios), [hours, horarios]);
-  const [statusDetails, setStatusDetails] = useState<HoursStatus | null>(null);
-
-  useEffect(() => {
-    const updateStatus = () => setStatusDetails(describeStatus(schedule));
-    updateStatus();
-    const interval = setInterval(updateStatus, 60_000);
-    return () => clearInterval(interval);
-  }, [schedule]);
-
   const summary = useMemo(() => formatSummary(schedule), [schedule]);
 
   if (!hasData) {
@@ -288,21 +279,9 @@ export default function BusinessHours({ hours, horarios }: BusinessHoursProps) {
     );
   }
 
-  const computedStatus = statusDetails ?? { status: "unknown", message: "Actualizando horario..." };
-  const isOpen = computedStatus.status === "open";
-  const badgeClass = isOpen ? "bg-green-100 text-green-800" : "bg-red-100 text-red-700";
-
   return (
-    <div className="space-y-2" aria-live="polite">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badgeClass}`}>
-          {isOpen ? "Abierto" : "Cerrado"}
-        </span>
-        <span className="text-sm text-gray-700">{computedStatus.message}</span>
-      </div>
-      <p className="text-sm text-gray-600">
-        <span className="font-medium">Horario:</span> {summary}
-      </p>
-    </div>
+    <p className="text-sm text-gray-600">
+      <span className="font-medium">Horario:</span> {summary}
+    </p>
   );
 }

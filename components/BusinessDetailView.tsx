@@ -749,11 +749,6 @@ export default function BusinessDetailView({ business }: Props) {
               )}
             </>
           )}
-
-          {/* Badge de Plan (Flotante en la portada) - Always on top with high z-index */}
-          <div className={`absolute bottom-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold shadow-xl ${currentTheme.badge} border z-40 pointer-events-none`}>
-            {plan === 'sponsor' ? '👑 PATROCINADO' : '✨ DESTACADO'}
-          </div>
         </div>
       )}
 
@@ -981,18 +976,8 @@ export default function BusinessDetailView({ business }: Props) {
               </svg>
               Descripción
             </button>
-            {allGalleryImages.length > 0 && (
-              <button
-                onClick={() => document.getElementById('fotos-section')?.scrollIntoView({ behavior: 'smooth' })}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Fotos
-              </button>
-            )}
-            {embedSrc && (
+            {/* Chip Mapa - solo si hay coordenadas o dirección */}
+            {hasMapLink && (
               <button
                 onClick={() => document.getElementById('mapa-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
@@ -1000,18 +985,21 @@ export default function BusinessDetailView({ business }: Props) {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                Mapa
+                Cómo llegar
               </button>
             )}
-            <button
-              onClick={() => document.getElementById('resenas-section')?.scrollIntoView({ behavior: 'smooth' })}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
-              Reseñas
-            </button>
+            {/* Chip Reseñas - solo si hay reseñas o el usuario puede dejar una */}
+            {(reviews.length > 0 || user) && (
+              <button
+                onClick={() => document.getElementById('resenas-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+                Reseñas
+              </button>
+            )}
           </div>
 
           {/* Información adicional (dirección, horarios) */}
@@ -1074,34 +1062,7 @@ export default function BusinessDetailView({ business }: Props) {
         </p>
       </section>
 
-      {/* Galería de Fotos */}
-      {allGalleryImages.length > 0 && (
-        <section id="fotos-section" className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            📸 Fotos
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {allGalleryImages.slice(0, 9).map((url, idx) => (
-              <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 hover:opacity-90 transition-opacity cursor-pointer">
-                <Image
-                  src={url}
-                  alt={`${business.name} - foto ${idx + 1}`}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 33vw"
-                  className="object-cover"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
-          {allGalleryImages.length > 9 && (
-            <p className="text-sm text-gray-500 mt-3 text-center">
-              +{allGalleryImages.length - 9} fotos más
-            </p>
-          )}
-        </section>
-      )}
-
+      {/* Ubicación y Mapa */}
       <section id="mapa-section" className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
           🗺️ Ubicación
