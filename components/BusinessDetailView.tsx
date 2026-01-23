@@ -83,6 +83,61 @@ const readSaveDataPreference = () => {
   return Boolean(connection?.saveData);
 };
 
+// Componente para mostrar el estado de apertura como chip
+const BusinessHoursChip = ({ hours }: { hours?: any }) => {
+  if (!hours) return null;
+
+  const now = new Date();
+  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const currentDay = dayNames[now.getDay()];
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+
+  const todayHours = hours[currentDay];
+  
+  if (!todayHours || todayHours === 'Cerrado') {
+    return (
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
+        <span className="w-2 h-2 rounded-full bg-red-500"></span>
+        <span className="text-sm font-semibold text-red-700">Cerrado</span>
+      </div>
+    );
+  }
+
+  // Parse hours (formato: "09:00 - 18:00")
+  const hoursMatch = todayHours.match(/(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
+  if (!hoursMatch) return null;
+
+  const [, openH, openM, closeH, closeM] = hoursMatch;
+  const openTime = parseInt(openH) * 60 + parseInt(openM);
+  const closeTime = parseInt(closeH) * 60 + parseInt(closeM);
+
+  const isOpen = currentTime >= openTime && currentTime < closeTime;
+  const nextOpenTime = openTime > currentTime ? `${openH}:${openM}` : null;
+
+  if (isOpen) {
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full w-fit">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          <span className="text-sm font-semibold text-green-700">Abierto ahora</span>
+        </div>
+        <span className="text-xs text-gray-600 ml-1">Cierra a las {closeH}:{closeM}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full w-fit">
+        <span className="w-2 h-2 rounded-full bg-red-500"></span>
+        <span className="text-sm font-semibold text-red-700">Cerrado</span>
+      </div>
+      {nextOpenTime && (
+        <span className="text-xs text-gray-600 ml-1">Abre hoy a las {nextOpenTime}</span>
+      )}
+    </div>
+  );
+};
 
 
 interface Props {
@@ -715,59 +770,80 @@ export default function BusinessDetailView({ business }: Props) {
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
         )}
 
-        <div className="px-4 py-4  relative z-10">
-          {/* Compact Header - Logo inline with Business Name */}
+        <div className="px-4 py-5 relative z-10">
+          {/* NUEVO HEADER MEJORADO */}
           <div className="flex items-start gap-3 mb-4">
-            {/* Logo inline (avatar style) - SOLO para planes premium */}
-            {plan !== 'free' && (
-              <div className="flex-shrink-0">
-                <img 
-                  src={
-                    business.logoUrl ||
-                    business.image1 ||
-                    '/images/default-premium-logo.svg'
-                  } 
-                  alt={`Logo de ${business.name}`}
-                  className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-white"
-                />
-              </div>
-            )}
+            {/* Logo circular pequeño a la izquierda */}
+            <div className="flex-shrink-0">
+              <img 
+                src={
+                  business.logoUrl ||
+                  business.image1 ||
+                  'https://via.placeholder.com/64x64?text=Logo'
+                } 
+                alt={`Logo de ${business.name}`}
+                className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white ring-2 ring-gray-100"
+              />
+            </div>
 
-            {/* Business Name and Info */}
-            <div className="flex-1 min-w-0 pr-2">
+            {/* Nombre y Badge del plan */}
+            <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold text-gray-900 leading-tight line-clamp-2 break-words">{business.name}</h1>
-                {/* Icono de Verificado para premium */}
-                {plan !== 'free' && (
-                  <span className="text-blue-500 text-lg flex-shrink-0" title="Negocio Verificado">✓</span>
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight break-words">{business.name}</h1>
+                {/* Badge del Plan */}
+                {plan === 'sponsor' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-purple-100 text-purple-800 rounded-full border border-purple-200">
+                    👑 PATROCINADO
+                  </span>
+                )}
+                {plan === 'featured' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-blue-100 text-blue-800 rounded-full border border-blue-200">
+                    ⭐ DESTACADO
+                  </span>
                 )}
               </div>
 
-              {/* Categoría y Rango de Precio */}
-              <div className="flex flex-wrap gap-2 mb-3 text-sm text-gray-600">{business.category && (
-                <span className="bg-gray-100 px-3 py-1 rounded-full font-medium">{business.category}</span>
-              )}
-              {business.colonia && (
-                <span className="bg-gray-100 px-3 py-1 rounded-full">{business.colonia}</span>
-              )}
-              
-              {/* NUEVO: Rango de Precios */}
-              {(business as any).priceRange && (
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${currentTheme.priceBadge}`}>
-                  💰 {(business as any).priceRange}
-                </span>
+              {/* Verificado */}
+              {plan !== 'free' && (
+                <div className="flex items-center gap-1 text-sm text-blue-600 mb-2">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                  </svg>
+                  <span className="font-medium">Verificado</span>
+                </div>
               )}
 
-              {business.hasEnvio && (
-                <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-medium">🚚 Envío</span>
-              )}
-            </div>
+              {/* Categoría y Colonia */}
+              <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+                {business.category && (
+                  <span className="bg-gray-100 px-2.5 py-1 rounded-full font-medium">{business.category}</span>
+                )}
+                {business.colonia && (
+                  <span className="bg-gray-100 px-2.5 py-1 rounded-full">{business.colonia}</span>
+                )}
+                {/* Rango de Precios */}
+                {(business as any).priceRange && (
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${currentTheme.priceBadge}`}>
+                    💰 {(business as any).priceRange}
+                  </span>
+                )}
+                {business.hasEnvio && (
+                  <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-medium text-xs">🚚 Envío</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Rating y reseñas - Reubicado antes de los botones */}
+          {/* Estado de apertura */}
+          {business.hours && (
+            <div className="mb-4">
+              <BusinessHoursChip hours={business.hours} />
+            </div>
+          )}
+
+          {/* Rating y reseñas */}
           {Number(business.rating ?? 0) > 0 && (
-            <div className="flex items-center gap-3 py-4 border-t border-gray-100">
+            <div className="flex items-center gap-3 py-3 border-y border-gray-100 mb-4">
               <div className="flex items-center gap-1">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <StarIcon
@@ -791,15 +867,16 @@ export default function BusinessDetailView({ business }: Props) {
             </div>
           )}
 
-          {/* ACTION BUTTONS (Botones de llamada a la acción con temas) */}
-          <div className="flex flex-wrap gap-3 mt-4">
-            {/* Botón WhatsApp - Siempre verde */}
+          {/* BOTONES CTA REORGANIZADOS */}
+          {/* Primera fila: WhatsApp y Llamar */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {/* Botón WhatsApp - Primary */}
             {whatsappHref && whatsappHref !== '#' && (
               <a
                 href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-white bg-[#25D366] hover:bg-[#128C7E] shadow-sm transition-all"
+                className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold text-white bg-[#25D366] hover:bg-[#128C7E] shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
                 aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
                 onClick={() => trackDetailCTA('whatsapp')}
               >
@@ -810,11 +887,11 @@ export default function BusinessDetailView({ business }: Props) {
               </a>
             )}
             
-            {/* Botón Llamar - Azul sólido consistente para todos los planes */}
+            {/* Botón Llamar - Secondary */}
             {callHref && callHref !== '' && (
               <a
                 href={callHref}
-                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all"
+                className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
                 aria-label={`Llamar a ${business.name}`}
                 onClick={() => trackDetailCTA('call')}
               >
@@ -824,14 +901,17 @@ export default function BusinessDetailView({ business }: Props) {
                 Llamar
               </a>
             )}
+          </div>
 
-            {/* Botón Cómo llegar - Estilo outline secundario */}
+          {/* Segunda fila: Cómo llegar y Facebook (si existe) */}
+          <div className={`grid ${facebookHref ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mb-3`}>
+            {/* Botón Cómo llegar */}
             {hasMapLink && (
               <a
                 href={mapHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 bg-transparent transition-all"
+                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all"
                 aria-label={`Como llegar a ${business.name}`}
                 onClick={handleMapClick}
               >
@@ -839,67 +919,123 @@ export default function BusinessDetailView({ business }: Props) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                Mapa
+                Cómo llegar
               </a>
             )}
-          </div>
 
-          {/* Botones adicionales en fila separada */}
-          <div className="grid grid-cols-2 gap-3 mt-3">
+            {/* Botón Facebook (solo si existe) */}
             {facebookHref && (
               <a
                 href={facebookHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-2 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition"
+                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1877F2] text-white font-semibold hover:bg-[#166FE5] transition-all"
                 aria-label={`Abrir Facebook de ${business.name}`}
                 onClick={() => trackDetailCTA('facebook')}
               >
-                <FacebookIcon className="w-4 h-4" /> Facebook
+                <FacebookIcon className="w-5 h-5" /> Facebook
               </a>
-            )}
-            {canManage && (
-              <a
-                href={dashboardHref}
-                className="flex items-center justify-center gap-2 py-2 rounded-lg bg-[#38761D] text-white text-sm font-semibold hover:bg-[#2f5a1a] transition"
-                aria-label="Gestionar negocio"
-                onClick={() => trackDetailInteraction('dashboard_viewed')}
-              >
-                Gestionar
-              </a>
-            )}
-            
-            {/* Botón de reportar */}
-            {!canManage && (
-              <button
-                onClick={() => setShowReportModal(true)}
-                className="flex items-center justify-center gap-2 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition col-span-2"
-                aria-label="Reportar problema con este negocio"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                </svg>
-                Reportar
-              </button>
             )}
           </div>
 
-          {/* Información adicional (dirección, horarios, precio) */}
-          <div className="mt-6 space-y-2 text-sm text-gray-600">
+          {/* Botón Gestionar (solo si es dueño) - Menos prominente */}
+          {canManage && (
+            <div className="relative">
+              <a
+                href={dashboardHref}
+                className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium text-sm transition-all"
+                aria-label="Gestionar negocio"
+                onClick={() => trackDetailInteraction('dashboard_viewed')}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Gestionar negocio
+              </a>
+            </div>
+          )}
+            
+          {/* Botón de reportar */}
+          {!canManage && (
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all mt-3"
+              aria-label="Reportar problema con este negocio"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+              </svg>
+              Reportar problema
+            </button>
+          )}
+
+          {/* CHIPS DE NAVEGACIÓN RÁPIDA */}
+          <div className="flex gap-2 overflow-x-auto pb-2 mt-5 border-t border-gray-100 pt-4 -mx-4 px-4 scrollbar-hide">
+            <button
+              onClick={() => document.getElementById('descripcion-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+              </svg>
+              Descripción
+            </button>
+            {allGalleryImages.length > 0 && (
+              <button
+                onClick={() => document.getElementById('fotos-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Fotos
+              </button>
+            )}
+            {embedSrc && (
+              <button
+                onClick={() => document.getElementById('mapa-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                Mapa
+              </button>
+            )}
+            <button
+              onClick={() => document.getElementById('resenas-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+              Reseñas
+            </button>
+          </div>
+
+          {/* Información adicional (dirección, horarios) */}
+          <div className="mt-6 space-y-3 text-sm text-gray-700 border-t border-gray-100 pt-4">
             {business.address && (
-              <p>
-                <strong>Dirección:</strong>{" "}
-                <a
-                  href={mapHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#38761D] hover:underline"
-                  aria-label={`Abrir direccion de ${business.name} en Google Maps`}
-                  onClick={handleMapClick}
-                >
-                  {business.address}
-                </a>
-              </p>
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <div>
+                  <p className="font-semibold text-gray-900">Dirección</p>
+                  <a
+                    href={mapHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                    aria-label={`Abrir direccion de ${business.name} en Google Maps`}
+                    onClick={handleMapClick}
+                  >
+                    {business.address}
+                  </a>
+                </div>
+              </div>
             )}
 
             {/* Dynamic Business Hours with Open/Closed Status */}
@@ -931,14 +1067,42 @@ export default function BusinessDetailView({ business }: Props) {
 
 
       {/* Descripcion */}
-      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
+      <section id="descripcion-section" className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Descripción</h2>
         <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
           {business.description || "Sin descripcion disponible."}
         </p>
       </section>
 
-      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
+      {/* Galería de Fotos */}
+      {allGalleryImages.length > 0 && (
+        <section id="fotos-section" className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            📸 Fotos
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {allGalleryImages.slice(0, 9).map((url, idx) => (
+              <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 hover:opacity-90 transition-opacity cursor-pointer">
+                <Image
+                  src={url}
+                  alt={`${business.name} - foto ${idx + 1}`}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 33vw"
+                  className="object-cover"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+          {allGalleryImages.length > 9 && (
+            <p className="text-sm text-gray-500 mt-3 text-center">
+              +{allGalleryImages.length - 9} fotos más
+            </p>
+          )}
+        </section>
+      )}
+
+      <section id="mapa-section" className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
           🗺️ Ubicación
         </h2>
@@ -977,8 +1141,8 @@ export default function BusinessDetailView({ business }: Props) {
       </section>
 
       {/* Resenas */}
-      <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Reseas de clientes</h2>
+      <section id="resenas-section" className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Reseñas de clientes</h2>
         {errorMsg && <div className="text-sm text-red-500 font-semibold mb-3">{errorMsg}</div>}
 
         {!user ? (
