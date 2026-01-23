@@ -43,6 +43,10 @@ const REDIRECT_ERROR_CODES = new Set<string>([
   "auth/internal-error",
 ]);
 
+/**
+ * @deprecated Use authService.signInWithGoogle() from lib/authService instead
+ * Mantener por compatibilidad con código existente
+ */
 export async function signInWithGoogle(): Promise<void> {
   try {
     await signInWithPopup(auth, googleProvider);
@@ -77,4 +81,6 @@ export async function consumeAuthRedirect(): Promise<void> {
   }
 }
 
+// Exportar authService para nuevo código
+export { authService } from './lib/authService';
 

@@ -295,19 +295,23 @@ export default function AdminBusinessList({ businesses }: Props) {
                       {getPlanBadge(business.plan, business.stripeSubscriptionStatus)}
                       {business.plan !== 'free' && getSubscriptionStatusBadge(business.stripeSubscriptionStatus)}
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-2 flex flex-col gap-1">
                       <select
                         value={business.plan}
                         onChange={(e) => handlePlanChange(business.id, e.target.value)}
                         disabled={planLoading === business.id}
-                        className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                        className="text-sm border-2 border-blue-300 rounded-md px-2 py-1.5 bg-white font-medium hover:border-blue-400 transition-colors disabled:opacity-50 cursor-pointer"
+                        title="Cambiar plan manualmente (pago en efectivo/presencial)"
                       >
-                        <option value="free">Plan gratuito</option>
-                        <option value="featured">Plan destacado</option>
-                        <option value="sponsor">Plan patrocinado</option>
+                        <option value="free">🆓 Gratuito</option>
+                        <option value="featured">⭐ Destacado</option>
+                        <option value="sponsor">👑 Patrocinado</option>
                       </select>
-                      <span className="text-[11px] text-gray-500">
-                        Manual (admin)
+                      {planLoading === business.id && (
+                        <span className="text-xs text-blue-600">Actualizando...</span>
+                      )}
+                      <span className="text-[10px] text-gray-500">
+                        💡 Cambio manual
                       </span>
                     </div>
                   </td>
@@ -417,6 +421,27 @@ export default function AdminBusinessList({ businesses }: Props) {
               <div className="ml-2 flex-shrink-0">
                 {getPlanBadge(business.plan, business.stripeSubscriptionStatus)}
               </div>
+            </div>
+
+            {/* Cambio manual de plan */}
+            <div className="mb-3 pb-3 border-b border-gray-100">
+              <p className="text-xs font-medium text-gray-500 uppercase mb-2">👑 Cambiar Plan (Admin)</p>
+              <select
+                value={business.plan}
+                onChange={(e) => handlePlanChange(business.id, e.target.value)}
+                disabled={planLoading === business.id}
+                className="w-full text-sm border-2 border-blue-300 rounded-lg px-3 py-2 bg-white font-medium hover:border-blue-400 transition-colors disabled:opacity-50"
+              >
+                <option value="free">🆓 Plan gratuito</option>
+                <option value="featured">⭐ Plan destacado</option>
+                <option value="sponsor">👑 Plan patrocinado</option>
+              </select>
+              {planLoading === business.id && (
+                <p className="text-xs text-blue-600 mt-1">Actualizando plan...</p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                💡 Cambia el plan manualmente cuando recibas pago en efectivo/presencial
+              </p>
             </div>
 
             {/* Suscripción status */}

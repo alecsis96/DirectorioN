@@ -22,8 +22,9 @@ import {
   Store
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
+import LoginModal from './LoginModal';
 
 // Componente de Menú Desplegable de Usuario
 const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void }) => {
@@ -130,6 +131,7 @@ function NavigationContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [colonias, setColonias] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -169,16 +171,8 @@ function NavigationContent() {
   }, [lastScrollY]);
 
   // Funciones de autenticación
-  const handleSignIn = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error('Error al iniciar sesión:', error);
-    }
+  const handleSignIn = () => {
+    setShowLoginModal(true);
   };
 
   const handleSignOut = async () => {
@@ -1021,6 +1015,15 @@ function NavigationContent() {
           </div>
         </div>
       )}
+
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+        }}
+      />
     </>
   );
 }
