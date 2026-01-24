@@ -119,56 +119,13 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Sponsor Businesses Section - Negocios Patrocinados */}
-      {sponsorBusinesses.length > 0 && (
-        <section className="py-16 px-4 bg-gray-50">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center gap-3 mb-8">
-              <span className="text-4xl">👑</span>
-              <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Negocios Patrocinados</h2>
-                <p className="text-gray-600">Comercios destacados con mayor visibilidad</p>
-              </div>
-            </div>
-
-            <HomeClient businesses={sponsorBusinesses} />
-          </div>
-        </section>
-      )}
-
-      {/* Featured Businesses Section - Negocios Destacados del Mes */}
-      {featuredBusinesses.length > 0 && (
-        <section className="py-16 px-4 bg-white">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl">⭐</span>
-                <div>
-                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Negocios Destacados del Mes</h2>
-                  <p className="text-gray-600">Comercios locales verificados y recomendados</p>
-                </div>
-              </div>
-              <Link
-                href="/negocios"
-                className="hidden md:inline-flex px-6 py-3 bg-[#38761D] text-white font-semibold rounded-lg hover:bg-[#2f5a1a] transition-colors"
-              >
-                Ver todos
-              </Link>
-            </div>
-
-            <HomeClient businesses={featuredBusinesses} />
-
-            <div className="mt-8 text-center md:hidden">
-              <Link
-                href="/negocios"
-                className="inline-flex px-8 py-3 bg-[#38761D] text-white font-semibold rounded-lg hover:bg-[#2f5a1a] transition-colors"
-              >
-                Ver todos los negocios
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Carruseles de Negocios Premium */}
+      <div className="bg-gradient-to-b from-white to-gray-50">
+        <HomeClient 
+          sponsorBusinesses={sponsorBusinesses}
+          featuredBusinesses={featuredBusinesses}
+        />
+      </div>
     </div>
   );
 }
