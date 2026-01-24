@@ -225,8 +225,13 @@ const formatSummary = (schedule: Schedule) => {
   if (!Object.keys(schedule).length) return "\u2014";
   const entries: string[] = [];
 
+  // Reordenar para empezar desde Lunes (1) hasta Domingo (0)
+  const dayOrder = [1, 2, 3, 4, 5, 6, 0]; // Lun, Mar, Mié, Jue, Vie, Sáb, Dom
+  
   let currentRange: { start: number; end: number; time: string } | null = null;
-  for (let day = 0; day < 7; day++) {
+  
+  for (let i = 0; i < 7; i++) {
+    const day = dayOrder[i];
     const slot = schedule[day]?.[0];
     const timeRange = slot ? `${formatTime(slot.open)}-${formatTime(slot.close)}` : null;
 
@@ -242,8 +247,21 @@ const formatSummary = (schedule: Schedule) => {
       continue;
     }
 
-    if (currentRange && currentRange.time === timeRange && day === currentRange.end + 1) {
-      currentRange.end = day;
+    if (currentRange && currentRange.time === timeRange) {
+      // Verificar si es consecutivo en el orden de la semana
+      const prevIndex = dayOrder.indexOf(currentRange.end);
+      const currIndex = dayOrder.indexOf(day);
+      if (currIndex === prevIndex + 1) {
+        currentRange.end = day;
+      } else {
+        // No es consecutivo, cerrar el rango actual
+        const label =
+          currentRange.start === currentRange.end
+            ? `${DAY_DISPLAY[currentRange.start]} ${currentRange.time}`
+            : `${DAY_DISPLAY[currentRange.start]}-${DAY_DISPLAY[currentRange.end]} ${currentRange.time}`;
+        entries.push(label);
+        currentRange = { start: day, end: day, time: timeRange };
+      }
     } else {
       if (currentRange) {
         const label =
