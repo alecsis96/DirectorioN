@@ -116,25 +116,19 @@ const BusinessHoursChip = ({ hours }: { hours?: any }) => {
 
   if (isOpen) {
     return (
-      <div className="flex flex-col gap-1">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full w-fit">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-          <span className="text-sm font-semibold text-green-700">Abierto ahora</span>
-        </div>
-        <span className="text-xs text-gray-600 ml-1">Cierra a las {closeH}:{closeM}</span>
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        <span className="text-sm font-semibold text-green-700">Abierto ahora</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full w-fit">
-        <span className="w-2 h-2 rounded-full bg-red-500"></span>
-        <span className="text-sm font-semibold text-red-700">Cerrado</span>
-      </div>
-      {nextOpenTime && (
-        <span className="text-xs text-gray-600 ml-1">Abre hoy a las {nextOpenTime}</span>
-      )}
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
+      <span className="w-2 h-2 rounded-full bg-red-500"></span>
+      <span className="text-sm font-semibold text-red-700">
+        Cerrado{nextOpenTime && ` · Abre hoy a las ${nextOpenTime}`}
+      </span>
     </div>
   );
 };
@@ -241,6 +235,8 @@ export default function BusinessDetailView({ business }: Props) {
   const [pageUrl, setPageUrl] = useState<string | undefined>(undefined);
   const [isMounted, setIsMounted] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Detectar cuando el componente está montado en el cliente
   useEffect(() => {
@@ -697,6 +693,21 @@ export default function BusinessDetailView({ business }: Props) {
       {/* FULL BLEED IMAGE HEADER - Edge-to-edge for sponsor plan only */}
       {plan === 'sponsor' && (
         <div className={`relative w-full ${allGalleryImages.length > 1 ? 'aspect-square md:h-96' : currentTheme.heroHeight} bg-gray-200 rounded-t-2xl overflow-hidden`}>
+          {/* Botón de zoom */}
+          {allGalleryImages.length > 0 && (
+            <button
+              onClick={() => {
+                setCurrentImageIndex(0);
+                setShowGalleryModal(true);
+              }}
+              className="absolute top-4 right-4 z-20 p-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white rounded-full transition-all shadow-lg"
+              aria-label="Ver galería en pantalla completa"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+            </button>
+          )}
           {/* Interactive Image Carousel - Show if multiple images exist */}
           {allGalleryImages.length > 1 ? (
             <Swiper
@@ -705,7 +716,7 @@ export default function BusinessDetailView({ business }: Props) {
               pagination={{ clickable: true }}
               autoplay={{ delay: 5000, disableOnInteraction: true }}
               loop={allGalleryImages.length > 2}
-              className="h-full w-full"
+              className="h-full w-full [&_.swiper-button-next]:hidden [&_.swiper-button-prev]:hidden md:[&_.swiper-button-next]:flex md:[&_.swiper-button-prev]:flex"
             >
               {allGalleryImages.map((imageUrl, index) => (
                 <SwiperSlide key={index}>
@@ -896,40 +907,19 @@ export default function BusinessDetailView({ business }: Props) {
             )}
           </div>
 
-          {/* Segunda fila: Cómo llegar y Facebook (si existe) */}
-          <div className={`grid ${facebookHref ? 'grid-cols-2' : 'grid-cols-1'} gap-3 mb-3`}>
-            {/* Botón Cómo llegar */}
-            {hasMapLink && (
-              <a
-                href={mapHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-semibold border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all"
-                aria-label={`Como llegar a ${business.name}`}
-                onClick={handleMapClick}
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Cómo llegar
-              </a>
-            )}
-
-            {/* Botón Facebook (solo si existe) */}
-            {facebookHref && (
-              <a
-                href={facebookHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1877F2] text-white font-semibold hover:bg-[#166FE5] transition-all"
-                aria-label={`Abrir Facebook de ${business.name}`}
-                onClick={() => trackDetailCTA('facebook')}
-              >
-                <FacebookIcon className="w-5 h-5" /> Facebook
-              </a>
-            )}
-          </div>
+          {/* Botón Facebook (si existe) */}
+          {facebookHref && (
+            <a
+              href={facebookHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1877F2] text-white font-semibold hover:bg-[#166FE5] transition-all mb-3"
+              aria-label={`Abrir Facebook de ${business.name}`}
+              onClick={() => trackDetailCTA('facebook')}
+            >
+              <FacebookIcon className="w-5 h-5" /> Facebook
+            </a>
+          )}
 
           {/* Botón Gestionar (solo si es dueño) - Menos prominente */}
           {canManage && (
@@ -1304,6 +1294,79 @@ export default function BusinessDetailView({ business }: Props) {
 
       </section>
       </div>
+
+      {/* Modal de Galería en Pantalla Completa */}
+      {showGalleryModal && allGalleryImages.length > 0 && (
+        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
+          {/* Botón cerrar */}
+          <button
+            onClick={() => setShowGalleryModal(false)}
+            className="absolute top-4 right-4 z-10 p-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-full transition-all"
+            aria-label="Cerrar galería"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Contador de imágenes */}
+          <div className="absolute top-4 left-4 z-10 px-3 py-1.5 bg-black/50 backdrop-blur-sm text-white rounded-full text-sm font-medium">
+            {currentImageIndex + 1} / {allGalleryImages.length}
+          </div>
+
+          {/* Navegación anterior */}
+          {allGalleryImages.length > 1 && (
+            <button
+              onClick={() => setCurrentImageIndex((prev) => (prev - 1 + allGalleryImages.length) % allGalleryImages.length)}
+              className="absolute left-4 z-10 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-full transition-all"
+              aria-label="Imagen anterior"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Imagen actual */}
+          <div className="relative w-full h-full flex items-center justify-center p-4">
+            <img
+              src={allGalleryImages[currentImageIndex]}
+              alt={`${business.name} - imagen ${currentImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+
+          {/* Navegación siguiente */}
+          {allGalleryImages.length > 1 && (
+            <button
+              onClick={() => setCurrentImageIndex((prev) => (prev + 1) % allGalleryImages.length)}
+              className="absolute right-4 z-10 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-full transition-all"
+              aria-label="Imagen siguiente"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Miniaturas en la parte inferior */}
+          {allGalleryImages.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 flex gap-2 overflow-x-auto max-w-[90vw] px-4 py-2 bg-black/50 backdrop-blur-sm rounded-full">
+              {allGalleryImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                    idx === currentImageIndex ? 'border-white scale-110' : 'border-transparent opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img src={img} alt={`Miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
