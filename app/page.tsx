@@ -48,6 +48,17 @@ export default async function Home() {
       };
     });
 
+  // Negocios nuevos (últimos 6, ordenados por fecha de creación o id)
+  const recentBusinesses: BusinessPreview[] = allBusinesses
+    .slice(0, 6)
+    .map((biz: Business) => {
+      const preview = pickBusinessPreview(biz);
+      return {
+        ...preview,
+        rating: toNumber(preview.rating) ?? null,
+      };
+    });
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
@@ -96,26 +107,177 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 px-4">
+      {/* Action Cards - Tarjetas clicables */}
+      <section className="py-12 px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
-              <div className="text-4xl mb-3">🔍</div>
-              <h3 className="text-xl font-bold mb-2 text-gray-900">Búsqueda fácil</h3>
-              <p className="text-gray-600">Encuentra negocios por categoría, ubicación o nombre de forma rápida.</p>
-            </div>
-            <div className="text-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
-              <div className="text-4xl mb-3">📍</div>
-              <h3 className="text-xl font-bold mb-2 text-gray-900">Cerca de ti</h3>
-              <p className="text-gray-600">Descubre comercios locales en tu colonia y alrededor de Yajalón.</p>
-            </div>
-            <div className="text-center p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
-              <div className="text-4xl mb-3">⭐</div>
-              <h3 className="text-xl font-bold mb-2 text-gray-900">Reseñas reales</h3>
-              <p className="text-gray-600">Lee opiniones de otros usuarios y toma decisiones informadas.</p>
-            </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Búsqueda fácil */}
+            <Link
+              href="/negocios"
+              className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
+            >
+              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🔍</div>
+              <h3 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-emerald-600">Búsqueda fácil</h3>
+              <p className="text-gray-600 mb-3">Encuentra negocios por categoría, ubicación o nombre de forma rápida.</p>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600">
+                Buscar ahora
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </Link>
+
+            {/* Cerca de ti */}
+            <Link
+              href="/negocios?view=map"
+              className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
+            >
+              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">📍</div>
+              <h3 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-blue-600">Cerca de ti</h3>
+              <p className="text-gray-600 mb-3">Descubre comercios locales en tu colonia y alrededor de Yajalón.</p>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600">
+                Ver en mapa
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </Link>
+
+            {/* Reseñas reales */}
+            <Link
+              href="/negocios?o=rating"
+              className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-yellow-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
+            >
+              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">⭐</div>
+              <h3 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-yellow-600">Reseñas reales</h3>
+              <p className="text-gray-600 mb-3">Lee opiniones de otros usuarios y toma decisiones informadas.</p>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600">
+                Mejor calificados
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Explora por Categorías */}
+      <section className="py-8 px-4 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Explora por categorías</h2>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth pb-2">
+            {[
+              { name: 'Restaurante', icon: '🍽️' },
+              { name: 'Cafetería', icon: '☕' },
+              { name: 'Panadería', icon: '🍞' },
+              { name: 'Comida Rápida', icon: '🍔' },
+              { name: 'Servicios', icon: '🛠️' },
+              { name: 'Comercio', icon: '🛒' },
+              { name: 'Tecnología', icon: '💻' },
+              { name: 'Salud y Belleza', icon: '💆' },
+              { name: 'Educación', icon: '📚' },
+              { name: 'Entretenimiento', icon: '🎭' },
+              { name: 'Deportes', icon: '⚽' },
+              { name: 'Automotriz', icon: '🚗' },
+              { name: 'Construcción', icon: '🏗️' },
+              { name: 'Profesional', icon: '💼' },
+              { name: 'Otro', icon: '📋' },
+            ].map((cat) => {
+              const slug = cat.name.toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, '-');
+              
+              return (
+                <Link
+                  key={cat.name}
+                  href={`/negocios?c=${slug}`}
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full border-2 border-gray-200 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer whitespace-nowrap font-medium text-gray-700 hover:text-blue-600"
+                >
+                  <span className="text-lg">{cat.icon}</span>
+                  <span className="text-sm">{cat.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Nuevos esta semana */}
+      <section className="py-8 px-4 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Nuevos esta semana</h2>
+            <Link 
+              href="/negocios" 
+              className="text-sm md:text-base font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              Ver todos
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth pb-2">
+            {recentBusinesses.map((business) => {
+              const isOpen = business.isOpen24Hours || (business.businessHours && Object.keys(business.businessHours).length > 0);
+              
+              return (
+                <Link
+                  key={business.id}
+                  href={`/?negocio=${business.id}`}
+                  className="flex-shrink-0 w-[280px] bg-white rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all p-4 cursor-pointer"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      {business.logo ? (
+                        <img 
+                          src={business.logo} 
+                          alt={business.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-2xl">
+                          🏪
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 truncate mb-1">{business.name}</h3>
+                      <p className="text-xs text-gray-500 truncate mb-2">{business.category}</p>
+                      {isOpen && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                          Abierto
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Registro de Negocio */}
+      <section className="py-12 px-4 bg-gradient-to-br from-blue-600 to-indigo-700">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="text-5xl mb-4">🚀</div>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">¿Tienes un negocio?</h2>
+          <p className="text-lg md:text-xl text-blue-100 mb-6 max-w-2xl mx-auto">
+            Regístralo y aparece en nuestro directorio. Miles de personas buscan servicios como el tuyo cada día.
+          </p>
+          <Link
+            href="/para-negocios"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-full font-bold text-lg hover:bg-blue-50 hover:shadow-xl transition-all transform hover:scale-105"
+          >
+            Publicar mi negocio
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         </div>
       </section>
 

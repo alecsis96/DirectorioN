@@ -1,3 +1,19 @@
+/**
+ * NegociosListClient - Lista principal de negocios con filtros y búsqueda
+ * 
+ * CARD RENDERING UNIFICATION (Refactor 2026-01-24):
+ * ===================================================
+ * - Se eliminó FreeBusinessCardCompact para unificar el diseño de tarjetas
+ * - Ahora TODOS los planes (sponsor/featured/free) usan BusinessCard
+ * - BusinessCard maneja internamente los estilos diferenciados por tier
+ * - La función renderBusinessCard() centraliza la decisión de renderizado
+ * - Comportamiento consistente en búsqueda, filtros y vista normal
+ * - Se mantiene toda la lógica existente: rotación, paginación, filtros, mapa
+ * 
+ * ANTES: Móviles usaban FreeBusinessCardCompact para free, BusinessCard para premium
+ * AHORA: Todos usan BusinessCard siempre, con estilos internos según plan
+ */
+
 'use client';
 
 import type { ChangeEvent } from 'react';
@@ -8,7 +24,8 @@ import { signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
 import BusinessCard from './BusinessCard';
-import FreeBusinessCardCompact from './FreeBusinessCardCompact';
+// REMOVED: FreeBusinessCardCompact - Ya no se usa, unificamos a BusinessCard para todos los planes
+// import FreeBusinessCardCompact from './FreeBusinessCardCompact';
 import BusinessesMapView from './BusinessesMapView';
 import { auth, signInWithGoogle } from '../firebaseConfig';
 import { useCurrentUser } from '../hooks/useAuth';
@@ -140,6 +157,16 @@ export default function NegociosListClient({
     setQuickFilterTopRated(quickFilter === 'topRated');
     setQuickFilterDelivery(quickFilter === 'delivery');
     setQuickFilterNew(quickFilter === 'new');
+  }, [searchParams]);
+
+  // Sincronizar modo de vista desde URL
+  useEffect(() => {
+    const viewParam = searchParams?.get('view');
+    if (viewParam === 'map') {
+      setViewMode('map');
+    } else if (viewParam === 'list') {
+      setViewMode('list');
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -1095,7 +1122,9 @@ export default function NegociosListClient({
                   )}
 
                   {!showEmptyState && (() => {
-                    // Separar negocios premium (patrocinado/destacado) de gratuitos
+                    // UNIFIED CARD RENDERING: Ya no separamos premium de free para usar cards diferentes
+                    // Todos los planes ahora usan BusinessCard de forma consistente
+                    // Solo separamos para aplicar límite de paginación a negocios free
                     const premiumBusinesses = businessesToDisplay.filter(biz => 
                       biz.plan === 'sponsor' || biz.plan === 'patrocinado' || biz.plan === 'featured' || biz.plan === 'destacado'
                     );
@@ -1107,46 +1136,28 @@ export default function NegociosListClient({
                     const displayedFreeBusinesses = freeBusinesses.slice(0, freeBusinessesLimit);
                     const hasMoreFreeBusinesses = freeBusinesses.length > displayedFreeBusinesses.length;
                     
+                    /**
+                     * Función centralizada para renderizar tarjetas de negocio
+                     * - Usa SIEMPRE BusinessCard independientemente del plan (sponsor/featured/free)
+                     * - Mantiene consistencia visual en todas las vistas (búsqueda, filtros, normal)
+                     * - Elimina la lógica anterior que usaba FreeBusinessCardCompact en móvil
+                     */
+                    const renderBusinessCard = (biz: BusinessPreview) => (
+                      <div key={biz.id}>
+                        <BusinessCard 
+                          business={biz}
+                          onViewDetails={(business) => setSelectedBusiness(business)}
+                        />
+                      </div>
+                    );
+                    
                     return (
                       <>
-                        {/* Renderizar negocios premium (sin límite) */}
-                        {premiumBusinesses.map((biz) => (
-                          <div key={biz.id}>
-                            <BusinessCard 
-                              business={biz}
-                              onViewDetails={(business) => setSelectedBusiness(business)}
-                            />
-                          </div>
-                        ))}
+                        {/* Renderizar negocios premium (sin límite) - Usa BusinessCard unificada */}
+                        {premiumBusinesses.map(renderBusinessCard)}
                         
-                        {/* Renderizar negocios gratuitos (con límite) */}
-                        {displayedFreeBusinesses.map((biz) => {
-                          const isFreeOrNoPlan = !biz.plan || biz.plan === 'free';
-                          
-                          // En móvil: usar tarjeta compacta para negocios gratis
-                          // En desktop: usar BusinessCard normal para todos
-                          return (
-                            <div key={biz.id}>
-                              {/* Tarjeta compacta solo en móvil para gratis */}
-                              {isFreeOrNoPlan && (
-                                <div className="block md:hidden">
-                                  <FreeBusinessCardCompact
-                                    business={biz}
-                                    onViewDetails={(business) => setSelectedBusiness(business)}
-                                  />
-                                </div>
-                              )}
-                              
-                              {/* BusinessCard normal en desktop o para premium */}
-                              <div className={isFreeOrNoPlan ? "hidden md:block" : "block"}>
-                                <BusinessCard 
-                                  business={biz}
-                                  onViewDetails={(business) => setSelectedBusiness(business)}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {/* Renderizar negocios gratuitos (con límite) - Usa BusinessCard unificada */}
+                        {displayedFreeBusinesses.map(renderBusinessCard)}
                         
                         {/* Botón "Cargar más" para negocios gratuitos */}
                         {hasMoreFreeBusinesses && (

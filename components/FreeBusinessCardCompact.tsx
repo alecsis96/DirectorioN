@@ -1,3 +1,22 @@
+/**
+ * FreeBusinessCardCompact - DEPRECATED / NO SE USA
+ * ==================================================
+ * Este componente fue eliminado del proyecto el 2026-01-24 como parte de la
+ * unificación de diseño de tarjetas.
+ * 
+ * MOTIVO DEL DEPRECATION:
+ * - Causaba inconsistencia visual: diferentes cards al buscar/filtrar vs vista normal
+ * - Lógica duplicada con BusinessCard
+ * - BusinessCard ya maneja todos los planes con estilos diferenciados internamente
+ * 
+ * REEMPLAZO:
+ * - Usar BusinessCard para TODOS los planes (sponsor, featured, free)
+ * - BusinessCard aplica automáticamente los estilos según business.plan
+ * 
+ * ESTE ARCHIVO SE MANTIENE SOLO COMO REFERENCIA HISTÓRICA
+ * NO IMPORTAR NI USAR EN CÓDIGO NUEVO
+ */
+
 'use client';
 
 import { useFavorites } from '../context/FavoritesContext';
