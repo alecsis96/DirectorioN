@@ -221,7 +221,8 @@ export default async function Home() {
           </div>
           <div className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth pb-2">
             {recentBusinesses.map((business) => {
-              const isOpen = business.isOpen24Hours || (business.businessHours && Object.keys(business.businessHours).length > 0);
+              // Verificar si tiene horarios configurados
+              const hasHours = business.horarios && Object.keys(business.horarios).length > 0;
               
               return (
                 <Link
@@ -246,7 +247,7 @@ export default async function Home() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-gray-900 truncate mb-1">{business.name}</h3>
                       <p className="text-xs text-gray-500 truncate mb-2">{business.category}</p>
-                      {isOpen && (
+                      {hasHours && (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                           Abierto
