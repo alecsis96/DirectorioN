@@ -91,12 +91,45 @@ const BusinessHoursChip = ({ hours }: { hours?: string }) => {
   const currentDay = now.getDay(); // 0 = domingo, 1 = lunes, etc.
   const currentTime = now.getHours() * 60 + now.getMinutes();
 
-  // Parse formato "Lun-Vie 09:00-18:00; Sáb 10:00-14:00" o similar
+  // Parse formato "Lun-Vie 09:00-18:00" o "Dom-Sáb 09:00-16:00"
   const segments = hours.split(';').map(s => s.trim()).filter(Boolean);
   
-  let isOpen = false;
-  let nextOpenTime: string | null = null;
+  // Función para normalizar nombres de días (sin acentos, lowercase)
+  const normalizeDayName = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .slice(0, 3);
+  };
   
+  const dayNames = ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab'];
+  const dayNamesLong = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  
+  // Función para verificar si un día está en el rango
+  const isDayInRange = (day: number, dayPart: string): boolean => {
+    if (dayPart.includes('-')) {
+      const parts = dayPart.split('-').map(p => normalizeDayName(p.trim()));
+      if (parts.length === 2) {
+        const startIdx = dayNames.indexOf(parts[0]);
+        const endIdx = dayNames.indexOf(parts[1]);
+        
+        if (startIdx !== -1 && endIdx !== -1) {
+          if (startIdx <= endIdx) {
+            return day >= startIdx && day <= endIdx;
+          } else {
+            return day >= startIdx || day <= endIdx;
+          }
+        }
+      }
+    } else {
+      const normalizedDayPart = normalizeDayName(dayPart);
+      return normalizedDayPart === dayNames[day];
+    }
+    return false;
+  };
+  
+  // Primero verificar si está abierto ahora
   for (const segment of segments) {
     const match = segment.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
     if (!match) continue;
@@ -104,64 +137,54 @@ const BusinessHoursChip = ({ hours }: { hours?: string }) => {
     const [, openH, openM, closeH, closeM] = match;
     const openTime = parseInt(openH) * 60 + parseInt(openM);
     const closeTime = parseInt(closeH) * 60 + parseInt(closeM);
+    const dayPart = segment.slice(0, match.index).trim();
     
-    // Extraer los días del segmento
-    const dayPart = segment.slice(0, match.index).trim().toLowerCase();
-    
-    // Verificar si el día actual está en este segmento
-    const dayNames = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
-    const currentDayName = dayNames[currentDay];
-    
-    let appliesToday = false;
-    
-    // Verificar rangos como "Lun-Vie" o "Lun-Sáb"
-    if (dayPart.includes('-')) {
-      const rangeParts = dayPart.split('-');
-      if (rangeParts.length === 2) {
-        const startDay = rangeParts[0].slice(0, 3).toLowerCase();
-        const endDay = rangeParts[1].slice(0, 3).toLowerCase();
-        const startIdx = dayNames.indexOf(startDay);
-        const endIdx = dayNames.indexOf(endDay);
-        
-        if (startIdx !== -1 && endIdx !== -1) {
-          if (startIdx <= endIdx) {
-            appliesToday = currentDay >= startIdx && currentDay <= endIdx;
-          } else {
-            // Caso como "Sáb-Dom"
-            appliesToday = currentDay >= startIdx || currentDay <= endIdx;
-          }
-        }
-      }
-    } else {
-      // Verificar día individual
-      appliesToday = dayPart.startsWith(currentDayName);
-    }
-    
-    if (appliesToday) {
+    if (isDayInRange(currentDay, dayPart)) {
       if (currentTime >= openTime && currentTime < closeTime) {
-        isOpen = true;
-        break;
-      } else if (currentTime < openTime && !nextOpenTime) {
-        nextOpenTime = `${openH}:${openM}`;
+        return (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span className="text-sm font-semibold text-green-700">Abierto ahora</span>
+          </div>
+        );
       }
     }
   }
-
-  if (isOpen) {
-    return (
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
-        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-        <span className="text-sm font-semibold text-green-700">Abierto ahora</span>
-      </div>
-    );
+  
+  // Si está cerrado, buscar próxima apertura (hoy o próximos 7 días)
+  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+    const checkDay = (currentDay + dayOffset) % 7;
+    const isToday = dayOffset === 0;
+    
+    for (const segment of segments) {
+      const match = segment.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+      if (!match) continue;
+      
+      const [, openH, openM] = match;
+      const openTime = parseInt(openH) * 60 + parseInt(openM);
+      const dayPart = segment.slice(0, match.index).trim();
+      
+      if (isDayInRange(checkDay, dayPart)) {
+        // Si es hoy, solo considerar si aún no ha llegado la hora de apertura
+        if (isToday && currentTime >= openTime) continue;
+        
+        const dayLabel = isToday ? 'hoy' : dayNamesLong[checkDay].toLowerCase();
+        return (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+            <span className="text-sm font-semibold text-red-700">
+              Cerrado · Abre {dayLabel} a las {openH}:{openM}
+            </span>
+          </div>
+        );
+      }
+    }
   }
 
   return (
     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
       <span className="w-2 h-2 rounded-full bg-red-500"></span>
-      <span className="text-sm font-semibold text-red-700">
-        Cerrado{nextOpenTime && ` · Abre hoy a las ${nextOpenTime}`}
-      </span>
+      <span className="text-sm font-semibold text-red-700">Cerrado</span>
     </div>
   );
 };
