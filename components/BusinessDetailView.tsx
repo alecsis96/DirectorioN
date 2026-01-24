@@ -84,35 +84,68 @@ const readSaveDataPreference = () => {
 };
 
 // Componente para mostrar el estado de apertura como chip
-const BusinessHoursChip = ({ hours }: { hours?: any }) => {
+const BusinessHoursChip = ({ hours }: { hours?: string }) => {
   if (!hours) return null;
 
   const now = new Date();
-  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  const currentDay = dayNames[now.getDay()];
+  const currentDay = now.getDay(); // 0 = domingo, 1 = lunes, etc.
   const currentTime = now.getHours() * 60 + now.getMinutes();
 
-  const todayHours = hours[currentDay];
+  // Parse formato "Lun-Vie 09:00-18:00; Sáb 10:00-14:00" o similar
+  const segments = hours.split(';').map(s => s.trim()).filter(Boolean);
   
-  if (!todayHours || todayHours === 'Cerrado') {
-    return (
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
-        <span className="w-2 h-2 rounded-full bg-red-500"></span>
-        <span className="text-sm font-semibold text-red-700">Cerrado</span>
-      </div>
-    );
+  let isOpen = false;
+  let nextOpenTime: string | null = null;
+  
+  for (const segment of segments) {
+    const match = segment.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    if (!match) continue;
+    
+    const [, openH, openM, closeH, closeM] = match;
+    const openTime = parseInt(openH) * 60 + parseInt(openM);
+    const closeTime = parseInt(closeH) * 60 + parseInt(closeM);
+    
+    // Extraer los días del segmento
+    const dayPart = segment.slice(0, match.index).trim().toLowerCase();
+    
+    // Verificar si el día actual está en este segmento
+    const dayNames = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+    const currentDayName = dayNames[currentDay];
+    
+    let appliesToday = false;
+    
+    // Verificar rangos como "Lun-Vie" o "Lun-Sáb"
+    if (dayPart.includes('-')) {
+      const rangeParts = dayPart.split('-');
+      if (rangeParts.length === 2) {
+        const startDay = rangeParts[0].slice(0, 3).toLowerCase();
+        const endDay = rangeParts[1].slice(0, 3).toLowerCase();
+        const startIdx = dayNames.indexOf(startDay);
+        const endIdx = dayNames.indexOf(endDay);
+        
+        if (startIdx !== -1 && endIdx !== -1) {
+          if (startIdx <= endIdx) {
+            appliesToday = currentDay >= startIdx && currentDay <= endIdx;
+          } else {
+            // Caso como "Sáb-Dom"
+            appliesToday = currentDay >= startIdx || currentDay <= endIdx;
+          }
+        }
+      }
+    } else {
+      // Verificar día individual
+      appliesToday = dayPart.startsWith(currentDayName);
+    }
+    
+    if (appliesToday) {
+      if (currentTime >= openTime && currentTime < closeTime) {
+        isOpen = true;
+        break;
+      } else if (currentTime < openTime && !nextOpenTime) {
+        nextOpenTime = `${openH}:${openM}`;
+      }
+    }
   }
-
-  // Parse hours (formato: "09:00 - 18:00")
-  const hoursMatch = todayHours.match(/(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
-  if (!hoursMatch) return null;
-
-  const [, openH, openM, closeH, closeM] = hoursMatch;
-  const openTime = parseInt(openH) * 60 + parseInt(openM);
-  const closeTime = parseInt(closeH) * 60 + parseInt(closeM);
-
-  const isOpen = currentTime >= openTime && currentTime < closeTime;
-  const nextOpenTime = openTime > currentTime ? `${openH}:${openM}` : null;
 
   if (isOpen) {
     return (
