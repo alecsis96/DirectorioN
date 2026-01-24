@@ -1080,7 +1080,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Galería</h2>
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-600">Galeria de imagenes</p>
+                  <p className="text-sm text-gray-600">
+                    {biz.plan === 'featured' ? 'Plan Destacado: Logo + Banner + hasta 2 fotos' : 
+                     biz.plan === 'sponsor' ? 'Plan Patrocinado: Logo + Banner + hasta 10 fotos' : 
+                     'Galeria de imagenes'}
+                  </p>
                   <ImageUploader
                     businessId={id!}
                     images={(biz.images || []).filter((img): img is { url: string; publicId: string } => Boolean(img.url && img.publicId))}
@@ -1089,6 +1093,61 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   />
                 </div>
               </div>
+
+              {/* Logo y Banner - Solo para planes Featured y Sponsor */}
+              {(biz.plan === 'featured' || biz.plan === 'sponsor') && (
+                <>
+                  {/* Sección de Logo */}
+                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🎨</span>
+                      <h2 className="text-lg font-semibold text-gray-900">Logo del negocio</h2>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                        biz.plan === 'featured' 
+                          ? 'bg-amber-100 text-amber-700 border-amber-300' 
+                          : 'bg-purple-100 text-purple-700 border-purple-300'
+                      }`}>
+                        Incluido en tu plan
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Tu logo aparece en las tarjetas de tu negocio y mejora el reconocimiento de marca
+                    </p>
+                    <LogoUploader
+                      businessId={id!}
+                      logoUrl={biz.logoUrl || null}
+                      logoPublicId={biz.logoPublicId || null}
+                      onChange={(url, publicId) => setBiz((b) => b ? ({ ...b, logoUrl: url, logoPublicId: publicId }) : null)}
+                    />
+                  </div>
+
+                  {/* Sección de Banner/Cover */}
+                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🖼️</span>
+                      <h2 className="text-lg font-semibold text-gray-900">Banner de portada</h2>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                        biz.plan === 'featured' 
+                          ? 'bg-amber-100 text-amber-700 border-amber-300' 
+                          : 'bg-purple-100 text-purple-700 border-purple-300'
+                      }`}>
+                        Incluido en tu plan
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {biz.plan === 'sponsor' 
+                        ? 'Banner destacado que aparece en tu tarjeta premium con diseño exclusivo' 
+                        : 'Banner que aparece en la parte superior de tu perfil de negocio'}
+                    </p>
+                    <CoverUploader
+                      businessId={id!}
+                      coverUrl={biz.coverUrl || null}
+                      coverPublicId={biz.coverPublicId || null}
+                      onChange={(url, publicId) => setBiz((b) => b ? ({ ...b, coverUrl: url, coverPublicId: publicId }) : null)}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Lateral */}

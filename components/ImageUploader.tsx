@@ -12,11 +12,24 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
   const [msg, setMsg] = useState('');
   
   const canUploadImages = plan === 'featured' || plan === 'sponsor';
+  
+  // Plan DESTACADO: máximo 2 fotos para mantener diseño limpio
+  // Plan PATROCINADO: hasta 10 fotos para máxima exhibición
+  const maxImages = plan === 'featured' ? 2 : plan === 'sponsor' ? 10 : 0;
+  const currentCount = images?.length || 0;
+  const canAddMore = currentCount < maxImages;
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.currentTarget.value = '';
     if (!file || !businessId) return;
+    
+    // Validar límite de fotos según plan
+    if (!canAddMore) {
+      setMsg(`❌ Límite de ${maxImages} fotos alcanzado para plan ${plan === 'featured' ? 'Destacado' : 'Patrocinado'}`);
+      setTimeout(() => setMsg(''), 4000);
+      return;
+    }
 
     // Validar tipo de archivo
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -124,23 +137,71 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
   
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <input type="file" accept="image/*" onChange={handleFile} disabled={busy} />
-        <span className="text-sm text-gray-500">{busy ? 'Procesando...' : msg}</span>
+      {/* Contador de fotos según plan */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-700">
+            Fotos ({currentCount}/{maxImages})
+          </span>
+          {plan === 'featured' && (
+            <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full border border-amber-300">
+              Plan Destacado
+            </span>
+          )}
+          {plan === 'sponsor' && (
+            <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full border border-purple-300">
+              Plan Patrocinado
+            </span>
+          )}
+        </div>
+        {!canAddMore && (
+          <span className="text-xs text-orange-600 font-medium">
+            Límite alcanzado
+          </span>
+        )}
       </div>
+      
+      <div className="flex flex-col gap-2">
+        <input 
+          type="file" 
+          accept="image/*" 
+          onChange={handleFile} 
+          disabled={busy || !canAddMore}
+          className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        {!canAddMore && (
+          <p className="text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded-lg p-2">
+            ⚠️ Límite de {maxImages} fotos alcanzado para plan {plan === 'featured' ? 'Destacado' : 'Patrocinado'}
+          </p>
+        )}
+        {msg && (
+          <span className={`text-sm ${msg.includes('✅') ? 'text-green-600' : msg.includes('❌') ? 'text-red-600' : 'text-gray-600'}`}>
+            {busy ? 'Procesando...' : msg}
+          </span>
+        )}
+      </div>
+      
       {images?.length ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pb-20 md:pb-0">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {images.map((img) => (
-            <div key={img.publicId} className="border rounded p-2">
+            <div key={img.publicId} className="border rounded-lg p-2 bg-white shadow-sm hover:shadow-md transition-shadow">
               <img src={img.url} className="w-full h-40 object-cover rounded" alt="img" />
-              <button type="button" className="mt-2 px-2 py-1 text-xs bg-red-500 text-white rounded w-full" onClick={() => handleDelete(img.publicId)}>
+              <button 
+                type="button" 
+                className="mt-2 px-2 py-1 text-xs bg-red-500 text-white rounded w-full hover:bg-red-600 transition-colors disabled:opacity-50" 
+                onClick={() => handleDelete(img.publicId)}
+                disabled={busy}
+              >
                 Eliminar
               </button>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-gray-500">Sin imágenes</p>
+        <div className="text-center py-8 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg">
+          <p className="text-gray-500 text-sm">📷 Sin imágenes aún</p>
+          <p className="text-gray-400 text-xs mt-1">Sube hasta {maxImages} fotos de tu negocio</p>
+        </div>
       )}
     </div>
   );

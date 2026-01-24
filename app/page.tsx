@@ -278,6 +278,14 @@ export default async function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </Link>
+          <div className="mt-4">
+            <Link 
+              href="/alta-asistida"
+              className="text-sm text-blue-100 hover:text-white underline transition-colors"
+            >
+              ¿Prefieres que lo registremos por ti? Solicitar alta
+            </Link>
+          </div>
         </div>
       </section>
 

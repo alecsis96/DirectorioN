@@ -746,17 +746,21 @@ export default function BusinessDetailView({ business }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ldLocalBusiness) }}
       />
 
-      {/* FULL BLEED IMAGE HEADER - Edge-to-edge for sponsor plan only */}
-      {plan === 'sponsor' && (
-        <div className={`relative w-full ${allGalleryImages.length > 1 ? 'aspect-square md:h-96' : currentTheme.heroHeight} bg-gray-200 rounded-t-2xl overflow-hidden`}>
-          {/* Botón de zoom */}
+      {/* FULL BLEED IMAGE HEADER - Edge-to-edge for sponsor and featured plans */}
+      {(plan === 'sponsor' || plan === 'featured') && (
+        <div className={`relative w-full ${
+          plan === 'sponsor' && allGalleryImages.length > 1 
+            ? 'aspect-square md:h-96' 
+            : currentTheme.heroHeight
+        } bg-gray-200 rounded-t-2xl overflow-hidden`}>
+          {/* Botón de zoom - Movido a esquina inferior derecha para no interferir con botón cerrar */}
           {allGalleryImages.length > 0 && (
             <button
               onClick={() => {
                 setCurrentImageIndex(0);
                 setShowGalleryModal(true);
               }}
-              className="absolute top-4 right-4 z-20 p-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white rounded-full transition-all shadow-lg"
+              className="absolute bottom-4 right-4 z-20 p-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white rounded-full transition-all shadow-lg"
               aria-label="Ver galería en pantalla completa"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -764,57 +768,71 @@ export default function BusinessDetailView({ business }: Props) {
               </svg>
             </button>
           )}
-          {/* Interactive Image Carousel - Show if multiple images exist */}
-          {allGalleryImages.length > 1 ? (
-            <Swiper
-              modules={[Navigation, Pagination, Autoplay]}
-              navigation
-              pagination={{ clickable: true }}
-              autoplay={{ delay: 5000, disableOnInteraction: true }}
-              loop={allGalleryImages.length > 2}
-              className="h-full w-full [&_.swiper-button-next]:hidden [&_.swiper-button-prev]:hidden md:[&_.swiper-button-next]:flex md:[&_.swiper-button-prev]:flex"
-            >
-              {allGalleryImages.map((imageUrl, index) => (
-                <SwiperSlide key={index}>
-                  <div className="relative w-full h-full overflow-hidden">
-                    {/* Background Layer - Blurred image fills entire container */}
-                    <img
-                      src={imageUrl}
-                      alt=""
-                      aria-hidden="true"
-                      className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 z-0"
-                    />
-                    
-                    {/* Foreground Layer - Sharp image centered and contained */}
-                    <img
-                      src={imageUrl}
-                      alt={`${business.name} - imagen ${index + 1}`}
-                      className="relative z-10 h-full w-auto mx-auto object-contain"
-                    />
-                  </div>
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          ) : (
-            /* Static banner for premium businesses without multiple images */
+          {/* Plan Featured: Solo muestra la portada/cover como imagen estática */}
+          {plan === 'featured' ? (
             <>
               <img
                 src={
                   business.coverUrl ||
                   business.image1 ||
-                  (business.plan && business.plan !== 'free'
-                    ? '/images/default-premium-cover.svg'
-                    : 'https://via.placeholder.com/800x400?text=Sin+portada')
+                  '/images/default-premium-cover.svg'
                 }
                 alt={`Portada de ${business.name}`}
                 className="w-full h-full object-cover"
               />
               
-              {/* Overlay para Sponsor: Gradiente sutil para mejorar contraste */}
-              {plan === 'sponsor' && (
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
-              )}
+              {/* Overlay: Gradiente sutil para Featured */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
             </>
+          ) : (
+            /* Plan Sponsor: Interactive Image Carousel - Show if multiple images exist */
+            allGalleryImages.length > 1 ? (
+              <Swiper
+                modules={[Navigation, Pagination, Autoplay]}
+                navigation
+                pagination={{ clickable: true }}
+                autoplay={{ delay: 5000, disableOnInteraction: true }}
+                loop={allGalleryImages.length > 2}
+                className="h-full w-full [&_.swiper-button-next]:hidden [&_.swiper-button-prev]:hidden md:[&_.swiper-button-next]:flex md:[&_.swiper-button-prev]:flex"
+              >
+                {allGalleryImages.map((imageUrl, index) => (
+                  <SwiperSlide key={index}>
+                    <div className="relative w-full h-full overflow-hidden">
+                      {/* Background Layer - Blurred image fills entire container */}
+                      <img
+                        src={imageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 z-0"
+                      />
+                      
+                      {/* Foreground Layer - Sharp image centered and contained */}
+                      <img
+                        src={imageUrl}
+                        alt={`${business.name} - imagen ${index + 1}`}
+                        className="relative z-10 h-full w-auto mx-auto object-contain"
+                      />
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            ) : (
+              /* Static banner for sponsor without multiple images */
+              <>
+                <img
+                  src={
+                    business.coverUrl ||
+                    business.image1 ||
+                    '/images/default-premium-cover.svg'
+                  }
+                  alt={`Portada de ${business.name}`}
+                  className="w-full h-full object-cover"
+                />
+                
+                {/* Overlay: Gradiente para Sponsor */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+              </>
+            )
           )}
         </div>
       )}
@@ -1105,6 +1123,55 @@ export default function BusinessDetailView({ business }: Props) {
           {business.description || "Sin descripcion disponible."}
         </p>
       </section>
+
+      {/* Galería de Fotos - Para planes Featured y Sponsor */}
+      {(plan === 'featured' || plan === 'sponsor') && allGalleryImages.length > 0 && !dataSaverEnabled && (
+        <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              📷 Galería de Fotos
+              <span className="text-sm font-normal text-gray-500">
+                ({allGalleryImages.length} {allGalleryImages.length === 1 ? 'foto' : 'fotos'})
+              </span>
+            </h2>
+            {plan === 'featured' && (
+              <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full border border-amber-300">
+                Hasta 2 fotos
+              </span>
+            )}
+            {plan === 'sponsor' && (
+              <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full border border-purple-300">
+                Hasta 10 fotos
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {allGalleryImages.map((imageUrl, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setCurrentImageIndex(index);
+                  setShowGalleryModal(true);
+                  trackDetailInteraction('image_viewed');
+                }}
+                className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 hover:ring-2 hover:ring-blue-500 transition-all group cursor-pointer"
+              >
+                <img
+                  src={imageUrl}
+                  alt={`${business.name} - foto ${index + 1}`}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                {/* Overlay en hover */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                  </svg>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Ubicación y Mapa */}
       <section id="mapa-section" className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">

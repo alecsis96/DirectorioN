@@ -6,45 +6,30 @@ import type { BusinessPreview } from '../types/business';
 interface PremiumBusinessCardProps {
   business: BusinessPreview;
   onViewDetails: (business: BusinessPreview) => void;
-  variant?: 'sponsor' | 'featured';
 }
 
 /**
- * PremiumBusinessCard - Tarjeta premium con imagen/portada grande
- * Diseño único para negocios patrocinados y destacados
- * Incluye: portada grande, logo, badges, acciones (WhatsApp, llamar, ubicación)
+ * PremiumBusinessCard - Tarjeta premium con portada grande
+ * Diseño exclusivo para negocios PATROCINADOS únicamente
+ * Incluye: portada grande, logo, badge 👑 PATROCINADO, botones de acción
  */
 export default function PremiumBusinessCard({ 
   business, 
-  onViewDetails,
-  variant = 'sponsor'
+  onViewDetails
 }: PremiumBusinessCardProps) {
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const isFavorite = favorites.includes(business.id);
 
-  // Configuración de estilos según variante
+  // Estilos para negocios patrocinados
   const styles = {
-    sponsor: {
-      borderGradient: 'bg-gradient-to-br from-purple-600 via-pink-500 to-red-500',
-      badgeBg: 'bg-gradient-to-r from-purple-600 to-pink-600',
-      badgeText: '👑 PATROCINADO',
-      categoryBg: 'bg-purple-100 text-purple-800',
-      buttonBg: 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700',
-      titleHover: 'group-hover:text-purple-600',
-      shadow: 'hover:shadow-purple-500/50'
-    },
-    featured: {
-      borderGradient: 'bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-500',
-      badgeBg: 'bg-gradient-to-r from-blue-500 to-cyan-500',
-      badgeText: '⭐ DESTACADO',
-      categoryBg: 'bg-blue-100 text-blue-800',
-      buttonBg: 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700',
-      titleHover: 'group-hover:text-blue-600',
-      shadow: 'hover:shadow-blue-500/50'
-    }
+    borderGradient: 'bg-gradient-to-br from-purple-600 via-pink-500 to-red-500',
+    badgeBg: 'bg-gradient-to-r from-purple-600 to-pink-600',
+    badgeText: '👑 PATROCINADO',
+    categoryBg: 'bg-purple-100 text-purple-800',
+    buttonBg: 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700',
+    titleHover: 'group-hover:text-purple-600',
+    shadow: 'hover:shadow-purple-500/50'
   };
-
-  const currentStyle = styles[variant];
 
   const handleFavoriteToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -59,8 +44,8 @@ export default function PremiumBusinessCard({
     <div
       className={`
         group relative overflow-hidden rounded-2xl 
-        ${currentStyle.borderGradient}
-        p-1 shadow-2xl ${currentStyle.shadow} transition-all duration-300
+        ${styles.borderGradient}
+        p-1 shadow-2xl ${styles.shadow} transition-all duration-300
         w-[85%] md:w-auto
         flex-shrink-0 md:flex-shrink
         snap-center md:snap-align-none
@@ -68,8 +53,8 @@ export default function PremiumBusinessCard({
     >
       <div className="bg-white rounded-[14px] p-5 h-full">
         {/* Badge Premium */}
-        <div className={`absolute top-3 right-3 z-10 ${currentStyle.badgeBg} text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1`}>
-          {currentStyle.badgeText}
+        <div className={`absolute top-3 right-3 z-10 ${styles.badgeBg} text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1`}>
+          {styles.badgeText}
         </div>
         
         <div className="flex flex-col h-full">
@@ -98,7 +83,7 @@ export default function PremiumBusinessCard({
                 alt={`Logo de ${business.name}`}
                 className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
               />
-              <h3 className={`text-xl font-bold text-gray-900 pr-2 ${currentStyle.titleHover} transition truncate`}>
+              <h3 className={`text-xl font-bold text-gray-900 pr-2 ${styles.titleHover} transition truncate`}>
                 {business.name}
               </h3>
             </div>
@@ -116,7 +101,7 @@ export default function PremiumBusinessCard({
           <div className="mb-4 flex-grow">
             {/* Tags: Categoria, Rating, Delivery */}
             <div className="flex flex-wrap gap-2 mb-3">
-              <span className={`inline-flex items-center gap-1 px-2 py-1 ${currentStyle.categoryBg} text-xs font-semibold rounded-full`}>
+              <span className={`inline-flex items-center gap-1 px-2 py-1 ${styles.categoryBg} text-xs font-semibold rounded-full`}>
                 📂 {business.category}
               </span>
               {business.rating && business.rating > 0 && (
@@ -141,7 +126,7 @@ export default function PremiumBusinessCard({
           <div className="flex flex-col gap-2">
             <button
               onClick={() => onViewDetails(business)}
-              className={`w-full ${currentStyle.buttonBg} text-white px-4 py-3 rounded-lg font-bold text-sm transition shadow-md`}
+              className={`w-full ${styles.buttonBg} text-white px-4 py-3 rounded-lg font-bold text-sm transition shadow-md`}
             >
               Ver Detalles
             </button>

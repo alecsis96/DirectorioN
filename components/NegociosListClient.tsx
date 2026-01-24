@@ -1,17 +1,29 @@
 /**
  * NegociosListClient - Lista principal de negocios con filtros y búsqueda
  * 
- * CARD RENDERING UNIFICATION (Refactor 2026-01-24):
- * ===================================================
- * - Se eliminó FreeBusinessCardCompact para unificar el diseño de tarjetas
- * - Ahora TODOS los planes (sponsor/featured/free) usan BusinessCard
- * - BusinessCard maneja internamente los estilos diferenciados por tier
- * - La función renderBusinessCard() centraliza la decisión de renderizado
- * - Comportamiento consistente en búsqueda, filtros y vista normal
- * - Se mantiene toda la lógica existente: rotación, paginación, filtros, mapa
+ * CARD RENDERING STRATEGY (Actualizado 2026-01-24):
+ * ==================================================
+ * DISEÑO DIFERENCIADO POR PLAN:
+ * - Premium (Patrocinado/Destacado): Usa PremiumBusinessCard con portada/cover grande
+ * - Gratuito: Usa BusinessCard con diseño estándar
  * 
- * ANTES: Móviles usaban FreeBusinessCardCompact para free, BusinessCard para premium
- * AHORA: Todos usan BusinessCard siempre, con estilos internos según plan
+ * CONSISTENCIA VISUAL:
+ * - Los negocios premium SIEMPRE mantienen su diseño destacado (con cover)
+ * - Aplica en: secciones especiales, resultados filtrados, búsqueda
+ * - Sin filtros: Secciones superiores de "Negocios Patrocinados" y "Negocios Destacados"
+ * - Con filtros: Premium mantiene PremiumBusinessCard, Free usa BusinessCard
+ * 
+ * VISTA COMPACTA (TOGGLE OPCIONAL):
+ * - El usuario puede activar "Vista Compacta" para simplificar la vista
+ * - Cuando activa: TODOS los negocios usan BusinessCard (sin covers)
+ * - Por defecto: Desactivada (premium muestra diseño destacado)
+ * 
+ * FUNCIONALIDADES:
+ * - Rotación automática de negocios patrocinados en sección superior
+ * - Paginación incremental para negocios gratuitos (10 por vez)
+ * - Filtros: categoría, colonia, ordenamiento, búsqueda, envío
+ * - Vista mapa integrada con Google Maps
+ * - Favoritos (localStorage + context)
  */
 
 'use client';
@@ -24,9 +36,10 @@ import { signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
 import BusinessCard from './BusinessCard';
+import BusinessCardVertical from './BusinessCardVertical';
+import PremiumBusinessCard from './PremiumBusinessCard';
 // REMOVED: FreeBusinessCardCompact - Ya no se usa, unificamos a BusinessCard para todos los planes
 // import FreeBusinessCardCompact from './FreeBusinessCardCompact';
-import PremiumBusinessCard from './PremiumBusinessCard';
 import BusinessesMapView from './BusinessesMapView';
 import { auth, signInWithGoogle } from '../firebaseConfig';
 import { useCurrentUser } from '../hooks/useAuth';
@@ -107,6 +120,7 @@ export default function NegociosListClient({
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [showCategoriesSection, setShowCategoriesSection] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [compactView, setCompactView] = useState(false); // Vista Compacta: fuerza BusinessCard para todos
   const [freeBusinessesLimit, setFreeBusinessesLimit] = useState(10);
   const [uiFilters, setUiFilters] = useState<Filters>(() => ({
     category: initialFilters.category || '',
@@ -430,7 +444,7 @@ export default function NegociosListClient({
         </header>
 
         {/* Banner de Negocios Patrocinados - Máxima visibilidad */}
-        {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && (
+        {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
           <>
             {(() => {
               // Aplicar rotación justa: máx 6 patrocinados por sesión, mostrar 3 en banner
@@ -469,7 +483,6 @@ export default function NegociosListClient({
                         key={business.id}
                         business={business}
                         onViewDetails={(biz) => setSelectedBusiness(biz)}
-                        variant="sponsor"
                       />
                     ))}
                   </div>
@@ -480,7 +493,7 @@ export default function NegociosListClient({
         )}
 
         {/* Negocios Destacados del Mes */}
-        {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && (
+        {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
           <div className="mb-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -540,13 +553,12 @@ export default function NegociosListClient({
                   );
                 }
 
-                // Usar PremiumBusinessCard para diseño consistente con portada
+                // Usar BusinessCardVertical para coherencia con HOME (captura 2 solicitada por usuario)
                 return featured.map((business) => (
-                  <PremiumBusinessCard
+                  <BusinessCardVertical
                     key={business.id}
                     business={business}
                     onViewDetails={(biz) => setSelectedBusiness(biz)}
-                    variant="featured"
                   />
                 ));
               })()}
@@ -555,7 +567,7 @@ export default function NegociosListClient({
         )}
 
         {/* Categorías Destacadas */}
-        {!uiFilters.category && !uiFilters.query && categories.length > 0 && (
+        {!uiFilters.category && !uiFilters.query && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && categories.length > 0 && (
           <div className="mb-8" suppressHydrationWarning>
             <button
               onClick={() => setShowCategoriesSection(!showCategoriesSection)}
@@ -644,6 +656,27 @@ export default function NegociosListClient({
           </button>
         </div>
 
+        {/* Toggle Vista Compacta (solo en modo lista) */}
+        {viewMode === 'list' && (
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setCompactView(!compactView)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-all"
+            >
+              <input 
+                type="checkbox" 
+                checked={compactView} 
+                onChange={() => {}} 
+                className="w-4 h-4 text-blue-600 rounded"
+                readOnly
+              />
+              <span className="text-gray-700">
+                Vista Compacta {compactView ? '(Todos iguales)' : '(Premium destacado)'}
+              </span>
+            </button>
+          </div>
+        )}
+
         {/* Filtros activos - Chips para mostrar filtros seleccionados */}
         {(uiFilters.category || uiFilters.colonia || uiFilters.order !== DEFAULT_ORDER) && (
           <div className="mb-6 flex flex-wrap gap-2">
@@ -685,7 +718,8 @@ export default function NegociosListClient({
 
         {/* Determinar si las secciones superiores (Sponsor/Featured) se están mostrando */}
         {(() => {
-          const showTopSections = !uiFilters.category && !uiFilters.query && !uiFilters.colonia;
+          const showTopSections = !uiFilters.category && !uiFilters.query && !uiFilters.colonia && 
+                                   !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew;
           
           // Obtener los IDs de los negocios ya mostrados en las secciones Patrocinado y Destacado
           // Sponsor: aplicar misma rotación justa que en banner (consistencia)
@@ -841,41 +875,93 @@ export default function NegociosListClient({
                   )}
 
                   {!showEmptyState && (() => {
-                    // UNIFIED CARD RENDERING: Ya no separamos premium de free para usar cards diferentes
-                    // Todos los planes ahora usan BusinessCard de forma consistente
+                    // Separar solo patrocinados (usan PremiumBusinessCard) del resto (usan BusinessCard)
                     // Solo separamos para aplicar límite de paginación a negocios free
-                    const premiumBusinesses = businessesToDisplay.filter(biz => 
-                      biz.plan === 'sponsor' || biz.plan === 'patrocinado' || biz.plan === 'featured' || biz.plan === 'destacado'
+                    const sponsoredBusinesses = businessesToDisplay.filter(biz => 
+                      biz.plan === 'sponsor' || biz.plan === 'patrocinado'
                     );
-                    const freeBusinesses = businessesToDisplay.filter(biz => 
-                      !biz.plan || biz.plan === 'free'
+                    const otherBusinesses = businessesToDisplay.filter(biz => 
+                      biz.plan !== 'sponsor' && biz.plan !== 'patrocinado'
                     );
                     
-                    // Aplicar límite solo a negocios gratuitos
+                    // Aplicar límite solo a negocios gratuitos (no featured)
+                    const featuredBusinesses = otherBusinesses.filter(biz =>
+                      biz.plan === 'featured' || biz.plan === 'destacado'
+                    );
+                    const freeBusinesses = otherBusinesses.filter(biz => 
+                      !biz.plan || biz.plan === 'free'
+                    );
                     const displayedFreeBusinesses = freeBusinesses.slice(0, freeBusinessesLimit);
                     const hasMoreFreeBusinesses = freeBusinesses.length > displayedFreeBusinesses.length;
                     
                     /**
                      * Función centralizada para renderizar tarjetas de negocio
-                     * - Usa SIEMPRE BusinessCard independientemente del plan (sponsor/featured/free)
-                     * - Mantiene consistencia visual en todas las vistas (búsqueda, filtros, normal)
-                     * - Elimina la lógica anterior que usaba FreeBusinessCardCompact en móvil
+                     * - Patrocinados: Usan PremiumBusinessCard (con portada/cover grande)
+                     * - Destacados: Usan BusinessCardVertical (coherencia con HOME)
+                     * - Gratuitos: Usan BusinessCard (diseño estándar)
+                     * - Vista Compacta: Fuerza BusinessCard para TODOS cuando compactView = true
+                     * - Consistencia: Se mantiene en todas las vistas (búsqueda, filtros, normal)
                      */
-                    const renderBusinessCard = (biz: BusinessPreview) => (
-                      <div key={biz.id}>
-                        <BusinessCard 
-                          business={biz}
-                          onViewDetails={(business) => setSelectedBusiness(business)}
-                        />
-                      </div>
-                    );
+                    const renderBusinessCard = (biz: BusinessPreview) => {
+                      const isSponsor = biz.plan === 'sponsor' || biz.plan === 'patrocinado';
+                      const isFeatured = biz.plan === 'featured' || biz.plan === 'destacado';
+                      
+                      // Si Vista Compacta está activada, usar BusinessCard para todos
+                      if (compactView) {
+                        return (
+                          <div key={biz.id}>
+                            <BusinessCard 
+                              business={biz}
+                              onViewDetails={(business) => setSelectedBusiness(business)}
+                            />
+                          </div>
+                        );
+                      }
+                      
+                      // Patrocinados usan PremiumBusinessCard (con portada)
+                      if (isSponsor) {
+                        return (
+                          <div key={biz.id}>
+                            <PremiumBusinessCard 
+                              business={biz}
+                              onViewDetails={(business) => setSelectedBusiness(business)}
+                            />
+                          </div>
+                        );
+                      }
+                      
+                      // Destacados usan BusinessCardVertical (coherencia con HOME)
+                      if (isFeatured) {
+                        return (
+                          <div key={biz.id}>
+                            <BusinessCardVertical 
+                              business={biz}
+                              onViewDetails={(business) => setSelectedBusiness(business)}
+                            />
+                          </div>
+                        );
+                      }
+                      
+                      // Gratuitos usan BusinessCard estándar
+                      return (
+                        <div key={biz.id}>
+                          <BusinessCard 
+                            business={biz}
+                            onViewDetails={(business) => setSelectedBusiness(business)}
+                          />
+                        </div>
+                      );
+                    };
                     
                     return (
                       <>
-                        {/* Renderizar negocios premium (sin límite) - Usa BusinessCard unificada */}
-                        {premiumBusinesses.map(renderBusinessCard)}
+                        {/* Renderizar negocios patrocinados (sin límite) - Usa PremiumBusinessCard con portada */}
+                        {sponsoredBusinesses.map(renderBusinessCard)}
                         
-                        {/* Renderizar negocios gratuitos (con límite) - Usa BusinessCard unificada */}
+                        {/* Renderizar negocios destacados (sin límite) - Usa BusinessCard con badge */}
+                        {featuredBusinesses.map(renderBusinessCard)}
+                        
+                        {/* Renderizar negocios gratuitos (con límite) - Usa BusinessCard */}
                         {displayedFreeBusinesses.map(renderBusinessCard)}
                         
                         {/* Botón "Cargar más" para negocios gratuitos */}
