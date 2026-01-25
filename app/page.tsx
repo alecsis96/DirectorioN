@@ -232,9 +232,9 @@ export default async function Home() {
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                      {business.logo ? (
+                      {business.logoUrl ? (
                         <img 
-                          src={business.logo} 
+                          src={business.logoUrl} 
                           alt={business.name}
                           className="w-full h-full object-cover"
                         />
