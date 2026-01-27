@@ -17,6 +17,7 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   // Solo renderizar en el cliente
   useEffect(() => {
@@ -105,8 +106,11 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
         {/* Close Button - Posición absoluta sobre el modal */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-[100000] w-9 h-9 flex items-center justify-center rounded-full bg-gray-400/70 hover:bg-gray-500/80 transition-colors shadow-md"
+          className={`absolute top-4 right-4 z-[100000] w-9 h-9 flex items-center justify-center rounded-full bg-gray-400/70 hover:bg-gray-500/80 transition-all shadow-md ${
+            isGalleryOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
           aria-label="Cerrar"
+          disabled={isGalleryOpen}
         >
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -120,7 +124,7 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600" />
             </div>
           ) : fullBusiness ? (
-            <BusinessDetailView business={fullBusiness} />
+            <BusinessDetailView business={fullBusiness} onGalleryStateChange={setIsGalleryOpen} />
           ) : (
             <div className="text-center py-20">
               <p className="text-gray-600">No se pudo cargar la información del negocio</p>

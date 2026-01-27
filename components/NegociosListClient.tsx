@@ -35,6 +35,13 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
+// Swiper para carrusel de destacados
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+
 import BusinessCard from './BusinessCard';
 import BusinessCardVertical from './BusinessCardVertical';
 import PremiumBusinessCard from './PremiumBusinessCard';
@@ -439,24 +446,24 @@ export default function NegociosListClient({
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800 font-sans">
-      <section className="max-w-6xl mx-auto px-6 py-10 pb-24 md:pb-10">
-        <header className="mb-8">
+      <section className="max-w-6xl mx-auto px-6 py-2 pb-24 md:pb-10">
+        <header className="mb-2">
         </header>
 
         {/* Banner de Negocios Patrocinados - Máxima visibilidad */}
         {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
           <>
             {(() => {
-              // Aplicar rotación justa: máx 6 patrocinados por sesión, mostrar 3 en banner
+              // Aplicar rotación justa: máx 6 patrocinados por sesión, mostrar 6 en banner
               const allSponsored = businesses.filter(b => b.plan === 'sponsor');
               const rotatedSponsored = selectSponsoredRotation(allSponsored, 6);
-              const sponsored = rotatedSponsored.slice(0, 3);
+              const sponsored = rotatedSponsored.slice(0, 6); // Mostrar máximo 6 en banner
               
               if (sponsored.length === 0) return null;
               
               return (
-                <div className="mb-8">
-                  <div className="mb-4">
+                <div className="mb-8 -mx-1">
+                  <div className="mb-4 px-6">
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                       <span className="text-3xl">👑</span>
                       Negocios Patrocinados
@@ -467,102 +474,103 @@ export default function NegociosListClient({
                     </p>
                   </div>
                   
-                  {/* Grid usando PremiumBusinessCard - Diseño premium con portada */}
-                  <div className="
-                    flex md:grid
-                    overflow-x-auto md:overflow-visible
-                    snap-x snap-mandatory md:snap-none
-                    gap-4 md:gap-6
-                    px-4 -mx-4 md:px-0 md:mx-0
-                    pb-4 md:pb-0
-                    md:grid-cols-2 lg:grid-cols-3
-                    scrollbar-hide
-                  ">
+                  {/* Carrusel usando PremiumBusinessCard - Diseño premium con portada */}
+                  <Swiper
+                    modules={[Autoplay]}
+                    spaceBetween={8}
+                    slidesPerView={1.1}
+                    autoplay={{ delay: 4000, disableOnInteraction: false }}
+                    loop={sponsored.length > 1}
+                    breakpoints={{
+                      640: { slidesPerView: 1 },
+                      768: { slidesPerView: sponsored.length >= 2 ? 2 : 1 },
+                      1024: { slidesPerView: sponsored.length >= 3 ? 3 : sponsored.length },
+                    }}
+                    className="sponsored-carousel"
+                  >
                     {sponsored.map((business) => (
-                      <PremiumBusinessCard
-                        key={business.id}
-                        business={business}
-                        onViewDetails={(biz) => setSelectedBusiness(biz)}
-                      />
+                      <SwiperSlide key={business.id}>
+                        <PremiumBusinessCard
+                          business={business}
+                          onViewDetails={(biz) => setSelectedBusiness(biz)}
+                        />
+                      </SwiperSlide>
                     ))}
-                  </div>
+                  </Swiper>
                 </div>
               );
             })()}
           </>
         )}
 
-        {/* Negocios Destacados del Mes */}
+        {/* Negocios Destacados del Mes - Carrusel */}
         {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
           <div className="mb-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <span className="text-3xl">⭐</span>
                 Negocios Destacados del Mes
-                <span className="text-lg font-semibold text-yellow-600">({(() => {
-                  return businesses.filter(b => {
-                    if (b.plan === 'sponsor') return false;
-                    const isFeatured = b.featured === true || b.featured === 'true';
-                    const hasPremiumPlan = b.plan === 'featured';
-                    const featuredWithoutPlan = isFeatured && !b.plan;
-                    const isPremiumOnly = hasPremiumPlan;
-                    return (isFeatured && hasPremiumPlan) || featuredWithoutPlan || isPremiumOnly;
-                  }).length;
-                })()})</span>
               </h2>
             </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {(() => {
-                // Filtrar negocios destacados (excluir patrocinados - ellos tienen su propia sección)
-                const featured = businesses.filter(b => {
-                  // NO mostrar patrocinados aquí
-                  if (b.plan === 'sponsor') return false;
-                  
-                  // Criterio 1: Tiene featured marcado Y plan premium
-                  const isFeatured = b.featured === true || b.featured === 'true';
-                  const hasPremiumPlan = b.plan === 'featured';
-                  
-                  // Criterio 2: Si no hay plan definido pero tiene featured, mostrar igual
-                  const featuredWithoutPlan = isFeatured && !b.plan;
-                  
-                  // Criterio 3: Plan premium (featured) sin featured explícito
-                  const isPremiumOnly = hasPremiumPlan;
-                  
-                  return (isFeatured && hasPremiumPlan) || featuredWithoutPlan || isPremiumOnly;
-                })
-                .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-                .slice(0, 3);
+            {(() => {
+              // Filtrar negocios destacados (excluir patrocinados - ellos tienen su propia sección)
+              const allFeatured = businesses.filter(b => {
+                // NO mostrar patrocinados aquí
+                if (b.plan === 'sponsor') return false;
+                
+                // Criterio 1: Tiene featured marcado Y plan premium
+                const isFeatured = b.featured === true || b.featured === 'true';
+                const hasPremiumPlan = b.plan === 'featured';
+                
+                // Criterio 2: Si no hay plan definido pero tiene featured, mostrar igual
+                const featuredWithoutPlan = isFeatured && !b.plan;
+                
+                // Criterio 3: Plan premium (featured) sin featured explícito
+                const isPremiumOnly = hasPremiumPlan;
+                
+                return (isFeatured && hasPremiumPlan) || featuredWithoutPlan || isPremiumOnly;
+              });
 
-                // Debug: mostrar en consola
-                if (typeof window !== 'undefined') {
-                  console.log('Negocios destacados encontrados:', featured.length);
-                  console.log('Detalles:', featured.map(b => ({ 
-                    name: b.name, 
-                    featured: b.featured, 
-                    plan: b.plan 
-                  })));
-                }
+              // Selección aleatoria de máximo 3 negocios
+              const shuffled = [...allFeatured].sort(() => Math.random() - 0.5);
+              const featured = shuffled.slice(0, 3);
 
-                if (featured.length === 0) {
-                  return (
-                    <div className="col-span-full text-center py-8 bg-yellow-50 rounded-xl border-2 border-dashed border-yellow-200">
-                      <p className="text-gray-600 text-sm">
-                        🌟 Próximamente aquí aparecerán los negocios destacados del mes.
-                      </p>
-                    </div>
-                  );
-                }
+              if (featured.length === 0) {
+                return (
+                  <div className="text-center py-8 bg-yellow-50 rounded-xl border-2 border-dashed border-yellow-200">
+                    <p className="text-gray-600 text-sm">
+                      🌟 Próximamente aquí aparecerán los negocios destacados del mes.
+                    </p>
+                  </div>
+                );
+              }
 
-                // Usar BusinessCardVertical para coherencia con HOME (captura 2 solicitada por usuario)
-                return featured.map((business) => (
-                  <BusinessCardVertical
-                    key={business.id}
-                    business={business}
-                    onViewDetails={(biz) => setSelectedBusiness(biz)}
-                  />
-                ));
-              })()}
-            </div>
+              // Carrusel con Swiper
+              return (
+                <Swiper
+                  modules={[Autoplay]}
+                  spaceBetween={24}
+                  slidesPerView={1}
+                  autoplay={{ delay: 5000, disableOnInteraction: false }}
+                  loop={featured.length > 1}
+                  breakpoints={{
+                    640: { slidesPerView: 1 },
+                    768: { slidesPerView: featured.length >= 2 ? 2 : 1 },
+                    1024: { slidesPerView: featured.length >= 3 ? 3 : featured.length },
+                  }}
+                  className="featured-carousel"
+                >
+                  {featured.map((business) => (
+                    <SwiperSlide key={business.id}>
+                      <BusinessCardVertical
+                        business={business}
+                        onViewDetails={(biz) => setSelectedBusiness(biz)}
+                      />
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              );
+            })()}
           </div>
         )}
 
@@ -726,7 +734,7 @@ export default function NegociosListClient({
           const allSponsoredForTop = businesses.filter(b => b.plan === 'sponsor');
           const rotatedSponsoredForTop = selectSponsoredRotation(allSponsoredForTop, 6);
           const sponsoredTopIds = showTopSections 
-            ? rotatedSponsoredForTop.slice(0, 3).map(b => b.id)
+            ? rotatedSponsoredForTop.slice(0, 6).map(b => b.id)
             : [];
           
           // Featured top 3: (Excluyendo patrocinados que ya están arriba)
@@ -867,7 +875,7 @@ export default function NegociosListClient({
 
               {/* Vista de Lista */}
               {viewMode === 'list' && (
-                <div className="space-y-6">
+                <div className="space-y-2">
                   {showEmptyState && (
                     <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
                       No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
@@ -966,7 +974,7 @@ export default function NegociosListClient({
                         
                         {/* Botón "Cargar más" para negocios gratuitos */}
                         {hasMoreFreeBusinesses && (
-                          <div className="flex justify-center mt-6">
+                          <div className="flex justify-center mt-4">
                             <button
                               onClick={() => setFreeBusinessesLimit(prev => prev + 10)}
                               className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-[#38761D] text-white text-sm font-semibold hover:bg-[#2f5a1a] transition shadow-md hover:shadow-lg"
@@ -991,7 +999,7 @@ export default function NegociosListClient({
         })()}
 
         {hasMore && (
-          <div className="mt-6 flex flex-col items-center gap-3">
+          <div className="mt-4 flex flex-col items-center gap-2">
             <button
               type="button"
               onClick={handleLoadMore}

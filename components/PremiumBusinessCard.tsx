@@ -46,7 +46,7 @@ export default function PremiumBusinessCard({
         group relative overflow-hidden rounded-2xl 
         ${styles.borderGradient}
         p-1 shadow-2xl ${styles.shadow} transition-all duration-300
-        w-[85%] md:w-auto
+        w-[98%] md:w-auto
         flex-shrink-0 md:flex-shrink
         snap-center md:snap-align-none
       `}

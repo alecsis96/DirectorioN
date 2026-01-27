@@ -193,12 +193,13 @@ const BusinessHoursChip = ({ hours }: { hours?: string }) => {
 interface Props {
 
   business: Business;
+  onGalleryStateChange?: (isOpen: boolean) => void;
 
 }
 
 
 
-export default function BusinessDetailView({ business }: Props) {
+export default function BusinessDetailView({ business, onGalleryStateChange }: Props) {
   const businessId = typeof business.id === "string" ? business.id : undefined;
 
   // Guardar en historial
@@ -292,6 +293,12 @@ export default function BusinessDetailView({ business }: Props) {
   const [isMounted, setIsMounted] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [showAllGalleryImages, setShowAllGalleryImages] = useState(false);
+
+  // Notificar cambios en el estado de la galería
+  useEffect(() => {
+    onGalleryStateChange?.(showGalleryModal);
+  }, [showGalleryModal, onGalleryStateChange]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Detectar cuando el componente está montado en el cliente
@@ -753,8 +760,8 @@ export default function BusinessDetailView({ business }: Props) {
             ? 'aspect-square md:h-96' 
             : currentTheme.heroHeight
         } bg-gray-200 rounded-t-2xl overflow-hidden`}>
-          {/* Botón de zoom - Movido a esquina inferior derecha para no interferir con botón cerrar */}
-          {allGalleryImages.length > 0 && (
+          {/* Botón de zoom - Solo para plan Sponsor */}
+          {plan === 'sponsor' && allGalleryImages.length > 0 && (
             <button
               onClick={() => {
                 setCurrentImageIndex(0);
@@ -981,7 +988,7 @@ export default function BusinessDetailView({ business }: Props) {
             )}
           </div>
 
-          {/* Botón Facebook (si existe) */}
+          {/* Segunda fila: Facebook */}
           {facebookHref && (
             <a
               href={facebookHref}
@@ -1048,6 +1055,22 @@ export default function BusinessDetailView({ business }: Props) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
                 Cómo llegar
+              </button>
+            )}
+            {/* Chip Galería - Para planes premium con fotos */}
+            {(plan === 'featured' || plan === 'sponsor') && allGalleryImages.length > 0 && !dataSaverEnabled && (
+              <button
+                onClick={() => {
+                  setCurrentImageIndex(0);
+                  setShowGalleryModal(true);
+                  trackDetailInteraction('gallery_opened_from_chip');
+                }}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Galería
               </button>
             )}
             {/* Chip Reseñas - solo si hay reseñas o el usuario puede dejar una */}
@@ -1146,7 +1169,7 @@ export default function BusinessDetailView({ business }: Props) {
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {allGalleryImages.map((imageUrl, index) => (
+            {(showAllGalleryImages ? allGalleryImages : allGalleryImages.slice(0, 2)).map((imageUrl, index) => (
               <button
                 key={index}
                 onClick={() => {
@@ -1170,6 +1193,35 @@ export default function BusinessDetailView({ business }: Props) {
               </button>
             ))}
           </div>
+          
+          {/* Botón Ver más / Ver menos */}
+          {allGalleryImages.length > 2 && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={() => {
+                  setShowAllGalleryImages(!showAllGalleryImages);
+                  trackDetailInteraction(showAllGalleryImages ? 'gallery_collapsed' : 'gallery_expanded');
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              >
+                {showAllGalleryImages ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                    </svg>
+                    Ver menos
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    Ver {allGalleryImages.length - 2} más
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </section>
       )}
 

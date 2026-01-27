@@ -179,12 +179,12 @@ export function sortBusinessesWithSponsors(businesses: Business[]): Business[] {
   const sponsored = businesses.filter(b => b.plan === 'sponsor');
   const others = businesses.filter(b => b.plan !== 'sponsor');
   
-  // Si hay más de 3 patrocinados, seleccionar 3 al azar
+  // Si hay más de 6 patrocinados, seleccionar 6 al azar
   let selectedSponsored: Business[] = [];
-  if (sponsored.length > 3) {
-    // Rotación aleatoria: shuffle y tomar los primeros 3
+  if (sponsored.length > 6) {
+    // Rotación aleatoria: shuffle y tomar los primeros 6
     const shuffled = [...sponsored].sort(() => Math.random() - 0.5);
-    selectedSponsored = shuffled.slice(0, 3);
+    selectedSponsored = shuffled.slice(0, 6);
   } else {
     selectedSponsored = sponsored;
   }
