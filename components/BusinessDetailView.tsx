@@ -83,113 +83,6 @@ const readSaveDataPreference = () => {
   return Boolean(connection?.saveData);
 };
 
-// Componente para mostrar el estado de apertura como chip
-const BusinessHoursChip = ({ hours }: { hours?: string }) => {
-  if (!hours) return null;
-
-  const now = new Date();
-  const currentDay = now.getDay(); // 0 = domingo, 1 = lunes, etc.
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-
-  // Parse formato "Lun-Vie 09:00-18:00" o "Dom-Sáb 09:00-16:00"
-  const segments = hours.split(';').map(s => s.trim()).filter(Boolean);
-  
-  // Función para normalizar nombres de días (sin acentos, lowercase)
-  const normalizeDayName = (name: string) => {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .slice(0, 3);
-  };
-  
-  const dayNames = ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab'];
-  const dayNamesLong = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  
-  // Función para verificar si un día está en el rango
-  const isDayInRange = (day: number, dayPart: string): boolean => {
-    if (dayPart.includes('-')) {
-      const parts = dayPart.split('-').map(p => normalizeDayName(p.trim()));
-      if (parts.length === 2) {
-        const startIdx = dayNames.indexOf(parts[0]);
-        const endIdx = dayNames.indexOf(parts[1]);
-        
-        if (startIdx !== -1 && endIdx !== -1) {
-          if (startIdx <= endIdx) {
-            return day >= startIdx && day <= endIdx;
-          } else {
-            return day >= startIdx || day <= endIdx;
-          }
-        }
-      }
-    } else {
-      const normalizedDayPart = normalizeDayName(dayPart);
-      return normalizedDayPart === dayNames[day];
-    }
-    return false;
-  };
-  
-  // Primero verificar si está abierto ahora
-  for (const segment of segments) {
-    const match = segment.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
-    if (!match) continue;
-    
-    const [, openH, openM, closeH, closeM] = match;
-    const openTime = parseInt(openH) * 60 + parseInt(openM);
-    const closeTime = parseInt(closeH) * 60 + parseInt(closeM);
-    const dayPart = segment.slice(0, match.index).trim();
-    
-    if (isDayInRange(currentDay, dayPart)) {
-      if (currentTime >= openTime && currentTime < closeTime) {
-        return (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="text-sm font-semibold text-green-700">Abierto ahora</span>
-          </div>
-        );
-      }
-    }
-  }
-  
-  // Si está cerrado, buscar próxima apertura (hoy o próximos 7 días)
-  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-    const checkDay = (currentDay + dayOffset) % 7;
-    const isToday = dayOffset === 0;
-    
-    for (const segment of segments) {
-      const match = segment.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
-      if (!match) continue;
-      
-      const [, openH, openM] = match;
-      const openTime = parseInt(openH) * 60 + parseInt(openM);
-      const dayPart = segment.slice(0, match.index).trim();
-      
-      if (isDayInRange(checkDay, dayPart)) {
-        // Si es hoy, solo considerar si aún no ha llegado la hora de apertura
-        if (isToday && currentTime >= openTime) continue;
-        
-        const dayLabel = isToday ? 'hoy' : dayNamesLong[checkDay].toLowerCase();
-        return (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-red-500"></span>
-            <span className="text-sm font-semibold text-red-700">
-              Cerrado · Abre {dayLabel} a las {openH}:{openM}
-            </span>
-          </div>
-        );
-      }
-    }
-  }
-
-  return (
-    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full">
-      <span className="w-2 h-2 rounded-full bg-red-500"></span>
-      <span className="text-sm font-semibold text-red-700">Cerrado</span>
-    </div>
-  );
-};
-
-
 interface Props {
 
   business: Business;
@@ -919,13 +812,6 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
             </div>
           </div>
 
-          {/* Estado de apertura */}
-          {business.hours && (
-            <div className="mb-4">
-              <BusinessHoursChip hours={business.hours} />
-            </div>
-          )}
-
           {/* Rating y reseñas */}
           {Number(business.rating ?? 0) > 0 && (
             <div className="flex items-center gap-3 py-3 border-y border-gray-100 mb-4">
@@ -1060,11 +946,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
             {/* Chip Galería - Para planes premium con fotos */}
             {(plan === 'featured' || plan === 'sponsor') && allGalleryImages.length > 0 && !dataSaverEnabled && (
               <button
-                onClick={() => {
-                  setCurrentImageIndex(0);
-                  setShowGalleryModal(true);
-                  trackDetailInteraction('gallery_opened_from_chip');
-                }}
+                onClick={() => document.getElementById('galeria-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1149,7 +1031,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
       {/* Galería de Fotos - Para planes Featured y Sponsor */}
       {(plan === 'featured' || plan === 'sponsor') && allGalleryImages.length > 0 && !dataSaverEnabled && (
-        <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
+        <section id="galeria-section" className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
               📷 Galería de Fotos
@@ -1157,16 +1039,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
                 ({allGalleryImages.length} {allGalleryImages.length === 1 ? 'foto' : 'fotos'})
               </span>
             </h2>
-            {plan === 'featured' && (
-              <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full border border-amber-300">
-                Hasta 2 fotos
-              </span>
-            )}
-            {plan === 'sponsor' && (
-              <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full border border-purple-300">
-                Hasta 10 fotos
-              </span>
-            )}
+           
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {(showAllGalleryImages ? allGalleryImages : allGalleryImages.slice(0, 2)).map((imageUrl, index) => (

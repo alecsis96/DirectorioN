@@ -538,122 +538,124 @@ function NavigationContent() {
         {showSearch && (
           <div className="md:hidden pb-3 pt-2 px-4">
             
-            {/* Filtros rápidos tipo chips - Solo móvil */}
-            <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              <button
-                type="button"
-                onClick={() => setShowFiltersModal(true)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border flex-shrink-0 transition-all ${
-                  activeFiltersCount > 0
-                    ? 'bg-[#38761D] text-white border-[#38761D]'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <BsFilter className="text-sm" />
-                Filtros
-                {activeFiltersCount > 0 && (
-                  <span className="bg-white text-[#38761D] rounded-full px-1.5 py-0.5 text-[10px] font-bold">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
-              
-              {/* Abierto ahora */}
-              <button
-                type="button"
-                onClick={() => {
-                  const nextParams = new URLSearchParams(params?.toString() ?? '');
-                  const current = nextParams.get('quickFilter');
-                  if (current === 'open') {
-                    nextParams.delete('quickFilter');
-                  } else {
-                    nextParams.set('quickFilter', 'open');
-                  }
-                  nextParams.delete('p');
-                  const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
-                  router.push(`${targetPath}?${nextParams.toString()}`);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
-                  params?.get('quickFilter') === 'open'
-                    ? 'bg-[#38761D] text-white border-[#38761D]'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                ⏰ Abierto ahora
-              </button>
-              
-              {/* Mejor valorados */}
-              <button
-                type="button"
-                onClick={() => {
-                  const nextParams = new URLSearchParams(params?.toString() ?? '');
-                  const current = nextParams.get('quickFilter');
-                  if (current === 'topRated') {
-                    nextParams.delete('quickFilter');
-                  } else {
-                    nextParams.set('quickFilter', 'topRated');
-                  }
-                  nextParams.delete('p');
-                  const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
-                  router.push(`${targetPath}?${nextParams.toString()}`);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
-                  params?.get('quickFilter') === 'topRated'
-                    ? 'bg-[#38761D] text-white border-[#38761D]'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                ⭐ Mejor valorados
-              </button>
-              
-              {/* Delivery */}
-              <button
-                type="button"
-                onClick={() => {
-                  const nextParams = new URLSearchParams(params?.toString() ?? '');
-                  const current = nextParams.get('quickFilter');
-                  if (current === 'delivery') {
-                    nextParams.delete('quickFilter');
-                  } else {
-                    nextParams.set('quickFilter', 'delivery');
-                  }
-                  nextParams.delete('p');
-                  const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
-                  router.push(`${targetPath}?${nextParams.toString()}`);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
-                  params?.get('quickFilter') === 'delivery'
-                    ? 'bg-[#38761D] text-white border-[#38761D]'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                🚚 Delivery
-              </button>
-              
-              {/* Nuevos */}
-              <button
-                type="button"
-                onClick={() => {
-                  const nextParams = new URLSearchParams(params?.toString() ?? '');
-                  const current = nextParams.get('quickFilter');
-                  if (current === 'new') {
-                    nextParams.delete('quickFilter');
-                  } else {
-                    nextParams.set('quickFilter', 'new');
-                  }
-                  nextParams.delete('p');
-                  const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
-                  router.push(`${targetPath}?${nextParams.toString()}`);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
-                  params?.get('quickFilter') === 'new'
-                    ? 'bg-[#38761D] text-white border-[#38761D]'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                🆕 Nuevos
-              </button>
-            </div>
+            {/* Filtros rápidos tipo chips - Solo en /negocios */}
+            {pathname?.startsWith('/negocios') && (
+              <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                <button
+                  type="button"
+                  onClick={() => setShowFiltersModal(true)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border flex-shrink-0 transition-all ${
+                    activeFiltersCount > 0
+                      ? 'bg-[#38761D] text-white border-[#38761D]'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <BsFilter className="text-sm" />
+                  Filtros
+                  {activeFiltersCount > 0 && (
+                    <span className="bg-white text-[#38761D] rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Abierto ahora */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextParams = new URLSearchParams(params?.toString() ?? '');
+                    const current = nextParams.get('quickFilter');
+                    if (current === 'open') {
+                      nextParams.delete('quickFilter');
+                    } else {
+                      nextParams.set('quickFilter', 'open');
+                    }
+                    nextParams.delete('p');
+                    const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                    router.push(`${targetPath}?${nextParams.toString()}`);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                    params?.get('quickFilter') === 'open'
+                      ? 'bg-[#38761D] text-white border-[#38761D]'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  ⏰ Abierto ahora
+                </button>
+                
+                {/* Mejor valorados */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextParams = new URLSearchParams(params?.toString() ?? '');
+                    const current = nextParams.get('quickFilter');
+                    if (current === 'topRated') {
+                      nextParams.delete('quickFilter');
+                    } else {
+                      nextParams.set('quickFilter', 'topRated');
+                    }
+                    nextParams.delete('p');
+                    const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                    router.push(`${targetPath}?${nextParams.toString()}`);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                    params?.get('quickFilter') === 'topRated'
+                      ? 'bg-[#38761D] text-white border-[#38761D]'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  ⭐ Mejor valorados
+                </button>
+                
+                {/* Delivery */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextParams = new URLSearchParams(params?.toString() ?? '');
+                    const current = nextParams.get('quickFilter');
+                    if (current === 'delivery') {
+                      nextParams.delete('quickFilter');
+                    } else {
+                      nextParams.set('quickFilter', 'delivery');
+                    }
+                    nextParams.delete('p');
+                    const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                    router.push(`${targetPath}?${nextParams.toString()}`);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                    params?.get('quickFilter') === 'delivery'
+                      ? 'bg-[#38761D] text-white border-[#38761D]'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  🚚 Delivery
+                </button>
+                
+                {/* Nuevos */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextParams = new URLSearchParams(params?.toString() ?? '');
+                    const current = nextParams.get('quickFilter');
+                    if (current === 'new') {
+                      nextParams.delete('quickFilter');
+                    } else {
+                      nextParams.set('quickFilter', 'new');
+                    }
+                    nextParams.delete('p');
+                    const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
+                    router.push(`${targetPath}?${nextParams.toString()}`);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                    params?.get('quickFilter') === 'new'
+                      ? 'bg-[#38761D] text-white border-[#38761D]'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  🆕 Nuevos
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

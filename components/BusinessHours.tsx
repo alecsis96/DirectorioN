@@ -288,6 +288,7 @@ const formatSummary = (schedule: Schedule) => {
 export default function BusinessHours({ hours, horarios }: BusinessHoursProps) {
   const { schedule, hasData } = useMemo(() => buildSchedule(hours, horarios), [hours, horarios]);
   const summary = useMemo(() => formatSummary(schedule), [schedule]);
+  const status = useMemo(() => describeStatus(schedule), [schedule]);
 
   if (!hasData) {
     return (
@@ -310,7 +311,28 @@ export default function BusinessHours({ hours, horarios }: BusinessHoursProps) {
       </svg>
       <div>
         <p className="font-semibold text-gray-900">Horario</p>
-        <p className="text-sm text-gray-600">{summary}</p>
+        <p className="text-sm text-gray-600">
+          {summary}
+          {status.status !== 'unknown' && (
+            <span className="inline-flex items-center gap-1 ml-2">
+              <span className="inline-block">·</span>
+              <span className={`inline-flex items-center gap-1 ${
+                status.status === 'open' 
+                  ? 'text-green-600' 
+                  : 'text-gray-500'
+              }`}>
+                <span className={`inline-block w-2 h-2 rounded-full ${
+                  status.status === 'open' 
+                    ? 'bg-green-500' 
+                    : 'bg-gray-400'
+                }`}></span>
+                <span className="font-medium">
+                  {status.status === 'open' ? 'Abierto' : 'Cerrado'}
+                </span>
+              </span>
+            </span>
+          )}
+        </p>
       </div>
     </div>
   );

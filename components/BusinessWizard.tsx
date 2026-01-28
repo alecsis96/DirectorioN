@@ -225,6 +225,8 @@ export default function BusinessWizardPro() {
   const [statusMsg, setStatusMsg] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(() => auth.currentUser);
+  const [confirmChecked, setConfirmChecked] = useState(false);
+  const [showConfirmError, setShowConfirmError] = useState(false);
 
   const addressRef = useRef<HTMLInputElement>(null);
 
@@ -327,15 +329,22 @@ export default function BusinessWizardPro() {
     try {
       const index = stepToIndex(currentStep);
       const next = steps[index + 1];
+      
+      // Validar checkbox en el último paso
+      if (!next && !confirmChecked) {
+        setShowConfirmError(true);
+        return;
+      }
+      
       // Ensambla structure para backend si es último paso
       const result = await persist(values, next ? next.key : currentStep, next ? "wizard" : "application");
       if (next) {
         setCurrentStep(next.key);
-        setStatusMsg("Progreso guardado.");
+        setStatusMsg("✓ Tu información se guardó correctamente.");
       } else {
         // Guardar el email para mostrar el link
         setSubmittedEmail(values.ownerEmail);
-        setStatusMsg("✅ ¡Solicitud enviada exitosamente!");
+        setStatusMsg("✓ ¡Tu solicitud ha sido enviada exitosamente!");
       }
     } catch (e) {
       console.error("submit", e);
@@ -346,17 +355,28 @@ export default function BusinessWizardPro() {
   const onSaveDraft = async () => {
     try {
       await persist(getValues(), currentStep, "wizard");
-      setStatusMsg("Borrador guardado.");
+      setStatusMsg("✓ Tu borrador se guardó correctamente.");
     } catch (e) {
       console.error("draft", e);
-      setStatusMsg("No pudimos guardar el borrador.");
+      setStatusMsg("❌ No pudimos guardar tu borrador. Por favor, intenta de nuevo.");
     }
   };
 
   const goBack = () => {
     const i = stepToIndex(currentStep);
-    if (i > 0) setCurrentStep(steps[i - 1].key);
+    if (i > 0) {
+      setCurrentStep(steps[i - 1].key);
+      setShowConfirmError(false);
+    }
   };
+
+  // Resetear checkbox cuando llega al paso de confirmación
+  useEffect(() => {
+    if (currentStep === 'confirm') {
+      setConfirmChecked(false);
+      setShowConfirmError(false);
+    }
+  }, [currentStep]);
 
   // ------------- Contenido por paso SIMPLIFICADO -------------
   const stepContent = useMemo(() => {
@@ -386,7 +406,7 @@ export default function BusinessWizardPro() {
                   <input 
                     className="input" 
                     type="email" 
-                    placeholder="correo@ejemplo.com" 
+                    placeholder="correo@gmail.com" 
                     {...register("ownerEmail", { required: "Ingresa tu correo" })} 
                   />
                 </Field>
@@ -457,9 +477,10 @@ export default function BusinessWizardPro() {
               </Field>
             </Group>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                💡 <strong>Nota:</strong> Solo necesitamos al menos un teléfono o WhatsApp del negocio. Después de la aprobación, podrás agregar ubicación, horarios, fotos y mucho más en el dashboard.
+            <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5">
+              <p className="text-xs text-amber-900 leading-relaxed">
+                <span className="text-sm">💡</span> Solo necesitamos un medio de contacto.
+                Después podrás agregar ubicación, horarios, fotos y más desde tu panel.
               </p>
             </div>
           </div>
@@ -486,9 +507,9 @@ export default function BusinessWizardPro() {
 
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
               <p className="text-sm text-blue-900">
-                ℹ️ <strong>¿Qué sigue?</strong> Al enviar tu solicitud, un administrador la revisará y aprobará. 
-                Una vez aprobada, recibirás acceso a un dashboard donde podrás completar la información de tu negocio 
-                (ubicación, horarios, fotos, redes sociales, etc.) y publicarlo en el directorio.
+                ℹ️ <strong>¿Qué sigue?</strong> <br/>
+                Un administrador revisará tu solicitud.
+                Si es aprobada, podrás acceder a tu dashboard para completar la información de tu negocio y publicarlo en YajaGon.
               </p>
             </div>
           </div>
@@ -512,16 +533,33 @@ export default function BusinessWizardPro() {
       <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-[#38761D]">Solicitud de registro</h1>
-          <p className="text-sm text-gray-600">Proceso rápido en 2 pasos. Completa después de la aprobación.</p>
+          <p className="text-sm text-gray-600">Registro rápido en 2 pasos
+            Completa tu negocio después de la aprobación.
+          </p>
         </div>
-        <UserBadge
-          user={user}
-          onSignIn={() => signInWithGoogle()}
-          onSignOut={async () => { await signOut(auth); }}
-        />
       </header>
 
-      <nav className="flex gap-2">
+      {!user && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 flex items-start gap-3">
+          <span className="text-xl">🔒</span>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-blue-900 mb-1">
+              Para continuar necesitas iniciar sesión.
+            </p>
+            <p className="text-xs text-blue-700">
+              Es rápido y gratuito.
+            </p>
+          </div>
+          <button
+            onClick={() => signInWithGoogle()}
+            className="rounded-lg bg-[#38761D] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2f5a1a] transition-all whitespace-nowrap"
+          >
+            Iniciar sesión
+          </button>
+        </div>
+      )}
+
+      <nav className="flex gap-3">
         {steps.map((s, index) => {
           const active = s.key === currentStep;
           const completed = index < stepToIndex(currentStep);
@@ -530,15 +568,22 @@ export default function BusinessWizardPro() {
               key={s.key}
               type="button"
               onClick={() => completed && setCurrentStep(s.key)}
-              className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+              className={`flex-1 rounded-xl border-2 px-4 py-3 text-xs font-semibold transition-all ${
                 active
-                  ? "border-[#38761D] bg-[#38761D]/10 text-[#2d5418]"
+                  ? "border-[#38761D] bg-[#38761D]/5 text-[#38761D] shadow-sm"
                   : completed
-                  ? "border-[#38761D]/60 text-[#38761D]"
-                  : "border-gray-200 text-gray-400"
+                  ? "border-[#38761D]/40 bg-white text-[#38761D] hover:bg-[#38761D]/5 cursor-pointer"
+                  : "border-gray-200 bg-gray-50/50 text-gray-400 cursor-not-allowed"
               }`}
             >
-              <span className="block text-left uppercase tracking-wide">Paso {index + 1}</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="uppercase tracking-wider text-[10px] font-bold">
+                  Paso {index + 1}
+                </span>
+                {completed && (
+                  <span className="text-[#38761D] text-base">✓</span>
+                )}
+              </div>
               <span className="block text-left text-sm font-bold">{s.title}</span>
             </button>
           );
@@ -546,33 +591,45 @@ export default function BusinessWizardPro() {
       </nav>
 
       {statusMsg && (
-        <div className={`rounded border px-4 py-3 text-sm ${
+        <div className={`rounded-xl border-2 px-4 py-4 ${
           statusMsg.includes('❌') 
-            ? 'border-red-300 bg-red-50 text-red-700'
-            : 'border-green-300 bg-green-50 text-green-700'
+            ? 'border-red-300 bg-red-50 text-red-800'
+            : 'border-green-400 bg-green-50 text-green-800'
         }`}>
-          <p className="font-semibold mb-2">{statusMsg}</p>
+          <p className="font-bold text-base mb-2 flex items-center gap-2">
+            <span className="text-xl">{statusMsg.includes('❌') ? '❌' : '✓'}</span>
+            <span>{statusMsg.replace('✓', '').replace('❌', '').trim()}</span>
+          </p>
           {submittedEmail && (
-            <div className="mt-3 space-y-2">
-              <p className="text-sm">
-                📧 Email de registro: <span className="font-semibold">{submittedEmail}</span>
-              </p>
+            <div className="mt-4 space-y-3">
+              <div className="bg-white rounded-lg border border-green-200 p-3">
+                <p className="text-sm text-gray-700">
+                  📧 <span className="font-medium">Email registrado:</span>{' '}
+                  <span className="font-semibold text-gray-900">{submittedEmail}</span>
+                </p>
+                <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                  <span>⏱️</span>
+                  <span>Tiempo estimado de revisión: <strong>24–48 horas</strong></span>
+                </p>
+              </div>
+              
               <div className="flex flex-col sm:flex-row gap-2">
                 <a
                   href="/mis-solicitudes"
-                  className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-semibold text-center"
+                  className="flex-1 inline-block bg-[#38761D] text-white px-4 py-2.5 rounded-lg hover:bg-[#2f5a1a] hover:shadow-md transition font-semibold text-center text-sm"
                 >
-                  🔍 Verificar estado de mi solicitud
+                  📊 Consultar estado de mi solicitud
                 </a>
                 <a
                   href={`/solicitud/${encodeURIComponent(submittedEmail)}`}
-                  className="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition font-semibold text-center"
+                  className="flex-1 inline-block border-2 border-gray-300 bg-white text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition font-semibold text-center text-sm"
                 >
-                  Ver mis solicitudes directamente
+                  📋 Ver todas mis solicitudes
                 </a>
               </div>
-              <p className="text-xs text-gray-600 mt-2">
-                💡 Guarda este link para consultar el estado cuando quieras. Te notificaremos cuando tu solicitud sea aprobada y puedas completar los datos de tu negocio.
+              
+              <p className="text-xs text-gray-600 leading-relaxed">
+                💡 Te notificaremos cuando tu solicitud sea aprobada para que puedas completar los datos de tu negocio.
               </p>
             </div>
           )}
@@ -584,14 +641,39 @@ export default function BusinessWizardPro() {
           {stepContent}
         </section>
 
+        {currentStep === 'confirm' && (
+          <div className="rounded-xl border-2 border-gray-200 bg-gray-50 p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={confirmChecked}
+                onChange={(e) => {
+                  setConfirmChecked(e.target.checked);
+                  setShowConfirmError(false);
+                }}
+                className="mt-1 h-5 w-5 rounded border-gray-300 text-[#38761D] focus:ring-2 focus:ring-[#38761D]/40 cursor-pointer"
+              />
+              <span className="text-sm font-semibold text-gray-800">
+                Confirmo que la información proporcionada es correcta.
+              </span>
+            </label>
+            {showConfirmError && (
+              <p className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1">
+                <span>⚠️</span>
+                <span>Por favor, confirma que la información es correcta antes de enviar.</span>
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={goBack}
             disabled={currentIndex === 0 || saving}
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 disabled:opacity-40"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            Anterior
+            ← Anterior
           </button>
           <div className="flex items-center gap-3">
             {user?.uid && (
@@ -599,20 +681,26 @@ export default function BusinessWizardPro() {
                 type="button"
                 onClick={onSaveDraft}
                 disabled={saving}
-                className="rounded-lg border border-[#38761D] px-4 py-2 text-sm font-semibold text-[#38761D] hover:bg-[#38761D]/10 disabled:opacity-40"
+                className="rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                Guardar borrador
+                💾 Guardar borrador
               </button>
             )}
             <button
               type="submit"
-              disabled={saving}
-              className="rounded-lg bg-[#38761D] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2f5a1a] disabled:opacity-40"
+              disabled={saving || (!hasNext && !confirmChecked)}
+              className="rounded-lg bg-[#38761D] px-6 py-2 text-sm font-bold text-white hover:bg-[#2f5a1a] hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
-              {hasNext ? "Siguiente" : "Enviar solicitud"}
+              {hasNext ? "Siguiente →" : "✓ Enviar solicitud"}
             </button>
           </div>
         </div>
+        
+        {!hasNext && (
+          <p className="text-xs text-gray-500 text-center mt-2">
+            ⏱️ Tiempo de revisión estimado: 24–48 horas
+          </p>
+        )}
       </form>
     </div>
   );
@@ -689,15 +777,21 @@ function UserBadge({ user, onSignIn, onSignOut }: { user: User | null; onSignIn:
   }
   const initials = user.email?.slice(0, 2).toUpperCase() || "US";
   return (
-    <div className="flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-2">
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#38761D]/20 text-xs font-bold text-[#38761D]">
+    <div className="flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-2 shadow-sm">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#38761D]/20 text-sm font-bold text-[#38761D]">
         {initials}
       </div>
-      <div className="text-xs text-gray-600">
-        <p className="font-semibold text-gray-800">{user.displayName || user.email}</p>
-        <p>{user.email}</p>
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-gray-800">{user.displayName || user.email}</p>
+        <p className="text-xs text-gray-600">{user.email}</p>
+        <p className="text-[10px] text-green-600 font-medium mt-0.5">
+          ✓ Sesión activa. Puedes continuar con tu solicitud.
+        </p>
       </div>
-      <button className="text-xs font-semibold text-red-500" onClick={onSignOut}>
+      <button 
+        className="text-xs font-medium text-gray-400 hover:text-red-500 transition-colors" 
+        onClick={onSignOut}
+      >
         Cerrar sesión
       </button>
     </div>
