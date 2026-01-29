@@ -41,7 +41,7 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
       setHasLoaded(true);
       
       // Track business viewed
-      if (business.id) {
+      if (business.id && business.name && business.category) {
         trackBusinessInteraction(
           'business_viewed',
           business.id,
@@ -73,12 +73,14 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
           setFullBusiness(business);
           
           // Track business viewed
-          trackBusinessInteraction(
-            'business_viewed',
-            business.id,
-            business.name,
-            business.category
-          );
+          if (business.id && business.name && business.category) {
+            trackBusinessInteraction(
+              'business_viewed',
+              business.id,
+              business.name,
+              business.category
+            );
+          }
         } else {
           console.log('[BusinessModalWrapper] Business not found');
         }
