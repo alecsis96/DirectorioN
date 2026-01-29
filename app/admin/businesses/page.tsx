@@ -52,8 +52,8 @@ interface BusinessData {
   reviewCount?: number;
   avgRating?: number;
   stripeSubscriptionStatus?: string;
-  nextPaymentDate?: string;
-  lastPaymentDate?: string;
+  nextPaymentDate?: string | null;
+  lastPaymentDate?: string | null;
   isActive?: boolean;
 }
 
@@ -84,8 +84,8 @@ async function fetchAllBusinesses(): Promise<BusinessData[]> {
       reviewCount: data.reviewCount || 0,
       avgRating: data.avgRating || 0,
       stripeSubscriptionStatus: data.stripeSubscriptionStatus,
-      nextPaymentDate: data.nextPaymentDate,
-      lastPaymentDate: data.lastPaymentDate,
+      nextPaymentDate: data.nextPaymentDate?.toDate?.()?.toISOString() || null,
+      lastPaymentDate: data.lastPaymentDate?.toDate?.()?.toISOString() || null,
       isActive: data.isActive,
     };
   });
