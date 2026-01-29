@@ -40,7 +40,7 @@ async function getUserBusinessMetrics(userId: string, userEmail?: string) {
   
   console.log('[metricas] Fetching businesses for userId:', userId, 'email:', userEmail);
   
-  // Obtener TODOS los negocios del usuario por ownerId
+  // Obtener negocios por ownerId
   const businessesSnapshot = await db
     .collection('businesses')
     .where('ownerId', '==', userId)
@@ -48,7 +48,7 @@ async function getUserBusinessMetrics(userId: string, userEmail?: string) {
 
   console.log('[metricas] Found businesses by ownerId:', businessesSnapshot.docs.length);
 
-  let businesses = businessesSnapshot.docs.map(doc => {
+  const businessesById = businessesSnapshot.docs.map(doc => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -56,9 +56,10 @@ async function getUserBusinessMetrics(userId: string, userEmail?: string) {
     };
   });
 
-  // Si no se encontraron negocios por ownerId y tenemos email, buscar por ownerEmail
-  if (businesses.length === 0 && userEmail) {
-    console.log('[metricas] No businesses found by ownerId, trying with ownerEmail:', userEmail);
+  // TAMBIÉN buscar por ownerEmail (para negocios sin ownerId o con ownerId diferente)
+  let businessesByEmail: any[] = [];
+  if (userEmail) {
+    console.log('[metricas] Also searching by ownerEmail:', userEmail);
     const businessesByEmailSnapshot = await db
       .collection('businesses')
       .where('ownerEmail', '==', userEmail)
@@ -66,7 +67,7 @@ async function getUserBusinessMetrics(userId: string, userEmail?: string) {
 
     console.log('[metricas] Found businesses by ownerEmail:', businessesByEmailSnapshot.docs.length);
 
-    businesses = businessesByEmailSnapshot.docs.map(doc => {
+    businessesByEmail = businessesByEmailSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -75,10 +76,10 @@ async function getUserBusinessMetrics(userId: string, userEmail?: string) {
     });
 
     // Migración suave: actualizar ownerId si falta
-    if (businesses.length > 0) {
+    if (businessesByEmail.length > 0) {
       console.log('[metricas] Updating ownerId for businesses found by email');
-      const updatePromises = businesses.map(async (business: any) => {
-        if (!business.ownerId) {
+      const updatePromises = businessesByEmail.map(async (business: any) => {
+        if (!business.ownerId || business.ownerId !== userId) {
           try {
             await db.collection('businesses').doc(business.id).update({
               ownerId: userId,
@@ -93,6 +94,23 @@ async function getUserBusinessMetrics(userId: string, userEmail?: string) {
       await Promise.all(updatePromises);
     }
   }
+
+  // Combinar resultados y eliminar duplicados por ID
+  const businessMap = new Map();
+  
+  // Agregar negocios por ownerId
+  businessesById.forEach(business => {
+    businessMap.set(business.id, business);
+  });
+  
+  // Agregar negocios por email (solo si no están ya en el mapa)
+  businessesByEmail.forEach(business => {
+    if (!businessMap.has(business.id)) {
+      businessMap.set(business.id, business);
+    }
+  });
+
+  const businesses = Array.from(businessMap.values());
 
   // Log detallado de cada negocio encontrado
   businesses.forEach((business: any) => {
