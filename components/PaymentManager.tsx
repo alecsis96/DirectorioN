@@ -36,6 +36,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
   const [filter, setFilter] = useState<'all' | 'disabled' | 'overdue' | 'upcoming'>('all');
   const [showHistory, setShowHistory] = useState(false);
   const [migrating, setMigrating] = useState(false);
+  const [showMigrationTools, setShowMigrationTools] = useState(false);
 
   const getDaysUntilPayment = (dateStr?: string) => {
     if (!dateStr) return null;
@@ -230,86 +231,116 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
 
   return (
     <div className="space-y-4">
-      {/* Botones de utilidades */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h3 className="font-semibold text-blue-900">⚙️ Herramientas de Migración</h3>
-            <p className="text-sm text-blue-700 mt-1">
-              Agrega fechas de pago a negocios existentes que no las tienen
+      {/* Herramientas de migración - Colapsables */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+        <button
+          onClick={() => setShowMigrationTools(!showMigrationTools)}
+          className="w-full flex items-center justify-between p-4 hover:bg-blue-100 transition-colors"
+        >
+          <div className="text-left">
+            <h3 className="font-semibold text-blue-900 flex items-center gap-2">
+              ⚙️ Herramientas de Migración
+              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">Avanzado</span>
+            </h3>
+            <p className="text-xs md:text-sm text-blue-700 mt-1">
+              Agrega fechas de pago a negocios existentes
             </p>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleMigration(true)}
-              disabled={migrating}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm font-medium"
-            >
-              {migrating ? 'Procesando...' : '🔍 Simular'}
-            </button>
-            <button
-              onClick={() => handleMigration(false)}
-              disabled={migrating}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
-            >
-              {migrating ? 'Procesando...' : '✅ Ejecutar Migración'}
-            </button>
+          <svg
+            className={`w-5 h-5 text-blue-700 transition-transform ${showMigrationTools ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {showMigrationTools && (
+          <div className="p-4 pt-0 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => handleMigration(true)}
+                disabled={migrating}
+                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm font-medium"
+              >
+                {migrating ? 'Procesando...' : '🔍 Simular'}
+              </button>
+              <button
+                onClick={() => handleMigration(false)}
+                disabled={migrating}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
+              >
+                {migrating ? 'Procesando...' : '✅ Ejecutar Migración'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Filtros */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded whitespace-nowrap ${
-            filter === 'all' ? 'bg-[#38761D] text-white' : 'bg-gray-100 text-gray-700'
-          }`}
-        >
-          Todos ({businesses.length})
-        </button>
-        <button
-          onClick={() => setFilter('disabled')}
-          className={`px-4 py-2 rounded whitespace-nowrap ${
-            filter === 'disabled' ? 'bg-[#38761D] text-white' : 'bg-gray-100 text-gray-700'
-          }`}
-        >
-          Deshabilitados ({businesses.filter(b => b.isActive === false).length})
-        </button>
-        <button
-          onClick={() => setFilter('overdue')}
-          className={`px-4 py-2 rounded whitespace-nowrap ${
-            filter === 'overdue' ? 'bg-[#38761D] text-white' : 'bg-gray-100 text-gray-700'
-          }`}
-        >
-          Vencidos ({businesses.filter(b => {
-            const days = getDaysUntilPayment(b.nextPaymentDate);
-            return days !== null && days < 0;
-          }).length})
-        </button>
-        <button
-          onClick={() => setFilter('upcoming')}
-          className={`px-4 py-2 rounded whitespace-nowrap ${
-            filter === 'upcoming' ? 'bg-[#38761D] text-white' : 'bg-gray-100 text-gray-700'
-          }`}
-        >
-          Próximos (7d) ({businesses.filter(b => {
-            const days = getDaysUntilPayment(b.nextPaymentDate);
-            return days !== null && days >= 0 && days <= 7;
-          }).length})
-        </button>
+      {/* Filtros - Scroll horizontal en móvil */}
+      <div className="overflow-x-auto">
+        <div className="flex gap-2 pb-2 min-w-max">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-3 md:px-4 py-2 rounded whitespace-nowrap text-sm font-medium transition-colors ${
+              filter === 'all' ? 'bg-[#38761D] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            📋 Todos ({businesses.length})
+          </button>
+          <button
+            onClick={() => setFilter('disabled')}
+            className={`px-3 md:px-4 py-2 rounded whitespace-nowrap text-sm font-medium transition-colors ${
+              filter === 'disabled' ? 'bg-[#38761D] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🚫 Deshabilitados ({businesses.filter(b => b.isActive === false).length})
+          </button>
+          <button
+            onClick={() => setFilter('overdue')}
+            className={`px-3 md:px-4 py-2 rounded whitespace-nowrap text-sm font-medium transition-colors border-2 ${
+              filter === 'overdue' 
+                ? 'bg-orange-600 text-white border-orange-700 shadow-md' 
+                : 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100'
+            }`}
+          >
+            ⚠️ Vencidos ({businesses.filter(b => {
+              const days = getDaysUntilPayment(b.nextPaymentDate);
+              return days !== null && days < 0;
+            }).length})
+          </button>
+          <button
+            onClick={() => setFilter('upcoming')}
+            className={`px-3 md:px-4 py-2 rounded whitespace-nowrap text-sm font-medium transition-colors ${
+              filter === 'upcoming' ? 'bg-[#38761D] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🕐 Próximos 7d ({businesses.filter(b => {
+              const days = getDaysUntilPayment(b.nextPaymentDate);
+              return days !== null && days >= 0 && days <= 7;
+            }).length})
+          </button>
+        </div>
       </div>
 
       {/* Lista de negocios */}
       <div className="space-y-3">
-        {filteredBusinesses.map((biz) => (
+        {filteredBusinesses.map((biz) => {
+          const days = getDaysUntilPayment(biz.nextPaymentDate);
+          const isOverdue = days !== null && days < 0;
+          
+          return (
           <div
             key={biz.id}
-            className={`border rounded-lg p-4 ${
-              biz.isActive === false ? 'bg-red-50 border-red-200' : 'bg-white'
+            className={`border-2 rounded-lg p-4 transition-shadow ${
+              biz.isActive === false 
+                ? 'bg-red-50 border-red-300' 
+                : isOverdue
+                ? 'bg-orange-50 border-orange-400 shadow-lg'
+                : 'bg-white border-gray-200 hover:shadow-md'
             }`}
           >
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-col gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-semibold text-gray-900">{biz.name}</h3>
@@ -365,16 +396,17 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
                 </div>
               </div>
 
-              <div className="flex gap-2 flex-shrink-0 flex-wrap">
+              {/* Botones de acción - Full width en móvil */}
+              <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-gray-200">
                 {biz.isActive !== false ? (
                   <>
                     <button
                       onClick={() => handleSendReminder(biz.id)}
                       disabled={loading === biz.id}
-                      className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 flex items-center gap-1"
+                      className="flex-1 px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
                     >
                       <FaClock />
-                      Recordar
+                      <span>Enviar Recordatorio</span>
                     </button>
                     <button
                       onClick={() => {
@@ -382,34 +414,36 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
                         if (reason) handleDisable(biz.id, reason);
                       }}
                       disabled={loading === biz.id}
-                      className="px-3 py-2 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50 flex items-center gap-1"
+                      className="flex-1 px-3 py-2 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
                     >
                       <FaBan />
-                      Deshabilitar
+                      <span>Deshabilitar</span>
                     </button>
                   </>
                 ) : (
                   <button
                     onClick={() => handleEnable(biz.id)}
                     disabled={loading === biz.id}
-                    className="px-3 py-2 text-sm bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 flex items-center gap-1"
+                    className="flex-1 px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
                   >
                     <FaCheckCircle />
-                    Habilitar
+                    <span>Habilitar</span>
                   </button>
                 )}
-                <button
-                  onClick={() => handleDelete(biz.id)}
-                  disabled={loading === biz.id}
-                  className="px-3 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 flex items-center gap-1"
-                >
-                  <FaTrash />
-                  Eliminar
-                </button>
               </div>
+              
+              {/* Botón eliminar siempre separado */}
+              <button
+                onClick={() => handleDelete(biz.id)}
+                disabled={loading === biz.id}
+                className="w-full px-3 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium border-2 border-red-700"
+              >
+                <FaTrash />
+                <span>Eliminar Permanentemente</span>
+              </button>
             </div>
           </div>
-        ))}
+        );}))}
 
         {filteredBusinesses.length === 0 && (
           <div className="text-center py-12 text-gray-500">

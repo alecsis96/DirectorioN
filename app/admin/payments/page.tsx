@@ -161,34 +161,35 @@ export default async function AdminPaymentsPage() {
       </div>        <div className="grid lg:grid-cols-[280px_1fr] gap-6">
           <AdminNavigation variant="sidebar" />
           <div className="lg:col-start-2">
-            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="text-2xl font-bold text-red-700">
+            {/* KPIs - Grid responsive */}
+            <div className="mb-6 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 md:p-4">
+          <div className="text-xl md:text-2xl font-bold text-red-700">
             {businesses.filter((b: any) => b.isActive === false).length}
           </div>
-          <div className="text-sm text-red-600">Negocios Deshabilitados</div>
+          <div className="text-xs md:text-sm text-red-600 mt-0.5">Deshabilitados</div>
         </div>
         
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="text-2xl font-bold text-yellow-700">
+        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 md:p-4">
+          <div className="text-xl md:text-2xl font-bold text-yellow-700">
             {businesses.filter((b: any) => {
               if (!b.nextPaymentDate || b.isActive === false) return false;
               const days = Math.ceil((new Date(b.nextPaymentDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
               return days <= 7 && days > 0;
             }).length}
           </div>
-          <div className="text-sm text-yellow-600">Próximos a vencer (7 días)</div>
+          <div className="text-xs md:text-sm text-yellow-600 mt-0.5">Próximos (7d)</div>
         </div>
         
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <div className="text-2xl font-bold text-orange-700">
+        <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-3 md:p-4 col-span-2 md:col-span-1">
+          <div className="text-xl md:text-2xl font-bold text-orange-700">
             {businesses.filter((b: any) => {
               if (!b.nextPaymentDate || b.isActive === false) return false;
               const days = Math.ceil((new Date(b.nextPaymentDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
               return days < 0;
             }).length}
           </div>
-          <div className="text-sm text-orange-600">Pagos Vencidos</div>
+          <div className="text-xs md:text-sm text-orange-600 mt-0.5 font-semibold">⚠️ Vencidos</div>
         </div>
       </div>
 
