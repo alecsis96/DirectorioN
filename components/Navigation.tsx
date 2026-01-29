@@ -207,6 +207,15 @@ function NavigationContent() {
     const nextParams = new URLSearchParams(params?.toString() ?? '');
     if (trimmedTerm) {
       nextParams.set('q', trimmedTerm);
+      
+      // Track search event
+      import('../lib/telemetry').then(({ sendEvent }) => {
+        sendEvent({
+          event: 'search',
+          searchQuery: trimmedTerm,
+          page: 'negocios',
+        });
+      });
     } else {
       nextParams.delete('q');
     }

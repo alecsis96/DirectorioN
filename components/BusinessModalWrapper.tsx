@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import type { Business, BusinessPreview } from '../types/business';
 import BusinessDetailView from './BusinessDetailView';
+import { trackBusinessInteraction } from '../lib/telemetry';
 
 type Props = {
   businessPreview: BusinessPreview | Business;
@@ -34,9 +35,20 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
     // Si ya es un Business completo, usarlo directamente
     if ('description' in businessPreview && businessPreview.description !== undefined) {
       console.log('[BusinessModalWrapper] Using full business directly');
-      setFullBusiness(businessPreview as Business);
+      const business = businessPreview as Business;
+      setFullBusiness(business);
       setIsLoading(false);
       setHasLoaded(true);
+      
+      // Track business viewed
+      if (business.id) {
+        trackBusinessInteraction(
+          'business_viewed',
+          business.id,
+          business.name,
+          business.category
+        );
+      }
       return;
     }
 
@@ -57,7 +69,16 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
         
         if (docSnap.exists()) {
           console.log('[BusinessModalWrapper] Business loaded successfully');
-          setFullBusiness({ id: docSnap.id, ...docSnap.data() } as Business);
+          const business = { id: docSnap.id, ...docSnap.data() } as Business;
+          setFullBusiness(business);
+          
+          // Track business viewed
+          trackBusinessInteraction(
+            'business_viewed',
+            business.id,
+            business.name,
+            business.category
+          );
         } else {
           console.log('[BusinessModalWrapper] Business not found');
         }

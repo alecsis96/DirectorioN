@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { trackBusinessInteraction } from '../lib/telemetry';
 
 type FavoritesContextValue = {
   favorites: string[];
@@ -60,13 +61,24 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       if (!businessId || prev.includes(businessId)) return prev;
       const updated = [...prev, businessId];
       console.log('[FavoritesContext] Updated favorites:', updated);
+      
+      // Track favorite added event
+      trackBusinessInteraction('favorite_added', businessId);
+      
       return updated;
     });
   }, []);
 
   const removeFavorite = useCallback((businessId: string) => {
     console.log('[FavoritesContext] Removing favorite:', businessId);
-    setFavorites((prev) => prev.filter((id) => id !== businessId));
+    setFavorites((prev) => {
+      if (!prev.includes(businessId)) return prev;
+      
+      // Track favorite removed event
+      trackBusinessInteraction('favorite_removed', businessId);
+      
+      return prev.filter((id) => id !== businessId);
+    });
   }, []);
 
   const value = useMemo(

@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import { cookies, headers } from 'next/headers';
 import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
 import Link from 'next/link';
-import { BarChart2, TrendingUp, Eye, Phone, MessageCircle, Star, ArrowLeft, Crown } from 'lucide-react';
+import { ArrowLeft, Crown } from 'lucide-react';
+import MetricasClient from '../../components/MetricasClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,9 +84,13 @@ async function getUserBusinessMetrics(userId: string) {
           return eventDate >= thirtyDaysAgo;
         });
       
-      const views = events.filter((e: any) => e.event === 'business_view').length;
-      const phoneClicks = events.filter((e: any) => e.event === 'phone_click').length;
-      const whatsappClicks = events.filter((e: any) => e.event === 'whatsapp_click').length;
+      const views = events.filter((e: any) => 
+        e.event === 'business_viewed' || e.event === 'business_card_clicked'
+      ).length;
+      const phoneClicks = events.filter((e: any) => e.event === 'cta_call').length;
+      const whatsappClicks = events.filter((e: any) => e.event === 'cta_whatsapp').length;
+      const mapClicks = events.filter((e: any) => e.event === 'cta_maps').length;
+      const favoriteAdds = events.filter((e: any) => e.event === 'favorite_added').length;
 
       // Obtener reseñas
       const reviewsSnapshot = await db
@@ -107,6 +112,8 @@ async function getUserBusinessMetrics(userId: string) {
         views,
         phoneClicks,
         whatsappClicks,
+        mapClicks,
+        favoriteAdds,
         totalReviews: reviews.length,
         avgRating: Math.round(avgRating * 10) / 10,
       };
@@ -120,6 +127,8 @@ async function getUserBusinessMetrics(userId: string) {
         views: 0,
         phoneClicks: 0,
         whatsappClicks: 0,
+        mapClicks: 0,
+        favoriteAdds: 0,
         totalReviews: 0,
         avgRating: 0,
       };
@@ -172,7 +181,7 @@ export default async function MetricasPage() {
               <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 bg-amber-600 rounded-lg flex items-center justify-center">
-                    <Star className="w-6 h-6 text-white" />
+                    <Crown className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="text-lg font-bold text-gray-900">Plan Featured</h3>
                 </div>
@@ -220,156 +229,6 @@ export default async function MetricasPage() {
     );
   }
 
-  // Calcular totales
-  const totals = metrics.reduce(
-    (acc, m) => ({
-      views: acc.views + m.views,
-      phoneClicks: acc.phoneClicks + m.phoneClicks,
-      whatsappClicks: acc.whatsappClicks + m.whatsappClicks,
-      totalReviews: acc.totalReviews + m.totalReviews,
-    }),
-    { views: 0, phoneClicks: 0, whatsappClicks: 0, totalReviews: 0 }
-  );
-
-  return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4 pb-24">
-      <div className="max-w-6xl mx-auto">
-        <Link
-          href="/mis-negocios"
-          className="inline-flex items-center gap-2 text-[#38761D] hover:text-[#2d5418] mb-6 font-medium"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Volver a Mis Negocios
-        </Link>
-
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-[#38761D] rounded-lg flex items-center justify-center">
-              <BarChart2 className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Métricas de Rendimiento
-              </h1>
-              <p className="text-sm text-gray-600">
-                Últimos 30 días
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Resumen General */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Eye className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Vistas Totales</p>
-                <p className="text-2xl font-bold text-gray-900">{totals.views}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <Phone className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Clics Teléfono</p>
-                <p className="text-2xl font-bold text-gray-900">{totals.phoneClicks}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-3 bg-emerald-100 rounded-lg">
-                <MessageCircle className="w-6 h-6 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Clics WhatsApp</p>
-                <p className="text-2xl font-bold text-gray-900">{totals.whatsappClicks}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-3 bg-amber-100 rounded-lg">
-                <Star className="w-6 h-6 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Reseñas Totales</p>
-                <p className="text-2xl font-bold text-gray-900">{totals.totalReviews}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Métricas por Negocio */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-[#38761D]" />
-            Detalle por Negocio
-          </h2>
-
-          <div className="space-y-6">
-            {metrics.map((metric) => (
-              <div key={metric.businessId} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{metric.businessName}</h3>
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mt-1 ${
-                        metric.plan === 'sponsor'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
-                      {metric.plan === 'sponsor' ? '👑 Sponsor' : '⭐ Featured'}
-                    </span>
-                  </div>
-                  <Link
-                    href={`/dashboard/${metric.businessId}`}
-                    className="text-sm text-[#38761D] hover:text-[#2d5418] font-medium"
-                  >
-                    Ver Dashboard →
-                  </Link>
-                </div>
-
-                <div className="grid md:grid-cols-5 gap-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Vistas</p>
-                    <p className="text-2xl font-bold text-blue-600">{metric.views}</p>
-                  </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Tel.</p>
-                    <p className="text-2xl font-bold text-green-600">{metric.phoneClicks}</p>
-                  </div>
-                  <div className="text-center p-3 bg-emerald-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">WhatsApp</p>
-                    <p className="text-2xl font-bold text-emerald-600">{metric.whatsappClicks}</p>
-                  </div>
-                  <div className="text-center p-3 bg-amber-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Reseñas</p>
-                    <p className="text-2xl font-bold text-amber-600">{metric.totalReviews}</p>
-                  </div>
-                  <div className="text-center p-3 bg-purple-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Rating</p>
-                    <p className="text-2xl font-bold text-purple-600">
-                      {metric.avgRating > 0 ? `${metric.avgRating}★` : '-'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </main>
-  );
+  // Usar componente client para métricas interactivas
+  return <MetricasClient metrics={metrics} />;
 }
