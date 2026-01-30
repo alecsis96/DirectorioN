@@ -31,7 +31,13 @@ export default async function handler(
       return res.status(403).json({ error: 'Forbidden: Admin access required' });
     }
 
-    const timeRange = (req.query.timeRange as TimeRange) || '7d';
+    // Validar timeRange
+    const VALID_RANGES: TimeRange[] = ['today', '7d', '30d', 'all'];
+    const requestedRange = req.query.timeRange as string;
+    const timeRange: TimeRange = VALID_RANGES.includes(requestedRange as TimeRange)
+      ? (requestedRange as TimeRange)
+      : '7d';
+    
     const startDate = getStartDate(timeRange);
 
     // Query base
@@ -88,9 +94,13 @@ function calculateAnalytics(events: any[], timeRange: TimeRange) {
   // Total events
   const totalEvents = events.length;
   
-  // Unique users
-  const uniqueUserIds = new Set(events.map(e => e.userId).filter(Boolean));
-  const uniqueUsers = uniqueUserIds.size;
+  // Unique users - Diferenciar autenticados vs sesiones totales
+  const authenticatedUsers = new Set(events.map(e => e.userId).filter(Boolean));
+  const totalSessions = new Set(
+    events.map(e => e.sessionId || e.clientId).filter(Boolean)
+  );
+  const uniqueUsers = totalSessions.size; // Total sesiones (auth + anon)
+  const authenticatedCount = authenticatedUsers.size;
   
   // Page views
   const pageViews = events.filter(e => e.event === 'page_view').length;
@@ -196,7 +206,11 @@ function calculateAnalytics(events: any[], timeRange: TimeRange) {
   
   return {
     totalEvents,
-    uniqueUsers,
+    uniqueUsers, // Total sesiones
+    authenticatedUsers: authenticatedCount, // Usuarios con cuenta
+    anonymousRate: totalSessions.size > 0 
+      ? ((totalSessions.size - authenticatedCount) / totalSessions.size * 100).toFixed(1)
+      : '0',
     pageViews,
     topEvents,
     topBusinesses,

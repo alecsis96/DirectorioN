@@ -10,6 +10,8 @@ import AdminNavigation from '../../../components/AdminNavigation';
 type AnalyticsData = {
   totalEvents: number;
   uniqueUsers: number;
+  authenticatedUsers?: number;
+  anonymousRate?: string;
   pageViews: number;
   topEvents: Array<{ event: string; count: number }>;
   topBusinesses: Array<{ businessId: string; businessName: string; views: number }>;
@@ -37,6 +39,7 @@ export default function AnalyticsPage() {
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [timeRange, setTimeRange] = useState<'today' | '7d' | '30d' | 'all'>('7d');
 
@@ -62,6 +65,7 @@ export default function AnalyticsPage() {
 
   const loadAnalytics = async () => {
     try {
+      setError(null);
       const user = auth.currentUser;
       if (!user) {
         setLoading(false);
@@ -75,12 +79,16 @@ export default function AnalyticsPage() {
         },
       });
       
-      if (!response.ok) throw new Error('Failed to load analytics');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error ${response.status}: Failed to load analytics`);
+      }
       
       const analyticsData = await response.json();
       setData(analyticsData);
     } catch (error) {
       console.error('Error loading analytics:', error);
+      setError(error instanceof Error ? error.message : 'Error desconocido al cargar analytics');
     } finally {
       setLoading(false);
     }
@@ -88,10 +96,31 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando analytics...</p>
+      <div className="min-h-screen bg-gray-50 px-4 sm:px-6 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+            <div className="h-8 bg-gray-200 rounded w-64 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-96"></div>
+          </div>
+          
+          <div className="space-y-6 animate-pulse">
+            {/* KPIs skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow p-6 h-24"></div>
+              ))}
+            </div>
+            
+            {/* Period stats skeleton */}
+            <div className="bg-white rounded-lg shadow p-6 h-48"></div>
+            
+            {/* Charts skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-lg shadow p-6 h-64"></div>
+              <div className="bg-white rounded-lg shadow p-6 h-64"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -146,8 +175,9 @@ export default function AnalyticsPage() {
             color="blue"
           />
           <StatCard
-            title="Usuarios Únicos"
+            title="Sesiones Únicas"
             value={data.uniqueUsers.toLocaleString()}
+            subtitle={data.authenticatedUsers ? `${data.authenticatedUsers} con cuenta • ${data.anonymousRate}% anónimos` : undefined}
             icon="👥"
             color="green"
           />
@@ -227,67 +257,91 @@ export default function AnalyticsPage() {
           {/* Top Events */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">🔥 Eventos Principales</h2>
-            <div className="space-y-3">
-              {data.topEvents.slice(0, 10).map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">{formatEventName(item.event)}</span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {item.count.toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {data.topEvents.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-4xl mb-2">📊</p>
+                <p className="text-sm">No hay eventos registrados en este período</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {data.topEvents.slice(0, 10).map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">{formatEventName(item.event)}</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {item.count.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Top CTAs */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">📞 CTAs Más Usados</h2>
-            <div className="space-y-3">
-              {data.topCTAs.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">{formatCTAName(item.type)}</span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {item.count.toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {data.topCTAs.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-4xl mb-2">📞</p>
+                <p className="text-sm">No hay clicks en CTAs en este período</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Los usuarios deben hacer click en WhatsApp, Llamar, Cómo llegar, etc.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {data.topCTAs.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">{formatCTAName(item.type)}</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {item.count.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Top Businesses */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">🏆 Negocios Más Vistos</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    #
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Negocio
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Vistas
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {data.topBusinesses.slice(0, 15).map((business, idx) => (
-                  <tr key={business.businessId} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {business.businessName || business.businessId}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                      {business.views.toLocaleString()}
-                    </td>
+          {data.topBusinesses.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-4xl mb-2">🏪</p>
+              <p className="text-sm">No hay negocios con vistas en este período</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      #
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Negocio
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      Vistas
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {data.topBusinesses.slice(0, 15).map((business, idx) => (
+                    <tr key={business.businessId} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {business.businessName || business.businessId}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                        {business.views.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Recent Errors */}
@@ -317,11 +371,12 @@ export default function AnalyticsPage() {
   );
 }
 
-function StatCard({ title, value, icon, color }: { 
+function StatCard({ title, value, icon, color, subtitle }: { 
   title: string; 
   value: string; 
   icon: string; 
   color: 'blue' | 'green' | 'purple' | 'orange';
+  subtitle?: string;
 }) {
   const colorClasses = {
     blue: 'bg-blue-50 text-blue-700',
@@ -333,9 +388,12 @@ function StatCard({ title, value, icon, color }: {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex-1">
           <p className="text-sm text-gray-600">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          {subtitle && (
+            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+          )}
         </div>
         <div className={`text-3xl p-3 rounded-lg ${colorClasses[color]}`}>
           {icon}
