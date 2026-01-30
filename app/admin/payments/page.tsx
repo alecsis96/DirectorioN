@@ -151,45 +151,44 @@ export default async function AdminPaymentsPage() {
     ]);
 
     return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6 pl-14 lg:pl-0">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">💳 Gestión de Pagos</h1>
-        <p className="text-sm text-gray-600">
+    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-4 md:py-6">
+      <div className="mb-4 pl-14 lg:pl-0">
+        <p className="text-[10px] md:text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
+        <h1 className="mt-1 text-xl md:text-2xl font-bold text-[#38761D]">💳 Gestión de Pagos</h1>
+        <p className="text-xs md:text-sm text-gray-600 mt-0.5">
           Administra pagos, deshabilita o elimina negocios con problemas de pago
         </p>
-      </div>        <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+      </div>        <div className="grid lg:grid-cols-[280px_1fr] gap-4 md:gap-6">
           <AdminNavigation variant="sidebar" />
-          <div className="lg:col-start-2">
-            {/* KPIs - Grid responsive */}
-            <div className="mb-6 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 md:p-4">
-          <div className="text-xl md:text-2xl font-bold text-red-700">
+          <div className="lg:col-start-2 space-y-4 md:space-y-6">\n            {/* KPIs - Mobile-first compactos */}
+            <div className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
+        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 min-h-[64px] flex flex-col justify-center">
+          <div className="text-2xl md:text-3xl font-bold text-red-700 leading-none">
             {businesses.filter((b: any) => b.isActive === false).length}
           </div>
-          <div className="text-xs md:text-sm text-red-600 mt-0.5">Deshabilitados</div>
+          <div className="text-[11px] md:text-xs text-red-600 mt-1 font-medium">Deshabilitados</div>
         </div>
         
-        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 md:p-4">
-          <div className="text-xl md:text-2xl font-bold text-yellow-700">
+        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 min-h-[64px] flex flex-col justify-center">
+          <div className="text-2xl md:text-3xl font-bold text-yellow-700 leading-none">
             {businesses.filter((b: any) => {
               if (!b.nextPaymentDate || b.isActive === false) return false;
               const days = Math.ceil((new Date(b.nextPaymentDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
               return days <= 7 && days > 0;
             }).length}
           </div>
-          <div className="text-xs md:text-sm text-yellow-600 mt-0.5">Próximos (7d)</div>
+          <div className="text-[11px] md:text-xs text-yellow-600 mt-1 font-medium">Próximos 7d</div>
         </div>
         
-        <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-3 md:p-4 col-span-2 md:col-span-1">
-          <div className="text-xl md:text-2xl font-bold text-orange-700">
+        <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-3 min-h-[64px] col-span-2 md:col-span-1 flex flex-col justify-center">
+          <div className="text-2xl md:text-3xl font-bold text-orange-700 leading-none">
             {businesses.filter((b: any) => {
               if (!b.nextPaymentDate || b.isActive === false) return false;
               const days = Math.ceil((new Date(b.nextPaymentDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
               return days < 0;
             }).length}
           </div>
-          <div className="text-xs md:text-sm text-orange-600 mt-0.5 font-semibold">⚠️ Vencidos</div>
+          <div className="text-[11px] md:text-xs text-orange-600 mt-1 font-semibold">⚠️ Vencidos</div>
         </div>
       </div>
 

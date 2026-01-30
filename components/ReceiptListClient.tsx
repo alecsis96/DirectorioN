@@ -116,71 +116,68 @@ export default function ReceiptListClient({ initialReceipts }: ReceiptListClient
             </table>
           </div>
 
-          {/* Vista de cards para móvil (oculta en desktop) */}
-          <div className="md:hidden space-y-3">
+          {/* Vista de cards para móvil (oculta en desktop) - Compacta mobile-first */}
+          <div className="md:hidden space-y-2">
             {receipts.map((r) => {
               const fileLink = r.fileUrl || (r.fileData ? `data:${r.fileType};base64,${r.fileData}` : null);
               return (
-                <div key={r.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
+                <div key={r.id} className="border border-gray-200 rounded-lg p-3 bg-white">
+                  {/* Header compacto */}
+                  <div className="flex items-start justify-between mb-2 gap-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{r.businessName}</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">{r.businessId}</p>
+                      <h3 className="font-semibold text-sm text-gray-900 truncate">{r.businessName}</h3>
+                      <p className="text-[11px] text-gray-500 mt-0.5 truncate">{r.ownerEmail || 'Sin correo'}</p>
                     </div>
-                    <span className="capitalize px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium ml-2 flex-shrink-0">
+                    <span className="capitalize px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium flex-shrink-0">
                       {r.plan}
                     </span>
                   </div>
 
-                  {/* Info */}
-                  <div className="space-y-2 text-sm mb-3">
-                    <div className="flex items-start gap-2">
-                      <span className="text-gray-500 min-w-[80px]">👤 Propietario:</span>
-                      <span className="text-gray-900 font-medium">{r.ownerEmail || 'Sin correo'}</span>
-                    </div>
-                    
-                    <div className="flex items-start gap-2">
-                      <span className="text-gray-500 min-w-[80px]">📅 Fecha:</span>
-                      <span className="text-gray-900">
+                  {/* Info compacta */}
+                  <div className="space-y-1 text-[11px] text-gray-600 mb-2">
+                    <div className="flex items-center gap-1">
+                      📅
+                      <span className="truncate">
                         {r.createdAt ? new Date(r.createdAt).toLocaleDateString('es-MX', { 
                           day: '2-digit', 
                           month: 'short',
-                          year: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit'
                         }) : 'N/A'}
                       </span>
                     </div>
-
-                    {/* Archivo */}
-                    <div className="pt-2 border-t border-gray-100">
-                      {fileLink ? (
-                        <a
-                          href={fileLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download={r.fileName}
-                          className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg font-semibold hover:bg-emerald-100 transition-colors border border-emerald-200"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z" />
-                          </svg>
-                          <span>Descargar comprobante</span>
-                        </a>
-                      ) : (
-                        <div className="text-center py-2 text-gray-400 text-sm">Sin archivo</div>
-                      )}
-                    </div>
+                    
+                    {r.fileName && (
+                      <div className="flex items-center gap-1">
+                        📄
+                        <span className="truncate">{r.fileName}</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Acciones */}
-                  <div className="pt-3 border-t border-gray-200">
-                    <ReceiptActionsClient 
-                      receiptId={r.id}
-                      businessName={r.businessName}
-                      onActionComplete={handleActionComplete}
-                    />
+                  {/* Acciones en grid 2 columnas */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+                    {fileLink && (
+                      <a
+                        href={fileLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={r.fileName}
+                        className="h-9 px-3 text-xs bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center justify-center gap-1.5 font-medium"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13l-3 3m0 0l-3-3m3 3V8" />
+                        </svg>
+                        <span>Ver</span>
+                      </a>
+                    )}
+                    <div className={fileLink ? '' : 'col-span-2'}>
+                      <ReceiptActionsClient 
+                        receiptId={r.id}
+                        businessName={r.businessName}
+                        onActionComplete={handleActionComplete}
+                      />
+                    </div>
                   </div>
                 </div>
               );

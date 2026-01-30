@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
+  // La configuración 'api' solo funciona en Pages Router
+  // En App Router, configura el bodyParser por ruta en route.ts con:
+  // export const config = { api: { bodyParser: { sizeLimit: '10mb' } } }
+  
   images: {
     // Permitir imágenes remotas (fbcdn y otros comunes)
     remotePatterns: [

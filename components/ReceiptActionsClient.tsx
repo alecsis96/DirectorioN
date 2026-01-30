@@ -57,29 +57,29 @@ export default function ReceiptActionsClient({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 w-full">
       <button
         onClick={() => handleAction('approve')}
         disabled={loading}
-        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-xs font-semibold rounded transition-colors"
+        className="flex-1 h-9 flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-xs font-medium rounded-lg transition-colors"
         title="Aprobar y activar plan"
       >
-        {loading ? <FaSpinner className="animate-spin" /> : <FaCheck />}
-        Aprobar
+        {loading ? <FaSpinner className="animate-spin text-[10px]" /> : <FaCheck className="text-[10px]" />}
+        <span>Aprobar</span>
       </button>
       
       <button
         onClick={() => handleAction('reject')}
         disabled={loading}
-        className="flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white text-xs font-semibold rounded transition-colors"
+        className="flex-1 h-9 flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white text-xs font-medium rounded-lg transition-colors"
         title="Rechazar comprobante"
       >
-        {loading ? <FaSpinner className="animate-spin" /> : <FaTimes />}
-        Rechazar
+        {loading ? <FaSpinner className="animate-spin text-[10px]" /> : <FaTimes className="text-[10px]" />}
+        <span>Rechazar</span>
       </button>
       
       {error && (
-        <span className="text-xs text-red-600 ml-2">{error}</span>
+        <span className="text-[11px] text-red-600 absolute -bottom-5 left-0">{error}</span>
       )}
     </div>
   );

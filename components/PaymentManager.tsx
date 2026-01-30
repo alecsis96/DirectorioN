@@ -231,58 +231,15 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
 
   return (
     <div className="space-y-4">
-      {/* Herramientas de migración - Colapsables */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
-        <button
-          onClick={() => setShowMigrationTools(!showMigrationTools)}
-          className="w-full flex items-center justify-between p-4 hover:bg-blue-100 transition-colors"
-        >
-          <div className="text-left">
-            <h3 className="font-semibold text-blue-900 flex items-center gap-2">
-              ⚙️ Herramientas de Migración
-              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">Avanzado</span>
-            </h3>
-            <p className="text-xs md:text-sm text-blue-700 mt-1">
-              Agrega fechas de pago a negocios existentes
-            </p>
-          </div>
-          <svg
-            className={`w-5 h-5 text-blue-700 transition-transform ${showMigrationTools ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        {showMigrationTools && (
-          <div className="p-4 pt-0 space-y-3">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={() => handleMigration(true)}
-                disabled={migrating}
-                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm font-medium"
-              >
-                {migrating ? 'Procesando...' : '🔍 Simular'}
-              </button>
-              <button
-                onClick={() => handleMigration(false)}
-                disabled={migrating}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
-              >
-                {migrating ? 'Procesando...' : '✅ Ejecutar Migración'}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Filtros - Scroll horizontal en móvil */}
-      <div className="overflow-x-auto">
-        <div className="flex gap-2 pb-2 min-w-max">
+      {/* Filtros - Scroll horizontal optimizado */}
+      <div className="overflow-x-auto overflow-y-hidden -mx-4 px-4 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <style jsx>{`
+          div::-webkit-scrollbar { display: none; }
+        `}</style>
+        <div className="flex gap-2 pb-2 snap-x snap-mandatory">
           <button
             onClick={() => setFilter('all')}
-            className={`px-3 md:px-4 py-2 rounded whitespace-nowrap text-sm font-medium transition-colors ${
+            className={`h-8 px-3 rounded whitespace-nowrap text-xs md:text-sm font-medium transition-colors snap-start flex-shrink-0 ${
               filter === 'all' ? 'bg-[#38761D] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -290,7 +247,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
           </button>
           <button
             onClick={() => setFilter('disabled')}
-            className={`px-3 md:px-4 py-2 rounded whitespace-nowrap text-sm font-medium transition-colors ${
+            className={`h-8 px-3 rounded whitespace-nowrap text-xs md:text-sm font-medium transition-colors snap-start flex-shrink-0 ${
               filter === 'disabled' ? 'bg-[#38761D] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -298,7 +255,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
           </button>
           <button
             onClick={() => setFilter('overdue')}
-            className={`px-3 md:px-4 py-2 rounded whitespace-nowrap text-sm font-medium transition-colors border-2 ${
+            className={`h-8 px-3 rounded whitespace-nowrap text-xs md:text-sm font-medium transition-colors border-2 snap-start flex-shrink-0 ${
               filter === 'overdue' 
                 ? 'bg-orange-600 text-white border-orange-700 shadow-md' 
                 : 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100'
@@ -311,7 +268,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
           </button>
           <button
             onClick={() => setFilter('upcoming')}
-            className={`px-3 md:px-4 py-2 rounded whitespace-nowrap text-sm font-medium transition-colors ${
+            className={`h-8 px-3 rounded whitespace-nowrap text-xs md:text-sm font-medium transition-colors snap-start flex-shrink-0 ${
               filter === 'upcoming' ? 'bg-[#38761D] text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -324,7 +281,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
       </div>
 
       {/* Lista de negocios */}
-      <div className="space-y-3">
+      <div className="space-y-2 md:space-y-3">
         {filteredBusinesses.map((biz) => {
           const days = getDaysUntilPayment(biz.nextPaymentDate);
           const isOverdue = days !== null && days < 0;
@@ -332,7 +289,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
           return (
           <div
             key={biz.id}
-            className={`border-2 rounded-lg p-4 transition-shadow ${
+            className={`border-2 rounded-lg p-3 md:p-4 transition-shadow ${
               biz.isActive === false 
                 ? 'bg-red-50 border-red-300' 
                 : isOverdue
@@ -340,37 +297,41 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
                 : 'bg-white border-gray-200 hover:shadow-md'
             }`}
           >
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-start gap-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold text-gray-900">{biz.name}</h3>
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <h3 className="font-semibold text-sm md:text-base text-gray-900 truncate max-w-[200px] md:max-w-none">{biz.name}</h3>
                   {getStatusBadge(biz)}
-                  <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 capitalize">
+                  <span className="px-2 py-0.5 text-[10px] md:text-xs rounded bg-blue-100 text-blue-700 capitalize font-medium">
                     {biz.plan || 'free'}
                   </span>
                 </div>
                 
-                <div className="text-sm text-gray-600 mt-1 space-y-1">
-                  <div>📧 {biz.ownerEmail || 'Sin email'}</div>
-                  {biz.ownerName && <div>👤 {biz.ownerName}</div>}
+                <div className="text-xs md:text-sm text-gray-600 space-y-0.5">
+                  <div className="flex items-center gap-1 truncate">📧 <span className="truncate">{biz.ownerEmail || 'Sin email'}</span></div>
+                  {biz.ownerName && <div className="flex items-center gap-1 truncate">👤 <span className="truncate">{biz.ownerName}</span></div>}
                   
                   {biz.nextPaymentDate && (
                     <div className="flex items-center gap-1">
-                      <FaClock className="text-gray-400" />
-                      Próximo pago: {new Date(biz.nextPaymentDate).toLocaleDateString('es-MX')}
-                      {getDaysUntilPayment(biz.nextPaymentDate) !== null && (
-                        <span className="font-medium">
-                          ({getDaysUntilPayment(biz.nextPaymentDate)! > 0 ? 'en ' : 'hace '}
-                          {Math.abs(getDaysUntilPayment(biz.nextPaymentDate)!)} días)
-                        </span>
-                      )}
+                      <FaClock className="text-gray-400 flex-shrink-0" />
+                      <span className="truncate">
+                        Próximo: {new Date(biz.nextPaymentDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                        {getDaysUntilPayment(biz.nextPaymentDate) !== null && (
+                          <span className="font-medium ml-1">
+                            ({getDaysUntilPayment(biz.nextPaymentDate)! > 0 ? '' : 'hace '}
+                            {Math.abs(getDaysUntilPayment(biz.nextPaymentDate)!)}d)
+                          </span>
+                        )}
+                      </span>
                     </div>
                   )}
                   
                   {biz.lastPaymentDate && (
                     <div className="flex items-center gap-1">
-                      <FaCheckCircle className="text-green-500" />
-                      Último pago: {new Date(biz.lastPaymentDate).toLocaleDateString('es-MX')}
+                      <FaCheckCircle className="text-green-500 flex-shrink-0 text-[10px]" />
+                      <span className="text-[11px] text-gray-500 truncate">
+                        Último: {new Date(biz.lastPaymentDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                      </span>
                     </div>
                   )}
                   
@@ -396,17 +357,17 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
                 </div>
               </div>
 
-              {/* Botones de acción - Full width en móvil */}
-              <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-gray-200">
+              {/* Botones de acción - Compactos mobile-first */}
+              <div className="flex flex-col md:flex-row gap-2 pt-2 md:pt-3 border-t border-gray-200 md:border-t-0 md:items-center">
                 {biz.isActive !== false ? (
                   <>
                     <button
                       onClick={() => handleSendReminder(biz.id)}
                       disabled={loading === biz.id}
-                      className="flex-1 px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
+                      className="flex-1 h-9 md:h-10 px-3 text-xs md:text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-1.5 font-medium"
                     >
-                      <FaClock />
-                      <span>Enviar Recordatorio</span>
+                      <FaClock className="text-xs" />
+                      <span>Recordatorio</span>
                     </button>
                     <button
                       onClick={() => {
@@ -414,9 +375,9 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
                         if (reason) handleDisable(biz.id, reason);
                       }}
                       disabled={loading === biz.id}
-                      className="flex-1 px-3 py-2 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
+                      className="flex-1 h-9 md:h-10 px-3 text-xs md:text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center gap-1.5 font-medium"
                     >
-                      <FaBan />
+                      <FaBan className="text-xs" />
                       <span>Deshabilitar</span>
                     </button>
                   </>
@@ -424,26 +385,28 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
                   <button
                     onClick={() => handleEnable(biz.id)}
                     disabled={loading === biz.id}
-                    className="flex-1 px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
+                    className="flex-1 h-9 md:h-10 px-3 text-xs md:text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-1.5 font-medium"
                   >
-                    <FaCheckCircle />
+                    <FaCheckCircle className="text-xs" />
                     <span>Habilitar</span>
                   </button>
                 )}
+                
+                {/* Botón eliminar - Estilo ghost/destructivo menos prominente */}
+                <button
+                  onClick={() => handleDelete(biz.id)}
+                  disabled={loading === biz.id}
+                  className="h-9 md:h-10 px-3 text-xs md:text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 font-medium border border-red-200 md:flex-shrink-0"
+                  title="Eliminar permanentemente"
+                >
+                  <FaTrash className="text-[10px] md:text-xs" />
+                  <span className="md:inline">Eliminar</span>
+                </button>
               </div>
-              
-              {/* Botón eliminar siempre separado */}
-              <button
-                onClick={() => handleDelete(biz.id)}
-                disabled={loading === biz.id}
-                className="w-full px-3 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium border-2 border-red-700"
-              >
-                <FaTrash />
-                <span>Eliminar Permanentemente</span>
-              </button>
             </div>
           </div>
-        );}))}
+        );  
+        })}
 
         {filteredBusinesses.length === 0 && (
           <div className="text-center py-12 text-gray-500">
