@@ -6,6 +6,8 @@ import { auth } from '../../../firebaseConfig';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import Link from 'next/link';
 import AdminNavigation from '../../../components/AdminNavigation';
+import useSWR from 'swr';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 type AnalyticsData = {
   totalEvents: number;
@@ -45,10 +47,12 @@ export default function AnalyticsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<AnalyticsData | null>(null);
   const [timeRange, setTimeRange] = useState<'today' | '7d' | '30d' | 'all'>('7d');
   const [sortBy, setSortBy] = useState<'views' | 'name'>('views');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [eventFilter, setEventFilter] = useState('');
+  const [ctaFilter, setCtaFilter] = useState('');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -64,41 +68,108 @@ export default function AnalyticsPage() {
       }
 
       setIsAdmin(true);
-      loadAnalytics();
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [router, timeRange]);
+  }, [router]);
 
-  const loadAnalytics = async () => {
-    try {
-      setError(null);
-      const user = auth.currentUser;
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      const token = await user.getIdToken();
-      const response = await fetch(`/api/admin/analytics?timeRange=${timeRange}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error ${response.status}: Failed to load analytics`);
-      }
-      
-      const analyticsData = await response.json();
-      setData(analyticsData);
-    } catch (error) {
-      console.error('Error loading analytics:', error);
-      setError(error instanceof Error ? error.message : 'Error desconocido al cargar analytics');
-    } finally {
-      setLoading(false);
+  // Fetcher para SWR
+  const fetcher = async (url: string) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('No authenticated');
+    
+    const token = await user.getIdToken();
+    const response = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Error ${response.status}`);
     }
+    
+    return response.json();
+  };
+
+  // SWR con revalidación automática
+  const { data, error: swrError, mutate } = useSWR<AnalyticsData>(
+    isAdmin ? `/api/admin/analytics?timeRange=${timeRange}` : null,
+    fetcher,
+    {
+      refreshInterval: 60000, // Actualizar cada 60s
+      revalidateOnFocus: true,
+      dedupingInterval: 5000, // Cache 5s
+    }
+  );
+
+  useEffect(() => {
+    if (swrError) {
+      setError(swrError.message);
+    } else {
+      setError(null);
+    }
+  }, [swrError]);
+
+  const exportToCSV = () => {
+    if (!data) return;
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    const csvData: string[] = [];
+    
+    // Header
+    csvData.push('Directorio de Negocios - Analytics Report');
+    csvData.push(`Generado: ${new Date().toLocaleString()}`);
+    csvData.push(`Período: ${timeRange}`);
+    csvData.push('');
+    
+    // KPIs
+    csvData.push('=== RESUMEN GENERAL ===');
+    csvData.push(`Total Eventos,${data.totalEvents}`);
+    csvData.push(`Sesiones Únicas,${data.uniqueUsers}`);
+    csvData.push(`Usuarios Autenticados,${data.authenticatedUsers || 0}`);
+    csvData.push(`Tasa Anónimos,${data.anonymousRate}%`);
+    csvData.push(`Page Views,${data.pageViews}`);
+    csvData.push('');
+    
+    // Engagement
+    csvData.push('=== ENGAGEMENT ===');
+    csvData.push(`Búsquedas,${data.userEngagement.searches}`);
+    csvData.push(`Favoritos,${data.userEngagement.favorites}`);
+    csvData.push(`Reviews,${data.userEngagement.reviews}`);
+    csvData.push(`Registros,${data.userEngagement.registrations}`);
+    csvData.push('');
+    
+    // Top Events
+    csvData.push('=== TOP EVENTOS ===');
+    csvData.push('Evento,Cantidad');
+    data.topEvents.forEach(e => {
+      csvData.push(`${formatEventName(e.event)},${e.count}`);
+    });
+    csvData.push('');
+    
+    // Top CTAs
+    csvData.push('=== TOP CTAs ===');
+    csvData.push('Tipo,Clicks');
+    data.topCTAs.forEach(c => {
+      csvData.push(`${formatCTAName(c.type)},${c.count}`);
+    });
+    csvData.push('');
+    
+    // Top Businesses
+    csvData.push('=== NEGOCIOS MÁS VISTOS ===');
+    csvData.push('Posición,Nombre,Vistas');
+    data.topBusinesses.forEach((b, i) => {
+      csvData.push(`${i + 1},"${(b.businessName || b.businessId).replace(/"/g, '""')}",${b.views}`);
+    });
+    
+    // Crear y descargar
+    const csvContent = csvData.join('\\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `analytics-${timeRange}-${timestamp}.csv`;
+    link.click();
   };
 
   if (loading) {
@@ -141,8 +212,19 @@ export default function AnalyticsPage() {
     <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
       <div className="mb-6 pl-14 lg:pl-0">
         <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">📊 Analytics</h1>
-        <p className="text-sm text-gray-600">Análisis de uso y métricas del directorio</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">📊 Analytics</h1>
+            <p className="text-sm text-gray-600">Análisis de uso y métricas del directorio</p>
+          </div>
+          <button
+            onClick={() => exportToCSV()}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm"
+          >
+            <span>📥</span>
+            <span>Exportar CSV</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-[280px_1fr] gap-6">
@@ -263,10 +345,71 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
+        {/* Visual Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Actividad por Período Chart */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 Actividad en el Tiempo</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={[
+                { name: 'Hoy', eventos: data.timeRangeStats.today },
+                { name: 'Ayer', eventos: data.timeRangeStats.yesterday },
+                { name: 'Últimos 7d', eventos: data.timeRangeStats.last7Days },
+                { name: 'Últimos 30d', eventos: data.timeRangeStats.last30Days },
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="eventos" fill="#38761D" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Engagement Distribution */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">🎯 Distribución de Engagement</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Búsquedas', value: data.userEngagement.searches },
+                    { name: 'Favoritos', value: data.userEngagement.favorites },
+                    { name: 'Reviews', value: data.userEngagement.reviews },
+                    { name: 'Registros', value: data.userEngagement.registrations },
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => `${entry.name}: ${entry.value}`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  <Cell fill="#F59E0B" />
+                  <Cell fill="#EAB308" />
+                  <Cell fill="#38761D" />
+                  <Cell fill="#059669" />
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Top Events */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">🔥 Eventos Principales</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">🔥 Eventos Principales</h2>
+              <input
+                type="text"
+                placeholder="Buscar evento..."
+                value={eventFilter}
+                onChange={(e) => setEventFilter(e.target.value)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
             {data.topEvents.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <p className="text-4xl mb-2">📊</p>
@@ -274,7 +417,14 @@ export default function AnalyticsPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {data.topEvents.slice(0, 10).map((item, idx) => (
+                {data.topEvents
+                  .filter(item => 
+                    eventFilter === '' || 
+                    formatEventName(item.event).toLowerCase().includes(eventFilter.toLowerCase()) ||
+                    item.event.toLowerCase().includes(eventFilter.toLowerCase())
+                  )
+                  .slice(0, 10)
+                  .map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">{formatEventName(item.event)}</span>
                     <span className="text-sm font-semibold text-gray-900">
@@ -288,7 +438,16 @@ export default function AnalyticsPage() {
 
           {/* Top CTAs */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">📞 CTAs Más Usados</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">📞 CTAs Más Usados</h2>
+              <input
+                type="text"
+                placeholder="Buscar CTA..."
+                value={ctaFilter}
+                onChange={(e) => setCtaFilter(e.target.value)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
             {data.topCTAs.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <p className="text-4xl mb-2">📞</p>
@@ -299,7 +458,13 @@ export default function AnalyticsPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {data.topCTAs.map((item, idx) => (
+                {data.topCTAs
+                  .filter(item => 
+                    ctaFilter === '' ||
+                    formatCTAName(item.type).toLowerCase().includes(ctaFilter.toLowerCase()) ||
+                    item.type.toLowerCase().includes(ctaFilter.toLowerCase())
+                  )
+                  .map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">{formatCTAName(item.type)}</span>
                     <span className="text-sm font-semibold text-gray-900">
@@ -316,41 +481,50 @@ export default function AnalyticsPage() {
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">🏆 Negocios Más Vistos</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  if (sortBy === 'views') {
-                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                  } else {
-                    setSortBy('views');
-                    setSortOrder('desc');
-                  }
-                }}
-                className={`px-3 py-1 text-xs rounded-lg transition ${
-                  sortBy === 'views'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Vistas {sortBy === 'views' && (sortOrder === 'desc' ? '↓' : '↑')}
-              </button>
-              <button
-                onClick={() => {
-                  if (sortBy === 'name') {
-                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                  } else {
-                    setSortBy('name');
-                    setSortOrder('asc');
-                  }
-                }}
-                className={`px-3 py-1 text-xs rounded-lg transition ${
-                  sortBy === 'name'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Nombre {sortBy === 'name' && (sortOrder === 'desc' ? '↓' : '↑')}
-              </button>
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                placeholder="Buscar negocio..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (sortBy === 'views') {
+                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                    } else {
+                      setSortBy('views');
+                      setSortOrder('desc');
+                    }
+                  }}
+                  className={`px-3 py-1 text-xs rounded-lg transition ${
+                    sortBy === 'views'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Vistas {sortBy === 'views' && (sortOrder === 'desc' ? '↓' : '↑')}
+                </button>
+                <button
+                  onClick={() => {
+                    if (sortBy === 'name') {
+                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                    } else {
+                      setSortBy('name');
+                      setSortOrder('asc');
+                    }
+                  }}
+                  className={`px-3 py-1 text-xs rounded-lg transition ${
+                    sortBy === 'name'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Nombre {sortBy === 'name' && (sortOrder === 'desc' ? '↓' : '↑')}
+                </button>
+              </div>
             </div>
           </div>
           {data.topBusinesses.length === 0 ? (
@@ -376,6 +550,10 @@ export default function AnalyticsPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {[...data.topBusinesses]
+                    .filter(business => 
+                      searchTerm === '' ||
+                      (business.businessName || business.businessId).toLowerCase().includes(searchTerm.toLowerCase())
+                    )
                     .sort((a, b) => {
                       if (sortBy === 'views') {
                         return sortOrder === 'desc' ? b.views - a.views : a.views - b.views;
