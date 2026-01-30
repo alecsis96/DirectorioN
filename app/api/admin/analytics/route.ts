@@ -4,6 +4,20 @@ import { hasAdminOverride } from '../../../../lib/adminOverrides';
 
 export const dynamic = 'force-dynamic';
 
+interface TelemetryEvent {
+  eventType?: string;
+  userId?: string;
+  sessionId?: string;
+  timestamp: Date;
+  metadata?: {
+    businessId?: string;
+    businessName?: string;
+    message?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
 async function requireAdmin(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -70,7 +84,7 @@ export async function GET(req: NextRequest) {
     const events = eventsSnapshot.docs.map(doc => ({
       ...doc.data(),
       timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().timestamp)
-    }));
+    })) as TelemetryEvent[];
 
     // Calcular métricas
     const totalEvents = events.length;
