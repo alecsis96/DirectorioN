@@ -106,9 +106,11 @@ export async function GET(req: NextRequest) {
     events
       .filter(e => e.eventType === 'business_viewed' && e.metadata?.businessId)
       .forEach(e => {
-        const id = e.metadata.businessId;
+        const id = e.metadata?.businessId;
+        if (!id) return;
+        
         if (!businessViews[id]) {
-          businessViews[id] = { name: e.metadata.businessName || id, views: 0 };
+          businessViews[id] = { name: e.metadata?.businessName || id, views: 0 };
         }
         businessViews[id].views++;
       });
