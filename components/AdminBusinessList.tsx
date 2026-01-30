@@ -20,8 +20,8 @@ interface BusinessData {
   reviewCount?: number;
   avgRating?: number;
   stripeSubscriptionStatus?: string;
-  nextPaymentDate?: string;
-  lastPaymentDate?: string;
+  nextPaymentDate?: string | null;
+  lastPaymentDate?: string | null;
   isActive?: boolean;
   paymentStatus?: string | null;
 }
