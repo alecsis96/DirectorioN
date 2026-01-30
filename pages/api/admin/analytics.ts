@@ -204,6 +204,41 @@ function calculateAnalytics(events: any[], timeRange: TimeRange) {
     }).length,
   };
   
+  // Comparación con período anterior
+  let previousPeriodEvents: any[] = [];
+  let comparisonMetrics = {};
+  
+  if (timeRange !== 'all') {
+    const startDate = getStartDate(timeRange);
+    if (startDate) {
+      const periodDuration = now.getTime() - startDate.getTime();
+      const previousStart = new Date(startDate.getTime() - periodDuration);
+      
+      previousPeriodEvents = events.filter(e => {
+        const date = e.createdAt?.toDate?.() || new Date(e.timestamp);
+        return date >= previousStart && date < startDate;
+      });
+      
+      const prevTotalEvents = previousPeriodEvents.length;
+      const prevPageViews = previousPeriodEvents.filter(e => e.event === 'page_view').length;
+      const prevSessions = new Set(
+        previousPeriodEvents.map(e => e.sessionId || e.clientId).filter(Boolean)
+      ).size;
+      
+      comparisonMetrics = {
+        totalEventsChange: prevTotalEvents > 0 
+          ? (((totalEvents - prevTotalEvents) / prevTotalEvents) * 100).toFixed(1)
+          : totalEvents > 0 ? '100' : '0',
+        pageViewsChange: prevPageViews > 0
+          ? (((pageViews - prevPageViews) / prevPageViews) * 100).toFixed(1)
+          : pageViews > 0 ? '100' : '0',
+        sessionsChange: prevSessions > 0
+          ? (((uniqueUsers - prevSessions) / prevSessions) * 100).toFixed(1)
+          : uniqueUsers > 0 ? '100' : '0',
+      };
+    }
+  }
+  
   return {
     totalEvents,
     uniqueUsers, // Total sesiones
@@ -218,5 +253,6 @@ function calculateAnalytics(events: any[], timeRange: TimeRange) {
     recentErrors,
     userEngagement,
     timeRangeStats,
+    comparison: comparisonMetrics, // Comparación con período anterior
   };
 }

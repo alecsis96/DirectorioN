@@ -33,6 +33,11 @@ type AnalyticsData = {
     last7Days: number;
     last30Days: number;
   };
+  comparison?: {
+    totalEventsChange?: string;
+    pageViewsChange?: string;
+    sessionsChange?: string;
+  };
 };
 
 export default function AnalyticsPage() {
@@ -42,6 +47,8 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [timeRange, setTimeRange] = useState<'today' | '7d' | '30d' | 'all'>('7d');
+  const [sortBy, setSortBy] = useState<'views' | 'name'>('views');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -171,6 +178,7 @@ export default function AnalyticsPage() {
           <StatCard
             title="Total Eventos"
             value={data.totalEvents.toLocaleString()}
+            trend={data.comparison?.totalEventsChange}
             icon="📈"
             color="blue"
           />
@@ -178,12 +186,14 @@ export default function AnalyticsPage() {
             title="Sesiones Únicas"
             value={data.uniqueUsers.toLocaleString()}
             subtitle={data.authenticatedUsers ? `${data.authenticatedUsers} con cuenta • ${data.anonymousRate}% anónimos` : undefined}
+            trend={data.comparison?.sessionsChange}
             icon="👥"
             color="green"
           />
           <StatCard
             title="Page Views"
             value={data.pageViews.toLocaleString()}
+            trend={data.comparison?.pageViewsChange}
             icon="👁️"
             color="purple"
           />
@@ -304,7 +314,45 @@ export default function AnalyticsPage() {
 
         {/* Top Businesses */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">🏆 Negocios Más Vistos</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">🏆 Negocios Más Vistos</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (sortBy === 'views') {
+                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setSortBy('views');
+                    setSortOrder('desc');
+                  }
+                }}
+                className={`px-3 py-1 text-xs rounded-lg transition ${
+                  sortBy === 'views'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Vistas {sortBy === 'views' && (sortOrder === 'desc' ? '↓' : '↑')}
+              </button>
+              <button
+                onClick={() => {
+                  if (sortBy === 'name') {
+                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setSortBy('name');
+                    setSortOrder('asc');
+                  }
+                }}
+                className={`px-3 py-1 text-xs rounded-lg transition ${
+                  sortBy === 'name'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Nombre {sortBy === 'name' && (sortOrder === 'desc' ? '↓' : '↑')}
+              </button>
+            </div>
+          </div>
           {data.topBusinesses.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <p className="text-4xl mb-2">🏪</p>
@@ -327,11 +375,29 @@ export default function AnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data.topBusinesses.slice(0, 15).map((business, idx) => (
+                  {[...data.topBusinesses]
+                    .sort((a, b) => {
+                      if (sortBy === 'views') {
+                        return sortOrder === 'desc' ? b.views - a.views : a.views - b.views;
+                      } else {
+                        const nameA = (a.businessName || a.businessId).toLowerCase();
+                        const nameB = (b.businessName || b.businessId).toLowerCase();
+                        return sortOrder === 'asc' 
+                          ? nameA.localeCompare(nameB)
+                          : nameB.localeCompare(nameA);
+                      }
+                    })
+                    .slice(0, 15)
+                    .map((business, idx) => (
                     <tr key={business.businessId} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {business.businessName || business.businessId}
+                        <Link 
+                          href={`/negocios?id=${business.businessId}`}
+                          className="text-green-600 hover:text-green-700 hover:underline"
+                        >
+                          {business.businessName || business.businessId}
+                        </Link>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900 text-right">
                         {business.views.toLocaleString()}
@@ -371,12 +437,13 @@ export default function AnalyticsPage() {
   );
 }
 
-function StatCard({ title, value, icon, color, subtitle }: { 
+function StatCard({ title, value, icon, color, subtitle, trend }: { 
   title: string; 
   value: string; 
   icon: string; 
   color: 'blue' | 'green' | 'purple' | 'orange';
   subtitle?: string;
+  trend?: string;
 }) {
   const colorClasses = {
     blue: 'bg-blue-50 text-blue-700',
@@ -385,12 +452,21 @@ function StatCard({ title, value, icon, color, subtitle }: {
     orange: 'bg-orange-50 text-orange-700',
   };
 
+  const trendData = formatTrend(trend);
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <div className="flex items-baseline gap-2 mt-1">
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            {trend && (
+              <span className={`text-sm font-semibold ${trendData.color}`}>
+                {trendData.icon} {trendData.text}
+              </span>
+            )}
+          </div>
           {subtitle && (
             <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
           )}
@@ -441,4 +517,16 @@ function formatCTAName(type: string): string {
     cta_email: '📧 Email',
   };
   return names[type] || type;
+}
+
+function formatTrend(change: string | undefined): { text: string; color: string; icon: string } {
+  if (!change || change === '0') {
+    return { text: '0%', color: 'text-gray-500', icon: '=' };
+  }
+  const num = parseFloat(change);
+  if (num > 0) {
+    return { text: `+${change}%`, color: 'text-green-600', icon: '↑' };
+  } else {
+    return { text: `${change}%`, color: 'text-red-600', icon: '↓' };
+  }
 }
