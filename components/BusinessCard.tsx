@@ -34,6 +34,15 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const plan = ('plan' in business && typeof business.plan === 'string' ? business.plan : 'free') as 'free' | 'featured' | 'sponsor';
   const isPremium = plan !== 'free';
   
+  // Verificar si es negocio nuevo (< 30 días)
+  const isNew = (() => {
+    const created = (business as any).createdAt;
+    if (!created) return false;
+    const createdDate = created.toDate ? created.toDate() : new Date(created);
+    const daysDiff = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysDiff <= 30;
+  })();
+  
   // Imagen de logo/negocio - priorizar logoUrl sobre image1, usar placeholder premium si aplica
   const logoUrl =
     ('logoUrl' in business && typeof business.logoUrl === 'string' ? business.logoUrl : null) ||
@@ -255,14 +264,19 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             
             {/* Contenido al lado del icono */}
             <div className="flex-1 min-w-0 flex flex-col gap-1">
-              {/* Badge de plan */}
-              {currentStyle.badge && (
-                <div className="inline-flex self-start">
+              {/* Badges: Plan + NUEVO */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {currentStyle.badge && (
                   <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase`}>
                     {currentStyle.badge.text}
                   </span>
-                </div>
-              )}
+                )}
+                {isNew && (
+                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-extrabold tracking-wide uppercase rounded-full shadow-md animate-pulse">
+                    🆕 NUEVO
+                  </span>
+                )}
+              </div>
               
               {/* Nombre */}
               <h3 className={`text-base font-bold ${currentStyle.titleColor} hover:text-[#38761D] transition-colors line-clamp-1`}>

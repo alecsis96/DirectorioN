@@ -447,6 +447,43 @@ export default function NegociosListClient({
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800 font-sans">
       <section className="max-w-6xl mx-auto px-6 py-2 pb-24 md:pb-10">
+        {/* Breadcrumbs con Schema.org */}
+        <nav aria-label="Breadcrumb" className="mb-4">
+          <ol className="flex items-center gap-2 text-sm" itemScope itemType="https://schema.org/BreadcrumbList">
+            <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+              <a href="/" itemProp="item" className="text-emerald-600 hover:text-emerald-700 font-medium">
+                <span itemProp="name">Inicio</span>
+              </a>
+              <meta itemProp="position" content="1" />
+            </li>
+            <li className="text-gray-400">/</li>
+            <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+              <span itemProp="item" className={uiFilters.category || uiFilters.colonia ? 'text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer' : 'text-gray-600 font-semibold'}>
+                <span itemProp="name">Negocios</span>
+              </span>
+              <meta itemProp="position" content="2" />
+            </li>
+            {uiFilters.category && (
+              <>
+                <li className="text-gray-400">/</li>
+                <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                  <span className="text-gray-600 font-semibold" itemProp="name">{uiFilters.category}</span>
+                  <meta itemProp="position" content="3" />
+                </li>
+              </>
+            )}
+            {uiFilters.colonia && (
+              <>
+                <li className="text-gray-400">/</li>
+                <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                  <span className="text-gray-600 font-semibold" itemProp="name">{selectedColoniaLabel}</span>
+                  <meta itemProp="position" content={uiFilters.category ? "4" : "3"} />
+                </li>
+              </>
+            )}
+          </ol>
+        </nav>
+
         <header className="mb-2">
         </header>
 
