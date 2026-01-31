@@ -9,7 +9,7 @@ import HomeClient from '../components/HomeClient';
 export const metadata: Metadata = {
   title: 'Directorio de Negocios Yajalón - Tu Guía Local de Comercios',
   description:
-    'Descubre los mejores negocios, restaurantes, tiendas y servicios en Yajalón. Encuentra comercios locales cerca de ti con reseñas, ubicaciones y contactos.',
+    'Descubre +50 negocios en Yajalón, Chiapas: Restaurantes, tiendas, servicios. Reseñas reales, horarios actualizados, ubicación en mapa. ¡Gratis y sin anuncios!',
   robots: {
     index: true,
     follow: true,
@@ -228,6 +228,45 @@ export default async function Home() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      {/* Propuesta de Valor con Números */}
+      <section className="py-12 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="p-6 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-200">
+              <p className="text-4xl md:text-5xl font-bold text-emerald-600 mb-2">50+</p>
+              <p className="text-sm md:text-base text-gray-700 font-medium">Negocios activos</p>
+            </div>
+            <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200">
+              <p className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">100%</p>
+              <p className="text-sm md:text-base text-gray-700 font-medium">Gratis y sin anuncios</p>
+            </div>
+            <div className="p-6 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200">
+              <p className="text-4xl md:text-5xl font-bold text-purple-600 mb-2">24h</p>
+              <p className="text-sm md:text-base text-gray-700 font-medium">Tiempo de aprobación</p>
+            </div>
+            <div className="p-6 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200">
+              <p className="text-4xl md:text-5xl font-bold text-orange-600 mb-2">⭐</p>
+              <p className="text-sm md:text-base text-gray-700 font-medium">Reseñas verificadas</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Texto Semántico con Keywords para SEO */}
+      <section className="py-8 px-4 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-gray-700 leading-relaxed">
+            <strong className="text-emerald-700">YajaGon</strong> es el{' '}
+            <strong>directorio más completo de negocios en Yajalón, Chiapas</strong>. 
+            Encuentra <strong>restaurantes, tiendas, servicios profesionales</strong> y más de{' '}
+            <strong>50 comercios locales</strong> verificados. Descubre negocios cerca de ti con{' '}
+            <strong>reseñas reales, horarios actualizados y ubicaciones en mapa</strong>.
+            Apoya a los <strong>emprendedores locales de Yajalón</strong> y encuentra todo lo que necesitas
+            en tu comunidad.
+          </p>
         </div>
       </section>
 
