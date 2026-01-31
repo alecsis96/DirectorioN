@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown, FaDownload, FaChartBar, FaCheckSquare, FaSquare, FaExclamationTriangle } from 'react-icons/fa';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { auth } from '../firebaseConfig';
 
 interface BusinessData {
@@ -232,27 +231,6 @@ export default function AdminBusinessList({ businesses }: Props) {
     link.download = `negocios_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
-
-  // Datos para gráficas
-  const chartData = useMemo(() => {
-    const planData = [
-      { name: 'Gratuito', value: filteredItems.filter(b => b.plan === 'free').length, color: '#9CA3AF' },
-      { name: 'Destacado', value: filteredItems.filter(b => b.plan === 'featured').length, color: '#3B82F6' },
-      { name: 'Patrocinado', value: filteredItems.filter(b => b.plan === 'sponsor').length, color: '#A855F7' },
-    ].filter(d => d.value > 0);
-
-    const activityData = [
-      { name: 'Vistas', value: filteredItems.reduce((sum, b) => sum + (b.viewCount || 0), 0) },
-      { name: 'Reseñas', value: filteredItems.reduce((sum, b) => sum + (b.reviewCount || 0), 0) },
-    ];
-
-    const statusData = [
-      { name: 'Activos', value: filteredItems.filter(b => b.isActive !== false).length, color: '#10B981' },
-      { name: 'Deshabilitados', value: filteredItems.filter(b => b.isActive === false).length, color: '#EF4444' },
-    ].filter(d => d.value > 0);
-
-    return { planData, activityData, statusData };
-  }, [filteredItems]);
 
   // Alertas predictivas
   const predictiveAlerts = useMemo(() => {
@@ -903,55 +881,6 @@ export default function AdminBusinessList({ businesses }: Props) {
           </div>
         </div>
       </div>
-
-      {/* Gráficas visuales */}
-      {filteredItems.length > 0 && (
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Distribución de planes */}
-          <div className="bg-white rounded-lg shadow-md p-4 min-w-0 overflow-hidden">
-            <div className="flex items-center gap-2 mb-3">
-              <FaChartBar className="text-purple-600" />
-              <h3 className="font-semibold text-gray-900">Distribución de Planes</h3>
-            </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={chartData.planData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={70}
-                  label={(entry) => `${entry.name}: ${entry.value}`}
-                >
-                  {chartData.planData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Actividad total */}
-          <div className="bg-white rounded-lg shadow-md p-4 min-w-0 overflow-hidden">
-            <div className="flex items-center gap-2 mb-3">
-              <FaChartBar className="text-blue-600" />
-              <h3 className="font-semibold text-gray-900">Actividad Total</h3>
-            </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chartData.activityData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#3B82F6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
 
       {/* Lista de negocios */}
       {filteredItems.length === 0 ? (
