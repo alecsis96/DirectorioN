@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Business, BusinessPreview } from '../types/business';
 import { pickBusinessPreview } from '../types/business';
 import { fetchBusinesses, toNumber } from '../lib/server/businessData';
 import HomeClient from '../components/HomeClient';
+import { HomeTracking } from '../components/HomeTracking';
 
 export const metadata: Metadata = {
   title: 'Directorio de Negocios Yajalón - Tu Guía Local de Comercios',
@@ -48,8 +50,19 @@ export default async function Home() {
       };
     });
 
-  // Negocios nuevos (últimos 6, ordenados por fecha de creación o id)
+  // Negocios nuevos (últimos 7 días, ordenados por fecha de creación)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  
   const recentBusinesses: BusinessPreview[] = allBusinesses
+    .filter((biz: Business) => {
+      const data = biz as any;
+      if (!data.createdAt) return false;
+      const createdDate = data.createdAt instanceof Date 
+        ? data.createdAt 
+        : new Date(data.createdAt);
+      return createdDate >= sevenDaysAgo;
+    })
     .slice(0, 6)
     .map((biz: Business) => {
       const preview = pickBusinessPreview(biz);
@@ -61,6 +74,8 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <HomeTracking />
+      
       {/* Hero Section */}
       <section
         className="relative overflow-hidden py-16 px-4 text-white"
@@ -87,12 +102,26 @@ export default async function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/negocios"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                    trackHomeClick('ver_negocios', 'hero', 'primary_cta');
+                  });
+                }
+              }}
               className="px-8 py-4 bg-white text-emerald-700 font-bold rounded-full hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               Ver Todos los Negocios
             </Link>
             <Link
               href="/para-negocios"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                    trackHomeClick('registrar_negocio', 'hero', 'secondary_cta');
+                  });
+                }
+              }}
               className="px-8 py-4 bg-white/10 border-2 border-white text-white font-bold rounded-full hover:bg-white hover:text-emerald-700 transition-all"
             >
               Registra tu negocio
@@ -100,7 +129,17 @@ export default async function Home() {
           </div>
           <div className="mt-6 text-sm text-emerald-50">
             ¿Ya te registraste?{' '}
-            <Link href="/mis-solicitudes" className="underline font-semibold hover:text-white">
+            <Link 
+              href="/mis-solicitudes" 
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                    trackHomeClick('verificar_solicitud', 'hero', 'link');
+                  });
+                }
+              }}
+              className="underline font-semibold hover:text-white"
+            >
               Verificar solicitud
             </Link>
           </div>
@@ -114,6 +153,13 @@ export default async function Home() {
             {/* Búsqueda fácil */}
             <Link
               href="/negocios"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                    trackHomeClick('busqueda_facil', 'action_cards');
+                  });
+                }
+              }}
               className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
             >
               <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🔍</div>
@@ -130,6 +176,13 @@ export default async function Home() {
             {/* Cerca de ti */}
             <Link
               href="/negocios?view=map"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                    trackHomeClick('cerca_de_ti', 'action_cards');
+                  });
+                }
+              }}
               className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
             >
               <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">📍</div>
@@ -146,6 +199,13 @@ export default async function Home() {
             {/* Reseñas reales */}
             <Link
               href="/negocios?o=rating"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                    trackHomeClick('resenas_reales', 'action_cards');
+                  });
+                }
+              }}
               className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-yellow-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
             >
               <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">⭐</div>
@@ -193,6 +253,13 @@ export default async function Home() {
                 <Link
                   key={cat.name}
                   href={`/negocios?c=${slug}`}
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                        trackHomeClick('categoria', 'categories', cat.name);
+                      });
+                    }
+                  }}
                   className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full border-2 border-gray-200 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer whitespace-nowrap font-medium text-gray-700 hover:text-blue-600"
                 >
                   <span className="text-lg">{cat.icon}</span>
@@ -228,15 +295,25 @@ export default async function Home() {
                 <Link
                   key={business.id}
                   href={`/?negocio=${business.id}`}
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                        trackHomeClick('nuevo_negocio', 'new_businesses', business.name, business.id);
+                      });
+                    }
+                  }}
                   className="flex-shrink-0 w-[280px] bg-white rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all p-4 cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
                       {business.logoUrl ? (
-                        <img 
+                        <Image 
                           src={business.logoUrl} 
                           alt={business.name}
+                          width={64}
+                          height={64}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-2xl">
@@ -272,6 +349,13 @@ export default async function Home() {
           </p>
           <Link
             href="/para-negocios"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                  trackHomeClick('publicar_negocio', 'cta_register', 'primary_cta');
+                });
+              }
+            }}
             className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-full font-bold text-lg hover:bg-blue-50 hover:shadow-xl transition-all transform hover:scale-105"
           >
             Publicar mi negocio
@@ -282,6 +366,13 @@ export default async function Home() {
           <div className="mt-4">
             <Link 
               href="/alta-asistida"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  import('../components/HomeTracking').then(({ trackHomeClick }) => {
+                    trackHomeClick('alta_asistida', 'cta_register', 'secondary_link');
+                  });
+                }
+              }}
               className="text-sm text-blue-100 hover:text-white underline transition-colors"
             >
               ¿Prefieres que lo registremos por ti? Solicitar alta
