@@ -150,13 +150,6 @@ export default async function Home() {
             {/* Reseñas reales */}
             <Link
               href="/negocios?o=rating"
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  import('../components/HomeTracking').then(({ trackHomeClick }) => {
-                    trackHomeClick('resenas_reales', 'action_cards');
-                  });
-                }
-              }}
               className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-yellow-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
             >
               <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">⭐</div>
