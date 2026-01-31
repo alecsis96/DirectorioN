@@ -5,7 +5,6 @@ import type { Business, BusinessPreview } from '../types/business';
 import { pickBusinessPreview } from '../types/business';
 import { fetchBusinesses, toNumber } from '../lib/server/businessData';
 import HomeClient from '../components/HomeClient';
-import { HomeTracking } from '../components/HomeTracking';
 
 export const metadata: Metadata = {
   title: 'Directorio de Negocios Yajalón - Tu Guía Local de Comercios',
@@ -51,57 +50,18 @@ export default async function Home() {
     });
 
   // Negocios nuevos (últimos 6, ordenados por fecha de creación o id)
-  // Intentar filtrar por fecha si existe, sino mostrar los primeros 6
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
-  let recentBusinesses: BusinessPreview[] = [];
-  
-  try {
-    // Intentar filtrar por fecha
-    const filtered = allBusinesses.filter((biz: Business) => {
-      const data = biz as any;
-      if (!data.createdAt) return false;
-      try {
-        const createdDate = data.createdAt instanceof Date 
-          ? data.createdAt 
-          : new Date(data.createdAt);
-        return !isNaN(createdDate.getTime()) && createdDate >= sevenDaysAgo;
-      } catch {
-        return false;
-      }
+  const recentBusinesses: BusinessPreview[] = allBusinesses
+    .slice(0, 6)
+    .map((biz: Business) => {
+      const preview = pickBusinessPreview(biz);
+      return {
+        ...preview,
+        rating: toNumber(preview.rating) ?? null,
+      };
     });
-    
-    // Si hay negocios nuevos, usarlos; sino, mostrar los primeros 6
-    const sourceBiz = filtered.length > 0 ? filtered : allBusinesses;
-    
-    recentBusinesses = sourceBiz
-      .slice(0, 6)
-      .map((biz: Business) => {
-        const preview = pickBusinessPreview(biz);
-        return {
-          ...preview,
-          rating: toNumber(preview.rating) ?? null,
-        };
-      });
-  } catch (error) {
-    // Fallback: mostrar los primeros 6 negocios
-    console.error('[Home] Error filtering recent businesses:', error);
-    recentBusinesses = allBusinesses
-      .slice(0, 6)
-      .map((biz: Business) => {
-        const preview = pickBusinessPreview(biz);
-        return {
-          ...preview,
-          rating: toNumber(preview.rating) ?? null,
-        };
-      });
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      <HomeTracking />
-      
       {/* Hero Section */}
       <section
         className="relative overflow-hidden py-16 px-4 text-white"
