@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function AltaAsistidaPage() {
   // Número de WhatsApp del directorio (ajustar al número real)
-  const whatsappNumber = '5219191234567';
+  const whatsappNumber = '5219191565865';
   
   // Mensaje prellenado para WhatsApp
   const mensaje = encodeURIComponent(
