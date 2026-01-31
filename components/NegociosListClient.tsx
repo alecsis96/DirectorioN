@@ -487,6 +487,25 @@ export default function NegociosListClient({
         )}
 
         <header className="mb-2">
+          {/* H1 semántico fijo para SEO */}
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            Directorio de Negocios en Yajalón
+          </h1>
+          
+          {/* H2 dinámico según filtros/búsqueda */}
+          {(uiFilters.category || uiFilters.colonia || uiFilters.query) ? (
+            <h2 className="text-lg md:text-xl text-gray-600 mb-4">
+              {uiFilters.query && `Resultados para "${uiFilters.query}"`}
+              {uiFilters.query && (uiFilters.category || uiFilters.colonia) && ' en '}
+              {uiFilters.category && uiFilters.category}
+              {uiFilters.category && uiFilters.colonia && ', '}
+              {uiFilters.colonia && selectedColoniaLabel}
+            </h2>
+          ) : (
+            <p className="text-base md:text-lg text-gray-600 mb-4">
+              Descubre +50 comercios locales con reseñas, ubicaciones y contactos verificados
+            </p>
+          )}
         </header>
 
         {/* Banner de Negocios Patrocinados - Máxima visibilidad */}
@@ -1039,13 +1058,21 @@ export default function NegociosListClient({
                         
                         {/* Botón "Cargar más" para negocios gratuitos */}
                         {hasMoreFreeBusinesses && (
-                          <div className="flex justify-center mt-4">
+                          <div className="flex flex-col items-center gap-3 mt-6 p-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border-2 border-emerald-200">
+                            <div className="text-center">
+                              <p className="text-sm font-semibold text-gray-700 mb-1">
+                                📊 Mostrando {displayedFreeBusinesses.length} de {freeBusinesses.length} negocios
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                {freeBusinesses.length - displayedFreeBusinesses.length} negocios más disponibles
+                              </p>
+                            </div>
                             <button
                               onClick={() => setFreeBusinessesLimit(prev => prev + 10)}
-                              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-[#38761D] text-white text-sm font-semibold hover:bg-[#2f5a1a] transition shadow-md hover:shadow-lg"
+                              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
                             >
-                              Cargar más negocios
-                              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <span>🔽 Cargar 10 más</span>
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                               </svg>
                             </button>
