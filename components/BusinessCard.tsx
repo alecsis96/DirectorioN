@@ -280,7 +280,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
           
           {/* v2: FILA SUPERIOR: Logo/Avatar + Nombre + Info (Mobile-first) */}
           <div className="flex items-start gap-3 relative z-10">
-            {/* v2: Logo/Avatar reducido a 40-48px mobile-first */}
+            {/* v2: Logo/Avatar - Premium 48px mobile-first, Free mantiene 64px */}
             {plan !== 'free' ? (
               <div className="flex-shrink-0">
                 <img 
@@ -291,7 +291,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               </div>
             ) : (
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 shadow-sm flex items-center justify-center text-xl">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 shadow-sm flex items-center justify-center text-2xl">
                   {getCategoryIcon(business.category)}
                 </div>
               </div>
