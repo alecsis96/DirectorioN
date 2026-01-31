@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Business, BusinessPreview } from '../types/business';
 import { pickBusinessPreview } from '../types/business';
 import { fetchBusinesses, toNumber } from '../lib/server/businessData';
@@ -85,6 +86,28 @@ export default async function Home() {
             Descubre, compara y conecta con restaurantes, tiendas, servicios profesionales y más. Todo en un solo
             lugar, cerca de ti.
           </p>
+          
+          {/* Buscador */}
+          <form action="/negocios" method="get" className="max-w-2xl mx-auto mb-8">
+            <div className="relative">
+              <input
+                type="search"
+                name="q"
+                placeholder="Buscar restaurantes, tiendas, servicios..."
+                className="w-full px-6 py-4 pr-14 rounded-full border-2 border-white/20 bg-white/10 backdrop-blur-sm text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white/20 transition-all"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-white text-emerald-600 rounded-full hover:bg-emerald-50 transition-colors shadow-md"
+                aria-label="Buscar"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </div>
+          </form>
+          
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/negocios"
@@ -235,12 +258,14 @@ export default async function Home() {
                   className="flex-shrink-0 w-[280px] bg-white rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all p-4 cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
                       {business.logoUrl ? (
-                        <img 
+                        <Image 
                           src={business.logoUrl} 
                           alt={business.name}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="64px"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-2xl">
@@ -274,6 +299,17 @@ export default async function Home() {
           <p className="text-lg md:text-xl text-blue-100 mb-6 max-w-2xl mx-auto">
             Regístralo y aparece en nuestro directorio. Miles de personas buscan servicios como el tuyo cada día.
           </p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-blue-100 mb-6">
+            <span className="flex items-center gap-1">
+              ✅ Gratis para siempre
+            </span>
+            <span className="flex items-center gap-1">
+              ✅ Sin tarjeta de crédito
+            </span>
+            <span className="flex items-center gap-1">
+              ✅ Aprobación en 24h
+            </span>
+          </div>
           <Link
             href="/para-negocios"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-full font-bold text-lg hover:bg-blue-50 hover:shadow-xl transition-all transform hover:scale-105"
@@ -291,6 +327,32 @@ export default async function Home() {
               ¿Prefieres que lo registremos por ti? Solicitar alta
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Alta Asistida - Sección Destacada */}
+      <section className="py-12 px-4 bg-gradient-to-r from-teal-50 to-cyan-50 border-y-2 border-teal-200">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="text-5xl mb-4">🤝</div>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+            ¿No tienes tiempo? Lo registramos nosotros
+          </h2>
+          <p className="text-lg text-gray-600 mb-6">
+            Envíanos los datos de tu negocio y nuestro equipo se encarga del resto. 
+            <strong>Gratis y en menos de 48 horas.</strong>
+          </p>
+          <Link
+            href="/alta-asistida"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-teal-600 text-white font-bold rounded-full hover:bg-teal-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            Solicitar alta asistida
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+          <p className="mt-4 text-sm text-gray-500">
+            📞 También puedes contactarnos por WhatsApp para ayuda personalizada
+          </p>
         </div>
       </section>
 
