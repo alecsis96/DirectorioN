@@ -376,6 +376,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             )}
 
             {/* v2: Botones de acción - Discretos para free, touch-friendly para premium */}
+            {/* UX: Solo WhatsApp y Llamar en card. "Cómo llegar" queda en BusinessDetailView */}
             <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
               {whatsappHref && (
                 <a
@@ -409,20 +410,6 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
                   <span className="hidden sm:inline">Llamar</span>
                 </a>
               )}
-              <a
-                href={mapsHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`inline-flex items-center justify-center gap-1 px-3 py-2.5 ${plan === 'free' ? 'min-h-[36px]' : 'min-h-[44px]'} rounded-lg ${plan === 'free' ? 'border border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-2 border-orange-500 text-orange-600 hover:bg-orange-50'} transition bg-transparent flex-1`}
-                aria-label="Como llegar en Google Maps"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  trackCTA('maps', businessId || '', business.name);
-                }}
-              >
-                <Map className="w-4 h-4" />
-                <span className="hidden sm:inline">Cómo llegar</span>
-              </a>
             </div>
           </div>
       </div>
