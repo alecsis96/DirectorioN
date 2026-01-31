@@ -50,27 +50,53 @@ export default async function Home() {
       };
     });
 
-  // Negocios nuevos (últimos 7 días, ordenados por fecha de creación)
+  // Negocios nuevos (últimos 6, ordenados por fecha de creación o id)
+  // Intentar filtrar por fecha si existe, sino mostrar los primeros 6
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   
-  const recentBusinesses: BusinessPreview[] = allBusinesses
-    .filter((biz: Business) => {
+  let recentBusinesses: BusinessPreview[] = [];
+  
+  try {
+    // Intentar filtrar por fecha
+    const filtered = allBusinesses.filter((biz: Business) => {
       const data = biz as any;
       if (!data.createdAt) return false;
-      const createdDate = data.createdAt instanceof Date 
-        ? data.createdAt 
-        : new Date(data.createdAt);
-      return createdDate >= sevenDaysAgo;
-    })
-    .slice(0, 6)
-    .map((biz: Business) => {
-      const preview = pickBusinessPreview(biz);
-      return {
-        ...preview,
-        rating: toNumber(preview.rating) ?? null,
-      };
+      try {
+        const createdDate = data.createdAt instanceof Date 
+          ? data.createdAt 
+          : new Date(data.createdAt);
+        return !isNaN(createdDate.getTime()) && createdDate >= sevenDaysAgo;
+      } catch {
+        return false;
+      }
     });
+    
+    // Si hay negocios nuevos, usarlos; sino, mostrar los primeros 6
+    const sourceBiz = filtered.length > 0 ? filtered : allBusinesses;
+    
+    recentBusinesses = sourceBiz
+      .slice(0, 6)
+      .map((biz: Business) => {
+        const preview = pickBusinessPreview(biz);
+        return {
+          ...preview,
+          rating: toNumber(preview.rating) ?? null,
+        };
+      });
+  } catch (error) {
+    // Fallback: mostrar los primeros 6 negocios
+    console.error('[Home] Error filtering recent businesses:', error);
+    recentBusinesses = allBusinesses
+      .slice(0, 6)
+      .map((biz: Business) => {
+        const preview = pickBusinessPreview(biz);
+        return {
+          ...preview,
+          rating: toNumber(preview.rating) ?? null,
+        };
+      });
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
