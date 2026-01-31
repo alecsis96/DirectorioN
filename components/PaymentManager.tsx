@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { FaTrash, FaBan, FaCheckCircle, FaClock, FaHistory, FaExclamationTriangle, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaTrash, FaBan, FaCheckCircle, FaClock, FaHistory, FaExclamationTriangle, FaSort, FaSortUp, FaSortDown, FaFileDownload } from 'react-icons/fa';
 import { auth } from '../firebaseConfig';
 import useSWR from 'swr';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface Business {
   id: string;
@@ -40,6 +41,9 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'nextPaymentDate' | 'plan' | 'status'>('nextPaymentDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [planFilter, setPlanFilter] = useState<string>('all');
+  const [stripeStatusFilter, setStripeStatusFilter] = useState<string>('all');
+  const [showCharts, setShowCharts] = useState(false);
 
   // SWR para auto-refresh de datos
   const fetcher = async () => {
@@ -107,6 +111,16 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
       return true;
     });
 
+    // Filtro por plan
+    if (planFilter !== 'all') {
+      filtered = filtered.filter(biz => biz.plan === planFilter);
+    }
+
+    // Filtro por estado Stripe
+    if (stripeStatusFilter !== 'all') {
+      filtered = filtered.filter(biz => biz.stripeSubscriptionStatus === stripeStatusFilter);
+    }
+
     // Búsqueda por texto
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -143,7 +157,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
       
       return sortOrder === 'asc' ? comparison : -comparison;
     });
-  }, [businesses, filter, searchTerm, sortBy, sortOrder]);
+  }, [businesses, filter, searchTerm, sortBy, sortOrder, planFilter, stripeStatusFilter]);
 
   const handleDisable = async (businessId: string, reason: string) => {
     if (!confirm('¿Estás seguro de deshabilitar este negocio?')) return;
@@ -237,6 +251,39 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
     }
   };
 
+  const exportToCSV = () => {
+    const timestamp = new Date().toISOString().split('T')[0];
+    const csvData: string[] = [];
+    
+    // Header
+    csvData.push('Reporte de Negocios con Problemas de Pago');
+    csvData.push(`Generado: ${new Date().toLocaleString()}`);
+    csvData.push(`Total negocios: ${filteredAndSortedBusinesses.length}`);
+    csvData.push('');
+    
+    // Columnas
+    csvData.push('ID,Nombre,Email,Plan,Estado,Próximo Pago,Días,Razón Deshabilitado,Estado Stripe');
+    
+    // Datos
+    filteredAndSortedBusinesses.forEach(biz => {
+      const days = getDaysUntilPayment(biz.nextPaymentDate);
+      const daysText = days !== null ? (days >= 0 ? `${days}` : `${days} (vencido)`) : 'N/A';
+      const nextPayment = biz.nextPaymentDate ? new Date(biz.nextPaymentDate).toLocaleDateString() : 'N/A';
+      
+      csvData.push(
+        `${biz.id},"${biz.name.replace(/"/g, '""')}",${biz.ownerEmail || 'N/A'},${biz.plan || 'free'},${biz.isActive ? 'Activo' : 'Deshabilitado'},${nextPayment},${daysText},"${biz.disabledReason || 'N/A'}",${biz.stripeSubscriptionStatus || 'N/A'}`
+      );
+    });
+    
+    // Crear y descargar
+    const csvContent = csvData.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `negocios-problemas-pago-${timestamp}.csv`;
+    link.click();
+  };
+
   const handleMigration = async (dryRun: boolean) => {
     if (!dryRun && !confirm('¿Estás seguro de ejecutar la migración? Esto actualizará todos los negocios sin fecha de pago.')) {
       return;
@@ -294,6 +341,92 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
 
   return (
     <div className="space-y-4">
+      {/* Header con Export y Charts */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">💳 Negocios con Problemas de Pago</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCharts(!showCharts)}
+            className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm flex items-center gap-2"
+          >
+            <span>📊</span>
+            <span className="hidden md:inline">{showCharts ? 'Ocultar' : 'Mostrar'} Gráficos</span>
+          </button>
+          <button
+            onClick={exportToCSV}
+            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm flex items-center gap-2"
+          >
+            <FaFileDownload />
+            <span className="hidden md:inline">Exportar CSV</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Gráficos */}
+      {showCharts && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          {/* Distribución por Estado */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">🟢 Distribución por Estado</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Deshabilitados', value: businesses.filter(b => b.isActive === false).length, color: '#EF4444' },
+                    { name: 'Vencidos', value: businesses.filter(b => {
+                      const days = getDaysUntilPayment(b.nextPaymentDate);
+                      return b.isActive !== false && days !== null && days < 0;
+                    }).length, color: '#F97316' },
+                    { name: 'Próximos 7d', value: businesses.filter(b => {
+                      const days = getDaysUntilPayment(b.nextPaymentDate);
+                      return b.isActive !== false && days !== null && days >= 0 && days <= 7;
+                    }).length, color: '#F59E0B' },
+                    { name: 'OK', value: businesses.filter(b => {
+                      const days = getDaysUntilPayment(b.nextPaymentDate);
+                      return b.isActive !== false && (days === null || days > 7);
+                    }).length, color: '#10B981' },
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => `${entry.name}: ${entry.value}`}
+                  outerRadius={70}
+                  dataKey="value"
+                >
+                  {[
+                    { color: '#EF4444' },
+                    { color: '#F97316' },
+                    { color: '#F59E0B' },
+                    { color: '#10B981' },
+                  ].map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Distribución por Plan */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">🎯 Negocios por Plan</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={[
+                { plan: 'Sponsor', count: businesses.filter(b => b.plan === 'sponsor').length },
+                { plan: 'Premium', count: businesses.filter(b => b.plan === 'premium').length },
+                { plan: 'Otro', count: businesses.filter(b => b.plan && !['sponsor', 'premium'].includes(b.plan)).length },
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="plan" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#38761D" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Búsqueda */}
       <div className="mb-4">
         <input
@@ -395,6 +528,33 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
         <span className="text-xs text-gray-500 ml-2">
           ({filteredAndSortedBusinesses.length} resultados)
         </span>
+      </div>
+
+      {/* Filtros Avanzados */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-gray-600">Filtros:</span>
+        <select
+          value={planFilter}
+          onChange={(e) => setPlanFilter(e.target.value)}
+          className="px-3 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+        >
+          <option value="all">Todos los planes</option>
+          <option value="sponsor">Sponsor</option>
+          <option value="premium">Premium</option>
+        </select>
+        
+        <select
+          value={stripeStatusFilter}
+          onChange={(e) => setStripeStatusFilter(e.target.value)}
+          className="px-3 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+        >
+          <option value="all">Todos los estados Stripe</option>
+          <option value="active">Active</option>
+          <option value="past_due">Past Due</option>
+          <option value="unpaid">Unpaid</option>
+          <option value="canceled">Canceled</option>
+          <option value="payment_failed">Payment Failed</option>
+        </select>
       </div>
       </div>
 
