@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown, FaDownload, FaChartBar } from 'react-icons/fa';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { auth } from '../firebaseConfig';
 
 interface BusinessData {
@@ -173,6 +174,81 @@ export default function AdminBusinessList({ businesses }: Props) {
     if (sortField !== field) return null;
     return sortDirection === 'asc' ? <FaArrowUp className="inline ml-1 text-xs" /> : <FaArrowDown className="inline ml-1 text-xs" />;
   };
+
+  // Export CSV
+  const exportToCSV = () => {
+    const headers = [
+      'ID',
+      'Nombre Negocio',
+      'Propietario',
+      'Email',
+      'Categoría',
+      'Plan',
+      'Estado Suscripción',
+      'Estado',
+      'Vistas',
+      'Reseñas',
+      'Rating Promedio',
+      'Fecha Creación',
+      'Fecha Aprobación',
+      'Próximo Pago',
+      'Último Pago',
+      'Expira',
+    ];
+
+    const rows = filteredItems.map((b) => [
+      b.id,
+      b.businessName,
+      b.ownerName || '',
+      b.ownerEmail || '',
+      b.category || '',
+      b.plan,
+      b.stripeSubscriptionStatus || '',
+      b.isActive === false ? 'Deshabilitado' : 'Activo',
+      b.viewCount || 0,
+      b.reviewCount || 0,
+      b.avgRating?.toFixed(1) || '0.0',
+      b.createdAt ? new Date(b.createdAt).toLocaleDateString('es-MX') : '',
+      b.approvedAt ? new Date(b.approvedAt).toLocaleDateString('es-MX') : '',
+      b.nextPaymentDate ? new Date(b.nextPaymentDate).toLocaleDateString('es-MX') : '',
+      b.lastPaymentDate ? new Date(b.lastPaymentDate).toLocaleDateString('es-MX') : '',
+      b.planExpiresAt ? new Date(b.planExpiresAt).toLocaleDateString('es-MX') : '',
+    ]);
+
+    const csv = [
+      headers.join(','),
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `negocios_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  // Datos para gráficas
+  const chartData = useMemo(() => {
+    const planData = [
+      { name: 'Gratuito', value: filteredItems.filter(b => b.plan === 'free').length, color: '#9CA3AF' },
+      { name: 'Destacado', value: filteredItems.filter(b => b.plan === 'featured').length, color: '#3B82F6' },
+      { name: 'Patrocinado', value: filteredItems.filter(b => b.plan === 'sponsor').length, color: '#A855F7' },
+    ].filter(d => d.value > 0);
+
+    const activityData = [
+      { name: 'Vistas', value: filteredItems.reduce((sum, b) => sum + (b.viewCount || 0), 0) },
+      { name: 'Reseñas', value: filteredItems.reduce((sum, b) => sum + (b.reviewCount || 0), 0) },
+    ];
+
+    const statusData = [
+      { name: 'Activos', value: filteredItems.filter(b => b.isActive !== false).length, color: '#10B981' },
+      { name: 'Deshabilitados', value: filteredItems.filter(b => b.isActive === false).length, color: '#EF4444' },
+    ].filter(d => d.value > 0);
+
+    return { planData, activityData, statusData };
+  }, [filteredItems]);
 
   const handlePlanChange = async (businessId: string, plan: string) => {
     if (!plan) return;
@@ -538,25 +614,84 @@ export default function AdminBusinessList({ businesses }: Props) {
           </div>
         </div>
 
-        {/* Contador de resultados */}
+        {/* Contador de resultados y acciones */}
         <div className="flex items-center justify-between text-sm text-gray-600 pt-2 border-t border-gray-200">
           <span>
             Mostrando <strong>{filteredItems.length}</strong> de <strong>{items.length}</strong> negocios
           </span>
-          {(searchTerm || planFilter !== 'all' || statusFilter !== 'all') && (
+          <div className="flex items-center gap-2">
+            {(searchTerm || planFilter !== 'all' || statusFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setPlanFilter('all');
+                  setStatusFilter('all');
+                }}
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Limpiar filtros
+              </button>
+            )}
             <button
-              onClick={() => {
-                setSearchTerm('');
-                setPlanFilter('all');
-                setStatusFilter('all');
-              }}
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              onClick={exportToCSV}
+              disabled={filteredItems.length === 0}
+              className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Limpiar filtros
+              <FaDownload className="text-xs" />
+              <span className="font-medium">Export CSV</span>
             </button>
-          )}
+          </div>
         </div>
       </div>
+
+      {/* Gráficas visuales */}
+      {filteredItems.length > 0 && (
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Distribución de planes */}
+          <div className="bg-white rounded-lg shadow-md p-4 min-w-0 overflow-hidden">
+            <div className="flex items-center gap-2 mb-3">
+              <FaChartBar className="text-purple-600" />
+              <h3 className="font-semibold text-gray-900">Distribución de Planes</h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={chartData.planData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={70}
+                  label={(entry) => `${entry.name}: ${entry.value}`}
+                >
+                  {chartData.planData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Actividad total */}
+          <div className="bg-white rounded-lg shadow-md p-4 min-w-0 overflow-hidden">
+            <div className="flex items-center gap-2 mb-3">
+              <FaChartBar className="text-blue-600" />
+              <h3 className="font-semibold text-gray-900">Actividad Total</h3>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData.activityData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#3B82F6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Lista de negocios */}
       {filteredItems.length === 0 ? (
@@ -634,6 +769,13 @@ export default function AdminBusinessList({ businesses }: Props) {
                       title="Editar"
                     >
                       <FaEdit />
+                    </Link>
+                    <Link
+                      href={`/admin/analytics?businessId=${business.id}`}
+                      className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                      title="Ver analytics"
+                    >
+                      <FaChartBar />
                     </Link>
                     <button
                       onClick={() => setExpandedId(expandedId === business.id ? null : business.id)}
