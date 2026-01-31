@@ -44,6 +44,8 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [stripeStatusFilter, setStripeStatusFilter] = useState<string>('all');
   const [showCharts, setShowCharts] = useState(false);
+  const [selectedBusinesses, setSelectedBusinesses] = useState<Set<string>>(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   // SWR para auto-refresh de datos
   const fetcher = async () => {
@@ -284,6 +286,112 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
     link.click();
   };
 
+  const toggleBusinessSelection = (businessId: string) => {
+    const newSelection = new Set(selectedBusinesses);
+    if (newSelection.has(businessId)) {
+      newSelection.delete(businessId);
+    } else {
+      newSelection.add(businessId);
+    }
+    setSelectedBusinesses(newSelection);
+  };
+
+  const selectAll = () => {
+    setSelectedBusinesses(new Set(filteredAndSortedBusinesses.map(b => b.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedBusinesses(new Set());
+  };
+
+  const bulkDisable = async () => {
+    if (selectedBusinesses.size === 0) return;
+    
+    const reason = prompt('Motivo de deshabilitación masiva:', 'Falta de pago');
+    if (!reason) return;
+    
+    if (!confirm(`¿Deshabilitar ${selectedBusinesses.size} negocios?`)) return;
+
+    const promises = Array.from(selectedBusinesses).map(async (businessId) => {
+      try {
+        const res = await fetch('/api/admin/disable-business', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ businessId, reason, sendEmail: true }),
+        });
+        return res.ok;
+      } catch {
+        return false;
+      }
+    });
+
+    const results = await Promise.all(promises);
+    const successful = results.filter(r => r).length;
+    
+    mutate();
+    clearSelection();
+    alert(`✅ ${successful}/${selectedBusinesses.size} negocios deshabilitados`);
+  };
+
+  const bulkSendReminder = async () => {
+    if (selectedBusinesses.size === 0) return;
+    
+    if (!confirm(`¿Enviar recordatorio a ${selectedBusinesses.size} negocios?`)) return;
+
+    const promises = Array.from(selectedBusinesses).map(async (businessId) => {
+      try {
+        const res = await fetch('/api/admin/send-payment-reminder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ businessId }),
+        });
+        return res.ok;
+      } catch {
+        return false;
+      }
+    });
+
+    const results = await Promise.all(promises);
+    const successful = results.filter(r => r).length;
+    
+    clearSelection();
+    alert(`✅ ${successful}/${selectedBusinesses.size} recordatorios enviados`);
+  };
+
+  // Detectar patrones problemáticos
+  const detectProblematicPatterns = () => {
+    const alerts: string[] = [];
+    
+    // Negocios con múltiples pagos fallidos
+    const multipleFailures = businesses.filter(b => 
+      b.paymentHistory && b.paymentHistory.filter((p: any) => p.status === 'failed').length >= 2
+    );
+    if (multipleFailures.length > 0) {
+      alerts.push(`⚠️ ${multipleFailures.length} negocios con múltiples pagos fallidos`);
+    }
+    
+    // Negocios deshabilitados recientemente (sin historial de pagos exitosos)
+    const disabledNoHistory = businesses.filter(b => 
+      b.isActive === false && (!b.paymentHistory || b.paymentHistory.length === 0)
+    );
+    if (disabledNoHistory.length > 0) {
+      alerts.push(`🚨 ${disabledNoHistory.length} negocios deshabilitados sin historial de pago`);
+    }
+    
+    // Spike de vencimientos en los próximos 7 días
+    const upcoming = businesses.filter(b => {
+      const days = getDaysUntilPayment(b.nextPaymentDate);
+      return b.isActive !== false && days !== null && days >= 0 && days <= 7;
+    });
+    if (upcoming.length > 5) {
+      alerts.push(`📈 Spike: ${upcoming.length} pagos vencen en los próximos 7 días`);
+    }
+    
+    return alerts;
+  };
+
+  const patterns = detectProblematicPatterns();
+
   const handleMigration = async (dryRun: boolean) => {
     if (!dryRun && !confirm('¿Estás seguro de ejecutar la migración? Esto actualizará todos los negocios sin fecha de pago.')) {
       return;
@@ -341,6 +449,27 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
 
   return (
     <div className="space-y-4">
+      {/* Alertas de Patrones Problemáticos */}
+      {patterns.length > 0 && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <FaExclamationTriangle className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">Patrones Detectados</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <ul className="list-disc list-inside space-y-1">
+                  {patterns.map((pattern, i) => (
+                    <li key={i}>{pattern}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header con Export y Charts */}
       <div className="flex items-center justify-between gap-3 mb-4">
         <h2 className="text-lg font-semibold text-gray-900">💳 Negocios con Problemas de Pago</h2>
@@ -558,6 +687,61 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
       </div>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedBusinesses.size > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-blue-900">
+              {selectedBusinesses.size} negocio{selectedBusinesses.size > 1 ? 's' : ''} seleccionado{selectedBusinesses.size > 1 ? 's' : ''}
+            </span>
+            <button
+              onClick={clearSelection}
+              className="text-xs text-blue-600 hover:text-blue-800 underline"
+            >
+              Limpiar
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={bulkSendReminder}
+              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center gap-2"
+            >
+              <FaClock className="text-xs" />
+              <span className="hidden md:inline">Recordatorio masivo</span>
+              <span className="md:hidden">Recordar</span>
+            </button>
+            <button
+              onClick={bulkDisable}
+              className="px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm flex items-center gap-2"
+            >
+              <FaBan className="text-xs" />
+              <span className="hidden md:inline">Deshabilitar masivo</span>
+              <span className="md:hidden">Deshab.</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Controles de selección */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          <button
+            onClick={selectAll}
+            className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+          >
+            ✓ Todos ({filteredAndSortedBusinesses.length})
+          </button>
+          {selectedBusinesses.size > 0 && (
+            <button
+              onClick={clearSelection}
+              className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+            >
+              ✗ Deseleccionar
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Lista de negocios */}
       <div className="space-y-2 md:space-y-3">
         {filteredAndSortedBusinesses.map((biz) => {
@@ -575,7 +759,15 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
                 : 'bg-white border-gray-200 hover:shadow-md'
             }`}
           >
-            <div className="flex flex-col md:flex-row md:items-start gap-3">
+            <div className="flex flex-col md:flex-row md:items-start gap-3">              {/* Checkbox de selección */}
+              <div className="flex items-start pt-1">
+                <input
+                  type="checkbox"
+                  checked={selectedBusinesses.has(biz.id)}
+                  onChange={() => toggleBusinessSelection(biz.id)}
+                  className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-2">
                   <h3 className="font-semibold text-sm md:text-base text-gray-900 truncate max-w-[200px] md:max-w-none">{biz.name}</h3>
