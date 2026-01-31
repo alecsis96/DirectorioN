@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { FaTrash, FaBan, FaCheckCircle, FaClock, FaHistory, FaExclamationTriangle } from 'react-icons/fa';
+import { useState, useMemo } from 'react';
+import { FaTrash, FaBan, FaCheckCircle, FaClock, FaHistory, FaExclamationTriangle, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { auth } from '../firebaseConfig';
+import useSWR from 'swr';
 
 interface Business {
   id: string;
@@ -30,13 +31,39 @@ interface PaymentManagerProps {
 }
 
 export default function PaymentManager({ businesses: initialBusinesses }: PaymentManagerProps) {
-  const [businesses, setBusinesses] = useState(initialBusinesses);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'disabled' | 'overdue' | 'upcoming'>('all');
   const [showHistory, setShowHistory] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [showMigrationTools, setShowMigrationTools] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'nextPaymentDate' | 'plan' | 'status'>('nextPaymentDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // SWR para auto-refresh de datos
+  const fetcher = async () => {
+    const user = auth.currentUser;
+    if (!user) return initialBusinesses;
+    
+    const token = await user.getIdToken();
+    const response = await fetch('/api/admin/payment-businesses', {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    
+    if (!response.ok) return initialBusinesses;
+    return response.json();
+  };
+
+  const { data: businesses = initialBusinesses, mutate } = useSWR<Business[]>(
+    'payment-businesses',
+    fetcher,
+    {
+      fallbackData: initialBusinesses,
+      refreshInterval: 30000, // 30s
+      revalidateOnFocus: true,
+    }
+  );
 
   const getDaysUntilPayment = (dateStr?: string) => {
     if (!dateStr) return null;
@@ -65,18 +92,58 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
     return <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">✅ Activo</span>;
   };
 
-  const filteredBusinesses = businesses.filter(biz => {
-    if (filter === 'disabled') return biz.isActive === false;
-    if (filter === 'overdue') {
-      const days = getDaysUntilPayment(biz.nextPaymentDate);
-      return days !== null && days < 0;
+  const filteredAndSortedBusinesses = useMemo(() => {
+    let filtered = businesses.filter(biz => {
+      // Filtro por categoría
+      if (filter === 'disabled') return biz.isActive === false;
+      if (filter === 'overdue') {
+        const days = getDaysUntilPayment(biz.nextPaymentDate);
+        return days !== null && days < 0;
+      }
+      if (filter === 'upcoming') {
+        const days = getDaysUntilPayment(biz.nextPaymentDate);
+        return days !== null && days >= 0 && days <= 7;
+      }
+      return true;
+    });
+
+    // Búsqueda por texto
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(biz => 
+        biz.name.toLowerCase().includes(term) ||
+        biz.ownerEmail?.toLowerCase().includes(term) ||
+        biz.ownerName?.toLowerCase().includes(term) ||
+        biz.id.toLowerCase().includes(term)
+      );
     }
-    if (filter === 'upcoming') {
-      const days = getDaysUntilPayment(biz.nextPaymentDate);
-      return days !== null && days >= 0 && days <= 7;
-    }
-    return true;
-  });
+
+    // Sorting
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'nextPaymentDate':
+          const dateA = a.nextPaymentDate ? new Date(a.nextPaymentDate).getTime() : 0;
+          const dateB = b.nextPaymentDate ? new Date(b.nextPaymentDate).getTime() : 0;
+          comparison = dateA - dateB;
+          break;
+        case 'plan':
+          comparison = (a.plan || '').localeCompare(b.plan || '');
+          break;
+        case 'status':
+          const statusA = a.isActive === false ? 0 : (getDaysUntilPayment(a.nextPaymentDate) || 999);
+          const statusB = b.isActive === false ? 0 : (getDaysUntilPayment(b.nextPaymentDate) || 999);
+          comparison = statusA - statusB;
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [businesses, filter, searchTerm, sortBy, sortOrder]);
 
   const handleDisable = async (businessId: string, reason: string) => {
     if (!confirm('¿Estás seguro de deshabilitar este negocio?')) return;
@@ -91,9 +158,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
 
       if (!res.ok) throw new Error('Error al deshabilitar');
 
-      setBusinesses(prev =>
-        prev.map(b => (b.id === businessId ? { ...b, isActive: false, disabledReason: reason } : b))
-      );
+      mutate();
       alert('✅ Negocio deshabilitado correctamente');
     } catch (error: any) {
       alert('❌ Error: ' + error.message);
@@ -115,9 +180,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
 
       if (!res.ok) throw new Error('Error al habilitar');
 
-      setBusinesses(prev =>
-        prev.map(b => (b.id === businessId ? { ...b, isActive: true, disabledReason: undefined } : b))
-      );
+      mutate();
       alert('✅ Negocio habilitado correctamente');
     } catch (error: any) {
       alert('❌ Error: ' + error.message);
@@ -146,7 +209,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
 
       if (!res.ok) throw new Error('Error al eliminar');
 
-      setBusinesses(prev => prev.filter(b => b.id !== businessId));
+      mutate();
       alert('✅ Negocio eliminado permanentemente');
     } catch (error: any) {
       alert('❌ Error: ' + error.message);
@@ -231,7 +294,21 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
 
   return (
     <div className="space-y-4">
-      {/* Filtros - Scroll horizontal optimizado */}
+      {/* Búsqueda */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="🔍 Buscar por nombre, email o ID..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+        />
+      </div>
+
+      {/* Filtros y Sorting - Mobile-first compacto */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+        <div className="flex flex-wrap gap-2">
+          {/* Filtros - Scroll horizontal optimizado */}
       <div className="overflow-x-auto overflow-y-hidden -mx-4 px-4 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <style jsx>{`
           div::-webkit-scrollbar { display: none; }
@@ -279,10 +356,51 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
           </button>
         </div>
       </div>
+        </div>
+
+      {/* Sorting controls */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-gray-600">Ordenar:</span>
+        {(['name', 'nextPaymentDate', 'plan', 'status'] as const).map((field) => {
+          const labels = {
+            name: 'Nombre',
+            nextPaymentDate: 'Fecha',
+            plan: 'Plan',
+            status: 'Estado'
+          };
+          const Icon = sortBy === field ? (sortOrder === 'asc' ? FaSortUp : FaSortDown) : FaSort;
+          
+          return (
+            <button
+              key={field}
+              onClick={() => {
+                if (sortBy === field) {
+                  setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                } else {
+                  setSortBy(field);
+                  setSortOrder('asc');
+                }
+              }}
+              className={`px-3 py-1 text-xs rounded-lg transition flex items-center gap-1 ${
+                sortBy === field
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Icon className="text-[10px]" />
+              {labels[field]}
+            </button>
+          );
+        })}
+        <span className="text-xs text-gray-500 ml-2">
+          ({filteredAndSortedBusinesses.length} resultados)
+        </span>
+      </div>
+      </div>
 
       {/* Lista de negocios */}
       <div className="space-y-2 md:space-y-3">
-        {filteredBusinesses.map((biz) => {
+        {filteredAndSortedBusinesses.map((biz) => {
           const days = getDaysUntilPayment(biz.nextPaymentDate);
           const isOverdue = days !== null && days < 0;
           
@@ -408,9 +526,16 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
         );  
         })}
 
-        {filteredBusinesses.length === 0 && (
+        {filteredAndSortedBusinesses.length === 0 && (
           <div className="text-center py-12 text-gray-500">
-            No hay negocios con problemas de pago en esta categoría
+            {searchTerm ? (
+              <>
+                <p className="text-4xl mb-2">🔍</p>
+                <p>No se encontraron resultados para "{searchTerm}"</p>
+              </>
+            ) : (
+              <p>No hay negocios con problemas de pago en esta categoría</p>
+            )}
           </div>
         )}
       </div>
