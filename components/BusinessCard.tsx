@@ -85,7 +85,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     // v2: Solo manejar click explícito en botón "Ver detalles", no en todo el card
     if (onViewDetails) {
       trackBusinessInteraction(
-        'business_card_view_details',
+        'business_card_clicked',
         businessId || '',
         business.name,
         business.category
