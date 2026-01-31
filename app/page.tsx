@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Force no cache
 
 export default async function Home() {
   const { businesses: allBusinesses } = await fetchBusinesses();
