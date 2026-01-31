@@ -269,9 +269,10 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         </span>
       </button>
 
-      {/* v2: Contenido de la tarjeta - SIN onClick (no clickeable, solo botones) */}
+      {/* v2: Contenido de la tarjeta */}
       <div 
-        className="relative bg-white rounded-b-xl p-4 flex flex-col gap-3"
+        onClick={plan === 'free' ? handleClick : undefined}
+        className="relative bg-white rounded-b-xl p-4 flex flex-col gap-3 ${plan === 'free' ? 'cursor-pointer' : ''}"
       >
           {/* Efecto de brillo para premium */}
           {plan !== 'free' && (
@@ -372,22 +373,24 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               <span className="truncate">{addressText}</span>
             </p>
 
-            {/* v2: CTA Principal - Ver detalles (botón sólido ancho completo) */}
-            <button
-              onClick={handleClick}
-              className="w-full py-3 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg active:scale-98"
-            >
-              Ver detalles
-            </button>
+            {/* v2: CTA Principal - Ver detalles (solo premium, free usa onClick en contenedor) */}
+            {plan !== 'free' && (
+              <button
+                onClick={handleClick}
+                className="w-full py-3 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg active:scale-98"
+              >
+                Ver detalles
+              </button>
+            )}
 
-            {/* v2: Botones de acción - Touch-friendly (min-h-[44px]) */}
+            {/* v2: Botones de acción - Discretos para free, touch-friendly para premium */}
             <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
               {whatsappHref && (
                 <a
                   href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1 px-3 py-2.5 min-h-[44px] rounded-lg border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 transition bg-transparent flex-1"
+                  className={`inline-flex items-center justify-center gap-1 px-3 py-2.5 ${plan === 'free' ? 'min-h-[36px]' : 'min-h-[44px]'} rounded-lg ${plan === 'free' ? 'border border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50'} transition bg-transparent flex-1`}
                   aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -403,7 +406,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               {callHref && (
                 <a
                   href={callHref}
-                  className="inline-flex items-center justify-center gap-1 px-3 py-2.5 min-h-[44px] rounded-lg border-2 border-blue-500 text-blue-600 hover:bg-blue-50 transition bg-transparent flex-1"
+                  className={`inline-flex items-center justify-center gap-1 px-3 py-2.5 ${plan === 'free' ? 'min-h-[36px]' : 'min-h-[44px]'} rounded-lg ${plan === 'free' ? 'border border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-2 border-blue-500 text-blue-600 hover:bg-blue-50'} transition bg-transparent flex-1`}
                   aria-label={`Llamar a ${business.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -418,7 +421,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
                 href={mapsHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1 px-3 py-2.5 min-h-[44px] rounded-lg border-2 border-orange-500 text-orange-600 hover:bg-orange-50 transition bg-transparent flex-1"
+                className={`inline-flex items-center justify-center gap-1 px-3 py-2.5 ${plan === 'free' ? 'min-h-[36px]' : 'min-h-[44px]'} rounded-lg ${plan === 'free' ? 'border border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-2 border-orange-500 text-orange-600 hover:bg-orange-50'} transition bg-transparent flex-1`}
                 aria-label="Como llegar en Google Maps"
                 onClick={(e) => {
                   e.stopPropagation();
