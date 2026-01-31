@@ -271,27 +271,27 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
 
       {/* v2: Contenido de la tarjeta - SIN onClick (no clickeable, solo botones) */}
       <div 
-        className="relative bg-white rounded-b-xl p-3 flex flex-col gap-2"
+        className="relative bg-white rounded-b-xl p-4 flex flex-col gap-3"
       >
           {/* Efecto de brillo para premium */}
           {plan !== 'free' && (
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
           )}
           
-          {/* FILA SUPERIOR: Logo/Avatar + Nombre + Info */}
+          {/* v2: FILA SUPERIOR: Logo/Avatar + Nombre + Info (Mobile-first) */}
           <div className="flex items-start gap-3 relative z-10">
-            {/* Logo/Avatar */}
+            {/* v2: Logo/Avatar reducido a 40-48px mobile-first */}
             {plan !== 'free' ? (
               <div className="flex-shrink-0">
                 <img 
                   src={logoUrl} 
                   alt={`Logo de ${business.name}`}
-                  className="w-16 h-16 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
+                  className="w-12 h-12 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
                 />
               </div>
             ) : (
               <div className="flex-shrink-0">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 shadow-sm flex items-center justify-center text-2xl">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 shadow-sm flex items-center justify-center text-xl">
                   {getCategoryIcon(business.category)}
                 </div>
               </div>
@@ -324,14 +324,16 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
                 {business.colonia && <span className="bg-gray-100 px-2 py-0.5 rounded-full">{business.colonia}</span>}
               </div>
               
-              {/* Rating y Estado en línea */}
+              {/* v2: Rating y Estado en línea - Ocultar métricas vacías */}
               <div className="flex items-center gap-2 flex-wrap">
+                {/* v2: Solo mostrar rating si existe y es > 0 */}
                 {ratingValue > 0 && (
                   <div className="flex items-center gap-1">
                     <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
                     <span className="text-sm font-bold text-yellow-600">
                       {ratingValue.toFixed(1)}
                     </span>
+                    {/* v2: Solo mostrar reviewCount si existe y es > 0 */}
                     {'reviewCount' in business && typeof business.reviewCount === 'number' && business.reviewCount > 0 && (
                       <span className="text-xs text-gray-500">
                         ({business.reviewCount})
@@ -340,18 +342,22 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
                   </div>
                 )}
                 
+                {/* v2: Estado siempre visible (información clave) */}
                 <div className="flex items-center gap-1.5">
                   <span className={`px-2 py-0.5 rounded-full font-semibold text-xs ${isOpen ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                    {isOpen ? "Abierto" : "Cerrado"}
+                    {isOpen ? "🟢 Abierto" : "🔴 Cerrado"}
                   </span>
-                  <span className="text-xs text-gray-500">
-                    {hoursLabel}
-                  </span>
+                  {hoursLabel !== "Horario no disponible" && (
+                    <span className="text-xs text-gray-500">
+                      {hoursLabel}
+                    </span>
+                  )}
                 </div>
                 
+                {/* v2: Delivery badge solo si está activo */}
                 {business.hasEnvio && (
                   <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 text-xs">
-                    🚚 Delivery
+                    🚚 Envío
                   </span>
                 )}
               </div>
