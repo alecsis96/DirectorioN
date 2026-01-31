@@ -613,62 +613,85 @@ export default function NegociosListClient({
           </div>
         )}
 
-        {/* Categorías Destacadas */}
+        {/* Categorías Destacadas - Diseño horizontal con emojis (igual que Home) */}
         {!uiFilters.category && !uiFilters.query && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && categories.length > 0 && (
           <div className="mb-8" suppressHydrationWarning>
-            <button
-              onClick={() => setShowCategoriesSection(!showCategoriesSection)}
-              className="w-full text-left text-xl font-bold text-gray-800 mb-4 flex items-center justify-between gap-2 hover:text-emerald-600 transition-colors group"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">🏷️</span>
-                <span>Explora por categoría</span>
-              </div>
-              <svg 
-                className={`w-6 h-6 transition-transform duration-300 ${showCategoriesSection ? 'rotate-180' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <span className="text-2xl">🏷️</span>
+              <span>Explora por categorías</span>
+            </h2>
             
-            {showCategoriesSection && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 animate-in fade-in slide-in-from-top-2 duration-300" suppressHydrationWarning>
-                {categories.slice(0, 7).map((cat) => {
+            {/* Scroll horizontal con chips */}
+            <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
+              <div className="flex gap-2 min-w-max">
+                {categories.map((cat) => {
                   const count = businesses.filter(b => b.category === cat).length;
+                  const icon = (() => {
+                    const categoryIcons: Record<string, string> = {
+                      'Restaurante': '🍽️',
+                      'Comida Rápida': '🍔',
+                      'Cafetería': '☕',
+                      'Bar': '🍺',
+                      'Panadería': '🥖',
+                      'Supermercado': '🛒',
+                      'Tienda': '🏪',
+                      'Ropa': '👔',
+                      'Zapatos': '👞',
+                      'Joyería': '💍',
+                      'Electrónica': '📱',
+                      'Ferretería': '🔨',
+                      'Farmacia': '💊',
+                      'Hospital': '🏥',
+                      'Clínica': '⚕️',
+                      'Dentista': '🦷',
+                      'Gimnasio': '💪',
+                      'Spa': '💆',
+                      'Salón de Belleza': '💇',
+                      'Barbería': '💈',
+                      'Taller': '🔧',
+                      'Mecánico': '🚗',
+                      'Gasolinera': '⛽',
+                      'Hotel': '🏨',
+                      'Educación': '📚',
+                      'Escuela': '🎓',
+                      'Librería': '📖',
+                      'Papelería': '📝',
+                      'Floristería': '💐',
+                      'Mascotas': '🐾',
+                      'Veterinaria': '🐕',
+                      'Banco': '🏦',
+                      'Seguros': '🛡️',
+                      'Inmobiliaria': '🏠',
+                      'Construcción': '🏭',
+                      'Lavandería': '🧺',
+                      'Fotografía': '📷',
+                      'Imprenta': '🖨️',
+                      'Transporte': '🚚',
+                      'Turismo': '✈️',
+                      'Entretenimiento': '🎭',
+                      'Cine': '🎬',
+                      'Deportes': '⚽',
+                      'Música': '🎵',
+                      'Arte': '🎨',
+                      'Otro': '🏢'
+                    };
+                    return categoryIcons[cat] || '🏢';
+                  })();
+                  
                   return (
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
-                      className="group rounded-lg bg-white border border-gray-200 p-3 text-left transition-all hover:shadow-md hover:border-emerald-300"
+                      className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all hover:shadow-md whitespace-nowrap flex-shrink-0"
                     >
-                      <div className="text-sm font-semibold text-gray-800 group-hover:text-emerald-600 mb-1">
-                        {cat}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {count} {count === 1 ? 'negocio' : 'negocios'}
-                      </div>
+                      <span className="text-lg">{icon}</span>
+                      <span className="font-semibold">{cat}</span>
+                      <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">{count}</span>
                     </button>
                   );
                 })}
-                
-                {categories.length > 7 && (
-                  <button
-                    onClick={() => setShowCategoriesModal(true)}
-                    className="rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 p-3 text-center transition-all hover:shadow-md hover:border-emerald-400 hover:scale-105"
-                  >
-                    <div className="text-sm font-semibold text-emerald-700">
-                      +{categories.length - 7} más
-                    </div>
-                    <div className="text-xs text-emerald-600 mt-1">
-                      Ver todas
-                    </div>
-                  </button>
-                )}
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -703,18 +726,18 @@ export default function NegociosListClient({
           </button>
         </div>
 
-        {/* Toggle Vista Compacta (solo en modo lista) */}
-        {viewMode === 'list' && (
+        {/* Toggle Vista Compacta - Solo cuando hay búsqueda activa (es donde es útil) */}
+        {viewMode === 'list' && uiFilters.query && (
           <div className="mb-4 flex items-center justify-center gap-2">
             <button
               onClick={() => setCompactView(!compactView)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all"
             >
               <input 
                 type="checkbox" 
                 checked={compactView} 
                 onChange={() => {}} 
-                className="w-4 h-4 text-blue-600 rounded"
+                className="w-4 h-4 text-emerald-600 rounded"
                 readOnly
               />
               <span className="text-gray-700">
