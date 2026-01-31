@@ -223,9 +223,9 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     <article 
       className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden ${plan !== 'free' ? 'border-2' : 'border'} ${plan === 'sponsor' ? 'border-purple-400' : plan === 'featured' ? 'border-amber-400' : 'border-gray-200'} bg-white`}
     >
-      {/* v2: Banner superior (80-100px) - SOLO featured/sponsored */}
-      {(plan === 'featured' || plan === 'sponsor') && (
-        <div className="relative h-20 w-full">
+      {/* v2: Banner superior (120px) - SOLO patrocinados (tienen coverUrl) */}
+      {plan === 'sponsor' && (
+        <div className="relative h-30 w-full">
           {bannerUrl ? (
             <img 
               src={bannerUrl} 
@@ -233,11 +233,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className={`w-full h-full ${
-              plan === 'sponsor' 
-                ? 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600'
-                : 'bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500'
-            }`} />
+            <div className="w-full h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600" />
           )}
           {/* v2: Badge dentro del banner */}
           {currentStyle.badge && (
@@ -255,7 +251,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         type="button"
         onClick={handleFavoriteToggle}
         disabled={isTogglingFavorite}
-        className={`absolute ${(plan === 'featured' || plan === 'sponsor') ? 'top-24' : 'top-2'} right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
+        className={`absolute ${plan === 'sponsor' ? 'top-32' : 'top-2'} right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
           isTogglingFavorite ? 'scale-90 opacity-70' : 'hover:scale-110 active:scale-95'
         }`}
         aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
@@ -307,8 +303,8 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
                 </span>
               )}
               
-              {/* v2: Badge de plan SOLO para free (premium ya tiene en banner) */}
-              {plan === 'free' && currentStyle.badge && (
+              {/* v2: Badge de plan - free en header, featured también (sponsor en banner) */}
+              {(plan === 'free' || plan === 'featured') && currentStyle.badge && (
                 <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase w-fit`}>
                   {currentStyle.badge.text}
                 </span>
