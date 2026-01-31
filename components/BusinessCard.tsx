@@ -223,13 +223,13 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     <article 
       className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden ${plan !== 'free' ? 'border-2' : 'border'} ${plan === 'sponsor' ? 'border-purple-400' : plan === 'featured' ? 'border-amber-400' : 'border-gray-200'} bg-white`}
     >
-      {/* v2: Banner superior (120px) - SOLO patrocinados (tienen coverUrl) */}
+      {/* v2: Banner superior (120px fijos) - SOLO patrocinados (tienen coverUrl) */}
       {plan === 'sponsor' && (
-        <div className="relative h-30 w-full">
+        <div className="relative h-30 w-full overflow-hidden">
           <img 
             src={bannerUrl || '/images/default-premium-cover.svg'} 
             alt="" 
-            className="w-full h-full object-cover"
+            className="w-full h-30 object-cover object-center"
           />
           {/* v2: Badge dentro del banner */}
           {currentStyle.badge && (
