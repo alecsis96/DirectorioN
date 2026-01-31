@@ -43,6 +43,14 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     return daysDiff <= 30;
   })();
   
+  // v2: Helper para obtener banner/cover (premium only)
+  const getBannerUrl = (biz: CardBusiness): string | null => {
+    if (plan === 'free') return null;
+    return ('coverUrl' in biz && typeof biz.coverUrl === 'string' ? biz.coverUrl : null) || null;
+  };
+  
+  const bannerUrl = getBannerUrl(business);
+  
   // Imagen de logo/negocio - priorizar logoUrl sobre image1, usar placeholder premium si aplica
   const logoUrl =
     ('logoUrl' in business && typeof business.logoUrl === 'string' ? business.logoUrl : null) ||
@@ -212,14 +220,41 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
 
   return (
     <article 
-      className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl ${plan !== 'free' ? 'p-[4px]' : ''} ${plan !== 'free' ? currentStyle.borderGradient : 'bg-white'}`}
+      className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden ${plan !== 'free' ? 'border-2' : 'border'} ${plan === 'sponsor' ? 'border-purple-400' : plan === 'featured' ? 'border-amber-400' : 'border-gray-200'} bg-white`}
     >
+      {/* v2: Banner superior (80-100px) - SOLO featured/sponsored */}
+      {(plan === 'featured' || plan === 'sponsor') && (
+        <div className="relative h-20 w-full">
+          {bannerUrl ? (
+            <img 
+              src={bannerUrl} 
+              alt="" 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className={`w-full h-full ${
+              plan === 'sponsor' 
+                ? 'bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600'
+                : 'bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500'
+            }`} />
+          )}
+          {/* v2: Badge dentro del banner */}
+          {currentStyle.badge && (
+            <div className="absolute top-2 left-2">
+              <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase shadow-lg`}>
+                {currentStyle.badge.text}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Botón de favoritos mejorado */}
       <button
         type="button"
         onClick={handleFavoriteToggle}
         disabled={isTogglingFavorite}
-        className={`absolute top-2 right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
+        className={`absolute ${(plan === 'featured' || plan === 'sponsor') ? 'top-24' : 'top-2'} right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
           isTogglingFavorite ? 'scale-90 opacity-70' : 'hover:scale-110 active:scale-95'
         }`}
         aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
@@ -236,7 +271,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       {/* Contenido de la tarjeta */}
       <div 
         onClick={handleClick}
-        className={`relative ${currentStyle.bg} ${currentStyle.shadow} ${currentStyle.ring} rounded-xl p-3 flex flex-col gap-2 cursor-pointer`}
+        className="relative bg-white rounded-b-xl p-3 flex flex-col gap-2 cursor-pointer"
       >
           {/* Efecto de brillo para premium */}
           {plan !== 'free' && (
@@ -264,19 +299,19 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             
             {/* Contenido al lado del icono */}
             <div className="flex-1 min-w-0 flex flex-col gap-1">
-              {/* Badges: Plan + NUEVO */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                {currentStyle.badge && (
-                  <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase`}>
-                    {currentStyle.badge.text}
-                  </span>
-                )}
-                {isNew && (
-                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-extrabold tracking-wide uppercase rounded-full shadow-md animate-pulse">
-                    🆕 NUEVO
-                  </span>
-                )}
-              </div>
+              {/* v2: Badge NUEVO (no duplicar badge de plan que ahora está en banner) */}
+              {isNew && (
+                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-extrabold tracking-wide uppercase rounded-full shadow-md animate-pulse w-fit">
+                  🆕 NUEVO
+                </span>
+              )}
+              
+              {/* v2: Badge de plan SOLO para free (premium ya tiene en banner) */}
+              {plan === 'free' && currentStyle.badge && (
+                <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase w-fit`}>
+                  {currentStyle.badge.text}
+                </span>
+              )}
               
               {/* Nombre */}
               <h3 className={`text-base font-bold ${currentStyle.titleColor} hover:text-[#38761D] transition-colors line-clamp-1`}>
@@ -331,50 +366,53 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               <span className="truncate">{addressText}</span>
             </p>
 
-            {/* Botones de acción */}
+            {/* v2: Botones de acción - Touch-friendly (min-h-[44px]) */}
             <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
               {whatsappHref && (
                 <a
                   href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 transition bg-transparent"
+                  className="inline-flex items-center justify-center gap-1 px-3 py-2.5 min-h-[44px] rounded-lg border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 transition bg-transparent flex-1"
                   aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     trackCTA('whatsapp', businessId || '', business.name);
                   }}
                 >
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                                        </svg>
-                  WhatsApp
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  </svg>
+                  <span className="hidden sm:inline">WhatsApp</span>
                 </a>
               )}
               {callHref && (
                 <a
                   href={callHref}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 border-blue-500 text-blue-600 hover:bg-blue-50 transition bg-transparent"
+                  className="inline-flex items-center justify-center gap-1 px-3 py-2.5 min-h-[44px] rounded-lg border-2 border-blue-500 text-blue-600 hover:bg-blue-50 transition bg-transparent flex-1"
                   aria-label={`Llamar a ${business.name}`}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     trackCTA('call', businessId || '', business.name);
                   }}
                 >
-                  <Phone className="w-3 h-3" />
-                  Llamar
+                  <Phone className="w-4 h-4" />
+                  <span className="hidden sm:inline">Llamar</span>
                 </a>
               )}
               <a
                 href={mapsHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 border-orange-500 text-orange-600 hover:bg-orange-50 transition bg-transparent"
+                className="inline-flex items-center justify-center gap-1 px-3 py-2.5 min-h-[44px] rounded-lg border-2 border-orange-500 text-orange-600 hover:bg-orange-50 transition bg-transparent flex-1"
                 aria-label="Como llegar en Google Maps"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   trackCTA('maps', businessId || '', business.name);
                 }}
               >
-                <Map className="w-3 h-3" />
-                Como llegar
+                <Map className="w-4 h-4" />
+                <span className="hidden sm:inline">Cómo llegar</span>
               </a>
             </div>
           </div>
