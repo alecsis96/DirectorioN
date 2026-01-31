@@ -495,7 +495,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
       {showCharts && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
           {/* Distribución por Estado */}
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-lg shadow p-4 min-w-0 overflow-hidden">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">🟢 Distribución por Estado</h3>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -537,7 +537,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
           </div>
 
           {/* Distribución por Plan */}
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-lg shadow p-4 min-w-0 overflow-hidden">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">🎯 Negocios por Plan</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={[
@@ -568,14 +568,13 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
       </div>
 
       {/* Filtros y Sorting - Mobile-first compacto */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-        <div className="flex flex-wrap gap-2">
-          {/* Filtros - Scroll horizontal optimizado */}
-      <div className="overflow-x-auto overflow-y-hidden -mx-4 px-4 md:mx-0 md:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="space-y-3 mb-4">
+        {/* Filtros - Scroll horizontal optimizado */}
+      <div className="overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <style jsx>{`
           div::-webkit-scrollbar { display: none; }
         `}</style>
-        <div className="flex gap-2 pb-2 snap-x snap-mandatory">
+        <div className="flex gap-2 pb-2 snap-x snap-mandatory min-w-max">
           <button
             onClick={() => setFilter('all')}
             className={`h-8 px-3 rounded whitespace-nowrap text-xs md:text-sm font-medium transition-colors snap-start flex-shrink-0 ${
@@ -618,10 +617,10 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
           </button>
         </div>
       </div>
-        </div>
 
       {/* Sorting controls */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="overflow-x-auto">
+        <div className="flex flex-wrap gap-2 items-center min-w-max">
         <span className="text-xs text-gray-600">Ordenar:</span>
         {(['name', 'nextPaymentDate', 'plan', 'status'] as const).map((field) => {
           const labels = {
@@ -657,10 +656,12 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
         <span className="text-xs text-gray-500 ml-2">
           ({filteredAndSortedBusinesses.length} resultados)
         </span>
+        </div>
       </div>
 
       {/* Filtros Avanzados */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="overflow-x-auto">
+        <div className="flex flex-wrap gap-2 items-center min-w-max">
         <span className="text-xs text-gray-600">Filtros:</span>
         <select
           value={planFilter}
@@ -684,6 +685,7 @@ export default function PaymentManager({ businesses: initialBusinesses }: Paymen
           <option value="canceled">Canceled</option>
           <option value="payment_failed">Payment Failed</option>
         </select>
+        </div>
       </div>
       </div>
 
