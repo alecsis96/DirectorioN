@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch } from 'react-icons/fa';
+import useSWR from 'swr';
+import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { auth } from '../firebaseConfig';
 
 interface BusinessData {
@@ -27,8 +28,22 @@ interface BusinessData {
 }
 
 interface Props {
-  businesses: BusinessData[];
+  businesses: BusinessData[]; // Initial SSR data
 }
+
+type SortField = 'businessName' | 'viewCount' | 'reviewCount' | 'avgRating' | 'createdAt' | 'plan';
+type SortDirection = 'asc' | 'desc';
+
+const fetcher = async (url: string) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error('No autenticado');
+  const token = await user.getIdToken();
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Error al cargar datos');
+  return res.json();
+};
 
 function getPlanBadge(plan: string, subscriptionStatus?: string) {
   if (plan === 'sponsor') {
@@ -60,7 +75,19 @@ function getSubscriptionStatusBadge(status?: string) {
 }
 
 export default function AdminBusinessList({ businesses }: Props) {
-  const [items, setItems] = useState<BusinessData[]>(businesses);
+  // SWR para datos en tiempo real
+  const { data, error, isLoading, mutate } = useSWR<{ businesses: BusinessData[]; stats: any }>(
+    '/api/admin/businesses-data',
+    fetcher,
+    {
+      fallbackData: { businesses, stats: null },
+      refreshInterval: 30000, // 30 segundos
+      revalidateOnFocus: true,
+    }
+  );
+
+  const items = data?.businesses || businesses;
+
   const [loading, setLoading] = useState<string | null>(null);
   const [planLoading, setPlanLoading] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -69,10 +96,14 @@ export default function AdminBusinessList({ businesses }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'featured' | 'sponsor'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled' | 'payment_issue'>('all');
+  
+  // Estados de sorting
+  const [sortField, setSortField] = useState<SortField>('createdAt');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Filtrado y búsqueda en tiempo real
+  // Filtrado, búsqueda y sorting en tiempo real
   const filteredItems = useMemo(() => {
-    return items.filter(business => {
+    let filtered = items.filter(business => {
       // Filtro de búsqueda
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = 
@@ -98,7 +129,50 @@ export default function AdminBusinessList({ businesses }: Props) {
 
       return matchesSearch && matchesPlan && matchesStatus;
     });
-  }, [items, searchTerm, planFilter, statusFilter]);
+
+    // Sorting
+    filtered.sort((a, b) => {
+      let aVal: any = a[sortField];
+      let bVal: any = b[sortField];
+
+      // Handle null/undefined
+      if (aVal === null || aVal === undefined) return 1;
+      if (bVal === null || bVal === undefined) return -1;
+
+      // Convert dates to timestamps
+      if (sortField === 'createdAt') {
+        aVal = aVal ? new Date(aVal).getTime() : 0;
+        bVal = bVal ? new Date(bVal).getTime() : 0;
+      }
+
+      // Plan ordering: sponsor > featured > free
+      if (sortField === 'plan') {
+        const planOrder: Record<string, number> = { sponsor: 3, featured: 2, free: 1 };
+        aVal = planOrder[aVal] || 0;
+        bVal = planOrder[bVal] || 0;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [items, searchTerm, planFilter, statusFilter, sortField, sortDirection]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return null;
+    return sortDirection === 'asc' ? <FaArrowUp className="inline ml-1 text-xs" /> : <FaArrowDown className="inline ml-1 text-xs" />;
+  };
 
   const handlePlanChange = async (businessId: string, plan: string) => {
     if (!plan) return;
@@ -127,19 +201,27 @@ export default function AdminBusinessList({ businesses }: Props) {
         throw new Error(data.error || 'Error al actualizar plan');
       }
 
-      setItems((prev) =>
-        prev.map((biz) =>
-          biz.id === businessId
-            ? {
-                ...biz,
-                plan,
-                planExpiresAt: data.planExpiresAt ?? biz.planExpiresAt ?? null,
-                nextPaymentDate: data.nextPaymentDate ?? biz.nextPaymentDate ?? null,
-                paymentStatus: plan === 'free' ? null : biz.paymentStatus ?? 'active',
-                stripeSubscriptionStatus: plan === 'free' ? undefined : biz.stripeSubscriptionStatus,
-              }
-            : biz
-        )
+      // Mutación optimista
+      mutate(
+        (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            businesses: current.businesses.map((biz) =>
+              biz.id === businessId
+                ? {
+                    ...biz,
+                    plan,
+                    planExpiresAt: data.planExpiresAt ?? biz.planExpiresAt ?? null,
+                    nextPaymentDate: data.nextPaymentDate ?? biz.nextPaymentDate ?? null,
+                    paymentStatus: plan === 'free' ? null : biz.paymentStatus ?? 'active',
+                    stripeSubscriptionStatus: plan === 'free' ? undefined : biz.stripeSubscriptionStatus,
+                  }
+                : biz
+            ),
+          };
+        },
+        { revalidate: true }
       );
 
       alert('Plan actualizado');
@@ -180,8 +262,21 @@ export default function AdminBusinessList({ businesses }: Props) {
         throw new Error(data.error || 'Error al deshabilitar negocio');
       }
 
+      // Mutación optimista
+      mutate(
+        (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            businesses: current.businesses.map((biz) =>
+              biz.id === businessId ? { ...biz, isActive: false } : biz
+            ),
+          };
+        },
+        { revalidate: true }
+      );
+
       alert('✅ Negocio deshabilitado exitosamente');
-      window.location.reload();
     } catch (error: any) {
       alert('❌ Error: ' + error.message);
     } finally {
@@ -206,8 +301,21 @@ export default function AdminBusinessList({ businesses }: Props) {
         throw new Error(data.error || 'Error al habilitar negocio');
       }
 
+      // Mutación optimista
+      mutate(
+        (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            businesses: current.businesses.map((biz) =>
+              biz.id === businessId ? { ...biz, isActive: true } : biz
+            ),
+          };
+        },
+        { revalidate: true }
+      );
+
       alert('✅ Negocio habilitado exitosamente');
-      window.location.reload();
     } catch (error: any) {
       alert('❌ Error: ' + error.message);
     } finally {
@@ -259,8 +367,19 @@ export default function AdminBusinessList({ businesses }: Props) {
         throw new Error(data.error || 'Error al eliminar negocio');
       }
 
+      // Mutación optimista - eliminar del array
+      mutate(
+        (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            businesses: current.businesses.filter((biz) => biz.id !== businessId),
+          };
+        },
+        { revalidate: true }
+      );
+
       alert('✅ Negocio eliminado permanentemente');
-      window.location.reload();
     } catch (error: any) {
       console.error('Delete error:', error);
       alert('❌ Error: ' + error.message);
@@ -269,8 +388,97 @@ export default function AdminBusinessList({ businesses }: Props) {
     }
   };
 
+  // Estados de error y loading
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <p className="text-red-600 font-medium mb-2">Error al cargar negocios</p>
+        <p className="text-sm text-red-500 mb-4">{error.message}</p>
+        <button
+          onClick={() => mutate()}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {/* Indicador de loading */}
+      {isLoading && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+          <p className="text-blue-600 text-sm">🔄 Actualizando datos...</p>
+        </div>
+      )}
+      {/* Barra de sorting */}
+      <div className="bg-white rounded-lg shadow-md p-3 overflow-x-auto">
+        <div className="flex items-center gap-2 min-w-max">
+          <span className="text-sm font-medium text-gray-700 mr-2">Ordenar por:</span>
+          <button
+            onClick={() => handleSort('businessName')}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              sortField === 'businessName'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Nombre <SortIcon field="businessName" />
+          </button>
+          <button
+            onClick={() => handleSort('viewCount')}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              sortField === 'viewCount'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Vistas <SortIcon field="viewCount" />
+          </button>
+          <button
+            onClick={() => handleSort('reviewCount')}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              sortField === 'reviewCount'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Reseñas <SortIcon field="reviewCount" />
+          </button>
+          <button
+            onClick={() => handleSort('avgRating')}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              sortField === 'avgRating'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Rating <SortIcon field="avgRating" />
+          </button>
+          <button
+            onClick={() => handleSort('plan')}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              sortField === 'plan'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Plan <SortIcon field="plan" />
+          </button>
+          <button
+            onClick={() => handleSort('createdAt')}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              sortField === 'createdAt'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Fecha <SortIcon field="createdAt" />
+          </button>
+        </div>
+      </div>
+
       {/* Barra de búsqueda y filtros */}
       <div className="bg-white rounded-lg shadow-md p-4 space-y-4">
         {/* Búsqueda */}
