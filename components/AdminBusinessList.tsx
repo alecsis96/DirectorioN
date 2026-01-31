@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown, FaDownload, FaChartBar } from 'react-icons/fa';
+import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown, FaDownload, FaChartBar, FaCheckSquare, FaSquare, FaExclamationTriangle } from 'react-icons/fa';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { auth } from '../firebaseConfig';
 
@@ -101,6 +101,10 @@ export default function AdminBusinessList({ businesses }: Props) {
   // Estados de sorting
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  
+  // Estados de bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   // Filtrado, búsqueda y sorting en tiempo real
   const filteredItems = useMemo(() => {
@@ -249,6 +253,170 @@ export default function AdminBusinessList({ businesses }: Props) {
 
     return { planData, activityData, statusData };
   }, [filteredItems]);
+
+  // Alertas predictivas
+  const predictiveAlerts = useMemo(() => {
+    const alerts: Array<{ type: 'warning' | 'danger' | 'info'; message: string; count: number }> = [];
+
+    // Negocios con planes próximos a vencer (dentro de 7 días)
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    const expiringSoon = filteredItems.filter(b => 
+      b.plan !== 'free' && 
+      b.planExpiresAt && 
+      new Date(b.planExpiresAt) <= sevenDaysFromNow
+    );
+    if (expiringSoon.length > 0) {
+      alerts.push({ type: 'warning', message: 'Negocios con plan próximo a vencer', count: expiringSoon.length });
+    }
+
+    // Negocios sin actividad reciente (0 vistas)
+    const noActivity = filteredItems.filter(b => (b.viewCount || 0) === 0);
+    if (noActivity.length > 0) {
+      alerts.push({ type: 'info', message: 'Negocios sin vistas', count: noActivity.length });
+    }
+
+    // Negocios con problemas de pago
+    const paymentIssues = filteredItems.filter(b => 
+      b.plan !== 'free' && 
+      (b.stripeSubscriptionStatus === 'payment_failed' || b.stripeSubscriptionStatus === 'past_due')
+    );
+    if (paymentIssues.length > 0) {
+      alerts.push({ type: 'danger', message: 'Negocios con problemas de pago', count: paymentIssues.length });
+    }
+
+    // Negocios deshabilitados
+    const disabled = filteredItems.filter(b => b.isActive === false);
+    if (disabled.length > 0) {
+      alerts.push({ type: 'warning', message: 'Negocios deshabilitados', count: disabled.length });
+    }
+
+    return alerts;
+  }, [filteredItems]);
+
+  // Bulk selection
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredItems.map(b => b.id)));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  // Bulk actions
+  const handleBulkPlanChange = async (plan: string) => {
+    if (selectedIds.size === 0) {
+      alert('Selecciona al menos un negocio');
+      return;
+    }
+
+    if (!confirm(`¿Cambiar ${selectedIds.size} negocios al plan ${plan}?`)) return;
+
+    setBulkLoading(true);
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('No autenticado');
+      const token = await user.getIdToken();
+
+      const promises = Array.from(selectedIds).map(businessId =>
+        fetch('/api/admin/update-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ businessId, plan }),
+        })
+      );
+
+      await Promise.all(promises);
+
+      // Revalidar datos
+      await mutate();
+      setSelectedIds(new Set());
+      alert(`✅ ${selectedIds.size} negocios actualizados`);
+    } catch (error: any) {
+      alert('❌ Error: ' + error.message);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkDisable = async () => {
+    if (selectedIds.size === 0) {
+      alert('Selecciona al menos un negocio');
+      return;
+    }
+
+    const reason = prompt('Motivo de deshabilitación masiva:', 'Acción administrativa');
+    if (!reason) return;
+
+    if (!confirm(`¿Deshabilitar ${selectedIds.size} negocios?`)) return;
+
+    setBulkLoading(true);
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('No autenticado');
+      const token = await user.getIdToken();
+
+      const promises = Array.from(selectedIds).map(businessId =>
+        fetch('/api/admin/disable-business', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ businessId, reason }),
+        })
+      );
+
+      await Promise.all(promises);
+
+      // Revalidar datos
+      await mutate();
+      setSelectedIds(new Set());
+      alert(`✅ ${selectedIds.size} negocios deshabilitados`);
+    } catch (error: any) {
+      alert('❌ Error: ' + error.message);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkEnable = async () => {
+    if (selectedIds.size === 0) {
+      alert('Selecciona al menos un negocio');
+      return;
+    }
+
+    if (!confirm(`¿Habilitar ${selectedIds.size} negocios?`)) return;
+
+    setBulkLoading(true);
+    try {
+      const promises = Array.from(selectedIds).map(businessId =>
+        fetch('/api/admin/enable-business', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ businessId }),
+        })
+      );
+
+      await Promise.all(promises);
+
+      // Revalidar datos
+      await mutate();
+      setSelectedIds(new Set());
+      alert(`✅ ${selectedIds.size} negocios habilitados`);
+    } catch (error: any) {
+      alert('❌ Error: ' + error.message);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   const handlePlanChange = async (businessId: string, plan: string) => {
     if (!plan) return;
@@ -488,9 +656,101 @@ export default function AdminBusinessList({ businesses }: Props) {
           <p className="text-blue-600 text-sm">🔄 Actualizando datos...</p>
         </div>
       )}
+
+      {/* Alertas predictivas */}
+      {predictiveAlerts.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FaExclamationTriangle className="text-yellow-600" />
+            <h3 className="font-semibold text-gray-900">Alertas del Sistema</h3>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {predictiveAlerts.map((alert, idx) => (
+              <div
+                key={idx}
+                className={`p-3 rounded-lg border ${
+                  alert.type === 'danger'
+                    ? 'bg-red-50 border-red-200'
+                    : alert.type === 'warning'
+                    ? 'bg-yellow-50 border-yellow-200'
+                    : 'bg-blue-50 border-blue-200'
+                }`}
+              >
+                <p className="text-xs font-medium text-gray-700 mb-1">{alert.message}</p>
+                <p className="text-2xl font-bold text-gray-900">{alert.count}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Panel de bulk actions */}
+      {selectedIds.size > 0 && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg shadow-lg p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-gray-900 flex items-center gap-2">
+                <FaCheckSquare className="text-blue-600" />
+                {selectedIds.size} negocio{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">Selecciona acciones para aplicar masivamente</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select
+                onChange={(e) => {
+                  if (e.target.value) handleBulkPlanChange(e.target.value);
+                  e.target.value = '';
+                }}
+                disabled={bulkLoading}
+                className="px-3 py-2 text-sm border-2 border-blue-300 rounded-lg bg-white font-medium hover:border-blue-400 transition-colors disabled:opacity-50"
+              >
+                <option value="">Cambiar plan...</option>
+                <option value="free">🆓 Gratuito</option>
+                <option value="featured">⭐ Destacado</option>
+                <option value="sponsor">👑 Patrocinado</option>
+              </select>
+              <button
+                onClick={handleBulkEnable}
+                disabled={bulkLoading}
+                className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+              >
+                <FaCheckCircle />
+                Habilitar
+              </button>
+              <button
+                onClick={handleBulkDisable}
+                disabled={bulkLoading}
+                className="px-3 py-2 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+              >
+                <FaBan />
+                Deshabilitar
+              </button>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Barra de sorting */}
       <div className="bg-white rounded-lg shadow-md p-3 overflow-x-auto">
         <div className="flex items-center gap-2 min-w-max">
+          {/* Checkbox select all */}
+          <button
+            onClick={toggleSelectAll}
+            className="p-2 hover:bg-gray-100 rounded transition-colors"
+            title={selectedIds.size === filteredItems.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+          >
+            {selectedIds.size === filteredItems.length ? (
+              <FaCheckSquare className="text-blue-600 text-lg" />
+            ) : (
+              <FaSquare className="text-gray-400 text-lg" />
+            )}
+          </button>
+          <div className="w-px h-6 bg-gray-300"></div>
           <span className="text-sm font-medium text-gray-700 mr-2">Ordenar por:</span>
           <button
             onClick={() => handleSort('businessName')}
@@ -707,6 +967,18 @@ export default function AdminBusinessList({ businesses }: Props) {
               {/* Vista compacta (siempre visible) */}
               <div className="p-4">
                 <div className="flex items-start gap-4">
+                  {/* Checkbox */}
+                  <button
+                    onClick={() => toggleSelectOne(business.id)}
+                    className="mt-1 p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+                  >
+                    {selectedIds.has(business.id) ? (
+                      <FaCheckSquare className="text-blue-600 text-xl" />
+                    ) : (
+                      <FaSquare className="text-gray-300 text-xl" />
+                    )}
+                  </button>
+                  
                   {/* Información principal */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3 mb-2">
