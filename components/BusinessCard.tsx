@@ -225,11 +225,11 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     >
       {/* v2: Banner superior (120px fijos) - SOLO patrocinados (tienen coverUrl) */}
       {plan === 'sponsor' && (
-        <div className="relative h-30 w-full overflow-hidden">
+        <div className="relative h-[120px] w-full overflow-hidden">
           <img 
             src={bannerUrl || '/images/default-premium-cover.svg'} 
             alt="" 
-            className="w-full h-30 object-cover object-center"
+            className="w-full h-[120px] object-cover object-center"
           />
           {/* v2: Badge dentro del banner */}
           {currentStyle.badge && (
@@ -247,7 +247,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         type="button"
         onClick={handleFavoriteToggle}
         disabled={isTogglingFavorite}
-        className={`absolute ${plan === 'sponsor' ? 'top-32' : 'top-2'} right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
+        className={`absolute ${plan === 'sponsor' ? 'top-[128px]' : 'top-2'} right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
           isTogglingFavorite ? 'scale-90 opacity-70' : 'hover:scale-110 active:scale-95'
         }`}
         aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
