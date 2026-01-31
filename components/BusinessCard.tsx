@@ -82,9 +82,10 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   }, [business.hours]);
 
   const handleClick = (e: React.MouseEvent) => {
+    // v2: Solo manejar click explícito en botón "Ver detalles", no en todo el card
     if (onViewDetails) {
       trackBusinessInteraction(
-        'business_card_clicked',
+        'business_card_view_details',
         businessId || '',
         business.name,
         business.category
@@ -268,10 +269,9 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         </span>
       </button>
 
-      {/* Contenido de la tarjeta */}
+      {/* v2: Contenido de la tarjeta - SIN onClick (no clickeable, solo botones) */}
       <div 
-        onClick={handleClick}
-        className="relative bg-white rounded-b-xl p-3 flex flex-col gap-2 cursor-pointer"
+        className="relative bg-white rounded-b-xl p-3 flex flex-col gap-2"
       >
           {/* Efecto de brillo para premium */}
           {plan !== 'free' && (
@@ -359,12 +359,20 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
           </div>
           
           {/* FILA INFERIOR: Dirección y Botones */}
-          <div className="flex flex-col gap-1.5 relative z-10">
+          <div className="flex flex-col gap-2 relative z-10">
             {/* Ubicación */}
             <p className="text-xs text-gray-700 flex items-center gap-1.5 line-clamp-1">
               <MapPin className="w-3 h-3 text-gray-500 flex-shrink-0" />
               <span className="truncate">{addressText}</span>
             </p>
+
+            {/* v2: CTA Principal - Ver detalles (botón sólido ancho completo) */}
+            <button
+              onClick={handleClick}
+              className="w-full py-3 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg active:scale-98"
+            >
+              Ver detalles
+            </button>
 
             {/* v2: Botones de acción - Touch-friendly (min-h-[44px]) */}
             <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
