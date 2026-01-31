@@ -226,15 +226,11 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       {/* v2: Banner superior (120px) - SOLO patrocinados (tienen coverUrl) */}
       {plan === 'sponsor' && (
         <div className="relative h-30 w-full">
-          {bannerUrl ? (
-            <img 
-              src={bannerUrl} 
-              alt="" 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600" />
-          )}
+          <img 
+            src={bannerUrl || '/images/default-premium-cover.svg'} 
+            alt="" 
+            className="w-full h-full object-cover"
+          />
           {/* v2: Badge dentro del banner */}
           {currentStyle.badge && (
             <div className="absolute top-2 left-2">
