@@ -583,12 +583,13 @@ function NavigationContent() {
                     const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
                     router.push(`${targetPath}?${nextParams.toString()}`);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                     params?.get('quickFilter') === 'open'
-                      ? 'bg-[#38761D] text-white border-[#38761D]'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                      ? 'bg-emerald-600 text-white border-3 border-emerald-700 shadow-md ring-2 ring-emerald-300'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
                   }`}
                 >
+                  {params?.get('quickFilter') === 'open' && <span className="text-white font-bold">✓</span>}
                   ⏰ Abierto ahora
                 </button>
                 
@@ -607,12 +608,13 @@ function NavigationContent() {
                     const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
                     router.push(`${targetPath}?${nextParams.toString()}`);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                     params?.get('quickFilter') === 'topRated'
-                      ? 'bg-[#38761D] text-white border-[#38761D]'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                      ? 'bg-emerald-600 text-white border-3 border-emerald-700 shadow-md ring-2 ring-emerald-300'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
                   }`}
                 >
+                  {params?.get('quickFilter') === 'topRated' && <span className="text-white font-bold">✓</span>}
                   ⭐ Mejor valorados
                 </button>
                 
@@ -631,12 +633,13 @@ function NavigationContent() {
                     const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
                     router.push(`${targetPath}?${nextParams.toString()}`);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                     params?.get('quickFilter') === 'delivery'
-                      ? 'bg-[#38761D] text-white border-[#38761D]'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                      ? 'bg-emerald-600 text-white border-3 border-emerald-700 shadow-md ring-2 ring-emerald-300'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
                   }`}
                 >
+                  {params?.get('quickFilter') === 'delivery' && <span className="text-white font-bold">✓</span>}
                   🚚 Delivery
                 </button>
                 
@@ -655,12 +658,13 @@ function NavigationContent() {
                     const targetPath = pathname === '/' ? '/negocios' : pathname || '/negocios';
                     router.push(`${targetPath}?${nextParams.toString()}`);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all border ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                     params?.get('quickFilter') === 'new'
-                      ? 'bg-[#38761D] text-white border-[#38761D]'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                      ? 'bg-emerald-600 text-white border-3 border-emerald-700 shadow-md ring-2 ring-emerald-300'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
                   }`}
                 >
+                  {params?.get('quickFilter') === 'new' && <span className="text-white font-bold">✓</span>}
                   🆕 Nuevos
                 </button>
               </div>

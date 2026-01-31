@@ -10,7 +10,7 @@ import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, type Filters, type SortMode } from
 
 export const metadata: Metadata = {
   title: 'Directorio de Negocios en Yajalón - Tu Guía Completa de Comercios Locales',
-  description: 'Descubre, compara y conecta con los mejores negocios de Yajalón. Encuentra restaurantes, tiendas, servicios profesionales y más cerca de ti. Directorio completo con reseñas, ubicaciones y contactos.',
+  description: '+50 negocios en Yajalón: búsqueda avanzada, filtros por categoría y colonia, vista mapa, reseñas verificadas. Encuentra lo que buscas cerca de ti ¡Gratis!',
   robots: {
     index: true,
     follow: true,

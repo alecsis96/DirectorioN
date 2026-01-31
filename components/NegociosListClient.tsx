@@ -691,33 +691,36 @@ export default function NegociosListClient({
             {uiFilters.category && (
               <button
                 onClick={() => updateFilters({ category: '' }, { resetPage: true })}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full text-sm font-semibold hover:bg-emerald-700 transition-all shadow-md ring-2 ring-emerald-300"
               >
+                <span className="font-bold">✓</span>
                 📂 {uiFilters.category}
-                <span className="text-green-600">✕</span>
+                <span className="text-white hover:scale-110 transition-transform">✕</span>
               </button>
             )}
             {uiFilters.colonia && (
               <button
                 onClick={() => updateFilters({ colonia: '' }, { resetPage: true })}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold hover:bg-blue-700 transition-all shadow-md ring-2 ring-blue-300"
               >
+                <span className="font-bold">✓</span>
                 📍 {selectedColoniaLabel}
-                <span className="text-blue-600">✕</span>
+                <span className="text-white hover:scale-110 transition-transform">✕</span>
               </button>
             )}
             {uiFilters.order !== DEFAULT_ORDER && (
               <button
                 onClick={() => updateFilters({ order: DEFAULT_ORDER }, { resetPage: true })}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-sm font-medium hover:bg-purple-200 transition"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full text-sm font-semibold hover:bg-purple-700 transition-all shadow-md ring-2 ring-purple-300"
               >
+                <span className="font-bold">✓</span>
                 🔄 {uiFilters.order === 'rating' ? 'Mejor calificados' : 'A-Z'}
-                <span className="text-purple-600">✕</span>
+                <span className="text-white hover:scale-110 transition-transform">✕</span>
               </button>
             )}
             <button
               onClick={() => updateFilters({ category: '', colonia: '', order: DEFAULT_ORDER }, { resetPage: true })}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-600 text-sm font-medium hover:text-gray-800 underline"
+              className="inline-flex items-center gap-1 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 hover:text-gray-900 rounded-full transition-all border border-gray-300"
             >
               Limpiar filtros
             </button>
