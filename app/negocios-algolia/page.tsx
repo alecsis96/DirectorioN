@@ -5,13 +5,13 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import AlgoliaSearch from '../../components/AlgoliaSearch';
 import BusinessModalWrapper from '../../components/BusinessModalWrapper';
 import type { Business } from '../../types/business';
 
-export default function NegociosAlgoliaPage() {
+function NegociosAlgoliaContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
@@ -72,5 +72,28 @@ export default function NegociosAlgoliaPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function NegociosAlgoliaPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12">
+          <div className="container mx-auto px-4">
+            <h1 className="text-4xl font-bold mb-2">Directorio de Negocios</h1>
+            <p className="text-xl text-blue-100">
+              Búsqueda instantánea con filtros inteligentes
+            </p>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando búsqueda...</p>
+        </div>
+      </div>
+    }>
+      <NegociosAlgoliaContent />
+    </Suspense>
   );
 }
