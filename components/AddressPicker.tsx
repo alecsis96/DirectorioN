@@ -119,6 +119,7 @@ export default function AddressPicker({ value, onChange }: Props) {
         const position = new google.maps.LatLng(loc.lat(), loc.lng());
         marker.setPosition(position);
         map.setCenter(position);
+        map.setZoom(16);
         onChange({ address: addr, lat: loc.lat(), lng: loc.lng() });
       });
 
@@ -126,7 +127,9 @@ export default function AddressPicker({ value, onChange }: Props) {
         try {
           google.maps.event.removeListener(dragendListener);
           google.maps.event.removeListener(placeChangedListener);
-          marker.setMap(null);
+          if (markerInstanceRef.current) {
+            markerInstanceRef.current.setMap(null);
+          }
         } catch (err) {
           console.warn('Error al limpiar Google Maps:', err);
         }
@@ -136,7 +139,7 @@ export default function AddressPicker({ value, onChange }: Props) {
       setShowMap(false);
       mapInitializedRef.current = false;
     }
-  }, [isGoogleMapsLoaded, showMap, value.lat, value.lng]);
+  }, [isGoogleMapsLoaded, showMap]);
 
   // Función para hacer geocoding de la dirección escrita
   const geocodeAddress = (address: string) => {
@@ -168,10 +171,12 @@ export default function AddressPicker({ value, onChange }: Props) {
   // Manejar cambio manual de dirección con geocoding
   const handleManualChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAddress = e.target.value;
+    // NO actualizar coordinates aquí, solo la dirección
+    // Las coordenadas se actualizarán con el geocoding
     onChange({ 
       address: newAddress, 
-      lat: value.lat || 0, 
-      lng: value.lng || 0 
+      lat: value.lat, 
+      lng: value.lng
     });
 
     // Limpiar timeout anterior
