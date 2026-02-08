@@ -11,13 +11,16 @@
     "test:watch": "vitest",
     "build": "next build",
     "start": "next start",
-    "verify-env": "node scripts/verifyEnv.js"
+    "verify-env": "node scripts/verifyEnv.js",
+    "sync-algolia": "tsx scripts/syncAlgolia.ts",
+    "clear-algolia": "tsx scripts/syncAlgolia.ts clear"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
     "@google-cloud/storage": "^7.17.1",
     "@react-google-maps/api": "^2.20.7",
     "@stripe/stripe-js": "^8.3.0",
+    "algoliasearch": "^5.48.0",
     "cloudinary": "^2.8.0",
     "firebase": "^12.1.0",
     "firebase-admin": "^13.5.0",
@@ -30,6 +33,7 @@
     "react-hook-form": "^7.63.0",
     "react-icons": "^5.5.0",
     "react-image-gallery": "^1.4.0",
+    "react-instantsearch": "^7.23.1",
     "recharts": "^3.7.0",
     "stripe": "^19.2.0",
     "swiper": "^12.0.3",
