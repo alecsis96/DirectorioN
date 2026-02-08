@@ -1,8 +1,27 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { appRateLimit } from '../../../lib/appRateLimit';
+
+const limiter = appRateLimit({ interval: 60000, uniqueTokenPerInterval: 20 });
 
 export async function GET(req: Request) {
   try {
+    const rate = limiter.check(req, 20);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes. Intenta más tarde.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '20',
+            'X-RateLimit-Remaining': rate.remaining.toString(),
+            'X-RateLimit-Reset': rate.resetSeconds.toString(),
+            'Retry-After': rate.retryAfterSeconds.toString(),
+          },
+        }
+      );
+    }
+
     const authHeader = req.headers.get('authorization');
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     if (!token) {

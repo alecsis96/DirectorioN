@@ -22,7 +22,8 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
+export const revalidate = 60; // Cache for 60 seconds
 
 type SearchParams = {
   c?: string;
@@ -59,11 +60,11 @@ async function buildBusinessesResult(params: SearchParams) {
     } catch (geoError) {
       console.error('[home] geosearch failed', geoError);
       error = 'No pudimos filtrar por ubicación, mostrando todos los negocios.';
-      const { businesses } = await fetchBusinesses();
+      const { businesses } = await fetchBusinesses(200);
       allBusinesses = businesses;
     }
   } else {
-    const { businesses } = await fetchBusinesses();
+    const { businesses } = await fetchBusinesses(200);
     allBusinesses = businesses;
   }
 

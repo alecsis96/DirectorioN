@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { fetchBusinesses } from '../../../lib/server/businessData';
 import { COLONIAS_MAP, normalizeColonia } from '../../../lib/helpers/colonias';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export async function GET() {
   try {
-    const { businesses: allBusinesses } = await fetchBusinesses();
+    const { businesses: allBusinesses } = await fetchBusinesses(200);
 
     // Obtener colonias únicas
     const labelByNorm = new Map<string, string>();
@@ -33,10 +34,17 @@ export async function GET() {
     }
     const categories = Array.from(categorySet).sort((a, b) => a.localeCompare(b, 'es'));
 
-    return NextResponse.json({
-      categories,
-      colonias,
-    });
+    return NextResponse.json(
+      {
+        categories,
+        colonias,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching filters:', error);
     return NextResponse.json(

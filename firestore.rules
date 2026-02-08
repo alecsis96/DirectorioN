@@ -7,6 +7,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
     // Admin via Custom Claims: { admin: true }
     function isAdmin() {
       return isSignedIn() && request.auth.token.admin == true;
@@ -42,7 +46,7 @@ service cloud.firestore {
       allow list: if isSignedIn() && (request.auth.uid == uid || isAdmin());
 
       // Creación: usuario autenticado crea su propia solicitud
-      allow create: if isSignedIn()
+      allow create: if isVerifiedEmail()
         && uid == request.auth.uid
         && validApplicationCreate();
 
@@ -150,6 +154,7 @@ service cloud.firestore {
       function validBusinessUserCreate() {
         return
           request.resource.data.status == 'draft' &&
+          isVerifiedEmail() &&
           (request.resource.data.ownerId == request.auth.uid) &&
           validString(request.resource.data.businessName, 1, 140) &&
           !(request.resource.data.featured is bool && request.resource.data.featured == true) &&

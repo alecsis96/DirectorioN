@@ -4,9 +4,12 @@ import {
   signInWithPhoneNumber,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
+  applyActionCode,
   RecaptchaVerifier,
   type ConfirmationResult,
   type Auth,
+  type User,
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebaseConfig';
 
@@ -161,11 +164,48 @@ export const authService = {
    * @param email - Email del usuario
    * @param password - Contraseña (mínimo 6 caracteres)
    */
-  async createAccountWithEmail(email: string, password: string): Promise<void> {
+  async createAccountWithEmail(email: string, password: string): Promise<User> {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      // Enviar email de verificación automáticamente
+      await this.sendVerificationEmail(credential.user);
+      return credential.user;
     } catch (error: any) {
       throw this.handleEmailAuthError(error);
+    }
+  },
+
+  /**
+   * Enviar email de verificación al usuario actual
+   * @param user - Usuario de Firebase (opcional, usa el actual si no se proporciona)
+   */
+  async sendVerificationEmail(user?: User): Promise<void> {
+    try {
+      const targetUser = user || auth.currentUser;
+      if (!targetUser) {
+        throw new Error('No hay usuario autenticado');
+      }
+      if (targetUser.emailVerified) {
+        throw new Error('El correo ya está verificado');
+      }
+      await sendEmailVerification(targetUser);
+    } catch (error: any) {
+      const message = error?.message || 'Error al enviar email de verificación';
+      throw new Error(message);
+    }
+  },
+
+  /**
+   * Verificar código de verificación de email
+   * @param actionCode - Código de acción recibido en el email
+   */
+  async verifyEmailCode(actionCode: string): Promise<void> {
+    try {
+      await applyActionCode(auth, actionCode);
+      // Recargar el usuario para actualizar emailVerified
+      await auth.currentUser?.reload();
+    } catch (error: any) {
+      throw new Error('Código de verificación inválido o expirado');
     }
   },
 
@@ -197,6 +237,9 @@ export const authService = {
         break;
       case 'auth/operation-not-allowed':
         message = 'Autenticación con correo no habilitada.';
+        break;
+      case 'auth/too-many-requests':
+        message = 'Demasiados intentos. Intenta más tarde.';
         break;
       case 'auth/too-many-requests':
         message = 'Demasiados intentos fallidos. Intenta más tarde.';

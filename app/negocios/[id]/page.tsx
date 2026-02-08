@@ -6,6 +6,8 @@ import type { Business } from '../../../types/business';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { fetchBusinesses } from '../../../lib/server/businessData';
 
+export const revalidate = 60; // Cache for 60 seconds
+
 type PageProps = {
   params: Promise<{
     id: string;
@@ -60,7 +62,7 @@ export default async function BusinessDetailAppPage({ params }: PageProps) {
   const decodedId = decodeURIComponent(id);
   let business = await fetchBusinessById(decodedId);
   if (!business) {
-    const { businesses: all } = await fetchBusinesses();
+    const { businesses: all } = await fetchBusinesses(100);
     const fallback = all.find((item) => item.id === decodedId);
     business = fallback ?? null;
   }

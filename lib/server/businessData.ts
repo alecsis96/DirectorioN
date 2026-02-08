@@ -116,11 +116,28 @@ export interface PaginatedBusinesses {
   hasMore: boolean;
 }
 
+type CacheEntry = {
+  data: PaginatedBusinesses;
+  expiresAt: number;
+};
+
+const BUSINESS_CACHE = new Map<string, CacheEntry>();
+const DEFAULT_LIMIT = 200;
+const MAX_LIMIT = 500;
+const CACHE_TTL_MS = 60_000;
+
 export async function fetchBusinesses(
-  limit: number = 1000,
+  limit: number = DEFAULT_LIMIT,
   lastId?: string
 ): Promise<PaginatedBusinesses> {
   try {
+    const safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
+    const cacheKey = `${safeLimit}:${lastId ?? 'first'}`;
+    const cached = BUSINESS_CACHE.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
     const db = getAdminFirestore();
     
     // Obtener todos los negocios publicados sin orderBy para evitar índice compuesto
@@ -148,18 +165,25 @@ export async function fetchBusinesses(
     }
     
     // Aplicar límite
-    const pagedDocs = allDocs.slice(0, limit);
+    const pagedDocs = allDocs.slice(0, safeLimit);
     const businesses = pagedDocs.map((doc) => normalizeBusiness(doc.data(), doc.id));
     
     // Determinar si hay más resultados
     const nextId = pagedDocs.length > 0 ? pagedDocs[pagedDocs.length - 1].id : null;
-    const hasMore = allDocs.length > limit;
+    const hasMore = allDocs.length > safeLimit;
     
-    return {
+    const response = {
       businesses,
       nextId,
       hasMore
     };
+
+    BUSINESS_CACHE.set(cacheKey, {
+      data: response,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+
+    return response;
   } catch (error) {
     console.error("[businessData] Error fetching from Firestore:", error);
     return {

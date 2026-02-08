@@ -227,10 +227,22 @@ export default function BusinessWizardPro() {
   const [user, setUser] = useState<User | null>(() => auth.currentUser);
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [showConfirmError, setShowConfirmError] = useState(false);
+  const [emailVerificationRequired, setEmailVerificationRequired] = useState(false);
 
   const addressRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => auth.onAuthStateChanged((u) => setUser(u)), []);
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+      setUser(u);
+      // Verificar si el email está verificado
+      if (u && !u.emailVerified) {
+        setEmailVerificationRequired(true);
+      } else {
+        setEmailVerificationRequired(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Carga progreso guardado
   useEffect(() => {
@@ -559,6 +571,39 @@ export default function BusinessWizardPro() {
         </div>
       )}
 
+      {emailVerificationRequired && user && (
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50/50 p-4 flex items-start gap-3">
+          <span className="text-xl">⚠️</span>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-yellow-900 mb-1">
+              Debes verificar tu correo electrónico
+            </p>
+            <p className="text-xs text-yellow-700 mb-3">
+              Te enviamos un email de verificación a <strong>{user.email}</strong>. 
+              Haz clic en el enlace para continuar con el registro de tu negocio.
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  await user.reload();
+                  if (user.emailVerified) {
+                    setEmailVerificationRequired(false);
+                    setStatusMsg("✓ ¡Email verificado! Ahora puedes continuar.");
+                  } else {
+                    setStatusMsg("Tu email aún no está verificado. Por favor, revisa tu bandeja de entrada.");
+                  }
+                } catch (err) {
+                  console.error("Error recargando usuario:", err);
+                }
+              }}
+              className="rounded-lg bg-yellow-600 px-4 py-2 text-sm font-semibold text-white hover:bg-yellow-700 transition-all"
+            >
+              Ya verifiqué mi correo
+            </button>
+          </div>
+        </div>
+      )}
+
       <nav className="flex gap-3">
         {steps.map((s, index) => {
           const active = s.key === currentStep;
@@ -688,7 +733,7 @@ export default function BusinessWizardPro() {
             )}
             <button
               type="submit"
-              disabled={saving || (!hasNext && !confirmChecked)}
+              disabled={saving || (!hasNext && !confirmChecked) || emailVerificationRequired}
               className="rounded-lg bg-[#38761D] px-6 py-2 text-sm font-bold text-white hover:bg-[#2f5a1a] hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               {hasNext ? "Siguiente →" : "✓ Enviar solicitud"}

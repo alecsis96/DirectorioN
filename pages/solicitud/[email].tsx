@@ -1,6 +1,8 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../../firebaseConfig';
 
 interface Application {
   id: string;
@@ -26,9 +28,37 @@ export default function SolicitudPorEmail() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [token, setToken] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setToken(null);
+        setAuthChecked(true);
+        return;
+      }
+      try {
+        const idToken = await user.getIdToken(true);
+        setToken(idToken);
+      } catch (err) {
+        console.error('Error obteniendo token:', err);
+        setToken(null);
+      } finally {
+        setAuthChecked(true);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     if (!email || typeof email !== 'string') return;
+    if (!authChecked) return;
+    if (!token) {
+      setLoading(false);
+      setError('Debes iniciar sesión para ver el estado de tus solicitudes.');
+      return;
+    }
 
     const fetchData = async () => {
       try {
@@ -37,8 +67,11 @@ export default function SolicitudPorEmail() {
         
         console.info('🔍 Buscando solicitudes para:', email);
 
-        // Llamar a la API del backend (sin necesidad de autenticación)
-        const response = await fetch(`/api/solicitud/${encodeURIComponent(email)}`);
+        const response = await fetch(`/api/solicitud/${encodeURIComponent(email)}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         
         if (!response.ok) {
           throw new Error('Error al buscar solicitudes');
@@ -67,7 +100,7 @@ export default function SolicitudPorEmail() {
     };
 
     fetchData();
-  }, [email]);
+  }, [email, authChecked, token]);
 
   const getStatusInfo = (status: string, type: string) => {
     if (type === 'application') {

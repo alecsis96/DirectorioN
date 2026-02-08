@@ -20,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let dynamicEntries: MetadataRoute.Sitemap = [];
   try {
     const db = getAdminFirestore();
-    const snapshot = await db.collection('businesses').where('status', '==', 'published').get();
+    const snapshot = await db.collection('businesses').where('status', '==', 'published').limit(500).get();
     dynamicEntries = snapshot.docs.map((doc) => {
       const data = doc.data() as { updatedAt?: any; slug?: string };
       const updatedRaw = data?.updatedAt;

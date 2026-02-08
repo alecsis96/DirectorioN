@@ -21,11 +21,11 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0; // Force no cache
+export const dynamic = 'force-static';
+export const revalidate = 60; // Cache for 60 seconds
 
 export default async function Home() {
-  const { businesses: allBusinesses } = await fetchBusinesses();
+  const { businesses: allBusinesses } = await fetchBusinesses(100);
 
   // Separar negocios patrocinados y destacados
   const sponsorBusinesses: BusinessPreview[] = allBusinesses

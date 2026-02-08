@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { auth } from '../firebaseConfig';
 import { authService } from '../lib/authService';
 
 interface EmailPasswordLoginProps {
@@ -19,6 +21,16 @@ export default function EmailPasswordLogin({
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [user, setUser] = useState<User | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -62,10 +74,12 @@ export default function EmailPasswordLogin({
     try {
       if (mode === 'login') {
         await authService.signInWithEmail(email, password);
+        onSuccess?.();
       } else {
         await authService.createAccountWithEmail(email, password);
+        setVerificationSent(true);
+        // No cerrar el modal inmediatamente, mostrar mensaje de verificación
       }
-      onSuccess?.();
     } catch (err: any) {
       setError(err.message || 'Error al procesar la solicitud');
     } finally {
@@ -73,10 +87,107 @@ export default function EmailPasswordLogin({
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!user) return;
+    setSendingVerification(true);
+    setError('');
+    try {
+      await authService.sendVerificationEmail(user);
+      setVerificationSent(true);
+    } catch (err: any) {
+      setError(err.message || 'Error al reenviar email de verificación');
+    } finally {
+      setSendingVerification(false);
+    }
+  };
+
   const toggleMode = () => {
     setMode(mode === 'login' ? 'register' : 'login');
     setError('');
+    setVerificationSent(false);
   };
+
+  // Mostrar mensaje de verificación si el usuario registró cuenta
+  if (verificationSent && user && !user.emailVerified) {
+    return (
+      <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Verifica tu correo!</h2>
+          <p className="text-gray-600 mb-4">
+            Te enviamos un email de verificación a <strong>{user.email}</strong>
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-blue-800">
+              📧 Revisa tu bandeja de entrada (y spam) y haz clic en el enlace para verificar tu cuenta.
+            </p>
+          </div>
+          <p className="text-xs text-gray-500 mb-6">
+            ⚠️ Necesitas verificar tu correo antes de poder registrar un negocio.
+          </p>
+          <button
+            onClick={handleResendVerification}
+            disabled={sendingVerification}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 mb-3"
+          >
+            {sendingVerification ? 'Reenviando...' : 'Reenviar email de verificación'}
+          </button>
+          <button
+            onClick={onSuccess}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar alerta si el usuario ya está logueado pero no verificado
+  if (user && !user.emailVerified && mode === 'login') {
+    return (
+      <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Correo no verificado</h2>
+          <p className="text-gray-600 mb-4">
+            Tu cuenta <strong>{user.email}</strong> aún no está verificada.
+          </p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-yellow-800">
+              ⚠️ Debes verificar tu correo antes de poder registrar un negocio.
+            </p>
+          </div>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+          <button
+            onClick={handleResendVerification}
+            disabled={sendingVerification}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 mb-3"
+          >
+            {sendingVerification ? 'Reenviando...' : 'Reenviar email de verificación'}
+          </button>
+          <button
+            onClick={onCancel}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8">
