@@ -15,6 +15,10 @@ export default function AddressPicker({ value, onChange }: Props) {
   const [showMap, setShowMap] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const mapInitializedRef = useRef(false);
+  const googleMapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markerInstanceRef = useRef<google.maps.Marker | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Verificar si Google Maps está disponible (sin forzar carga)
   useEffect(() => {
@@ -47,6 +51,15 @@ export default function AddressPicker({ value, onChange }: Props) {
     };
   }, [retryCount]);
 
+  // Limpiar timeout de geocoding al desmontar
+  useEffect(() => {
+    return () => {
+      if (geocodeTimeoutRef.current) {
+        clearTimeout(geocodeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Inicializar mapa solo cuando esté disponible y el usuario lo solicite
   useEffect(() => {
     if (!isGoogleMapsLoaded || !showMap) return;
@@ -69,11 +82,16 @@ export default function AddressPicker({ value, onChange }: Props) {
         fullscreenControl: false,
       });
 
+      googleMapInstanceRef.current = map;
+      geocoderRef.current = new google.maps.Geocoder();
+
       const marker = new google.maps.Marker({
         map,
         position: center,
         draggable: true,
       });
+
+      markerInstanceRef.current = marker;
 
       const dragendListener = marker.addListener('dragend', () => {
         const p = marker.getPosition();
@@ -120,7 +138,34 @@ export default function AddressPicker({ value, onChange }: Props) {
     }
   }, [isGoogleMapsLoaded, showMap, value.lat, value.lng]);
 
-  // Manejar cambio manual de dirección
+  // Función para hacer geocoding de la dirección escrita
+  const geocodeAddress = (address: string) => {
+    if (!geocoderRef.current || !address.trim()) return;
+
+    geocoderRef.current.geocode(
+      { address: address, componentRestrictions: { country: 'MX' } },
+      (results, status) => {
+        if (status === 'OK' && results && results[0]) {
+          const location = results[0].geometry.location;
+          const newLat = location.lat();
+          const newLng = location.lng();
+
+          // Actualizar marcador y mapa
+          if (markerInstanceRef.current && googleMapInstanceRef.current) {
+            const newPosition = new google.maps.LatLng(newLat, newLng);
+            markerInstanceRef.current.setPosition(newPosition);
+            googleMapInstanceRef.current.setCenter(newPosition);
+            googleMapInstanceRef.current.setZoom(16);
+          }
+
+          // Actualizar estado
+          onChange({ address, lat: newLat, lng: newLng });
+        }
+      }
+    );
+  };
+
+  // Manejar cambio manual de dirección con geocoding
   const handleManualChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAddress = e.target.value;
     onChange({ 
@@ -128,6 +173,18 @@ export default function AddressPicker({ value, onChange }: Props) {
       lat: value.lat || 0, 
       lng: value.lng || 0 
     });
+
+    // Limpiar timeout anterior
+    if (geocodeTimeoutRef.current) {
+      clearTimeout(geocodeTimeoutRef.current);
+    }
+
+    // Hacer geocoding después de 1.5 segundos de que el usuario deje de escribir
+    if (showMap && isGoogleMapsLoaded && newAddress.trim().length > 3) {
+      geocodeTimeoutRef.current = setTimeout(() => {
+        geocodeAddress(newAddress);
+      }, 1500);
+    }
   };
 
   return (
@@ -171,7 +228,7 @@ export default function AddressPicker({ value, onChange }: Props) {
             className="h-64 w-full rounded-lg border border-gray-300 bg-gray-100"
           />
           <p className="text-xs text-gray-500">
-            💡 Selecciona de las sugerencias o arrastra el pin para ajustar la ubicación
+            💡 Escribe la dirección y el mapa se actualizará automáticamente, selecciona de las sugerencias o arrastra el pin
           </p>
         </div>
       )}
