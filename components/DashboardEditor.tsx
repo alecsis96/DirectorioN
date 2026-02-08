@@ -770,20 +770,32 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
             {/* Principal */}
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900">Informacion basica</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Información básica</h2>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <input
-                    className="border rounded-lg px-3 py-2"
-                    placeholder="Nombre del negocio"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  />
-                  <select
-                    className="border rounded-lg px-3 py-2"
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  >
-                    <option value="">Selecciona una categoría</option>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre del negocio <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      className={`border rounded-lg px-3 py-2 w-full ${validationErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+                      placeholder="Nombre del negocio"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    />
+                    {validationErrors.name && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.name}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Categoría <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className={`border rounded-lg px-3 py-2 w-full ${validationErrors.category ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+                      value={form.category}
+                      onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    >
+                      <option value="">Selecciona una categoría</option>
                     <option value="Restaurante">Restaurante</option>
                     <option value="Cafetería">Cafetería</option>
                     <option value="Panadería">Panadería</option>
@@ -799,50 +811,93 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     <option value="Construcción">Construcción</option>
                     <option value="Profesional">Profesional</option>
                     <option value="Otro">Otro</option>
-                  </select>
-                  <select
-                    className="border rounded-lg px-3 py-2"
-                    value={form.colonia}
-                    onChange={(e) => setForm({ ...form, colonia: e.target.value })}
-                  >
-                    <option value="">Selecciona una colonia</option>
-                    {YAJALON_COLONIAS.map((colonia) => (
-                      <option key={colonia} value={colonia}>
-                        {colonia}
-                      </option>
-                    ))}
-                  </select>
+                    </select>
+                    {validationErrors.category && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.category}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Colonia <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className={`border rounded-lg px-3 py-2 w-full ${validationErrors.colonia ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+                      value={form.colonia}
+                      onChange={(e) => setForm({ ...form, colonia: e.target.value })}
+                    >
+                      <option value="">Selecciona una colonia</option>
+                      {YAJALON_COLONIAS.map((colonia) => (
+                        <option key={colonia} value={colonia}>
+                          {colonia}
+                        </option>
+                      ))}
+                    </select>
+                    {validationErrors.colonia && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.colonia}</p>
+                    )}
+                  </div>
                 </div>
-                <textarea
-                  className="border rounded-lg px-3 py-2 w-full"
-                  rows={3}
-                  placeholder="Descripcion breve"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Descripción <span className="text-red-500">*</span>
+                    <span className="text-gray-500 text-xs ml-2">(Mínimo 20 caracteres)</span>
+                  </label>
+                  <textarea
+                    className={`border rounded-lg px-3 py-2 w-full ${validationErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+                    rows={3}
+                    placeholder="Descripción breve de tu negocio"
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  />
+                  <div className="flex justify-between items-center mt-1">
+                    {validationErrors.description ? (
+                      <p className="text-red-500 text-xs">{validationErrors.description}</p>
+                    ) : (
+                      <p className="text-gray-500 text-xs">{form.description.length} / 20 caracteres</p>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900">Contacto y redes</h2>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <input
-                    className="border rounded-lg px-3 py-2"
-                    placeholder="Telefono"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  />
-                  <input
-                    className="border rounded-lg px-3 py-2"
-                    placeholder="WhatsApp"
-                    value={form.WhatsApp}
-                    onChange={(e) => setForm({ ...form, WhatsApp: e.target.value })}
-                  />
-                  <input
-                    className="border rounded-lg px-3 py-2 md:col-span-2"
-                    placeholder="Facebook (URL)"
-                    value={form.Facebook}
-                    onChange={(e) => setForm({ ...form, Facebook: e.target.value })}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Teléfono <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      className={`border rounded-lg px-3 py-2 w-full ${validationErrors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
+                      placeholder="9191234567"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    />
+                    {validationErrors.phone && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      WhatsApp
+                    </label>
+                    <input
+                      className="border border-gray-300 rounded-lg px-3 py-2 w-full"
+                      placeholder="9191234567"
+                      value={form.WhatsApp}
+                      onChange={(e) => setForm({ ...form, WhatsApp: e.target.value })}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Facebook
+                    </label>
+                    <input
+                      className="border border-gray-300 rounded-lg px-3 py-2 w-full"
+                      placeholder="https://facebook.com/tunegocio"
+                      value={form.Facebook}
+                      onChange={(e) => setForm({ ...form, Facebook: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
 
