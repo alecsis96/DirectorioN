@@ -388,6 +388,38 @@ export async function submitNewBusiness(formData: FormData) {
     } catch (error) {
       console.error('[server-action submitNewBusiness] webhook after wizard error', error);
     }
+
+    // Enviar email de bienvenida al completar wizard
+    if (decoded.email) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        await fetch(`${baseUrl}/api/send-email-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'welcome',
+            to: decoded.email,
+            businessName: asString(payload.businessName, 140),
+            ownerName: asString(payload.ownerName ?? decoded.name, 140),
+          }),
+        });
+      } catch (emailError) {
+        console.warn('[server-action] Failed to send welcome email after wizard:', emailError);
+        // No fallar la operación si el email falla
+      }
+    }
+
+    // Notificar al admin por WhatsApp al completar wizard
+    try {
+      const { notifyNewRegistration } = await import('../../lib/whatsappNotifier');
+      await notifyNewRegistration(
+        asString(payload.businessName, 140),
+        asString(payload.ownerName ?? decoded.name, 140),
+        decoded.email
+      );
+    } catch (whatsappError) {
+      console.warn('[server-action] Failed to send WhatsApp notification after wizard:', whatsappError);
+    }
   }
 
   return { ok: true, submitted: justSubmitted, notified };
