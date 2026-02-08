@@ -13,12 +13,30 @@
 
 import React, { useState } from 'react';
 import { InstantSearch, SearchBox, Hits, Configure, RefinementList, CurrentRefinements, Stats, Pagination } from 'react-instantsearch';
-import { searchClient, ALGOLIA_INDEX_NAME } from '@/lib/algoliaClient';
-import { Business } from '@/types/business';
+import { searchClient, ALGOLIA_INDEX_NAME } from '../lib/algoliaClient';
+import type { Business } from '../types/business';
 import { MapPin, Star, Phone, Globe } from 'lucide-react';
 
-interface AlgoliaHit extends Business {
+interface AlgoliaHit {
   objectID: string;
+  name: string;
+  description?: string;
+  category: string;
+  colonia?: string;
+  address: string;
+  phone?: string;
+  whatsapp?: string;
+  facebook?: string;
+  images?: string[];
+  logo?: string;
+  coverUrl?: string;
+  rating: number;
+  isPremium: boolean;
+  isFeatured: boolean;
+  status: string;
+  hours?: string;
+  plan?: string;
+  _geoloc?: { lat: number; lng: number };
   _highlightResult?: any;
 }
 
@@ -49,7 +67,7 @@ function BusinessHit({ hit, onClick }: { hit: AlgoliaHit; onClick?: (business: B
       {/* Imagen */}
       <div className="relative h-48 mb-3 overflow-hidden rounded-md">
         <img
-          src={hit.images?.[0] || hit.logo || '/placeholder-business.jpg'}
+          src={hit.images?.[0] || hit.logo || hit.coverUrl || '/placeholder-business.jpg'}
           alt={hit.name}
           className="w-full h-full object-cover"
         />
@@ -70,7 +88,7 @@ function BusinessHit({ hit, onClick }: { hit: AlgoliaHit; onClick?: (business: B
         {/* Categoría */}
         <p className="text-sm text-blue-600 font-medium">
           {hit.category}
-          {hit.subcategory && ` • ${hit.subcategory}`}
+          {hit.colonia && ` • ${hit.colonia}`}
         </p>
 
         {/* Descripción */}
@@ -85,15 +103,14 @@ function BusinessHit({ hit, onClick }: { hit: AlgoliaHit; onClick?: (business: B
           <div className="flex items-center gap-1">
             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
             <span className="text-sm font-semibold">{hit.rating.toFixed(1)}</span>
-            <span className="text-xs text-gray-500">({hit.reviewCount || 0})</span>
           </div>
         )}
 
         {/* Ubicación */}
-        {hit.address?.city && (
+        {(hit.colonia || hit.address) && (
           <div className="flex items-center gap-1 text-sm text-gray-600">
             <MapPin className="w-4 h-4" />
-            <span>{hit.address.city}, {hit.address.state}</span>
+            <span>{hit.colonia || hit.address}</span>
           </div>
         )}
 
@@ -109,16 +126,15 @@ function BusinessHit({ hit, onClick }: { hit: AlgoliaHit; onClick?: (business: B
               Llamar
             </a>
           )}
-          {hit.website && (
+          {hit.whatsapp && (
             <a
-              href={hit.website}
+              href={`https://wa.me/${hit.whatsapp.replace(/\D/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-xs bg-gray-50 text-gray-600 px-3 py-1 rounded-full hover:bg-gray-100"
+              className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-3 py-1 rounded-full hover:bg-green-100"
             >
-              <Globe className="w-3 h-3" />
-              Web
+              WhatsApp
             </a>
           )}
         </div>
@@ -175,12 +191,8 @@ export default function AlgoliaSearch({
           />
 
           {/* Stats */}
-          <div className="mt-2 text-sm text-gray-600">
+          <div className="mt-2 text-sm text-gray-600 text-center">
             <Stats
-              classNames={{
-                root: 'text-center',
-                text: 'text-sm text-gray-600',
-              }}
               translations={{
                 rootElementText({ nbHits, processingTimeMS }) {
                   return `${nbHits.toLocaleString()} resultados encontrados en ${processingTimeMS}ms`;
@@ -231,11 +243,11 @@ export default function AlgoliaSearch({
                   />
                 </div>
 
-                {/* Ciudad */}
+                {/* Colonia */}
                 <div>
-                  <h4 className="font-semibold text-sm text-gray-700 mb-2">Ciudad</h4>
+                  <h4 className="font-semibold text-sm text-gray-700 mb-2">Colonia</h4>
                   <RefinementList
-                    attribute="address.city"
+                    attribute="colonia"
                     limit={5}
                     showMore={true}
                     classNames={{
@@ -251,13 +263,12 @@ export default function AlgoliaSearch({
                   />
                 </div>
 
-                {/* Estado */}
+                {/* Plan */}
                 <div>
-                  <h4 className="font-semibold text-sm text-gray-700 mb-2">Estado</h4>
+                  <h4 className="font-semibold text-sm text-gray-700 mb-2">Plan</h4>
                   <RefinementList
-                    attribute="address.state"
+                    attribute="plan"
                     limit={5}
-                    showMore={true}
                     classNames={{
                       root: 'space-y-2',
                       list: 'space-y-2',
@@ -266,7 +277,6 @@ export default function AlgoliaSearch({
                       checkbox: 'w-4 h-4 text-blue-600',
                       labelText: 'text-sm text-gray-700 flex-1',
                       count: 'text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full',
-                      showMore: 'text-sm text-blue-600 hover:text-blue-800 mt-2 cursor-pointer',
                     }}
                   />
                 </div>
@@ -289,7 +299,7 @@ export default function AlgoliaSearch({
             {/* Grid de resultados */}
             <Hits
               hitComponent={({ hit }) => (
-                <BusinessHit hit={hit as AlgoliaHit} onClick={onBusinessClick} />
+                <BusinessHit hit={hit as unknown as AlgoliaHit} onClick={onBusinessClick} />
               )}
               classNames={{
                 root: 'space-y-4',

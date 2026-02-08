@@ -7,9 +7,9 @@
 
 import React, { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import AlgoliaSearch from '@/components/AlgoliaSearch';
-import BusinessModalWrapper from '@/components/BusinessModalWrapper';
-import type { Business } from '@/types/business';
+import AlgoliaSearch from '../../components/AlgoliaSearch';
+import BusinessModalWrapper from '../../components/BusinessModalWrapper';
+import type { Business } from '../../types/business';
 
 export default function NegociosAlgoliaPage() {
   const searchParams = useSearchParams();
@@ -17,14 +17,14 @@ export default function NegociosAlgoliaPage() {
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
   // Obtener filtros iniciales de URL
-  const initialCategory = searchParams.get('c') || undefined;
-  const initialCity = searchParams.get('city') || undefined;
-  const initialState = searchParams.get('state') || undefined;
+  const initialCategory = searchParams?.get('c') || undefined;
+  const initialCity = searchParams?.get('city') || undefined;
+  const initialState = searchParams?.get('state') || undefined;
 
   const handleBusinessClick = (business: Business) => {
     setSelectedBusiness(business);
     // Actualizar URL con el ID del negocio
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('id', business.id || '');
     router.push(`/negocios?${params.toString()}`, { scroll: false });
   };
@@ -32,7 +32,7 @@ export default function NegociosAlgoliaPage() {
   const handleCloseModal = () => {
     setSelectedBusiness(null);
     // Remover ID de la URL
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     params.delete('id');
     const newUrl = params.toString() ? `/negocios?${params.toString()}` : '/negocios';
     router.push(newUrl, { scroll: false });
@@ -67,8 +67,7 @@ export default function NegociosAlgoliaPage() {
       {/* Modal de detalles */}
       {selectedBusiness && (
         <BusinessModalWrapper
-          business={selectedBusiness}
-          isOpen={true}
+          businessPreview={selectedBusiness}
           onClose={handleCloseModal}
         />
       )}

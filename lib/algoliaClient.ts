@@ -3,7 +3,8 @@
  * Motor de búsqueda dedicado para el directorio de negocios
  */
 
-import algoliasearch, { SearchClient } from 'algoliasearch';
+import { algoliasearch } from 'algoliasearch';
+import type { SearchClient } from 'algoliasearch';
 
 // Validar variables de entorno
 if (!process.env.NEXT_PUBLIC_ALGOLIA_APP_ID) {
@@ -15,7 +16,7 @@ if (!process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY) {
 }
 
 // Cliente público para búsquedas (solo lectura)
-export const searchClient: SearchClient = algoliasearch(
+export const searchClient = algoliasearch(
   process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || 'dummy',
   process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY || 'dummy'
 );
@@ -41,17 +42,14 @@ export const INDEX_SETTINGS = {
     'name',
     'category',
     'description',
-    'tags',
-    'subcategory',
-    'address.city',
-    'address.state',
+    'colonia',
+    'address',
   ],
   attributesForFaceting: [
     'filterOnly(status)',
     'searchable(category)',
-    'searchable(subcategory)',
-    'searchable(address.city)',
-    'searchable(address.state)',
+    'searchable(colonia)',
+    'searchable(plan)',
     'filterOnly(isPremium)',
     'filterOnly(isFeatured)',
   ],
@@ -76,21 +74,20 @@ export const INDEX_SETTINGS = {
     'name',
     'description',
     'category',
-    'subcategory',
+    'colonia',
     'address',
     'phone',
     'whatsapp',
-    'email',
-    'website',
-    'socialMedia',
+    'facebook',
     'images',
     'logo',
+    'coverUrl',
     'rating',
-    'reviewCount',
     'isPremium',
     'isFeatured',
-    'businessHours',
-    'tags',
+    'hours',
+    'horarios',
+    'plan',
   ],
   attributesToHighlight: ['name', 'description', 'category'],
   hitsPerPage: 20,
@@ -100,6 +97,6 @@ export const INDEX_SETTINGS = {
   minWordSizefor1Typo: 4,
   minWordSizefor2Typos: 8,
   allowTyposOnNumericTokens: false,
-  ignorePlurals: ['es'],
+  ignorePlurals: true,
   queryLanguages: ['es'],
 };

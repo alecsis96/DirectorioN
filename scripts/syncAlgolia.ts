@@ -35,33 +35,31 @@ function transformBusinessForAlgolia(business: Business & { id: string }) {
     name: business.name || '',
     description: business.description || '',
     category: business.category || '',
-    subcategory: business.subcategory || '',
-    tags: business.tags || [],
-    address: {
-      street: business.address?.street || '',
-      city: business.address?.city || '',
-      state: business.address?.state || '',
-      postalCode: business.address?.postalCode || '',
-      country: business.address?.country || 'México',
-    },
+    colonia: business.colonia || business.neighborhood || '',
+    address: business.address || '',
     phone: business.phone || '',
-    whatsapp: business.whatsapp || '',
-    email: business.email || '',
-    website: business.website || '',
-    socialMedia: business.socialMedia || {},
-    images: business.images || [],
-    logo: business.logo || '',
+    whatsapp: business.WhatsApp || '',
+    facebook: business.Facebook || '',
+    images: business.images?.map(img => img.url).filter(Boolean) || [],
+    logo: business.logoUrl || '',
+    coverUrl: business.coverUrl || '',
     rating: business.rating || 0,
-    reviewCount: business.reviewCount || 0,
-    isPremium: business.isPremium || false,
-    isFeatured: business.isFeatured || false,
+    isPremium: business.plan === 'sponsor' || business.plan === 'featured',
+    isFeatured: business.featured === true || business.featured === 'true',
     status: business.status || 'draft',
-    businessHours: business.businessHours || {},
+    hours: business.hours || '',
+    horarios: business.horarios || {},
+    plan: business.plan || 'free',
     // Geolocalización para búsquedas geográficas
-    _geoloc: business.location?.latitude && business.location?.longitude
+    _geoloc: business.location?.lat && business.location?.lng
       ? {
-          lat: business.location.latitude,
-          lng: business.location.longitude,
+          lat: business.location.lat,
+          lng: business.location.lng,
+        }
+      : business.lat && business.lng
+      ? {
+          lat: business.lat,
+          lng: business.lng,
         }
       : undefined,
   };
@@ -76,12 +74,6 @@ async function syncBusinessesToAlgolia() {
   try {
     // Obtener cliente admin de Algolia
     const algoliaClient = getAdminClient();
-    const index = algoliaClient.initIndex(ALGOLIA_INDEX_NAME);
-
-    // Configurar índice (solo primera vez o cuando cambie configuración)
-    console.log('⚙️  Configurando índice...');
-    await index.setSettings(INDEX_SETTINGS);
-    console.log('✅ Índice configurado\n');
 
     // Obtener todos los negocios publicados
     console.log('📖 Leyendo negocios de Firestore...');
@@ -105,12 +97,14 @@ async function syncBusinessesToAlgolia() {
 
     // Indexar en Algolia (batch)
     console.log('📤 Enviando a Algolia...');
-    const result = await index.saveObjects(records);
+    await algoliaClient.saveObjects({
+      indexName: ALGOLIA_INDEX_NAME,
+      objects: records,
+    });
 
     console.log(`✅ Sincronización completada!`);
     console.log(`📊 Estadísticas:`);
     console.log(`   - Negocios indexados: ${records.length}`);
-    console.log(`   - ObjectIDs: ${result.objectIDs.length}`);
     console.log(`   - Índice: ${ALGOLIA_INDEX_NAME}\n`);
 
     // Mostrar distribución por categoría
@@ -141,9 +135,10 @@ async function clearAlgoliaIndex() {
 
   try {
     const algoliaClient = getAdminClient();
-    const index = algoliaClient.initIndex(ALGOLIA_INDEX_NAME);
     
-    await index.clearObjects();
+    await algoliaClient.clearObjects({
+      indexName: ALGOLIA_INDEX_NAME,
+    });
     console.log('✅ Índice limpiado');
   } catch (error) {
     console.error('❌ Error al limpiar índice:', error);
