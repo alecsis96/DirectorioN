@@ -12,15 +12,15 @@ export default function AddressPicker({ value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const mapInitializedRef = useRef(false);
 
-  // Verificar si Google Maps está disponible
+  // Verificar si Google Maps está disponible (sin forzar carga)
   useEffect(() => {
     const checkGoogleMaps = () => {
-      if ('google' in window && window.google?.maps) {
+      if ('google' in window && window.google?.maps && window.google?.maps?.places) {
         setIsGoogleMapsLoaded(true);
-        setError(null);
         return true;
       }
       return false;
@@ -29,25 +29,35 @@ export default function AddressPicker({ value, onChange }: Props) {
     // Verificar inmediatamente
     if (checkGoogleMaps()) return;
 
-    // Si no está disponible, esperar más tiempo y reintentar
-    const timer = setTimeout(() => {
-      if (!checkGoogleMaps()) {
-        setError('El mapa interactivo no está disponible en este momento.');
+    // Verificar periódicamente sin timeout de error
+    const interval = setInterval(() => {
+      if (checkGoogleMaps()) {
+        clearInterval(interval);
       }
-    }, 10000); // 10 segundos de espera
+    }, 1000);
 
-    return () => clearTimeout(timer);
+    // Limpiar después de 15 segundos
+    const cleanup = setTimeout(() => {
+      clearInterval(interval);
+    }, 15000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(cleanup);
+    };
   }, [retryCount]);
 
+  // Inicializar mapa solo cuando esté disponible y el usuario lo solicite
   useEffect(() => {
-    if (!isGoogleMapsLoaded) return;
+    if (!isGoogleMapsLoaded || !showMap) return;
     if (!inputRef.current || !mapRef.current) return;
+    if (mapInitializedRef.current) return;
 
     try {
-      inputRef.current.value = value.address ?? '';
+      mapInitializedRef.current = true;
 
       const center = new google.maps.LatLng(
-        value.lat || 16.9028, // Coordenadas aproximadas de Yajalón
+        value.lat || 16.9028,
         value.lng || -92.3254
       );
 
@@ -65,7 +75,6 @@ export default function AddressPicker({ value, onChange }: Props) {
         draggable: true,
       });
 
-      // Guardar referencias a los listeners para limpiarlos
       const dragendListener = marker.addListener('dragend', () => {
         const p = marker.getPosition();
         if (!p) return;
@@ -95,19 +104,23 @@ export default function AddressPicker({ value, onChange }: Props) {
         onChange({ address: addr, lat: loc.lat(), lng: loc.lng() });
       });
 
-      // Cleanup: remover listeners cuando el componente se desmonta o las dependencias cambian
       return () => {
-        google.maps.event.removeListener(dragendListener);
-        google.maps.event.removeListener(placeChangedListener);
-        marker.setMap(null);
+        try {
+          google.maps.event.removeListener(dragendListener);
+          google.maps.event.removeListener(placeChangedListener);
+          marker.setMap(null);
+        } catch (err) {
+          console.warn('Error al limpiar Google Maps:', err);
+        }
       };
     } catch (err) {
       console.error('Error al inicializar Google Maps:', err);
-      setError('Error al cargar el mapa. Por favor, intenta recargar la página.');
+      setShowMap(false);
+      mapInitializedRef.current = false;
     }
-  }, [isGoogleMapsLoaded, value.address, value.lat, value.lng, onChange]);
+  }, [isGoogleMapsLoaded, showMap, value.lat, value.lng]);
 
-  // Manejar cambio manual de dirección (sin autocompletado)
+  // Manejar cambio manual de dirección
   const handleManualChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAddress = e.target.value;
     onChange({ 
@@ -118,74 +131,60 @@ export default function AddressPicker({ value, onChange }: Props) {
   };
 
   return (
-    <div className="space-y-2 md:col-span-2">
-      {error && (
-        <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-lg text-sm">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="font-semibold">⚠️ El mapa interactivo no está disponible</p>
-              <p className="mt-1 text-xs">
-                Puedes escribir la dirección manualmente. El mapa se agregará después cuando esté disponible.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setError(null);
-                setRetryCount(c => c + 1);
-              }}
-              className="ml-2 px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition flex-shrink-0"
-            >
-              Reintentar
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {!isGoogleMapsLoaded && !error && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
-          <p>⏳ Cargando mapa interactivo...</p>
-        </div>
-      )}
-      
+    <div className="space-y-3">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           Dirección o referencia
         </label>
         <input
           ref={inputRef}
           type="text"
           defaultValue={value.address}
-          onChange={!isGoogleMapsLoaded ? handleManualChange : undefined}
+          onChange={handleManualChange}
           placeholder="Ej: Centro, cerca del parque, Colonia Centro..."
-          className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-300 rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
-        <p className="text-xs text-gray-500 mt-1">
-          {isGoogleMapsLoaded 
-            ? '💡 Escribe y selecciona de las sugerencias, o arrastra el pin en el mapa'
-            : '📝 Escribe tu dirección o una referencia (ej: cerca del mercado)'}
+        <p className="text-xs text-gray-500 mt-1.5">
+          Escribe tu dirección o una referencia de ubicación
         </p>
       </div>
-      
-      {isGoogleMapsLoaded ? (
-        <div 
-          ref={mapRef} 
-          className="h-64 w-full rounded-lg border border-gray-300 bg-gray-100"
-        />
-      ) : error ? (
-        <div className="h-64 w-full rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
-          <div className="text-center p-4">
-            <p className="text-gray-600 mb-2">🗺️ Mapa no disponible</p>
-            <p className="text-xs text-gray-500">
-              La dirección se guardará sin coordenadas
-            </p>
-          </div>
+
+      {/* Botón para mostrar mapa solo si está disponible */}
+      {isGoogleMapsLoaded && !showMap && (
+        <button
+          type="button"
+          onClick={() => setShowMap(true)}
+          className="w-full px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-medium flex items-center justify-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+          Usar mapa interactivo para ubicación precisa
+        </button>
+      )}
+
+      {/* Mapa (solo si se solicita) */}
+      {showMap && isGoogleMapsLoaded && (
+        <div className="space-y-2">
+          <div 
+            ref={mapRef} 
+            className="h-64 w-full rounded-lg border border-gray-300 bg-gray-100"
+          />
+          <p className="text-xs text-gray-500">
+            💡 Selecciona de las sugerencias o arrastra el pin para ajustar la ubicación
+          </p>
         </div>
-      ) : (
-        <div className="h-64 w-full rounded-lg border border-gray-300 bg-gray-50 flex items-center justify-center">
-          <div className="text-gray-500 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-            <p className="text-sm">Cargando mapa...</p>
-          </div>
+      )}
+
+      {/* Mensaje de ayuda si Maps no está disponible */}
+      {!isGoogleMapsLoaded && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
+          <p className="flex items-center gap-2">
+            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <span>El mapa interactivo no es necesario. Puedes escribir la dirección manualmente.</span>
+          </p>
         </div>
       )}
     </div>
