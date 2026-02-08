@@ -39,8 +39,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <>
       {googleMapsKey ? (
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsKey}&libraries=places&loading=async`}
-          strategy="afterInteractive"
+          src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsKey}&libraries=places`}
+          strategy="lazyOnload"
+          onError={(e) => {
+            console.error('Error al cargar Google Maps:', e);
+          }}
         />
       ) : null}
       <FavoritesProvider>{children}</FavoritesProvider>

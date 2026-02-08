@@ -60,48 +60,8 @@ export default function BusinessesMapView({
 
   // Inicializar el mapa
   useEffect(() => {
-    const loadGoogleMaps = () => {
-      if (window.google && window.google.maps) {
-        initializeMap();
-        return;
-      }
-
-      // Verificar si ya existe el script
-      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-        const checkGoogle = setInterval(() => {
-          if (window.google && window.google.maps) {
-            clearInterval(checkGoogle);
-            initializeMap();
-          }
-        }, 100);
-        return;
-      }
-
-      // Cargar el script de Google Maps
-      const script = document.createElement('script');
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-      
-      if (!apiKey) {
-        console.error('Google Maps API Key no está configurada');
-        setHasError(true);
-        setIsLoading(false);
-        return;
-      }
-
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initializeMap;
-      script.onerror = () => {
-        console.error('Error al cargar Google Maps');
-        setHasError(true);
-        setIsLoading(false);
-      };
-      document.head.appendChild(script);
-    };
-
     const initializeMap = () => {
-      if (!mapRef.current || !window.google) return;
+      if (!mapRef.current || !window.google || !window.google.maps) return;
 
       try {
         // Crear el mapa
@@ -188,7 +148,29 @@ export default function BusinessesMapView({
       }
     };
 
-    loadGoogleMaps();
+    // Esperar a que Google Maps esté disponible
+    if (window.google && window.google.maps) {
+      initializeMap();
+    } else {
+      const checkInterval = setInterval(() => {
+        if (window.google && window.google.maps) {
+          clearInterval(checkInterval);
+          initializeMap();
+        }
+      }, 100);
+
+      // Timeout si no carga después de 10 segundos
+      const timeout = setTimeout(() => {
+        clearInterval(checkInterval);
+        setHasError(true);
+        setIsLoading(false);
+      }, 10000);
+
+      return () => {
+        clearInterval(checkInterval);
+        clearTimeout(timeout);
+      };
+    }
 
     return () => {
       // Limpiar markers al desmontar
