@@ -51,6 +51,13 @@ export default function AddressPicker({ value, onChange }: Props) {
     };
   }, [retryCount]);
 
+  // Sincronizar input cuando value.address cambia desde arriba
+  useEffect(() => {
+    if (inputRef.current && value.address !== inputRef.current.value) {
+      inputRef.current.value = value.address;
+    }
+  }, [value.address]);
+
   // Limpiar timeout de geocoding al desmontar
   useEffect(() => {
     return () => {
@@ -96,14 +103,42 @@ export default function AddressPicker({ value, onChange }: Props) {
       const dragendListener = marker.addListener('dragend', () => {
         const p = marker.getPosition();
         if (!p) return;
-        const currentAddress = inputRef.current?.value || value.address;
-        onChange({ address: currentAddress, lat: p.lat(), lng: p.lng() });
+        
+        // Hacer reverse geocoding para obtener la dirección
+        if (geocoderRef.current) {
+          geocoderRef.current.geocode(
+            { location: p },
+            (results, status) => {
+              if (status === 'OK' && results && results[0]) {
+                const newAddress = results[0].formatted_address;
+                if (inputRef.current) {
+                  inputRef.current.value = newAddress;
+                }
+                onChange({ address: newAddress, lat: p.lat(), lng: p.lng() });
+              } else {
+                // Si falla el reverse geocoding, usar coordenadas
+                const coordsAddress = `Lat: ${p.lat().toFixed(6)}, Lng: ${p.lng().toFixed(6)}`;
+                if (inputRef.current) {
+                  inputRef.current.value = coordsAddress;
+                }
+                onChange({ address: coordsAddress, lat: p.lat(), lng: p.lng() });
+              }
+            }
+          );
+        }
+        
         map.setCenter(p);
       });
 
       const ac = new google.maps.places.Autocomplete(inputRef.current, {
         fields: ['formatted_address', 'geometry'],
         componentRestrictions: { country: 'mx' },
+        // Bias hacia Yajalón
+        bounds: new google.maps.LatLngBounds(
+          new google.maps.LatLng(16.85, -92.38), // SW
+          new google.maps.LatLng(16.95, -92.28)  // NE
+        ),
+        strictBounds: false, // Permite resultados fuera pero prioriza dentro
       });
 
       const placeChangedListener = ac.addListener('place_changed', () => {
@@ -145,13 +180,35 @@ export default function AddressPicker({ value, onChange }: Props) {
   const geocodeAddress = (address: string) => {
     if (!geocoderRef.current || !address.trim()) return;
 
+    // Añadir "Yajalón, Chiapas" si no está en la búsqueda para mejores resultados
+    let searchQuery = address;
+    const lowerAddress = address.toLowerCase();
+    if (!lowerAddress.includes('yajalón') && !lowerAddress.includes('yajalon') && !lowerAddress.includes('chiapas')) {
+      searchQuery = `${address}, Yajalón, Chiapas, México`;
+    }
+
     geocoderRef.current.geocode(
-      { address: address, componentRestrictions: { country: 'MX' } },
+      { 
+        address: searchQuery,
+        componentRestrictions: { country: 'MX' },
+        // Bias hacia Yajalón
+        region: 'MX',
+        bounds: new google.maps.LatLngBounds(
+          new google.maps.LatLng(16.85, -92.38), // SW
+          new google.maps.LatLng(16.95, -92.28)  // NE
+        )
+      },
       (results, status) => {
         if (status === 'OK' && results && results[0]) {
           const location = results[0].geometry.location;
           const newLat = location.lat();
           const newLng = location.lng();
+          const formattedAddress = results[0].formatted_address;
+
+          // Actualizar input con la dirección formateada
+          if (inputRef.current) {
+            inputRef.current.value = formattedAddress;
+          }
 
           // Actualizar marcador y mapa
           if (markerInstanceRef.current && googleMapInstanceRef.current) {
@@ -161,8 +218,10 @@ export default function AddressPicker({ value, onChange }: Props) {
             googleMapInstanceRef.current.setZoom(16);
           }
 
-          // Actualizar estado
-          onChange({ address, lat: newLat, lng: newLng });
+          // Actualizar estado con dirección formateada
+          onChange({ address: formattedAddress, lat: newLat, lng: newLng });
+        } else {
+          console.warn('Geocoding falló:', status, 'para:', searchQuery);
         }
       }
     );
@@ -233,7 +292,7 @@ export default function AddressPicker({ value, onChange }: Props) {
             className="h-64 w-full rounded-lg border border-gray-300 bg-gray-100"
           />
           <p className="text-xs text-gray-500">
-            💡 Escribe la dirección y el mapa se actualizará automáticamente, selecciona de las sugerencias o arrastra el pin
+            💡 Escribe una dirección, selecciona de las sugerencias, o arrastra el pin. Al mover el pin se actualizará la dirección automáticamente.
           </p>
         </div>
       )}
