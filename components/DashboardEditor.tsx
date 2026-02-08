@@ -964,7 +964,12 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Ubicacion</h2>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Ubicación</h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Escribe tu dirección o referencia. El mapa es opcional.
+                    </p>
+                  </div>
                 </div>
                 <AddressPicker value={addr} onChange={handleAddressChange} />
               </div>
