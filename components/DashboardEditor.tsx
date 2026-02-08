@@ -1228,7 +1228,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               {/* Banner atractivo de planes premium para usuarios gratuitos */}
               {biz.plan === 'free' && (
-                <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 rounded-2xl shadow-xl p-6 text-white">
+                <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 rounded-2xl shadow-xl p-4 sm:p-6 text-white">
                   {/* Decoración de fondo */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                   <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
@@ -1244,58 +1244,58 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     </p>
 
                     {/* Beneficios */}
-                    <div className="space-y-2 bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div className="space-y-2 bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20">
                       <div className="flex items-start gap-2">
-                        <span className="text-lg">🚀</span>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm">Aparece primero</p>
-                          <p className="text-xs text-purple-100">Tu negocio siempre en los primeros resultados</p>
+                        <span className="text-base sm:text-lg flex-shrink-0">🚀</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs sm:text-sm">Aparece primero</p>
+                          <p className="text-[10px] sm:text-xs text-purple-100">Tu negocio siempre en los primeros resultados</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <span className="text-lg">📊</span>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm">Analíticas avanzadas</p>
-                          <p className="text-xs text-purple-100">Conoce a tu audiencia y optimiza tu perfil</p>
+                        <span className="text-base sm:text-lg flex-shrink-0">📊</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs sm:text-sm">Analíticas avanzadas</p>
+                          <p className="text-[10px] sm:text-xs text-purple-100">Conoce a tu audiencia y optimiza tu perfil</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <span className="text-lg">🎨</span>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm">Diseño destacado</p>
-                          <p className="text-xs text-purple-100">Badge premium y diseño visual único</p>
+                        <span className="text-base sm:text-lg flex-shrink-0">🎨</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs sm:text-sm">Diseño destacado</p>
+                          <p className="text-[10px] sm:text-xs text-purple-100">Badge premium y diseño visual único</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <span className="text-lg">📸</span>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm">Galería ilimitada</p>
-                          <p className="text-xs text-purple-100">Muestra todos tus productos y servicios</p>
+                        <span className="text-base sm:text-lg flex-shrink-0">📸</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs sm:text-sm">Galería ilimitada</p>
+                          <p className="text-[10px] sm:text-xs text-purple-100">Muestra todos tus productos y servicios</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Comparación visual */}
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                        <p className="font-bold mb-2 flex items-center gap-1">
-                          <span>😐</span> GRATIS
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/20">
+                        <p className="font-bold mb-1 sm:mb-2 flex items-center gap-1">
+                          <span>😐</span> <span className="text-[10px] sm:text-xs">GRATIS</span>
                         </p>
-                        <ul className="space-y-1 text-purple-100">
+                        <ul className="space-y-0.5 sm:space-y-1 text-purple-100 text-[10px] sm:text-xs">
                           <li>• Listado básico</li>
-                          <li>• 3 imágenes max</li>
-                          <li>• Sin estadísticas</li>
+                          <li>• 3 imágenes</li>
+                          <li className="hidden xs:block">• Sin estadísticas</li>
                           <li>• Posición baja</li>
                         </ul>
                       </div>
-                      <div className="bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm rounded-lg p-3 border-2 border-yellow-300/50">
-                        <p className="font-bold mb-2 flex items-center gap-1">
-                          <span>⭐</span> PREMIUM
+                      <div className="bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 border-2 border-yellow-300/50">
+                        <p className="font-bold mb-1 sm:mb-2 flex items-center gap-1">
+                          <span>⭐</span> <span className="text-[10px] sm:text-xs">PREMIUM</span>
                         </p>
-                        <ul className="space-y-1 text-white font-medium">
+                        <ul className="space-y-0.5 sm:space-y-1 text-white font-medium text-[10px] sm:text-xs">
                           <li>• Posición top ✨</li>
                           <li>• Imágenes ilimitadas</li>
-                          <li>• Reportes completos</li>
+                          <li className="hidden xs:block">• Reportes completos</li>
                           <li>• Badge destacado</li>
                         </ul>
                       </div>
@@ -1349,40 +1349,40 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     
                     {/* Plan Destacado */}
                     <div className="relative overflow-hidden border-2 border-blue-300 rounded-xl p-4 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-lg transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-lg font-bold text-blue-900">⭐ Plan Destacado</h4>
+                      <div className="flex items-start justify-between mb-3 gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className="text-base sm:text-lg font-bold text-blue-900">⭐ Plan Destacado</h4>
                             <span className="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full">POPULAR</span>
                           </div>
-                          <p className="text-sm text-blue-700">Aparece en sección destacada</p>
+                          <p className="text-xs sm:text-sm text-blue-700">Aparece en sección destacada</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-blue-900">$99</p>
-                          <p className="text-xs text-blue-600">por mes</p>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xl sm:text-2xl font-bold text-blue-900">$99</p>
+                          <p className="text-[10px] sm:text-xs text-blue-600">por mes</p>
                         </div>
                       </div>
                       
                       <div className="space-y-1.5 text-sm text-blue-900">
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Aparece en sección destacada del home</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Aparece en sección destacada del home</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Badge premium dorado</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Badge premium dorado</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Hasta 10 imágenes en galería</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Hasta 10 imágenes en galería</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Reportes básicos de visitas</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Reportes básicos de visitas</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Prioridad en búsquedas</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Prioridad en búsquedas</span>
                         </div>
                       </div>
                     </div>
@@ -1392,52 +1392,52 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       <div className="absolute top-0 right-0 bg-gradient-to-br from-yellow-400 to-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">
                         PREMIUM MAX
                       </div>
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-lg font-bold text-purple-900">🚀 Plan Patrocinado</h4>
+                      <div className="flex items-start justify-between mb-3 gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className="text-base sm:text-lg font-bold text-purple-900">🚀 Plan Patrocinado</h4>
                           </div>
-                          <p className="text-sm text-purple-700">Máxima visibilidad garantizada</p>
+                          <p className="text-xs sm:text-sm text-purple-700">Máxima visibilidad garantizada</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-purple-900">$199</p>
-                          <p className="text-xs text-purple-600">por mes</p>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xl sm:text-2xl font-bold text-purple-900">$199</p>
+                          <p className="text-[10px] sm:text-xs text-purple-600">por mes</p>
                         </div>
                       </div>
                       
                       <div className="space-y-1.5 text-sm text-purple-900">
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span className="font-semibold">Todo lo del plan Destacado +</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="font-semibold flex-1">Todo lo del plan Destacado +</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Aparece SIEMPRE en la parte superior</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Aparece SIEMPRE en la parte superior</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Badge VIP con animación</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Badge VIP con animación</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Imágenes ILIMITADAS en galería</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Imágenes ILIMITADAS en galería</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Logo y portada personalizada</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Logo y portada personalizada</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Reportes completos + analíticas avanzadas</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Reportes completos + analíticas avanzadas</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600">✓</span>
-                          <span>Soporte prioritario</span>
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="flex-1">Soporte prioritario</span>
                         </div>
                       </div>
                       
                       <div className="mt-3 p-2 bg-white/60 rounded-lg border border-purple-200">
-                        <p className="text-xs text-purple-900 font-semibold text-center">
+                        <p className="text-[10px] sm:text-xs text-purple-900 font-semibold text-center">
                           🔥 Ideal para negocios que buscan dominar su sector
                         </p>
                       </div>
@@ -1459,10 +1459,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                 <div className="space-y-3 border-t border-gray-200 pt-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap inline-block w-fit">
+                    <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-50 text-purple-700 border border-purple-200 inline-block">
                       Pago por transferencia o sucursal
                     </span>
-                    <p className="text-sm text-gray-700">Envia tu comprobante y activaremos el plan al validarlo.</p>
+                    <p className="text-xs sm:text-sm text-gray-700">Envía tu comprobante y activaremos el plan al validarlo.</p>
                   </div>
                   <div className="grid gap-2">
                     <label className="text-xs font-semibold text-gray-700">
