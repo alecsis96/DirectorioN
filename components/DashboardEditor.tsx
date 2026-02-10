@@ -14,6 +14,8 @@ import CoverUploader from './CoverUploader';
 import AddressPicker from './AddressPicker';
 import PaymentInfo from './PaymentInfo';
 import BusinessStatusBanner from './BusinessStatusBanner';
+import FeatureUpsell from './FeatureUpsell';
+import ScarcityBadge from './ScarcityBadge';
 import { BsBank, BsUpload } from 'react-icons/bs';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
 import { updateBusinessDetails } from '../app/actions/businesses';
@@ -1323,104 +1325,29 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               )}
 
-              {/* Banner atractivo de planes premium para usuarios gratuitos */}
-              {biz.plan === 'free' && (
-                <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 rounded-2xl shadow-xl p-4 sm:p-6 text-white">
-                  {/* Decoración de fondo */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
+              {/* Sistema avanzado de upgrade con escasez artificial */}
+              {biz.plan === 'free' && biz.category && (
+                <div className="space-y-6">
+                  {/* Badge de escasez mostrando disponibilidad */}
+                  <ScarcityBadge 
+                    categoryId={biz.category}
+                    targetPlan="featured"
+                    variant="card"
+                    showWaitlist={true}
+                  />
                   
-                  <div className="relative z-10 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">✨</span>
-                      <h3 className="text-xl font-bold">¡Destaca tu negocio!</h3>
-                    </div>
-                    
-                    <p className="text-purple-100 text-sm leading-relaxed">
-                      Aumenta tu visibilidad y atrae más clientes con nuestros planes premium
-                    </p>
-
-                    {/* Beneficios */}
-                    <div className="space-y-2 bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/20">
-                      <div className="flex items-start gap-2">
-                        <span className="text-base sm:text-lg flex-shrink-0">🚀</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-xs sm:text-sm">Aparece primero</p>
-                          <p className="text-[10px] sm:text-xs text-purple-100">Tu negocio siempre en los primeros resultados</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-base sm:text-lg flex-shrink-0">📊</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-xs sm:text-sm">Analíticas avanzadas</p>
-                          <p className="text-[10px] sm:text-xs text-purple-100">Conoce a tu audiencia y optimiza tu perfil</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-base sm:text-lg flex-shrink-0">🎨</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-xs sm:text-sm">Diseño destacado</p>
-                          <p className="text-[10px] sm:text-xs text-purple-100">Badge premium y diseño visual único</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-base sm:text-lg flex-shrink-0">📸</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-xs sm:text-sm">Galería ilimitada</p>
-                          <p className="text-[10px] sm:text-xs text-purple-100">Muestra todos tus productos y servicios</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Comparación visual */}
-                    <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
-                      <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/20">
-                        <p className="font-bold mb-1 sm:mb-2 flex items-center gap-1">
-                          <span>😐</span> <span className="text-[10px] sm:text-xs">GRATIS</span>
-                        </p>
-                        <ul className="space-y-0.5 sm:space-y-1 text-purple-100 text-[10px] sm:text-xs">
-                          <li>• Listado básico</li>
-                          <li>• 3 imágenes</li>
-                          <li className="hidden xs:block">• Sin estadísticas</li>
-                          <li>• Posición baja</li>
-                        </ul>
-                      </div>
-                      <div className="bg-gradient-to-br from-yellow-400/20 to-orange-400/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 border-2 border-yellow-300/50">
-                        <p className="font-bold mb-1 sm:mb-2 flex items-center gap-1">
-                          <span>⭐</span> <span className="text-[10px] sm:text-xs">PREMIUM</span>
-                        </p>
-                        <ul className="space-y-0.5 sm:space-y-1 text-white font-medium text-[10px] sm:text-xs">
-                          <li>• Posición top ✨</li>
-                          <li>• Imágenes ilimitadas</li>
-                          <li className="hidden xs:block">• Reportes completos</li>
-                          <li>• Badge destacado</li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    {/* Testimonial */}
-                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
-                      <p className="text-xs italic text-purple-100 mb-2">
-                        "Desde que actualicé a premium, mis visitas aumentaron 5x en el primer mes"
-                      </p>
-                      <p className="text-[10px] text-purple-200 font-semibold">— Carlos M., Restaurante La Cocina</p>
-                    </div>
-
-                    {/* CTA */}
-                    <button
-                      onClick={() => {
-                        const paymentSection = document.querySelector('[data-payment-section]');
-                        paymentSection?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }}
-                      className="w-full bg-white text-purple-600 font-bold py-3 rounded-lg hover:bg-purple-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm"
-                    >
-                      🎯 Ver planes y precios
-                    </button>
-                    
-                    <p className="text-center text-[10px] text-purple-200">
-                      Desde $99/mes • Cancela cuando quieras
-                    </p>
-                  </div>
+                  {/* Componente de upsell con features bloqueadas */}
+                  <FeatureUpsell 
+                    feature="analytics"
+                    currentPlan="free"
+                    variant="card"
+                  />
+                  
+                  <FeatureUpsell 
+                    feature="gallery"
+                    currentPlan="free"
+                    variant="banner"
+                  />
                 </div>
               )}
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import PackageComparison from '@/components/PackageComparison';
 
 export const metadata: Metadata = {
   title: 'Alta Asistida - Directorio de Negocios Yajalón',
@@ -123,6 +124,47 @@ export default function AltaAsistidaPage() {
               </span>
             </p>
           </div>
+        </div>
+
+        {/* Paquetes de Alta Asistida */}
+        <div className="my-12">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+              📦 Paquetes Todo Incluido
+            </h3>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Elige el paquete perfecto para tu negocio. Lo instalamos todo por ti.
+            </p>
+          </div>
+          
+          <PackageComparison 
+            highlightPackage="destacado"
+            showDiscounts={true}
+            onSelectPackage={(packageId) => {
+              // Redirigir a WhatsApp con el paquete seleccionado
+              const packageNames = {
+                esencial: 'Esencial',
+                destacado: 'Destacado',
+                lider: 'Líder'
+              };
+              const mensaje = encodeURIComponent(
+                `Hola! Quiero el paquete ${packageNames[packageId]} de alta asistida.\n\n` +
+                'Datos de mi negocio:\n' +
+                '• Nombre: \n' +
+                '• Categoría: \n' +
+                '• Dirección: \n' +
+                '• WhatsApp: '
+              );
+              window.open(`https://wa.me/5219191565865?text=${mensaje}`, '_blank');
+            }}
+          />
+        </div>
+
+        {/* Separador */}
+        <div className="my-12 flex items-center gap-4">
+          <div className="flex-1 h-px bg-gray-200"></div>
+          <span className="text-gray-500 text-sm font-medium">o envíanos solo los datos</span>
+          <div className="flex-1 h-px bg-gray-200"></div>
         </div>
 
         {/* CTA Button */}
