@@ -1,18 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-
-type Plan = {
-  title: string;
-  subtitle: string;
-  price: string;
-  period: string;
-  perks: string[];
-  cta: string;
-  badge: string | null;
-  gradient: string;
-  popular?: boolean;
-};
+import PricingHero from '@/components/PricingHero';
 
 type Benefit = {
   icon: string;
@@ -27,54 +16,6 @@ const BENEFITS: Benefit[] = [
   { icon: '04', title: 'Panel de control', copy: 'Edita tu informacion, fotos, horarios y responde reseñas cuando quieras.' },
   { icon: '05', title: 'Gratis para empezar', copy: 'Sin tarjeta ni letras chiquitas. Empieza hoy y crece cuando necesites.' },
   { icon: '06', title: 'Sistema de favoritos', copy: 'Los usuarios pueden guardar tu negocio para encontrarte facilmente.' },
-];
-
-const PLANS: Plan[] = [
-  {
-    title: 'Plan Gratuito',
-    subtitle: 'Perfecto para empezar',
-    price: '$0',
-    period: 'para siempre',
-    perks: ['Ficha completa con fotos', 'Horarios y ubicacion en mapa', 'Botones de WhatsApp y llamada', 'Reseñas de clientes', 'Panel de edicion incluido'],
-    cta: 'Comenzar Gratis',
-    badge: null,
-    gradient: 'from-gray-600 to-gray-700',
-  },
-  {
-    title: 'Plan Destacado',
-    subtitle: 'El mas popular',
-    price: '$99',
-    period: 'al mes',
-    perks: [
-      'Todo del plan gratuito',
-      'Badge "Negocio Destacado" ⭐',
-      'Apareces en seccion destacada',
-      'Prioridad en resultados',
-      'Estadisticas de visitas y clics',
-      'Logo + Banner + 2 fotos',
-    ],
-    cta: 'Elegir Destacado',
-    badge: 'MAS POPULAR',
-    gradient: 'from-amber-500 to-orange-600',
-    popular: true,
-  },
-  {
-    title: 'Plan Patrocinado',
-    subtitle: 'Maxima visibilidad',
-    price: '$199',
-    period: 'al mes',
-    perks: [
-      'Todo del plan destacado',
-      'Badge "Patrocinado" 👑',
-      'Apareces en pagina principal',
-      'Diseño premium con cover',
-      'Rotacion prioritaria',
-      'Logo + Banner + hasta 10 fotos',
-    ],
-    cta: 'Ir a Patrocinado',
-    badge: null,
-    gradient: 'from-purple-500 to-pink-600',
-  },
 ];
 
 export const metadata: Metadata = {
@@ -155,50 +96,19 @@ export default function ParaNegociosPage() {
 
       {/* Planes */}
       <section id="planes" className="px-6 py-16">
-        <div className="mx-auto max-w-6xl space-y-10 rounded-[32px] bg-white shadow-lg px-6 py-10">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 md:text-4xl">Planes claros, sin letra chica</h2>
-            <p className="mt-3 text-lg text-gray-600">Empieza gratis y sube de nivel cuando necesites mas visibilidad.</p>
-          </div>
-          <div className="mt-4 grid gap-14 lg:grid-cols-3">
-            {PLANS.map((plan) => (
-              <div
-                key={plan.title}
-                className={`relative overflow-hidden rounded-3xl border-2 bg-white p-10 shadow-xl transition-all hover:-translate-y-1 hover:shadow-2xl ${
-                  plan.popular ? 'border-emerald-500 shadow-emerald-500/20' : 'border-gray-200'
-                }`}
-              >
-                {plan.badge && (
-                  <div className="absolute left-4 top-4 rounded-full bg-gradient-to-r from-emerald-600 to-green-600 px-3 py-1 text-xs font-bold uppercase text-white shadow">
-                    {plan.badge}
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <h3 className="text-2xl font-extrabold text-gray-900">{plan.title}</h3>
-                  <p className="text-sm text-gray-500">{plan.subtitle}</p>
-                  <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-5xl font-extrabold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-500">{plan.period}</span>
-                  </div>
-                </div>
-                <ul className="mt-10 space-y-3">
-                  {plan.perks.map((perk) => (
-                    <li key={perk} className="flex items-start gap-2 text-gray-700">
-                      <span className="mt-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                      <span>{perk}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/registro-negocio"
-                  className={`mt-10 block w-full rounded-xl bg-gradient-to-r ${plan.gradient} px-6 py-4 text-center text-lg font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
+        <PricingHero 
+          categoryId="general"
+          showAltaAsistida={true}
+          onSelectPlan={(plan) => {
+            const planNames = {
+              free: 'Básico (Gratis)',
+              destacado: 'Destacado',
+              patrocinado: 'Patrocinado'
+            };
+            const mensaje = encodeURIComponent(`Hola! Quiero contratar el plan ${planNames[plan]}.`);
+            window.open(`https://wa.me/5219191565865?text=${mensaje}`, '_blank');
+          }}
+        />
       </section>
 
       {/* CTA Final */}

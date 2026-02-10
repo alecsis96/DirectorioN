@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import PackageComparison from '@/components/PackageComparison';
+import PricingHero from '@/components/PricingHero';
 
 export const metadata: Metadata = {
   title: 'Alta Asistida - Directorio de Negocios Yajalón',
@@ -126,39 +126,27 @@ export default function AltaAsistidaPage() {
           </div>
         </div>
 
-        {/* Paquetes de Alta Asistida */}
-        <div className="my-12">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-              📦 Paquetes Todo Incluido
-            </h3>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Elige el paquete perfecto para tu negocio. Lo instalamos todo por ti.
-            </p>
-          </div>
-          
-          <PackageComparison 
-            highlightPackage="destacado"
-            showDiscounts={true}
-            onSelectPackage={(packageId) => {
-              // Redirigir a WhatsApp con el paquete seleccionado
-              const packageNames = {
-                esencial: 'Esencial',
-                destacado: 'Destacado',
-                lider: 'Líder'
-              };
-              const mensaje = encodeURIComponent(
-                `Hola! Quiero el paquete ${packageNames[packageId]} de alta asistida.\n\n` +
-                'Datos de mi negocio:\n' +
-                '• Nombre: \n' +
-                '• Categoría: \n' +
-                '• Dirección: \n' +
-                '• WhatsApp: '
-              );
-              window.open(`https://wa.me/5219191565865?text=${mensaje}`, '_blank');
-            }}
-          />
-        </div>
+        {/* Sección de Pricing Profesional */}
+        <PricingHero 
+          categoryId="general"
+          showAltaAsistida={true}
+          onSelectPlan={(plan) => {
+            const planNames = {
+              free: 'Básico (Gratis)',
+              destacado: 'Destacado',
+              patrocinado: 'Patrocinado'
+            };
+            const mensaje = encodeURIComponent(
+              `Hola! Quiero contratar el plan ${planNames[plan]}.\n\n` +
+              'Datos de mi negocio:\n' +
+              '• Nombre: \n' +
+              '• Categoría: \n' +
+              '• Dirección: \n' +
+              '• WhatsApp: '
+            );
+            window.open(`https://wa.me/5219191565865?text=${mensaje}`, '_blank');
+          }}
+        />
 
         {/* Separador */}
         <div className="my-12 flex items-center gap-4">
