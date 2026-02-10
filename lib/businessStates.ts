@@ -102,7 +102,7 @@ export const FIELD_WEIGHTS = {
   category: 10,       // Obligatorio
   location: 10,       // colonia + lat/lng
   contactPhone: 10,   // phone o WhatsApp
-  description: 10,    // Mínimo 50 caracteres
+  description: 10,    // Mínimo 2 caracteres
   horarios: 10,       // Al menos 1 día configurado
   
   // IMPORTANTES (mejoran presencia) - 40%
@@ -121,7 +121,7 @@ export const PUBLISH_REQUIREMENTS = {
   category: { required: true },
   location: { required: true }, // colonia o lat/lng
   contact: { required: true },   // phone o WhatsApp
-  description: { required: true, min: 50, max: 2000 },
+  description: { required: true, min: 2, max: 2000 },
   horarios: { required: true, minDays: 1 },
 } as const;
 
@@ -169,7 +169,7 @@ export function computeProfileCompletion(business: Partial<BusinessWithState>): 
   }
   
   // Descripción (10%)
-  if (business.description && business.description.trim().length >= 50) {
+  if (business.description && business.description.trim().length >= 2) {
     score += FIELD_WEIGHTS.description;
   }
   

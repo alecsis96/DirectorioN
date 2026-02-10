@@ -138,12 +138,33 @@ export async function approveBusiness(
     adminNotes: adminNotes || null,
   });
   
-  // Actualizar application
+  // 🔥 Sincronizar application (crear o actualizar)
   if (data?.ownerId) {
-    await db.collection('applications').doc(data.ownerId).update({
-      status: 'approved',
-      updatedAt: new Date(),
-    });
+    try {
+      const appRef = db.collection('applications').doc(data.ownerId);
+      const appSnap = await appRef.get();
+      
+      if (appSnap.exists) {
+        // Actualizar existente
+        await appRef.update({
+          status: 'approved',
+          updatedAt: new Date(),
+        });
+      } else {
+        // Crear nuevo documento
+        await appRef.set({
+          businessId: businessId,
+          businessName: data.name || 'Negocio sin nombre',
+          ownerEmail: data.ownerEmail || '',
+          ownerId: data.ownerId,
+          status: 'approved',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    } catch (appError) {
+      console.warn('[approveBusiness] Error sincronizando application (no crítico):', appError);
+    }
   }
   
   // TODO: Enviar notificación al owner (WhatsApp/Email)
@@ -183,13 +204,33 @@ export async function rejectBusiness(
     updatedAt: new Date(),
   });
   
-  // Actualizar application
+  // 🔥 Sincronizar application (crear o actualizar)
   if (data?.ownerId) {
-    await db.collection('applications').doc(data.ownerId).update({
-      status: 'rejected',
-      rejectionReason,
-      updatedAt: new Date(),
-    });
+    try {
+      const appRef = db.collection('applications').doc(data.ownerId);
+      const appSnap = await appRef.get();
+      
+      if (appSnap.exists) {
+        await appRef.update({
+          status: 'rejected',
+          rejectionReason,
+          updatedAt: new Date(),
+        });
+      } else {
+        await appRef.set({
+          businessId: businessId,
+          businessName: data.name || 'Negocio sin nombre',
+          ownerEmail: data.ownerEmail || '',
+          ownerId: data.ownerId,
+          status: 'rejected',
+          rejectionReason,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    } catch (appError) {
+      console.warn('[rejectBusiness] Error sincronizando application (no crítico):', appError);
+    }
   }
   
   // TODO: Enviar notificación al owner (WhatsApp/Email)
@@ -231,13 +272,33 @@ export async function requestMoreInfo(
     updatedAt: new Date(),
   });
   
-  // Actualizar application
+  // 🔥 Sincronizar application (crear o actualizar)
   if (data?.ownerId) {
-    await db.collection('applications').doc(data.ownerId).update({
-      status: 'needs_info',
-      adminNotes,
-      updatedAt: new Date(),
-    });
+    try {
+      const appRef = db.collection('applications').doc(data.ownerId);
+      const appSnap = await appRef.get();
+      
+      if (appSnap.exists) {
+        await appRef.update({
+          status: 'needs_info',
+          adminNotes,
+          updatedAt: new Date(),
+        });
+      } else {
+        await appRef.set({
+          businessId: businessId,
+          businessName: data.name || 'Negocio sin nombre',
+          ownerEmail: data.ownerEmail || '',
+          ownerId: data.ownerId,
+          status: 'needs_info',
+          adminNotes,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    } catch (appError) {
+      console.warn('[requestMoreInfo] Error sincronizando application (no crítico):', appError);
+    }
   }
   
   // TODO: Enviar notificación al owner (WhatsApp/Email)
