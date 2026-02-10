@@ -221,3 +221,17 @@ async function notifyNewReviewWhatsApp(
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
+
+// ============================================
+// FUNCIONES DE SISTEMA DE ESCASEZ Y ALTA ASISTIDA
+// ============================================
+export {
+  onBusinessPlanChange,
+  addToWaitlistCallable,
+  confirmWaitlistUpgrade,
+  cleanExpiredWaitlist,
+  checkUpgradeAvailability,
+  getCategoryMetrics,
+  onPackagePurchase,
+  dailyMetricsReport,
+} from "./scarcityFunctions";

@@ -387,6 +387,73 @@ service cloud.firestore {
       // Solo admins pueden eliminar
       allow delete: if isAdmin();
     }
+
+    // ============== WAITLIST (Lista de espera para planes) ==============
+    match /waitlist/{waitlistId} {
+      // Lectura: solo el dueño del negocio o admin
+      allow read: if isSignedIn() && (
+        isOwner(resource.data.businessId) || isAdmin()
+      );
+      
+      // Creación: usuario autenticado que es dueño del negocio
+      allow create: if isSignedIn()
+        && isOwner(request.resource.data.businessId)
+        && validWaitlistCreate();
+      
+      // Actualización: solo Cloud Functions o admin
+      allow update: if isAdmin();
+      
+      // Eliminación: solo admin
+      allow delete: if isAdmin();
+      
+      function validWaitlistCreate() {
+        return
+          request.resource.data.businessId is string &&
+          request.resource.data.category is string &&
+          request.resource.data.targetPlan in ['featured', 'sponsor'] &&
+          request.resource.data.status == 'waiting' &&
+          request.resource.data.createdAt is timestamp;
+      }
+    }
+
+    // ============== PURCHASES (Compras de paquetes) ==============
+    match /purchases/{purchaseId} {
+      // Lectura: solo el dueño del negocio o admin
+      allow read: if isSignedIn() && (
+        isOwner(resource.data.businessId) || isAdmin()
+      );
+      
+      // Creación: usuario autenticado
+      allow create: if isSignedIn()
+        && isOwner(request.resource.data.businessId)
+        && validPurchaseCreate();
+      
+      // Actualización: solo admin o sistema
+      allow update: if isAdmin();
+      
+      // Eliminación: solo admin
+      allow delete: if isAdmin();
+      
+      function validPurchaseCreate() {
+        return
+          request.resource.data.businessId is string &&
+          request.resource.data.packageId in ['esencial', 'destacado', 'lider'] &&
+          request.resource.data.amount is number &&
+          request.resource.data.amount >= 0 &&
+          request.resource.data.createdAt is timestamp;
+      }
+    }
+
+    // ============== REPORTS (Reportes del sistema) ==============
+    match /reports/{reportId} {
+      // Solo admins pueden leer
+      allow read: if isAdmin();
+      
+      // Solo el sistema puede crear reportes
+      allow create: if isSignedIn();
+      
+      // Solo admin puede actualizar/eliminar
+      allow update, delete: if isAdmin();
+    }
   }
 }
-
