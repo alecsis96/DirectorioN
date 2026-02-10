@@ -19,6 +19,7 @@ interface ScarcityBadgeProps {
   specialty?: string;
   variant?: 'inline' | 'card' | 'banner';
   showMetrics?: boolean;
+  showWaitlist?: boolean;
 }
 
 export default function ScarcityBadge({

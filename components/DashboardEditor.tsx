@@ -1331,6 +1331,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   {/* Badge de escasez mostrando disponibilidad */}
                   <ScarcityBadge 
                     categoryId={biz.category}
+                    currentPlan={biz.plan || 'free'}
                     targetPlan="featured"
                     variant="card"
                     showWaitlist={true}
