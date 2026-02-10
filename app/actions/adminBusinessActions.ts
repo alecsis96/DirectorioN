@@ -398,13 +398,17 @@ export async function recalculateBusinessState(businessId: string) {
 /**
  * Obtener negocios publicados
  */
+/**
+ * 4️⃣ PUBLICADOS
+ * Negocios aprobados y visibles públicamente
+ */
 export async function getPublishedBusinesses(): Promise<any[]> {
   const db = getAdminFirestore();
   
   const snapshot = await db
     .collection('businesses')
     .where('businessStatus', '==', 'published')
-    .orderBy('publishedAt', 'desc')
+    .orderBy('updatedAt', 'desc')
     .limit(100)
     .get();
   
