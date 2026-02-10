@@ -489,17 +489,18 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
   // NUEVO: Handler para solicitar publicación con el nuevo sistema
   const handleRequestPublish = async () => {
-    if (!id || !biz) return;
+    if (!id || !biz || !user) return;
     
     setPublishLoading(true);
     try {
-      const result = await requestPublish(id);
+      const token = await user.getIdToken();
+      const result = await requestPublish(id, token);
       
       if (result.success) {
         setBusinessState(prev => ({
           ...prev,
           businessStatus: 'in_review',
-          applicationStatus: result.newApplicationStatus || prev.applicationStatus,
+          applicationStatus: 'ready_for_review',
         }));
         
         setUiState(prev => ({ 

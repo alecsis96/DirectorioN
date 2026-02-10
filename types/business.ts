@@ -42,8 +42,22 @@ export type Business = {
   // Location coordinates
   lat?: number | null;
   lng?: number | null;
-  // Status field
+  // Status field (legacy - mantener por compatibilidad)
   status?: 'draft' | 'review' | 'published' | 'rejected';
+  
+  // 🆕 Sistema Dual-State (nuevo sistema de estados)
+  businessStatus?: 'draft' | 'in_review' | 'published';
+  applicationStatus?: 'submitted' | 'needs_info' | 'ready_for_review' | 'approved' | 'rejected';
+  completionPercent?: number; // 0-100
+  isPublishReady?: boolean;
+  missingFields?: string[];
+  adminNotes?: string;
+  rejectionReason?: string;
+  reviewedAt?: string; // ISO timestamp
+  publishedAt?: string; // ISO timestamp
+  createdAt?: string; // ISO timestamp
+  updatedAt?: string; // ISO timestamp
+  
   // Payment fields
   isActive?: boolean;
   paymentStatus?: 'active' | 'pending' | 'overdue' | 'canceled';
