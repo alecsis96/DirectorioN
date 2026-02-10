@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { canUpgradeToPlan } from '@/lib/scarcitySystem';
+import type { Zone } from '@/lib/scarcitySystem';
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId');
-    const plan = searchParams.get('plan') as 'featured' | 'sponsor';
+    const plan = searchParams.get('plan') as 'featured' | 'sponsor' | 'free';
+    const zone = searchParams.get('zone') as Zone | null;
+    const specialty = searchParams.get('specialty');
 
     if (!categoryId || !plan) {
       return NextResponse.json(
@@ -14,14 +17,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (plan !== 'featured' && plan !== 'sponsor') {
+    if (plan !== 'featured' && plan !== 'sponsor' && plan !== 'free') {
       return NextResponse.json(
-        { error: 'Invalid plan. Must be "featured" or "sponsor"' },
+        { error: 'Invalid plan. Must be "featured", "sponsor", or "free"' },
         { status: 400 }
       );
     }
 
-    const result = await canUpgradeToPlan(categoryId, plan);
+    const result = await canUpgradeToPlan(
+      categoryId, 
+      plan, 
+      zone || undefined, 
+      specialty || undefined
+    );
 
     return NextResponse.json({
       canUpgrade: result.allowed,

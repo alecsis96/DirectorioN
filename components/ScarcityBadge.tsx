@@ -7,7 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { FiAlertTriangle, FiClock, FiUsers, FiTrendingUp } from 'react-icons/fi';
-import { canUpgradeToPlan, getUrgencyColor, getScarcityMetrics } from '@/lib/scarcitySystem';
+import { getUrgencyColor } from '@/lib/urgencyUtils';
 import type { BusinessPlan } from '@/lib/planPermissions';
 import type { Zone } from '@/lib/scarcitySystem';
 
@@ -44,7 +44,26 @@ export default function ScarcityBadge({
   async function loadAvailability() {
     try {
       setLoading(true);
-      const result = await canUpgradeToPlan(categoryId, targetPlan, zone, specialty);
+      const params = new URLSearchParams({
+        categoryId,
+        plan: targetPlan,
+      });
+      
+      if (zone) params.append('zone', zone);
+      if (specialty) params.append('specialty', specialty);
+      
+      const res = await fetch(`/api/scarcity?${params.toString()}`);
+      const data = await res.json();
+      
+      // Transformar respuesta de API a formato esperado
+      const result = {
+        allowed: data.canUpgrade,
+        slotsLeft: data.slotsLeft,
+        totalSlots: data.totalSlots,
+        message: data.message,
+        urgencyLevel: data.urgencyLevel,
+      };
+      
       setAvailability(result);
     } catch (error) {
       console.error('Error loading availability:', error);
@@ -55,7 +74,8 @@ export default function ScarcityBadge({
 
   async function loadMetrics() {
     try {
-      const metricsData = await getScarcityMetrics(categoryId);
+      const res = await fetch(`/api/scarcity/metrics?categoryId=${categoryId}`);
+      const metricsData = await res.json();
       setMetrics(metricsData);
     } catch (error) {
       console.error('Error loading metrics:', error);
@@ -290,7 +310,8 @@ export function CategoryCompetition({
 
   async function loadMetrics() {
     try {
-      const data = await getScarcityMetrics(categoryId);
+      const res = await fetch(`/api/scarcity/metrics?categoryId=${categoryId}`);
+      const data = await res.json();
       setMetrics(data);
       setLoading(false);
     } catch (error) {
