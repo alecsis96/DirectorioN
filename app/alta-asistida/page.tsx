@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import AltaAsistidaPricingClient from '@/components/AltaAsistidaPricingClient';
+import ScrollButton from '@/components/ScrollButton';
 
 export const metadata: Metadata = {
   title: 'Consigue Más Clientes Sin Mover Un Dedo | Yajalón',
@@ -61,12 +62,12 @@ export default function AltaAsistidaPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </a>
-            <button
-              onClick={() => document.getElementById('comparativa')?.scrollIntoView({ behavior: 'smooth' })}
+            <ScrollButton
+              targetId="comparativa"
               className="w-full sm:w-auto px-8 py-4 bg-white border-2 border-gray-300 hover:border-emerald-600 text-gray-700 hover:text-emerald-600 rounded-xl font-semibold text-lg transition-all"
             >
               Ver cómo funciona
-            </button>
+            </ScrollButton>
           </div>
 
           {/* Microcopy de confianza */}
