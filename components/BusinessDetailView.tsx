@@ -24,6 +24,7 @@ import { deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { waLink, mapsLink, normalizeDigits } from "../lib/helpers/contact";
 import { trackPageView, trackBusinessInteraction, trackCTA } from "../lib/telemetry";
 import { useBusinessHistory } from "../hooks/useBusinessHistory";
+import { generateBusinessPlaceholder } from "../lib/placeholderGenerator";
 
 import { upsertReview, reviewsQuery, ReviewSchema } from "../lib/firestore/reviews";
 import { hasAdminOverride } from "../lib/adminOverrides";
@@ -674,8 +675,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
               <img
                 src={
                   business.coverUrl ||
-                  business.image1 ||
-                  '/images/default-premium-cover.svg'
+                  generateBusinessPlaceholder(business.name, business.category)
                 }
                 alt={`Portada de ${business.name}`}
                 className="w-full h-full object-cover"
@@ -722,8 +722,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
                 <img
                   src={
                     business.coverUrl ||
-                    business.image1 ||
-                    '/images/default-premium-cover.svg'
+                    generateBusinessPlaceholder(business.name, business.category)
                   }
                   alt={`Portada de ${business.name}`}
                   className="w-full h-full object-cover"

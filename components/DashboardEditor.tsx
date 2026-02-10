@@ -1237,7 +1237,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 <h2 className="text-lg font-semibold text-gray-900">Galería</h2>
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600">
-                    {biz.plan === 'featured' ? 'Plan Destacado: Logo + Banner + hasta 2 fotos' : 
+                    {biz.plan === 'free' ? '📷 Plan Gratuito: Logo + Portada (obligatoria) + Sin galería adicional' :
+                     biz.plan === 'featured' ? 'Plan Destacado: Logo + Banner + hasta 2 fotos' : 
                      biz.plan === 'sponsor' ? 'Plan Patrocinado: Logo + Banner + hasta 10 fotos' : 
                      'Galeria de imagenes'}
                   </p>

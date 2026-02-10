@@ -95,26 +95,32 @@ export interface BusinessWithState {
 /**
  * Pesos de cada campo para calcular completitud
  * Total debe sumar 100
+ * 
+ * ⚡ ACTUALIZACIÓN: Portada ahora es OBLIGATORIA (30%)
+ * Todos los planes (incluido FREE) pueden subir 1 portada
  */
 export const FIELD_WEIGHTS = {
-  // CRÍTICOS (obligatorios para publicar) - 60%
-  name: 10,           // Obligatorio
+  // CRÍTICOS (obligatorios para publicar) - 90%
+  name: 10,           // >>Obligatorio
   category: 10,       // Obligatorio
   location: 10,       // colonia + lat/lng
   contactPhone: 10,   // phone o WhatsApp
   description: 10,    // Mínimo 2 caracteres
   horarios: 10,       // Al menos 1 día configurado
+  coverPhoto: 30,     // 🆕 OBLIGATORIA - Imagen de portada (30%)
   
-  // IMPORTANTES (mejoran presencia) - 40%
-  logo: 15,           // Imagen de perfil
-  coverPhoto: 10,     // Imagen de portada
-  gallery: 5,         // 2+ fotos adicionales
-  socialMedia: 5,     // Facebook o Instagram
-  detailedInfo: 5,    // Precio, envío, etc.
+  // EXTRAS (mejoran presencia) - 10%
+  logo: 5,            // Imagen de perfil (reducido de 15%)
+  gallery: 3,         // 2+ fotos adicionales (solo planes pagos)
+  socialMedia: 1,     // Facebook o Instagram (reducido)
+  detailedInfo: 1,    // Precio, envío, etc. (reducido)
 } as const;
 
 /**
  * Requisitos mínimos para publicación
+ * 
+ * ⚡ ACTUALIZACIÓN: coverPhoto ahora es OBLIGATORIA
+ * Sin portada, el negocio NO aparece en listados públicos
  */
 export const PUBLISH_REQUIREMENTS = {
   name: { required: true, min: 2, max: 140 },
@@ -123,6 +129,7 @@ export const PUBLISH_REQUIREMENTS = {
   contact: { required: true },   // phone o WhatsApp
   description: { required: true, min: 2, max: 2000 },
   horarios: { required: true, minDays: 1 },
+  coverPhoto: { required: true }, // 🆕 OBLIGATORIA para todos los planes
 } as const;
 
 // ============================================
@@ -277,6 +284,11 @@ export function isPublishReady(business: Partial<BusinessWithState>): {
     if (openDays < PUBLISH_REQUIREMENTS.horarios.minDays) {
       missing.push('horarios (al menos 1 día)');
     }
+  }
+  
+  // 🆕 PORTADA OBLIGATORIA
+  if (!business.coverUrl || business.coverUrl.trim().length === 0) {
+    missing.push('imagen de portada (requerida)');
   }
   
   return {

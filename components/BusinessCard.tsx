@@ -7,6 +7,7 @@ import { trackCTA, trackBusinessInteraction } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
 import { getBusinessStatus } from "./BusinessHours";
 import { useFavorites } from "../context/FavoritesContext";
+import { generateBusinessPlaceholder } from "../lib/placeholderGenerator";
 
 type CardBusiness = BusinessPreview | Business;
 
@@ -43,10 +44,21 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     return daysDiff <= 30;
   })();
   
-  // v2: Helper para obtener banner/cover (premium only)
-  const getBannerUrl = (biz: CardBusiness): string | null => {
-    if (plan === 'free') return null;
-    return ('coverUrl' in biz && typeof biz.coverUrl === 'string' ? biz.coverUrl : null) || null;
+  // v2: Helper para obtener banner/cover
+  // ⚡ ACTUALIZACIÓN: Todos los planes usan portada (con placeholder si no existe)
+  const getBannerUrl = (biz: CardBusiness): string => {
+    const coverUrl = ('coverUrl' in biz && typeof biz.coverUrl === 'string' ? biz.coverUrl : null);
+    
+    // Si tiene coverUrl, usarla
+    if (coverUrl && coverUrl.trim().length > 0) {
+      return coverUrl;
+    }
+    
+    // Si NO tiene, generar placeholder elegante
+    return generateBusinessPlaceholder(
+      biz.name || 'Negocio',
+      biz.category
+    );
   };
   
   const bannerUrl = getBannerUrl(business);
@@ -223,31 +235,30 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     <article 
       className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden ${plan !== 'free' ? 'border-2' : 'border'} ${plan === 'sponsor' ? 'border-purple-400' : plan === 'featured' ? 'border-amber-400' : 'border-gray-200'} bg-white`}
     >
-      {/* v2: Banner superior (120px fijos) - SOLO patrocinados (tienen coverUrl) */}
-      {plan === 'sponsor' && (
-        <div className="relative h-[120px] w-full overflow-hidden">
-          <img 
-            src={bannerUrl || '/images/default-premium-cover.svg'} 
-            alt="" 
-            className="w-full h-[120px] object-cover object-center"
-          />
-          {/* v2: Badge dentro del banner */}
-          {currentStyle.badge && (
-            <div className="absolute top-2 left-2">
-              <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase shadow-lg`}>
-                {currentStyle.badge.text}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* v2: Banner superior (120px fijos) - TODOS LOS PLANES */}
+      {/* ⚡ ACTUALIZACIÓN: Plan FREE ahora también muestra portada (con placeholder si no tiene) */}
+      <div className="relative h-[120px] w-full overflow-hidden">
+        <img 
+          src={bannerUrl} 
+          alt={`Portada de ${business.name}`} 
+          className="w-full h-[120px] object-cover object-center"
+        />
+        {/* Badge solo para planes premium */}
+        {currentStyle.badge && (
+          <div className="absolute top-2 left-2">
+            <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase shadow-lg`}>
+              {currentStyle.badge.text}
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Botón de favoritos mejorado */}
       <button
         type="button"
         onClick={handleFavoriteToggle}
         disabled={isTogglingFavorite}
-        className={`absolute ${plan === 'sponsor' ? 'top-[128px]' : 'top-2'} right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
+        className={`absolute top-[128px] right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
           isTogglingFavorite ? 'scale-90 opacity-70' : 'hover:scale-110 active:scale-95'
         }`}
         aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
@@ -264,7 +275,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       {/* v2: Contenido de la tarjeta */}
       <div 
         onClick={plan === 'free' ? handleClick : undefined}
-        className="relative bg-white rounded-b-xl p-4 flex flex-col gap-3 ${plan === 'free' ? 'cursor-pointer' : ''}"
+        className={`relative bg-white rounded-b-xl p-4 flex flex-col gap-3 ${plan === 'free' ? 'cursor-pointer' : ''}`}
       >
           {/* Efecto de brillo para premium */}
           {plan !== 'free' && (

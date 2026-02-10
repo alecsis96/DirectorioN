@@ -11,10 +11,11 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   
-  const canUploadImages = plan === 'featured' || plan === 'sponsor';
-  
+  // ⚡ ACTUALIZACIÓN: Plan FREE YA NO puede subir galería (solo coverImage)
   // Plan DESTACADO: máximo 2 fotos para mantener diseño limpio
   // Plan PATROCINADO: hasta 10 fotos para máxima exhibición
+  const canUploadImages = plan === 'featured' || plan === 'sponsor';
+  
   const maxImages = plan === 'featured' ? 2 : plan === 'sponsor' ? 10 : 0;
   const currentCount = images?.length || 0;
   const canAddMore = currentCount < maxImages;
@@ -123,12 +124,21 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
 
   if (!canUploadImages) {
     return (
-      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-lg p-6 text-center">
-        <p className="text-lg font-semibold text-gray-800 mb-2">🖼️ Galería de fotos</p>
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-6 text-center">
+        <p className="text-lg font-semibold text-gray-800 mb-2">🖼️ Galería de fotos adicionales</p>
         <p className="text-sm text-gray-600 mb-4">
-          La subida de imágenes está disponible solo para planes <span className="font-bold text-orange-600">Destacado</span> o <span className="font-bold text-purple-600">Patrocinado</span>.
+          La subida de <strong>fotos adicionales</strong> está disponible solo para planes <span className="font-bold text-orange-600">Destacado</span> o <span className="font-bold text-purple-600">Patrocinado</span>.
         </p>
-        <p className="text-xs text-gray-500">
+        <div className="bg-white border border-blue-300 rounded-lg p-4 text-left">
+          <p className="text-xs text-gray-700 mb-2">✅ <strong>IMPORTANTE:</strong> Todos los planes incluyen:</p>
+          <ul className="text-xs text-gray-600 space-y-1 ml-4">
+            <li>• <strong>1 Imagen de portada</strong> (OBLIGATORIA)</li>
+            <li>• Información completa del negocio</li>
+            <li>• Ubicación en mapa</li>
+            <li>• Botones de contacto</li>
+          </ul>
+        </div>
+        <p className="text-xs text-gray-500 mt-4">
           Plan actual: <span className="font-semibold">{plan || 'Gratuito'}</span>
         </p>
       </div>
