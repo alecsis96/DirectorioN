@@ -364,8 +364,16 @@ export async function requestPublish(businessId: string, token: string) {
       throw new Error('No tienes permisos');
     }
     
+    // 🔥 CRÍTICO: Recalcular estado antes de verificar
+    const freshStateUpdate = updateBusinessState(businessData);
+    await businessRef.set(freshStateUpdate, { merge: true });
+    
+    // Obtener datos frescos después de recalcular
+    const freshSnapshot = await businessRef.get();
+    const freshData = freshSnapshot.data() as Record<string, unknown>;
+    
     // Verificar que esté listo
-    const { isPublishReady, missingFields } = updateBusinessState(businessData);
+    const { isPublishReady, missingFields } = freshStateUpdate;
     if (!isPublishReady) {
       return {
         success: false,
@@ -382,11 +390,34 @@ export async function requestPublish(businessId: string, token: string) {
       lastReviewRequestedAt: new Date(),
     });
     
-    // Actualizar application
-    await db.collection('applications').doc(decoded.uid).update({
-      status: 'ready_for_review',
-      updatedAt: new Date(),
-    });
+    // Sincronizar application (crear o actualizar)
+    try {
+      const appRef = db.collection('applications').doc(decoded.uid);
+      const appSnap = await appRef.get();
+      
+      if (appSnap.exists) {
+        // Actualizar existente
+        await appRef.update({
+          status: 'ready_for_review',
+          businessId: businessId,
+          updatedAt: new Date(),
+        });
+      } else {
+        // Crear nuevo documento de application
+        await appRef.set({
+          businessId: businessId,
+          businessName: freshData.name || 'Negocio sin nombre',
+          ownerEmail: decoded.email || freshData.ownerEmail,
+          ownerId: decoded.uid,
+          status: 'ready_for_review',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    } catch (appError) {
+      console.warn('[requestPublish] Error actualizando application (no crítico):', appError);
+      // No fallar si la actualización de applications falla
+    }
     
     return {
       success: true,

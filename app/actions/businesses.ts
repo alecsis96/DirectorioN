@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../lib/adminOverrides';
+import { updateBusinessState } from '../../lib/businessStates';
 
 const LAST_STEP_INDEX = 1;
 
@@ -508,6 +509,14 @@ export async function updateBusinessDetails(businessId: string, formData: FormDa
 
   sanitized.updatedAt = new Date();
   await ref.set(sanitized, { merge: true });
+
+  // 🔥 CRÍTICO: Recalcular estado después de actualizar
+  const updatedSnap = await ref.get();
+  if (updatedSnap.exists) {
+    const updatedData = updatedSnap.data() as Record<string, unknown>;
+    const stateUpdate = updateBusinessState(updatedData);
+    await ref.set(stateUpdate, { merge: true });
+  }
 
   return { ok: true };
 }
