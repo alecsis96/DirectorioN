@@ -15,7 +15,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { FiCheck, FiX, FiStar, FiAward, FiTrendingUp, FiZap, FiEye, FiMessageCircle } from 'react-icons/fi';
-import { canUpgradeToPlan } from '@/lib/scarcitySystem';
 
 type PlanTier = 'free' | 'destacado' | 'patrocinado';
 
@@ -41,16 +40,21 @@ export default function PricingHero({
   useEffect(() => {
     async function checkAvailability() {
       try {
-        const destacadoAvail = await canUpgradeToPlan(categoryId, 'featured');
-        const patrocinadorAvail = await canUpgradeToPlan(categoryId, 'sponsor');
+        const [destacadoRes, patrocinadorRes] = await Promise.all([
+          fetch(`/api/scarcity?categoryId=${categoryId}&plan=featured`),
+          fetch(`/api/scarcity?categoryId=${categoryId}&plan=sponsor`)
+        ]);
+        
+        const destacadoAvail = await destacadoRes.json();
+        const patrocinadorAvail = await patrocinadorRes.json();
         
         setScarcityData({
           destacado: { 
-            available: destacadoAvail.allowed, 
+            available: destacadoAvail.canUpgrade, 
             slotsLeft: destacadoAvail.slotsLeft 
           },
           patrocinado: { 
-            available: patrocinadorAvail.allowed, 
+            available: patrocinadorAvail.canUpgrade, 
             slotsLeft: patrocinadorAvail.slotsLeft 
           },
         });
