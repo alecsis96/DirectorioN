@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const db = getAdminFirestore();
     const snapshot = await db
       .collection('businesses')
-      .where('status', '==', 'published')
+      .where('businessStatus', '==', 'published')
       .get();
 
     if (snapshot.empty) {

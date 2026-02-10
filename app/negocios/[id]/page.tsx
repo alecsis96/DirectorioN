@@ -26,7 +26,7 @@ async function fetchBusinessById(id: string): Promise<Business | null> {
 
 export async function generateStaticParams() {
   const db = getAdminFirestore();
-  const snapshot = await db.collection('businesses').where('status', '==', 'published').get();
+  const snapshot = await db.collection('businesses').where('businessStatus', '==', 'published').get();
   return snapshot.docs.map((doc) => ({ id: doc.id }));
 }
 

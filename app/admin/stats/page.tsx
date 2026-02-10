@@ -66,9 +66,9 @@ async function getAdminStats(): Promise<AdminStats> {
 
   // Negocios por status
   const [publishedCount, pendingCount, rejectedCount] = await Promise.all([
-    db.collection('businesses').where('status', '==', 'published').count().get(),
-    db.collection('businesses').where('status', '==', 'pending').count().get(),
-    db.collection('businesses').where('status', '==', 'rejected').count().get(),
+    db.collection('businesses').where('businessStatus', '==', 'published').count().get(),
+    db.collection('businesses').where('businessStatus', '==', 'in_review').count().get(),
+    db.collection('businesses').where('applicationStatus', '==', 'rejected').count().get(),
   ]);
 
   const totalBusinesses = publishedCount.data().count + pendingCount.data().count;
@@ -95,7 +95,7 @@ async function getAdminStats(): Promise<AdminStats> {
     : 0;
 
   // Categorías más populares
-  const businessesSnapshot = await db.collection('businesses').where('status', '==', 'published').get();
+  const businessesSnapshot = await db.collection('businesses').where('businessStatus', '==', 'published').get();
   const categoryCount: Record<string, number> = {};
   businessesSnapshot.docs.forEach(doc => {
     const category = doc.data().category || 'Sin categoría';

@@ -79,7 +79,7 @@ async function syncBusinessesToAlgolia() {
     console.log('📖 Leyendo negocios de Firestore...');
     const snapshot = await db
       .collection('businesses')
-      .where('status', '==', 'published')
+      .where('businessStatus', '==', 'published')
       .get();
 
     console.log(`📊 Encontrados ${snapshot.size} negocios publicados\n`);

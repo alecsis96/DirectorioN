@@ -140,11 +140,11 @@ export async function fetchBusinesses(
 
     const db = getAdminFirestore();
     
-    // Obtener todos los negocios publicados sin orderBy para evitar índice compuesto
-    // El ordenamiento se hace en memoria después
+    // 🔥 Obtener todos los negocios con businessStatus='published' (nuevo sistema de estados)
+    // El ordenamiento se hace en memoria después para evitar índice compuesto
     const snap = await db
       .collection("businesses")
-      .where("status", "==", "published")
+      .where("businessStatus", "==", "published")
       .get();
     
     let allDocs = snap.docs;
