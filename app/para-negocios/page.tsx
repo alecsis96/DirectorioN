@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import PricingHero from '@/components/PricingHero';
+import ParaNegociosPricingClient from '@/components/ParaNegociosPricingClient';
 
 type Benefit = {
   icon: string;
@@ -96,19 +96,7 @@ export default function ParaNegociosPage() {
 
       {/* Planes */}
       <section id="planes" className="px-6 py-16">
-        <PricingHero 
-          categoryId="general"
-          showAltaAsistida={true}
-          onSelectPlan={(plan) => {
-            const planNames = {
-              free: 'Básico (Gratis)',
-              destacado: 'Destacado',
-              patrocinado: 'Patrocinado'
-            };
-            const mensaje = encodeURIComponent(`Hola! Quiero contratar el plan ${planNames[plan]}.`);
-            window.open(`https://wa.me/5219191565865?text=${mensaje}`, '_blank');
-          }}
-        />
+        <ParaNegociosPricingClient />
       </section>
 
       {/* CTA Final */}

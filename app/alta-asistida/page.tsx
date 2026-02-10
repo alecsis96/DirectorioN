@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import PricingHero from '@/components/PricingHero';
+import AltaAsistidaPricingClient from '@/components/AltaAsistidaPricingClient';
 
 export const metadata: Metadata = {
   title: 'Alta Asistida - Directorio de Negocios Yajalón',
@@ -127,26 +127,7 @@ export default function AltaAsistidaPage() {
         </div>
 
         {/* Sección de Pricing Profesional */}
-        <PricingHero 
-          categoryId="general"
-          showAltaAsistida={true}
-          onSelectPlan={(plan) => {
-            const planNames = {
-              free: 'Básico (Gratis)',
-              destacado: 'Destacado',
-              patrocinado: 'Patrocinado'
-            };
-            const mensaje = encodeURIComponent(
-              `Hola! Quiero contratar el plan ${planNames[plan]}.\n\n` +
-              'Datos de mi negocio:\n' +
-              '• Nombre: \n' +
-              '• Categoría: \n' +
-              '• Dirección: \n' +
-              '• WhatsApp: '
-            );
-            window.open(`https://wa.me/5219191565865?text=${mensaje}`, '_blank');
-          }}
-        />
+        <AltaAsistidaPricingClient />
 
         {/* Separador */}
         <div className="my-12 flex items-center gap-4">
