@@ -8,6 +8,13 @@ import type { Business, BusinessPreview } from "../types/business";
 import { getBusinessStatus } from "./BusinessHours";
 import { useFavorites } from "../context/FavoritesContext";
 import { generateBusinessPlaceholder } from "../lib/placeholderGenerator";
+import { 
+  getPlanTokens, 
+  getCoverHeight, 
+  getCardClasses, 
+  getBadgeClasses,
+  type BusinessPlan 
+} from "../lib/designTokens";
 
 type CardBusiness = BusinessPreview | Business;
 
@@ -32,8 +39,11 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const isFavorite = businessId ? favorites.includes(businessId) : false;
   
   // Type-safe extraction con verificación de propiedad
-  const plan = ('plan' in business && typeof business.plan === 'string' ? business.plan : 'free') as 'free' | 'featured' | 'sponsor';
+  const plan = ('plan' in business && typeof business.plan === 'string' ? business.plan : 'free') as BusinessPlan;
   const isPremium = plan !== 'free';
+  
+  // 🎨 Design tokens para jerarquía visual
+  const tokens = getPlanTokens(plan);
   
   // Verificar si es negocio nuevo (< 30 días)
   const isNew = (() => {
@@ -190,75 +200,41 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     return categoryIcons[category] || '🏢';
   };
 
-  // Determinar estilo según el plan
-  const cardStyles = {
-    sponsor: {
-      border: 'border-[3px]',
-      borderGradient: 'bg-gradient-to-r from-yellow-500 via-pink-500 to-red-500',
-      bg: 'bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50',
-      shadow: 'shadow-xl shadow-purple-200 hover:shadow-purple-400/50',
-      badge: { 
-        text: '👑 PATROCINADO', 
-        style: 'bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 text-white animate-pulse',
-        glow: 'shadow-lg shadow-purple-300'
-      },
-      titleColor: 'text-purple-900',
-      ring: 'ring-4 ring-purple-500 ring-offset-2'
-    },
-    featured: {
-      border: 'border-[3px]',
-      borderGradient: 'bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400',
-      bg: 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50',
-      shadow: 'shadow-xl shadow-amber-300 hover:shadow-amber-500/50',
-      badge: { 
-        text: '🔥 DESTACADO', 
-        style: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white',
-        glow: 'shadow-md shadow-amber-400'
-      },
-      titleColor: 'text-amber-900',
-      ring: 'ring-2 ring-amber-300 ring-offset-2'
-    },
-    free: {
-      border: 'border',
-      borderGradient: 'bg-gray-100',
-      bg: 'bg-white',
-      shadow: 'shadow-none',
-      badge: null,
-      titleColor: 'text-gray-800',
-      ring: ''
-    }
-  };
-
-  const currentStyle = cardStyles[plan as keyof typeof cardStyles] || cardStyles.free;
+// 🎨 Badge classes (si aplica)
+  const badgeClasses = getBadgeClasses(plan);
+  const badgeText = tokens.badge?.text;
 
   return (
     <article 
-      className={`relative rounded-2xl transition-all hover:scale-[1.01] hover:shadow-2xl overflow-hidden ${plan !== 'free' ? 'border-2' : 'border'} ${plan === 'sponsor' ? 'border-purple-400' : plan === 'featured' ? 'border-amber-400' : 'border-gray-200'} bg-white`}
+      className={getCardClasses(plan)}
     >
-      {/* v2: Banner superior (120px fijos) - TODOS LOS PLANES */}
-      {/* ⚡ ACTUALIZACIÓN: Plan FREE ahora también muestra portada (con placeholder si no tiene) */}
-      <div className="relative h-[120px] w-full overflow-hidden">
+      {/* 🎨 PORTADA CON JERARQUÍA VISUAL */}
+      {/* FREE: 120px | DESTACADO: 145px | PATROCINADO: 180px */}
+      <div className={`relative ${getCoverHeight(plan, true)} w-full overflow-hidden ${tokens.colors.coverOverlay}`}>
         <img 
           src={bannerUrl} 
           alt={`Portada de ${business.name}`} 
-          className="w-full h-[120px] object-cover object-center"
+          className={`w-full h-full object-cover object-center ${tokens.effects.transition}`}
         />
-        {/* Badge solo para planes premium */}
-        {currentStyle.badge && (
-          <div className="absolute top-2 left-2">
-            <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase shadow-lg`}>
-              {currentStyle.badge.text}
+        
+        {/* 🏷️ BADGE PREMIUM (solo featured y sponsor) */}
+        {badgeClasses && badgeText && (
+          <div className="absolute top-3 left-3 z-10">
+            <span className={badgeClasses}>
+              {badgeText}
             </span>
           </div>
         )}
       </div>
 
-      {/* Botón de favoritos mejorado */}
+      {/* ❤️ BOTÓN FAVORITOS - posición dinámica según altura de portada */}
       <button
         type="button"
         onClick={handleFavoriteToggle}
         disabled={isTogglingFavorite}
-        className={`absolute top-[128px] right-2 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-20 ${
+        className={`absolute right-3 w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-30 ${
+          plan === 'sponsor' ? 'top-[188px]' : plan === 'featured' ? 'top-[153px]' : 'top-[128px]'
+        } ${
           isTogglingFavorite ? 'scale-90 opacity-70' : 'hover:scale-110 active:scale-95'
         }`}
         aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
@@ -272,17 +248,14 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         </span>
       </button>
 
-      {/* v2: Contenido de la tarjeta */}
+      {/* 📦 CONTENIDO DE LA CARD */}
       <div 
         onClick={plan === 'free' ? handleClick : undefined}
-        className={`relative bg-white rounded-b-xl p-4 flex flex-col gap-3 ${plan === 'free' ? 'cursor-pointer' : ''}`}
+        className={`relative bg-white rounded-b-xl ${tokens.layout.cardPadding} flex flex-col ${tokens.layout.cardGap} ${plan === 'free' ? 'cursor-pointer' : ''} ${tokens.effects.shimmer}`}
       >
-          {/* Efecto de brillo para premium */}
-          {plan !== 'free' && (
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
-          )}
+          {/* ✨ Efecto shimmer para premium (solo hover) */}
           
-          {/* v2: FILA SUPERIOR: Logo/Avatar + Nombre + Info (Mobile-first) */}
+          {/* 🏢 FILA SUPERIOR: Logo + Nombre + Info */}
           <div className="flex items-start gap-3 relative z-10">
             {/* v2: Logo/Avatar - Premium 48px mobile-first, Free mantiene 64px */}
             {plan !== 'free' ? (
@@ -304,28 +277,34 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             {/* Contenido al lado del icono */}
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               {/* v2: Badge NUEVO (no duplicar badge de plan que ahora está en banner) */}
+              {/* 🆕 Badge NUEVO (transversal a todos los planes) */}
               {isNew && (
                 <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-extrabold tracking-wide uppercase rounded-full shadow-md animate-pulse w-fit">
                   🆕 NUEVO
                 </span>
               )}
               
-              {/* v2: Badge de plan - free en header, featured también (sponsor en banner) */}
-              {(plan === 'free' || plan === 'featured') && currentStyle.badge && (
-                <span className={`${currentStyle.badge.style} ${currentStyle.badge.glow} px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase w-fit`}>
-                  {currentStyle.badge.text}
-                </span>
-              )}
-              
-              {/* Nombre */}
-              <h3 className={`text-base font-bold ${currentStyle.titleColor} hover:text-[#38761D] transition-colors line-clamp-1`}>
+              {/* 🏷️ Nombre del negocio */}
+              <h3 className={`text-base font-bold ${tokens.colors.titleColor} hover:text-emerald-700 transition-colors line-clamp-1`}>
                 {business.name}
               </h3>
               
-              {/* Categoría y Colonia */}
-              <div className="flex flex-wrap gap-1 text-xs text-gray-600">
-                {business.category && <span className="bg-gray-100 px-2 py-0.5 rounded-full">{business.category}</span>}
-                {business.colonia && <span className="bg-gray-100 px-2 py-0.5 rounded-full">{business.colonia}</span>}
+              {/* 🏯 Categoría y Colonia */}
+              <div className="flex flex-wrap gap-1 text-xs">
+                {business.category && (
+                  <span className={`px-2 py-0.5 rounded-full font-medium ${
+                    plan === 'sponsor' ? 'bg-purple-100 text-purple-700' :
+                    plan === 'featured' ? 'bg-amber-100 text-amber-700' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {getCategoryIcon(business.category)} {business.category}
+                  </span>
+                )}
+                {business.colonia && (
+                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                    {business.colonia}
+                  </span>
+                )}
               </div>
               
               {/* v2: Rating y Estado en línea - Ocultar métricas vacías */}
@@ -368,19 +347,23 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             </div>
           </div>
           
-          {/* FILA INFERIOR: Dirección y Botones */}
+{/* 🟢 FILA INFERIOR: Dirección y Botones */}
           <div className="flex flex-col gap-2 relative z-10">
-            {/* Ubicación */}
+            {/* 📍 Ubicación */}
             <p className="text-xs text-gray-700 flex items-center gap-1.5 line-clamp-1">
               <MapPin className="w-3 h-3 text-gray-500 flex-shrink-0" />
               <span className="truncate">{addressText}</span>
             </p>
 
-            {/* v2: CTA Principal - Ver detalles (solo premium, free usa onClick en contenedor) */}
+            {/* 👁️ CTA Principal - Ver detalles (solo premium, free usa onClick en contenedor) */}
             {plan !== 'free' && (
               <button
                 onClick={handleClick}
-                className="w-full py-3 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg active:scale-98"
+                className={`w-full py-3 text-white text-sm font-bold rounded-lg transition-all shadow-md hover:shadow-lg active:scale-98 ${
+                  plan === 'sponsor' 
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
+                }`}
               >
                 Ver detalles
               </button>
