@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import ReviewsModerationClient from '../../../components/ReviewsModerationClient';
-import AdminNavigation from '../../../components/AdminNavigation';
+import AdminQuickNav from '../../../components/AdminQuickNav';
 
 export const metadata = {
   title: 'Moderación de Reseñas | Admin',
@@ -119,42 +119,41 @@ export default async function ReviewsModerationPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6 pl-14 lg:pl-0">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">⭐ Moderación de Reseñas</h1>
-        <p className="text-sm text-gray-600">Revisa y modera las reseñas de negocios</p>
-      </div>
-
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        <AdminNavigation variant="sidebar" />
-        <div className="lg:col-start-2">
-          {/* Estadísticas */}
-          <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-sm font-medium text-gray-500 mb-2">Total Reseñas</div>
-              <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-sm font-medium text-gray-500 mb-2">Aprobadas</div>
-              <div className="text-3xl font-bold text-green-600">{stats.approved}</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-sm font-medium text-gray-500 mb-2">Pendientes</div>
-              <div className="text-3xl font-bold text-yellow-600">{stats.pending}</div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="text-sm font-medium text-gray-500 mb-2">Rating Promedio</div>
-              <div className="text-3xl font-bold text-blue-600">{stats.averageRating.toFixed(1)} ⭐</div>
-            </div>
-          </div>
-
-          {/* Lista de reseñas */}
-          <Suspense fallback={<div className="text-center py-8">Cargando reseñas...</div>}>
-            <ReviewsModerationClient initialReviews={reviews} />
-          </Suspense>
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">⭐ Moderación de Reseñas</h1>
+          <p className="text-sm sm:text-base text-gray-600">Revisa y modera las reseñas de negocios</p>
         </div>
+
+        {/* Estadísticas */}
+        <div className="mb-6 sm:mb-8 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <div className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Total Reseñas</div>
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.total}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <div className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Aprobadas</div>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600">{stats.approved}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <div className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Pendientes</div>
+            <div className="text-2xl sm:text-3xl font-bold text-yellow-600">{stats.pending}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <div className="text-xs sm:text-sm font-medium text-gray-500 mb-2">Rating Promedio</div>
+            <div className="text-2xl sm:text-3xl font-bold text-blue-600">{stats.averageRating.toFixed(1)} ⭐</div>
+          </div>
+        </div>
+
+        {/* Lista de reseñas */}
+        <Suspense fallback={<div className="text-center py-8">Cargando reseñas...</div>}>
+          <ReviewsModerationClient initialReviews={reviews} />
+        </Suspense>
       </div>
+      
+      <AdminQuickNav />
     </main>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 /**
  * Dashboard para editar negocios
- * Solo pago por transferencia/sucursal (stripe oculto)
+ * Con nuevo sistema de estados y completitud
  */
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,9 +13,12 @@ import LogoUploader from './LogoUploader';
 import CoverUploader from './CoverUploader';
 import AddressPicker from './AddressPicker';
 import PaymentInfo from './PaymentInfo';
+import BusinessStatusBanner from './BusinessStatusBanner';
 import { BsBank, BsUpload } from 'react-icons/bs';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
 import { updateBusinessDetails } from '../app/actions/businesses';
+import { requestPublish, updateBusinessWithState } from '../app/actions/businessActions';
+import { computeProfileCompletion, updateBusinessState, type BusinessWithState } from '../lib/businessStates';
 import type { Business } from '../types/business';
 import { YAJALON_COLONIAS } from '../lib/helpers/colonias';
 
@@ -224,6 +227,35 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   // Ref para saber si ya se cargaron los datos iniciales
   const isInitialLoadRef = useRef(true);
 
+  // NUEVO: Estados del sistema de estados dual
+  const [businessState, setBusinessState] = useState({
+    businessStatus: (biz?.businessStatus as 'draft' | 'in_review' | 'published') || 'draft',
+    applicationStatus: (biz?.applicationStatus as 'submitted' | 'needs_info' | 'ready_for_review' | 'approved' | 'rejected') || 'submitted',
+    completionPercent: biz?.completionPercent || 0,
+    isPublishReady: biz?.isPublishReady || false,
+    missingFields: biz?.missingFields || [],
+    adminNotes: biz?.adminNotes || '',
+    rejectionReason: biz?.rejectionReason || '',
+  });
+
+  // NUEVO: Estado para manejar la publicación
+  const [publishLoading, setPublishLoading] = useState(false);
+
+  // Sincronizar businessState cuando cambie biz
+  useEffect(() => {
+    if (biz) {
+      setBusinessState({
+        businessStatus: (biz.businessStatus as 'draft' | 'in_review' | 'published') || 'draft',
+        applicationStatus: (biz.applicationStatus as 'submitted' | 'needs_info' | 'ready_for_review' | 'approved' | 'rejected') || 'submitted',
+        completionPercent: biz.completionPercent || 0,
+        isPublishReady: biz.isPublishReady || false,
+        missingFields: biz.missingFields || [],
+        adminNotes: biz.adminNotes || '',
+        rejectionReason: biz.rejectionReason || '',
+      });
+    }
+  }, [biz]);
+
   // Efecto para auto-ocultar toast
   useEffect(() => {
     if (uiState.msg && !uiState.upgradeBusy) {
@@ -427,6 +459,19 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       if (snap.exists()) {
         const updatedData = { id: snap.id, ...snap.data() } as Business;
         applyBusinessData(updatedData);
+        
+        // NUEVO: Actualizar estados del sistema
+        if (updatedData.businessStatus || updatedData.applicationStatus) {
+          setBusinessState({
+            businessStatus: (updatedData.businessStatus as any) || 'draft',
+            applicationStatus: (updatedData.applicationStatus as any) || 'submitted',
+            completionPercent: updatedData.completionPercent || 0,
+            isPublishReady: updatedData.isPublishReady || false,
+            missingFields: updatedData.missingFields || [],
+            adminNotes: updatedData.adminNotes || '',
+            rejectionReason: updatedData.rejectionReason || '',
+          });
+        }
       }
       
       // Actualizar timestamp de guardado (ya no es necesario setHasUnsavedChanges aquí)
@@ -441,6 +486,49 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       setUiState(prev => ({ ...prev, busy: false }));
     }
   }
+
+  // NUEVO: Handler para solicitar publicación con el nuevo sistema
+  const handleRequestPublish = async () => {
+    if (!id || !biz) return;
+    
+    setPublishLoading(true);
+    try {
+      const result = await requestPublish(id);
+      
+      if (result.success) {
+        setBusinessState(prev => ({
+          ...prev,
+          businessStatus: 'in_review',
+          applicationStatus: result.newApplicationStatus || prev.applicationStatus,
+        }));
+        
+        setUiState(prev => ({ 
+          ...prev, 
+          msg: '🚀 ¡Solicitud de publicación enviada! Revisaremos tu negocio pronto.' 
+        }));
+        
+        // Recargar datos del negocio
+        const snap = await getDoc(doc(db, 'businesses', id));
+        if (snap.exists()) {
+          const updatedData = { id: snap.id, ...snap.data() } as Business;
+          applyBusinessData(updatedData);
+        }
+      } else {
+        setUiState(prev => ({ 
+          ...prev, 
+          msg: result.error || 'No se pudo enviar la solicitud. Asegúrate de completar todos los campos obligatorios.' 
+        }));
+      }
+    } catch (error) {
+      console.error('Error al solicitar publicación:', error);
+      setUiState(prev => ({ 
+        ...prev, 
+        msg: error instanceof Error ? error.message : 'Error al solicitar publicación' 
+      }));
+    } finally {
+      setPublishLoading(false);
+    }
+  };
 
   async function submitForReview() {
     if (!id || !userCanEdit || !biz) return;
@@ -703,31 +791,38 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               </div>
             </div>
-            
-            {/* Barra de progreso de completitud */}
-            <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-gray-700">Completitud del perfil</span>
-                <span className="text-lg font-bold text-purple-600">{calculateCompleteness()}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500 rounded-full"
-                  style={{ width: `${calculateCompleteness()}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-gray-600 mt-2">
-                {calculateCompleteness() === 100 ? (
-                  <span className="text-green-600 font-semibold">🎉 ¡Perfil completo! Tu negocio está optimizado</span>
-                ) : calculateCompleteness() >= 75 ? (
-                  <span>¡Casi listo! Completa algunos detalles más</span>
-                ) : calculateCompleteness() >= 50 ? (
-                  <span>Buen progreso. Agrega más información para destacar</span>
-                ) : (
-                  <span>Completa tu perfil para atraer más clientes</span>
-                )}
-              </p>
+          </div>
+
+          {/* NUEVO: Banner de Estado con Sistema Dual */}
+          {biz && businessState && (
+            <div className="mb-6">
+              <BusinessStatusBanner
+                business={{
+                  businessStatus: businessState.businessStatus || 'draft',
+                  applicationStatus: businessState.applicationStatus || 'submitted',
+                  completionPercent: businessState.completionPercent || 0,
+                  missingFields: businessState.missingFields || [],
+                  isPublishReady: businessState.isPublishReady || false,
+                  adminNotes: businessState.adminNotes || '',
+                  rejectionReason: businessState.rejectionReason || '',
+                }}
+                onPublish={handleRequestPublish}
+              />
             </div>
+          )}
+          
+          {/* Loading state mientras se carga el negocio */}
+          {!biz && !uiState.msg && (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+                <p className="text-sm text-blue-800">Cargando información del negocio...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Información adicional del perfil (mantener para referencia) */}
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 mb-6">
 
             <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4">
               <button

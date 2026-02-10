@@ -342,12 +342,37 @@ export async function submitNewBusiness(formData: FormData) {
 
       // Notificar al admin por WhatsApp (solo si es nueva aplicación)
       try {
-        const { notifyNewRegistration } = await import('../../lib/whatsappNotifier');
-        await notifyNewRegistration(
-          asString(payload.businessName, 140),
-          asString(payload.ownerName ?? decoded.name, 140),
-          decoded.email
-        );
+        const businessId = decoded.uid; // Usamos el uid como businessId temporal
+        
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const notifyResponse = await fetch(`${baseUrl}/api/notify/wizard-complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${parsed.token}`,
+          },
+          body: JSON.stringify({
+            businessId,
+            businessName: asString(payload.businessName, 140),
+            category: asString(payload.category, 80),
+            phone: asString(payload.phone ?? payload.whatsapp, 30),
+            ownerName: asString(payload.ownerName ?? decoded.name, 140),
+            ownerEmail: decoded.email,
+            timestamp: new Date().toLocaleString('es-MX', {
+              timeZone: 'America/Mexico_City',
+              dateStyle: 'short',
+              timeStyle: 'short',
+            }),
+          }),
+        });
+
+        if (notifyResponse.ok) {
+          const notifyResult = await notifyResponse.json();
+          console.log('✅ [WhatsApp] Notification sent:', notifyResult);
+          notified = notified || notifyResult.whatsapp?.sent || notifyResult.slack?.sent;
+        } else {
+          console.warn('[WhatsApp] Notification endpoint failed:', notifyResponse.status);
+        }
       } catch (whatsappError) {
         console.warn('[server-action] Failed to send WhatsApp notification:', whatsappError);
       }
@@ -409,14 +434,40 @@ export async function submitNewBusiness(formData: FormData) {
       }
     }
 
-    // Notificar al admin por WhatsApp al completar wizard
+    // Notificar al admin por WhatsApp al completar wizard (nuevo sistema robusto)
     try {
-      const { notifyNewRegistration } = await import('../../lib/whatsappNotifier');
-      await notifyNewRegistration(
-        asString(payload.businessName, 140),
-        asString(payload.ownerName ?? decoded.name, 140),
-        decoded.email
-      );
+      // Generar businessId único si no existe
+      const businessId = decoded.uid; // Usamos el uid como businessId para el wizard
+      
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const notifyResponse = await fetch(`${baseUrl}/api/notify/wizard-complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${parsed.token}`,
+        },
+        body: JSON.stringify({
+          businessId,
+          businessName: asString(payload.businessName, 140),
+          category: asString(payload.category, 80),
+          phone: asString(payload.phone ?? payload.whatsapp, 30),
+          ownerName: asString(payload.ownerName ?? decoded.name, 140),
+          ownerEmail: decoded.email,
+          timestamp: new Date().toLocaleString('es-MX', {
+            timeZone: 'America/Mexico_City',
+            dateStyle: 'short',
+            timeStyle: 'short',
+          }),
+        }),
+      });
+
+      if (notifyResponse.ok) {
+        const notifyResult = await notifyResponse.json();
+        console.log('✅ [WhatsApp] Notification sent:', notifyResult);
+        notified = notified || notifyResult.whatsapp?.sent || notifyResult.slack?.sent;
+      } else {
+        console.warn('[WhatsApp] Notification endpoint failed:', notifyResponse.status);
+      }
     } catch (whatsappError) {
       console.warn('[server-action] Failed to send WhatsApp notification after wizard:', whatsappError);
     }

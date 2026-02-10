@@ -1,0 +1,403 @@
+/**
+ * Server Action mejorada para registro de negocios
+ * 
+ * CAMBIOS PRINCIPALES:
+ * 1. Crea el business INMEDIATAMENTE (no espera aprobación)
+ * 2. businessStatus = 'draft'
+ * 3. applicationStatus = 'submitted' (auto-actualiza a ready_for_review si cumple requisitos)
+ * 4. Calcula completionPercent automáticamente
+ * 5. Retorna businessId para redirección inmediata
+ */
+
+'use server';
+
+import { z } from 'zod';
+import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
+import { 
+  updateBusinessState, 
+  type ApplicationStatus, 
+  type BusinessStatus 
+} from '../../lib/businessStates';
+
+const createBusinessSchema = z.object({
+  token: z.string().min(1, 'Missing auth token'),
+  formPayload: z.string().min(2, 'Missing form data JSON'),
+});
+
+type DayKey = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
+type HorarioDia = { abierto: boolean; desde: string; hasta: string };
+type HorariosSemana = Partial<Record<DayKey, HorarioDia>>;
+
+const weekdays: DayKey[] = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+
+// Helpers (mantener los del archivo original)
+function asString(value: unknown, max = 500): string {
+  if (value === null || value === undefined) return '';
+  const str = String(value).trim();
+  return str.length > max ? str.slice(0, max) : str;
+}
+
+function toArrayFromComma(value: unknown, maxItems = 30): string[] {
+  const str = asString(value, 2000);
+  if (!str) return [];
+  return str
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function parseLatLng(value: unknown): number | null {
+  const str = asString(value, 50);
+  if (!str) return null;
+  const parsed = Number(str.replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeHorarios(value: unknown): HorariosSemana {
+  const normalized: HorariosSemana = {};
+  if (typeof value !== 'object' || value === null) return normalized;
+  const obj = value as Record<string, any>;
+  weekdays.forEach((key) => {
+    const raw = obj[key];
+    if (!raw || typeof raw !== 'object') return;
+    const abierto = Boolean(raw.abierto);
+    const desde = /^[0-2]\d:[0-5]\d$/.test(asString(raw.desde, 5)) ? raw.desde : '08:00';
+    const hasta = /^[0-2]\d:[0-5]\d$/.test(asString(raw.hasta, 5)) ? raw.hasta : '18:00';
+    normalized[key] = { abierto, desde, hasta };
+  });
+  return normalized;
+}
+
+function coerceStringArray(value: unknown, allowed?: string[], maxItems = 20): string[] {
+  if (!Array.isArray(value)) return [];
+  const items = value
+    .map((entry) => asString(entry, 100))
+    .filter(Boolean);
+  const filtered = allowed?.length ? items.filter((item) => allowed.includes(item)) : items;
+  return Array.from(new Set(filtered)).slice(0, maxItems);
+}
+
+/**
+ * Crea un nuevo negocio inmediatamente después de completar el wizard
+ * NO espera aprobación del admin
+ * 
+ * @param formData - Datos del formulario del wizard
+ * @returns { businessId, completionPercent, isPublishReady, redirectUrl }
+ */
+export async function createBusinessImmediately(formData: FormData) {
+  try {
+    const parsed = createBusinessSchema.parse({
+      token: formData.get('token'),
+      formPayload: formData.get('formData'),
+    });
+
+    const payload = JSON.parse(parsed.formPayload) as Record<string, unknown>;
+    
+    // Verificar auth
+    const auth = getAdminAuth();
+    const decoded = await auth.verifyIdToken(parsed.token);
+    const db = getAdminFirestore();
+    
+    // ✅ VALIDACIÓN DE DUPLICADOS: Verificar si el usuario ya tiene un negocio
+    const existingBusinessQuery = await db
+      .collection('businesses')
+      .where('ownerId', '==', decoded.uid)
+      .limit(1)
+      .get();
+    
+    if (!existingBusinessQuery.empty) {
+      const existingBusiness = existingBusinessQuery.docs[0];
+      const existingData = existingBusiness.data();
+      
+      return {
+        success: true,
+        businessId: existingBusiness.id,
+        completionPercent: existingData.completionPercent || 0,
+        isPublishReady: existingData.isPublishReady || false,
+        missingFields: existingData.missingFields || [],
+        redirectUrl: `/dashboard/${existingBusiness.id}`,
+        isDuplicate: true,
+        message: 'Ya tienes un negocio registrado. Te redirigiremos a tu dashboard.',
+      };
+    }
+    
+    // Normalizar datos
+    const businessName = asString(payload.businessName ?? 'Negocio sin nombre', 140);
+    const ownerName = asString(payload.ownerName ?? decoded.name ?? '', 140);
+    const ownerEmail = asString(payload.ownerEmail ?? decoded.email ?? '', 200).toLowerCase();
+    const ownerPhone = asString(payload.ownerPhone ?? '', 30);
+    const description = asString(payload.description, 2000);
+    const category = asString(payload.category ?? '', 120);
+    const tags = toArrayFromComma(payload.tags, 30);
+    const address = asString(payload.address ?? '', 400);
+    const colonia = asString(payload.colonia ?? '', 140);
+    const municipio = asString(payload.municipio ?? '', 140);
+    const lat = parseLatLng(payload.lat);
+    const lng = parseLatLng(payload.lng);
+    const phone = asString(payload.phone ?? '', 30);
+    const whatsapp = asString(payload.whatsapp ?? '', 30);
+    const emailContact = asString(payload.emailContact ?? '', 140);
+    const facebookPage = asString(payload.facebookPage ?? '', 200);
+    const instagramUser = asString(payload.instagramUser ?? '', 200);
+    const website = asString(payload.website ?? '', 200);
+    const logoUrl = asString(payload.logoUrl ?? '', 400);
+    const coverPhoto = asString(payload.coverPhoto ?? '', 400);
+    const gallery = toArrayFromComma(payload.gallery, 50);
+    const videoPromoUrl = asString(payload.videoPromoUrl ?? '', 400);
+    const horarios = normalizeHorarios(payload.horarios);
+    const metodoPago = coerceStringArray(payload.metodoPago);
+    const servicios = coerceStringArray(payload.servicios);
+    const priceRange = asString(payload.priceRange ?? '', 10);
+    const promocionesActivas = asString(payload.promocionesActivas ?? '', 500);
+    
+    // Construir objeto business
+    const businessData: Record<string, unknown> = {
+      name: businessName,
+      ownerId: decoded.uid,
+      ownerEmail,
+      ownerName,
+      ownerPhone,
+      description,
+      category,
+      tags,
+      address,
+      colonia,
+      municipio,
+      phone,
+      WhatsApp: whatsapp,
+      emailContact,
+      Facebook: facebookPage,
+      Instagram: instagramUser,
+      website,
+      logoUrl,
+      coverUrl: coverPhoto,
+      images: gallery.map(url => ({ url, publicId: '' })),
+      videoPromoUrl,
+      horarios,
+      metodoPago,
+      servicios,
+      priceRange,
+      promocionesActivas,
+      
+      // NUEVOS CAMPOS DE ESTADO
+      businessStatus: 'draft' as BusinessStatus,
+      applicationStatus: 'submitted' as ApplicationStatus,
+      
+      // Timestamps
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      
+      // Plan
+      plan: 'free',
+      featured: false,
+      isActive: true,
+    };
+
+    // Agregar location si existe
+    if (lat != null && lng != null) {
+      businessData.location = { lat, lng };
+      businessData.lat = lat;
+      businessData.lng = lng;
+    }
+
+    // Calcular completitud y estado
+    const stateUpdate = updateBusinessState(businessData);
+    businessData.completionPercent = stateUpdate.completionPercent;
+    businessData.isPublishReady = stateUpdate.isPublishReady;
+    businessData.missingFields = stateUpdate.missingFields;
+    businessData.applicationStatus = stateUpdate.applicationStatus;
+
+    // Crear el negocio en Firestore
+    const businessRef = db.collection('businesses').doc();
+    const businessId = businessRef.id;
+    
+    await businessRef.set({
+      ...businessData,
+      id: businessId,
+    });
+
+    // También guardar en applications para tracking
+    await db.collection('applications').doc(decoded.uid).set({
+      businessId,
+      businessName,
+      ownerName,
+      ownerEmail,
+      ownerPhone,
+      category,
+      status: stateUpdate.applicationStatus,
+      completionPercent: stateUpdate.completionPercent,
+      isPublishReady: stateUpdate.isPublishReady,
+      missingFields: stateUpdate.missingFields,
+      formData: payload,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ownerId: decoded.uid,
+    }, { merge: true });
+
+    // Enviar notificación WhatsApp (si está configurado)
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      await fetch(`${baseUrl}/api/notify/wizard-complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${parsed.token}`,
+        },
+        body: JSON.stringify({
+          businessId,
+          businessName,
+          category,
+          phone,
+          ownerName,
+          ownerEmail,
+        }),
+      }).catch(err => console.warn('[WhatsApp notification failed]', err));
+    } catch (error) {
+      console.warn('[WhatsApp notification error]', error);
+    }
+
+    // Retornar datos para redirección
+    return {
+      success: true,
+      businessId,
+      completionPercent: stateUpdate.completionPercent,
+      isPublishReady: stateUpdate.isPublishReady,
+      missingFields: stateUpdate.missingFields,
+      redirectUrl: `/dashboard/${businessId}`,
+    };
+
+  } catch (error) {
+    console.error('[createBusinessImmediately] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al crear el negocio',
+    };
+  }
+}
+
+/**
+ * Actualiza el estado de un negocio (cuando el usuario edita)
+ */
+export async function updateBusinessWithState(
+  businessId: string,
+  updates: Record<string, unknown>,
+  token: string
+) {
+  try {
+    const auth = getAdminAuth();
+    const decoded = await auth.verifyIdToken(token);
+    const db = getAdminFirestore();
+    
+    const businessRef = db.collection('businesses').doc(businessId);
+    const snapshot = await businessRef.get();
+    
+    if (!snapshot.exists) {
+      throw new Error('Negocio no encontrado');
+    }
+    
+    const currentData = snapshot.data() as Record<string, unknown>;
+    
+    // Verificar ownership
+    if (currentData.ownerId !== decoded.uid) {
+      throw new Error('No tienes permisos para editar este negocio');
+    }
+    
+    // Verificar que pueda editar (solo draft o in_review)
+    const currentStatus = currentData.businessStatus as BusinessStatus;
+    if (currentStatus === 'published') {
+      throw new Error('No puedes editar un negocio publicado. Contacta al administrador.');
+    }
+    
+    // Merge updates
+    const updatedData = { ...currentData, ...updates };
+    
+    // Recalcular estado
+    const stateUpdate = updateBusinessState(updatedData);
+    
+    // Guardar
+    await businessRef.update({
+      ...updates,
+      completionPercent: stateUpdate.completionPercent,
+      isPublishReady: stateUpdate.isPublishReady,
+      missingFields: stateUpdate.missingFields,
+      applicationStatus: stateUpdate.applicationStatus,
+      updatedAt: new Date(),
+    });
+    
+    return {
+      success: true,
+      completionPercent: stateUpdate.completionPercent,
+      isPublishReady: stateUpdate.isPublishReady,
+      applicationStatus: stateUpdate.applicationStatus,
+    };
+    
+  } catch (error) {
+    console.error('[updateBusinessWithState] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al actualizar',
+    };
+  }
+}
+
+/**
+ * Usuario solicita publicación (click en "Publicar mi negocio")
+ */
+export async function requestPublish(businessId: string, token: string) {
+  try {
+    const auth = getAdminAuth();
+    const decoded = await auth.verifyIdToken(token);
+    const db = getAdminFirestore();
+    
+    const businessRef = db.collection('businesses').doc(businessId);
+    const snapshot = await businessRef.get();
+    
+    if (!snapshot.exists) {
+      throw new Error('Negocio no encontrado');
+    }
+    
+    const businessData = snapshot.data() as Record<string, unknown>;
+    
+    // Verificar ownership
+    if (businessData.ownerId !== decoded.uid) {
+      throw new Error('No tienes permisos');
+    }
+    
+    // Verificar que esté listo
+    const { isPublishReady, missingFields } = updateBusinessState(businessData);
+    if (!isPublishReady) {
+      return {
+        success: false,
+        error: 'Tu negocio aún no cumple los requisitos mínimos',
+        missingFields,
+      };
+    }
+    
+    // Cambiar a in_review
+    await businessRef.update({
+      businessStatus: 'in_review' as BusinessStatus,
+      applicationStatus: 'ready_for_review' as ApplicationStatus,
+      updatedAt: new Date(),
+      lastReviewRequestedAt: new Date(),
+    });
+    
+    // Actualizar application
+    await db.collection('applications').doc(decoded.uid).update({
+      status: 'ready_for_review',
+      updatedAt: new Date(),
+    });
+    
+    return {
+      success: true,
+      message: '¡Tu negocio ha sido enviado a revisión! Te notificaremos cuando sea aprobado.',
+    };
+    
+  } catch (error) {
+    console.error('[requestPublish] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al solicitar publicación',
+    };
+  }
+}

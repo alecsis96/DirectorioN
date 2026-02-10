@@ -37,6 +37,16 @@ service cloud.firestore {
       return val in ['pending','draft','review','published','rejected'];
     }
 
+    // NUEVO: Validar businessStatus
+    function validBusinessStatus(val) {
+      return val in ['draft', 'in_review', 'published'];
+    }
+
+    // NUEVO: Validar applicationStatus
+    function validApplicationStatus(val) {
+      return val in ['submitted', 'needs_info', 'ready_for_review', 'approved', 'rejected'];
+    }
+
     // ============== APPLICATIONS (Solicitudes iniciales) ==============
     match /applications/{uid} {
       // Lectura individual: solo el usuario o admin
@@ -112,16 +122,18 @@ service cloud.firestore {
     // ============== BUSINESSES ==============
     match /businesses/{businessId} {
       // Lectura individual: pública para published, restringida para otros
-      allow get: if resource.data.status == 'published' || 
+      // NUEVO: soporta tanto status como businessStatus
+      allow get: if (resource.data.status == 'published' || resource.data.businessStatus == 'published') || 
                     isOwner(businessId) || 
                     isAdmin();
       
-      // Queries: p�blicas para published; admin o cualquier usuario autenticado pueden listar
-      // No referenciamos resource en list (no est� disponible en queries)
+      // Queries: públicas para published; admin o cualquier usuario autenticado pueden listar
+      // NUEVO: soporta consultas con businessStatus
       allow list: if isAdmin() ||
                     isSignedIn() ||
                     (request.query.limit <= 100 &&
-                     ('status' in request.query && request.query.status == 'published'));
+                     (('status' in request.query && request.query.status == 'published') ||
+                      ('businessStatus' in request.query && request.query.businessStatus == 'published')));
 
       // Creación: admin puede crear (para el flujo de aprobación)
       // O usuario puede crear draft con su ownerId
@@ -150,19 +162,25 @@ service cloud.firestore {
           (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
       }
 
-      // ---- create por usuario (si decide crear directo)
+      // ---- create por usuario (si decide crear directo o desde wizard con nuevo sistema)
       function validBusinessUserCreate() {
         return
-          request.resource.data.status == 'draft' &&
+          // Compatibilidad: acepta status='draft' o businessStatus='draft'
+          ((!('status' in request.resource.data) || request.resource.data.status == 'draft') &&
+           (!('businessStatus' in request.resource.data) || request.resource.data.businessStatus == 'draft')) &&
           isVerifiedEmail() &&
           (request.resource.data.ownerId == request.auth.uid) &&
           validString(request.resource.data.businessName, 1, 140) &&
           !(request.resource.data.featured is bool && request.resource.data.featured == true) &&
+          // NUEVO: acepta campos de estado
+          (!('applicationStatus' in request.resource.data) || validApplicationStatus(request.resource.data.applicationStatus)) &&
+          (!('completionPercent' in request.resource.data) || (request.resource.data.completionPercent is number && request.resource.data.completionPercent >= 0 && request.resource.data.completionPercent <= 100)) &&
+          (!('isPublishReady' in request.resource.data) || request.resource.data.isPublishReady is bool) &&
           (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp) &&
           (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
       }
 
-      // ---- update por dueño: transiciones y validaciones
+      // ---- update por dueño: transiciones y validaciones con nuevo sistema de estados
       function validBusinessOwnerUpdate() {
         // Mismo ownerId y ownerEmail
         let sameOwner = request.resource.data.ownerId == resource.data.ownerId &&
@@ -174,29 +192,44 @@ service cloud.firestore {
           (request.resource.data.featured == true) &&
           !(resource.data.featured == true);
 
-        let oldStatus = resource.data.status;
-        let newStatus = ('status' in request.resource.data) ? request.resource.data.status : resource.data.status;
+        // NUEVO: Sistema de estados con businessStatus y applicationStatus
+        let oldBusinessStatus = ('businessStatus' in resource.data) ? resource.data.businessStatus : 'draft';
+        let newBusinessStatus = ('businessStatus' in request.resource.data) ? request.resource.data.businessStatus : oldBusinessStatus;
+        
+        // Transiciones permitidas para businessStatus:
+        // draft -> draft o draft -> in_review (solicitar publicación)
+        // in_review -> in_review (puede seguir editando)
+        // published -> published (NO puede despublicar, solo editar)
+        let businessStatusAllowed =
+          (oldBusinessStatus == 'draft' && (newBusinessStatus in ['draft','in_review'])) ||
+          (oldBusinessStatus == 'in_review' && newBusinessStatus == 'in_review') ||
+          (oldBusinessStatus == 'published' && newBusinessStatus == 'published') ||
+          !('businessStatus' in resource.data); // Si no existe, permitir cualquiera
 
-        // Transiciones permitidas para el owner:
-        // draft -> draft o draft -> review
-        // review -> review (puede seguir editando)
-        // published -> published (puede editar pero no cambiar status)
-        // rejected -> rejected o rejected -> review (puede reenviar)
-        let transitionAllowed =
+        // Compatibilidad con status antiguo
+        let oldStatus = ('status' in resource.data) ? resource.data.status : 'draft';
+        let newStatus = ('status' in request.resource.data) ? request.resource.data.status : oldStatus;
+        let statusAllowed =
           (oldStatus == 'draft' && (newStatus in ['draft','review'])) ||
           (oldStatus == 'review' && newStatus == 'review') ||
           (oldStatus == 'published' && newStatus == 'published') ||
-          (oldStatus == 'rejected' && (newStatus in ['rejected','review']));
+          (oldStatus == 'rejected' && (newStatus in ['rejected','review'])) ||
+          !('status' in resource.data);
+
+        // NUEVO: Owner NO puede cambiar applicationStatus directamente (lo hace el sistema automáticamente)
+        let appStatusNotChanged = !('applicationStatus' in request.resource.data) || 
+                                  !('applicationStatus' in resource.data) ||
+                                  request.resource.data.applicationStatus == resource.data.applicationStatus;
 
         let baseChecks =
           sameOwner &&
           !tryingToEnableFeatured &&
-          validStatus(newStatus) &&
-          transitionAllowed &&
+          businessStatusAllowed &&
+          statusAllowed &&
+          appStatusNotChanged &&
           (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
 
         // Validación de campos - más flexible para permitir updates parciales
-        // Solo valida los campos que están presentes en la actualización
         let fieldsOk =
           (!('businessName' in request.resource.data) || optionalString(request.resource.data.businessName, 140)) &&
           (!('category' in request.resource.data) || optionalString(request.resource.data.category, 80)) &&
@@ -208,12 +241,15 @@ service cloud.firestore {
           (!('instagramUser' in request.resource.data) || optionalString(request.resource.data.instagramUser, 200)) &&
           (!('emailContact' in request.resource.data) || optionalString(request.resource.data.emailContact, 200)) &&
           (!('website' in request.resource.data) || optionalString(request.resource.data.website, 300)) &&
-          (!('hours' in request.resource.data) || optionalString(request.resource.data.hours, 500));
+          (!('hours' in request.resource.data) || optionalString(request.resource.data.hours, 500)) &&
+          // NUEVO: validar campos computados
+          (!('completionPercent' in request.resource.data) || (request.resource.data.completionPercent is number && request.resource.data.completionPercent >= 0 && request.resource.data.completionPercent <= 100)) &&
+          (!('isPublishReady' in request.resource.data) || request.resource.data.isPublishReady is bool);
 
         return baseChecks && fieldsOk;
       }
 
-      // ---- update por admin (puede cambiar cualquier cosa)
+      // ---- update por admin (puede cambiar cualquier cosa incluyendo estados)
       function validBusinessAdminUpdate() {
         return
           optionalString(request.resource.data.businessName, 140) &&
@@ -225,13 +261,21 @@ service cloud.firestore {
           optionalString(request.resource.data.phone, 30) &&
           optionalString(request.resource.data.whatsapp, 30) &&
           (!('featured' in request.resource.data) || request.resource.data.featured is bool) &&
+          // Compatibilidad: mantener validación status antiguo
           (!('status' in request.resource.data) || validStatus(request.resource.data.status)) &&
+          // NUEVO: Admin puede cambiar todos los estados
+          (!('businessStatus' in request.resource.data) || validBusinessStatus(request.resource.data.businessStatus)) &&
+          (!('applicationStatus' in request.resource.data) || validApplicationStatus(request.resource.data.applicationStatus)) &&
+          (!('completionPercent' in request.resource.data) || (request.resource.data.completionPercent is number && request.resource.data.completionPercent >= 0 && request.resource.data.completionPercent <= 100)) &&
+          (!('isPublishReady' in request.resource.data) || request.resource.data.isPublishReady is bool) &&
           (!('isActive' in request.resource.data) || request.resource.data.isActive is bool) &&
           (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus is string) &&
           (!('nextPaymentDate' in request.resource.data) || request.resource.data.nextPaymentDate is string) &&
           (!('lastPaymentDate' in request.resource.data) || request.resource.data.lastPaymentDate is string) &&
           (!('disabledReason' in request.resource.data) || optionalString(request.resource.data.disabledReason, 500)) &&
           (!('paymentHistory' in request.resource.data) || request.resource.data.paymentHistory is list) &&
+          (!('rejectionReason' in request.resource.data) || optionalString(request.resource.data.rejectionReason, 500)) &&
+          (!('adminNotes' in request.resource.data) || optionalString(request.resource.data.adminNotes, 1000)) &&
           (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
       }
     }
@@ -327,5 +371,22 @@ service cloud.firestore {
 
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
+
+    // ============== NOTIFICATIONS (logs de notificaciones WhatsApp) ==============
+    // Usado por el sistema de notificaciones para idempotencia
+    match /notifications/{notificationId} {
+      // Solo admins y el sistema pueden leer
+      allow read: if isAdmin() || isSignedIn();
+      
+      // Solo el sistema puede crear logs (server-side)
+      allow create: if isSignedIn();
+      
+      // Solo el sistema puede actualizar logs
+      allow update: if isSignedIn();
+      
+      // Solo admins pueden eliminar
+      allow delete: if isAdmin();
+    }
   }
 }
+

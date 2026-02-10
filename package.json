@@ -13,7 +13,10 @@
     "start": "next start",
     "verify-env": "node scripts/verifyEnv.js",
     "sync-algolia": "tsx scripts/syncAlgolia.ts",
-    "clear-algolia": "tsx scripts/syncAlgolia.ts clear"
+    "clear-algolia": "tsx scripts/syncAlgolia.ts clear",
+    "test:whatsapp": "node test-whatsapp-notifications.js",
+    "test:states": "node scripts/test-state-system.js",
+    "migrate:business-states": "tsx scripts/migrate-business-states.ts"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
@@ -54,6 +57,7 @@
     "@typescript-eslint/parser": "^8.12.1",
     "autoprefixer": "^10.0.0",
     "baseline-browser-mapping": "^2.9.19",
+    "dotenv": "^17.2.4",
     "eslint": "^8.57.0",
     "eslint-config-next": "^13.0.0",
     "eslint-plugin-react": "^7.35.0",
@@ -61,6 +65,7 @@
     "jsdom": "^24.1.1",
     "postcss": "^8.0.0",
     "tailwindcss": "^3.0.0",
+    "tsx": "^4.21.0",
     "typescript": "5.9.2",
     "vitest": "^4.0.9"
   }

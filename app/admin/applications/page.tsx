@@ -2,7 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import AdminApplicationsList, { type AdminApplication } from '../../../components/AdminApplicationsList';
-import AdminNavigation from '../../../components/AdminNavigation';
+import AdminQuickNav from '../../../components/AdminQuickNav';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 
@@ -75,22 +75,21 @@ export default async function AdminApplicationsPage() {
   const applications = await fetchPendingApplications();
 
   return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6 pl-14 lg:pl-0">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">Solicitudes pendientes</h1>
-        <p className="text-sm text-gray-600">Revisa las aplicaciones que aún están en proceso de aprobación.</p>
-      </div>
-
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        {/* Sidebar Navigation - Always rendered, visibility controlled by component */}
-        <AdminNavigation variant="sidebar" />
-
-        {/* Main Content */}
-        <div className="lg:col-start-2">
-          <AdminApplicationsList applications={applications} />
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8">
+          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">Solicitudes Pendientes</h1>
+          <p className="text-sm sm:text-base text-gray-600">Revisa las aplicaciones que están en proceso de aprobación</p>
         </div>
+
+        {/* Content */}
+        <AdminApplicationsList applications={applications} />
       </div>
+      
+      {/* Navegación flotante */}
+      <AdminQuickNav />
     </main>
   );
 }

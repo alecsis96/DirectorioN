@@ -3,9 +3,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, UseFormRegister } from "react-hook-form";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { signOut, type User } from "firebase/auth";
 import { submitNewBusiness } from "../app/actions/businesses";
+import { createBusinessImmediately } from "../app/actions/businessActions";
+import { useRouter } from "next/navigation";
 
 // ---------- Tipos ----------
 type DayKey =
@@ -214,6 +216,7 @@ function usePlacesAutocomplete(
 
 // ---------- Componente principal ----------
 export default function BusinessWizardPro() {
+  const router = useRouter();
   const { register, handleSubmit, reset, getValues, setValue, watch, formState } = useForm<WizardData>({
     mode: "onBlur",
     defaultValues,
@@ -228,6 +231,8 @@ export default function BusinessWizardPro() {
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [showConfirmError, setShowConfirmError] = useState(false);
   const [emailVerificationRequired, setEmailVerificationRequired] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [existingBusiness, setExistingBusiness] = useState<{ id: string; name: string } | null>(null);
 
   const addressRef = useRef<HTMLInputElement>(null);
 
@@ -243,6 +248,40 @@ export default function BusinessWizardPro() {
     });
     return () => unsubscribe();
   }, []);
+
+  // ✅ Verificar si el usuario ya tiene un negocio registrado
+  useEffect(() => {
+    if (!user?.uid) {
+      setExistingBusiness(null);
+      return;
+    }
+
+    const checkExistingBusiness = async () => {
+      try {
+        const q = query(
+          collection(db, 'businesses'),
+          where('ownerId', '==', user.uid),
+          limit(1)
+        );
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          const doc = snapshot.docs[0];
+          const data = doc.data();
+          setExistingBusiness({
+            id: doc.id,
+            name: data.name || data.businessName || 'Tu negocio',
+          });
+        } else {
+          setExistingBusiness(null);
+        }
+      } catch (error) {
+        console.error('Error checking existing business:', error);
+      }
+    };
+
+    checkExistingBusiness();
+  }, [user]);
 
   // Carga progreso guardado
   useEffect(() => {
@@ -348,19 +387,60 @@ export default function BusinessWizardPro() {
         return;
       }
       
-      // Ensambla structure para backend si es último paso
-      const result = await persist(values, next ? next.key : currentStep, next ? "wizard" : "application");
+      // Si hay siguiente paso, solo guardar progreso
       if (next) {
+        await persist(values, next.key, "wizard");
         setCurrentStep(next.key);
         setStatusMsg("✓ Tu información se guardó correctamente.");
-      } else {
-        // Guardar el email para mostrar el link
-        setSubmittedEmail(values.ownerEmail);
-        setStatusMsg("✓ ¡Tu solicitud ha sido enviada exitosamente!");
+        return;
+      }
+      
+      // ÚLTIMO PASO: Crear negocio inmediatamente y redirigir
+      if (!user?.uid) {
+        setStatusMsg("❌ Debes iniciar sesión para completar el registro.");
+        return;
+      }
+      
+      setSaving(true);
+      setIsRedirecting(true);
+      
+      try {
+        const token = await user.getIdToken();
+        const merged = { ...getValues(), ...values };
+        
+        const formData = new FormData();
+        formData.append("token", token);
+        formData.append("formData", JSON.stringify(merged));
+        
+        const result = await createBusinessImmediately(formData);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Error al crear el negocio');
+        }
+        
+        // Mostrar mensaje apropiado (nuevo o duplicado)
+        if (result.isDuplicate) {
+          setStatusMsg("ℹ️ Ya tienes un negocio registrado. Redirigiendo a tu dashboard...");
+        } else {
+          setStatusMsg("✅ ¡Tu negocio ya está registrado! Redirigiendo...");
+        }
+        
+        // Redirigir inmediatamente al dashboard
+        setTimeout(() => {
+          router.push(result.redirectUrl || `/dashboard/${result.businessId}`);
+        }, result.isDuplicate ? 500 : 1000);
+        
+      } catch (error) {
+        console.error("submit", error);
+        setStatusMsg("❌ No pudimos crear tu negocio. Intenta de nuevo.");
+        setIsRedirecting(false);
+        setSaving(false);
       }
     } catch (e) {
       console.error("submit", e);
-      setStatusMsg("❌ No pudimos enviar la solicitud. Intenta de nuevo.");
+      setStatusMsg("❌ Ocurrió un error. Intenta de nuevo.");
+      setIsRedirecting(false);
+      setSaving(false);
     }
   };
 
@@ -551,6 +631,31 @@ export default function BusinessWizardPro() {
         </div>
       </header>
 
+      {/* ✅ Banner de negocio existente */}
+      {existingBusiness && user && (
+        <div className="rounded-xl border-2 border-blue-300 bg-blue-50 p-5 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 text-3xl">🏪</div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-blue-900 mb-1">
+                Ya tienes un negocio registrado
+              </h3>
+              <p className="text-sm text-blue-800 mb-3">
+                <strong>{existingBusiness.name}</strong> ya está en nuestro sistema. 
+                Puedes gestionar tu negocio desde el dashboard.
+              </p>
+              <button
+                onClick={() => router.push(`/dashboard/${existingBusiness.id}`)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+              >
+                📢 Ir a mi Dashboard
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!user && (
         <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 flex items-start gap-3">
           <span className="text-xl">🔒</span>
@@ -639,13 +744,32 @@ export default function BusinessWizardPro() {
         <div className={`rounded-xl border-2 px-4 py-4 ${
           statusMsg.includes('❌') 
             ? 'border-red-300 bg-red-50 text-red-800'
+            : statusMsg.includes('Redirigiendo')
+            ? 'border-blue-400 bg-blue-50 text-blue-800'
             : 'border-green-400 bg-green-50 text-green-800'
         }`}>
           <p className="font-bold text-base mb-2 flex items-center gap-2">
-            <span className="text-xl">{statusMsg.includes('❌') ? '❌' : '✓'}</span>
-            <span>{statusMsg.replace('✓', '').replace('❌', '').trim()}</span>
+            <span className="text-xl">
+              {statusMsg.includes('❌') ? '❌' : statusMsg.includes('Redirigiendo') ? '🚀' : '✓'}
+            </span>
+            <span>{statusMsg.replace('✓', '').replace('❌', '').replace('✅', '').replace('🚀', '').trim()}</span>
           </p>
-          {submittedEmail && (
+          {isRedirecting && (
+            <div className="mt-4 space-y-3">
+              <div className="bg-white rounded-lg border border-blue-200 p-4 text-center">
+                <div className="mb-3">
+                  <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent"></div>
+                </div>
+                <p className="text-sm font-semibold text-gray-900 mb-2">
+                  ✅ Tu negocio ya está registrado.
+                </p>
+                <p className="text-xs text-gray-600">
+                  Ahora complétalo para aparecer en YajaGon más rápido.
+                </p>
+              </div>
+            </div>
+          )}
+          {submittedEmail && !isRedirecting && (
             <div className="mt-4 space-y-3">
               <div className="bg-white rounded-lg border border-green-200 p-3">
                 <p className="text-sm text-gray-700">
@@ -733,10 +857,19 @@ export default function BusinessWizardPro() {
             )}
             <button
               type="submit"
-              disabled={saving || (!hasNext && !confirmChecked) || emailVerificationRequired}
+              disabled={saving || (!hasNext && !confirmChecked) || emailVerificationRequired || isRedirecting}
               className="rounded-lg bg-[#38761D] px-6 py-2 text-sm font-bold text-white hover:bg-[#2f5a1a] hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
-              {hasNext ? "Siguiente →" : "✓ Enviar solicitud"}
+              {isRedirecting ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                  Redirigiendo...
+                </span>
+              ) : hasNext ? (
+                "Siguiente →"
+              ) : (
+                "👉 Completar mi negocio"
+              )}
             </button>
           </div>
         </div>

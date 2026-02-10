@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import BusinessDetailView from '../../../components/BusinessDetailView';
 import type { Business } from '../../../types/business';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { serializeTimestamps } from '../../../lib/server/serializeFirestore';
 import { fetchBusinesses } from '../../../lib/server/businessData';
 
 export const revalidate = 60; // Cache for 60 seconds
@@ -20,7 +21,7 @@ async function fetchBusinessById(id: string): Promise<Business | null> {
   if (!snapshot.exists) return null;
   const data = snapshot.data() as Business & { status?: string };
   if (data.status && data.status !== 'published' && data.status !== 'draft') return null;
-  return { id, ...JSON.parse(JSON.stringify(data)) };
+  return serializeTimestamps({ id, ...data });
 }
 
 export async function generateStaticParams() {

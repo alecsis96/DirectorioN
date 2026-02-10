@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
-import AdminNavigation from '../../../components/AdminNavigation';
+import AdminQuickNav from '../../../components/AdminQuickNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,20 +155,18 @@ export default async function AdminStatsPage() {
   const stats = await getAdminStats();
 
   return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6 pl-14 lg:pl-0">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">📈 Estadísticas del Directorio</h1>
-        <p className="text-sm text-gray-600">Vista general del rendimiento y actividad</p>
-      </div>
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">📈 Estadísticas del Directorio</h1>
+          <p className="text-sm sm:text-base text-gray-600">Vista general del rendimiento y actividad</p>
+        </div>
 
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        <AdminNavigation variant="sidebar" />
-        <div className="lg:col-start-2">
-          {/* Métricas Principales */}
-      <section className="mb-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">📊 Métricas Principales</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Métricas Principales */}
+        <section className="mb-8">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">📌a Métricas Principales</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
               <div>
@@ -342,7 +340,8 @@ export default async function AdminStatsPage() {
         </div>
       </section>
         </div>
-      </div>
+      
+      <AdminQuickNav />
     </main>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { auth } from '../../../firebaseConfig';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import Link from 'next/link';
-import AdminNavigation from '../../../components/AdminNavigation';
+import AdminQuickNav from '../../../components/AdminQuickNav';
 import useSWR from 'swr';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -174,31 +174,10 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 px-4 sm:px-6 py-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-6 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
-            <div className="h-8 bg-gray-200 rounded w-64 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-96"></div>
-          </div>
-          
-          <div className="space-y-6 animate-pulse">
-            {/* KPIs skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow p-6 h-24"></div>
-              ))}
-            </div>
-            
-            {/* Period stats skeleton */}
-            <div className="bg-white rounded-lg shadow p-6 h-48"></div>
-            
-            {/* Charts skeleton */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow p-6 h-64"></div>
-              <div className="bg-white rounded-lg shadow p-6 h-64"></div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando analytics...</p>
         </div>
       </div>
     );
@@ -209,27 +188,25 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6 pl-14 lg:pl-0">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">📊 Analytics</h1>
-            <p className="text-sm text-gray-600">Análisis de uso y métricas del directorio</p>
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">📊 Analytics</h1>
+              <p className="text-sm sm:text-base text-gray-600">Análisis de uso y métricas del directorio</p>
+            </div>
+            <button
+              onClick={() => exportToCSV()}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#38761D] text-white rounded-lg hover:bg-[#2d5a16] transition shadow-md text-sm font-medium"
+            >
+              <span>📥</span>
+              <span>Exportar CSV</span>
+            </button>
           </div>
-          <button
-            onClick={() => exportToCSV()}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm"
-          >
-            <span>📥</span>
-            <span>Exportar CSV</span>
-          </button>
         </div>
-      </div>
 
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        <AdminNavigation variant="sidebar" />
-        <div className="lg:col-start-2">
         {/* Time Range Selector */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <div className="flex items-center gap-4">
@@ -609,8 +586,9 @@ export default function AnalyticsPage() {
             </div>
           </div>
         )}
-        </div>
       </div>
+      
+      <AdminQuickNav />
     </main>
   );
 }

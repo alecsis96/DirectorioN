@@ -1,5 +1,6 @@
 import DashboardEditor from '../../../components/DashboardEditor';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { serializeTimestamps } from '../../../lib/server/serializeFirestore';
 
 type DashboardParams = {
   id: string;
@@ -15,7 +16,7 @@ export default async function DashboardBusinessPage({ params }: { params: Dashbo
   const db = getAdminFirestore();
   const snap = await db.doc(`businesses/${businessId}`).get();
   const initialBusiness = snap.exists
-    ? JSON.parse(JSON.stringify({ id: snap.id, ...(snap.data() as Record<string, unknown>) }))
+    ? serializeTimestamps({ id: snap.id, ...(snap.data() as Record<string, unknown>) })
     : null;
   return <DashboardEditor businessId={businessId} initialBusiness={initialBusiness} />;
 }

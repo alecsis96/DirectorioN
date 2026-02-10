@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import AdminBusinessList from '../../../components/AdminBusinessList';
-import AdminNavigation from '../../../components/AdminNavigation';
+import AdminQuickNav from '../../../components/AdminQuickNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,61 +123,62 @@ export default async function AdminBusinessesPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6 pl-14 lg:pl-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-          <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">Negocios Publicados</h1>
-          <p className="text-sm text-gray-600">Gestiona todos los negocios activos en el directorio.</p>
-        </div>
-        <Link
-          href="/admin/businesses/nuevo"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#38761D] text-white font-semibold rounded-lg hover:bg-[#2d5a16] transition-colors shadow-md"
-        >
-          <span className="text-xl">+</span>
-          <span>Crear Negocio</span>
-        </Link>
-      </div>
-
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        <AdminNavigation variant="sidebar" />
-        
-        <div className="lg:col-start-2 space-y-6">
-          {/* Estadísticas rápidas */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 rounded-lg border border-blue-200">
-              <p className="text-xs sm:text-sm text-blue-600 font-medium">Total Negocios</p>
-              <p className="text-2xl sm:text-3xl font-bold text-blue-900 mt-1">{stats.total}</p>
-            </div>
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 sm:p-4 rounded-lg border border-gray-200">
-              <p className="text-xs sm:text-sm text-gray-600 font-medium">Plan Gratuito</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.free}</p>
-            </div>
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 rounded-lg border border-blue-200">
-              <p className="text-xs sm:text-sm text-blue-600 font-medium">Plan Destacado</p>
-              <p className="text-2xl sm:text-3xl font-bold text-blue-900 mt-1">{stats.featured}</p>
-            </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 sm:p-4 rounded-lg border border-purple-200">
-              <p className="text-xs sm:text-sm text-purple-600 font-medium">Plan Patrocinado</p>
-              <p className="text-2xl sm:text-3xl font-bold text-purple-900 mt-1">{stats.sponsor}</p>
-            </div>
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">Negocios Publicados</h1>
+            <p className="text-sm sm:text-base text-gray-600">Gestiona todos los negocios activos en el directorio</p>
           </div>
+          <Link
+            href="/admin/businesses/nuevo"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#38761D] text-white font-semibold rounded-lg hover:bg-[#2d5a16] transition-colors shadow-md whitespace-nowrap"
+          >
+            <span className="text-xl">+</span>
+            <span>Crear Negocio</span>
+          </Link>
+        </div>
 
-          {/* Lista de negocios */}
-          {businesses.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No hay negocios publicados aún.</p>
-            </div>
-          ) : (
+        {/* Estadísticas rápidas */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 rounded-lg border border-blue-200">
+            <p className="text-xs sm:text-sm text-blue-600 font-medium">Total Negocios</p>
+            <p className="text-2xl sm:text-3xl font-bold text-blue-900 mt-1">{stats.total}</p>
+          </div>
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 sm:p-4 rounded-lg border border-gray-200">
+            <p className="text-xs sm:text-sm text-gray-600 font-medium">Plan Gratuito</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.free}</p>
+          </div>
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 rounded-lg border border-blue-200">
+            <p className="text-xs sm:text-sm text-blue-600 font-medium">Plan Destacado</p>
+            <p className="text-2xl sm:text-3xl font-bold text-blue-900 mt-1">{stats.featured}</p>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 sm:p-4 rounded-lg border border-purple-200">
+            <p className="text-xs sm:text-sm text-purple-600 font-medium">Plan Patrocinado</p>
+            <p className="text-2xl sm:text-3xl font-bold text-purple-900 mt-1">{stats.sponsor}</p>
+          </div>
+        </div>
+
+        {/* Lista de negocios */}
+        {businesses.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="text-gray-400 text-4xl sm:text-5xl mb-4">💭</div>
+            <p className="text-gray-500">No hay negocios publicados aún.</p>
+          </div>
+        ) : (
+          <>
             <AdminBusinessList businesses={businesses} />
-          )}
-
-          {/* Contador */}
-          <div className="text-sm text-gray-500 text-center">
-            Mostrando {businesses.length} negocios publicados
-          </div>
-        </div>
+            <div className="text-sm text-gray-500 text-center mt-6">
+              Mostrando {businesses.length} negocios publicados
+            </div>
+          </>
+        )}
       </div>
+      
+      {/* Navegación flotante */}
+      <AdminQuickNav />
     </main>
   );
 }

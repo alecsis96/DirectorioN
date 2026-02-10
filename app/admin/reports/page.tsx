@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { auth } from '../../../firebaseConfig';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import Link from 'next/link';
-import AdminNavigation from '../../../components/AdminNavigation';
+import AdminQuickNav from '../../../components/AdminQuickNav';
 import {
   REPORT_REASON_LABELS,
   REPORT_STATUS_LABELS,
@@ -128,16 +128,13 @@ export default function AdminReportsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-      <div className="mb-6 pl-14 lg:pl-0">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">🚨 Reportes de Negocios</h1>
-        <p className="text-sm text-gray-600">Gestiona y revisa reportes de negocios</p>
-      </div>
-
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        <AdminNavigation variant="sidebar" />
-        <div className="lg:col-start-2">
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">🚨 Reportes de Negocios</h1>
+          <p className="text-sm sm:text-base text-gray-600">Gestiona y revisa reportes de negocios</p>
+        </div>
         {/* Filter Tabs */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <div className="flex flex-wrap gap-2">
@@ -314,8 +311,9 @@ export default function AdminReportsPage() {
             </div>
           </div>
         )}
-        </div>
       </div>
+      
+      <AdminQuickNav />
     </main>
   );
 }
