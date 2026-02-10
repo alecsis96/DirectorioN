@@ -303,13 +303,25 @@ export function updateBusinessState(business: Partial<BusinessWithState>): {
   
   // Auto-actualizar applicationStatus basado en completitud
   let applicationStatus = business.applicationStatus || 'submitted';
+  const businessStatus = business.businessStatus || 'draft';
   
-  // Si está listo y aún no ha sido rechazado/aprobado, marcarlo como ready_for_review
+  // 🔒 NO modificar si ya está en revisión o publicado
+  if (businessStatus === 'in_review' || businessStatus === 'published') {
+    // Mantener el applicationStatus actual sin cambios
+    return {
+      completionPercent,
+      isPublishReady: ready,
+      missingFields,
+      applicationStatus,
+    };
+  }
+  
+  // ✅ Si está listo y aún no ha sido enviado a revisión, marcarlo como ready_for_review
   if (ready && (applicationStatus === 'submitted' || applicationStatus === 'needs_info')) {
     applicationStatus = 'ready_for_review';
   }
   
-  // Si ya no está listo, regresar a needs_info (si fue modificado)
+  // ⚠️ Si ya no está listo, regresar a needs_info (si fue modificado)
   if (!ready && applicationStatus === 'ready_for_review') {
     applicationStatus = 'needs_info';
   }
@@ -368,6 +380,7 @@ export function getStatusText(business?: Partial<BusinessWithState> | null): {
   const status = business.businessStatus || 'draft';
   const appStatus = business.applicationStatus || 'submitted';
   
+  // 1️⃣ PRIORIDAD MÁXIMA: Verificar businessStatus primero
   if (status === 'published') {
     return {
       title: '✅ Negocio publicado',
@@ -378,12 +391,13 @@ export function getStatusText(business?: Partial<BusinessWithState> | null): {
   
   if (status === 'in_review') {
     return {
-      title: '⏳ En revisión',
-      description: 'Tu negocio está siendo revisado. Te notificaremos cuando sea aprobado.',
+      title: '⏳ En revisión por administrador',
+      description: 'Tu solicitud está siendo revisada. Te notificaremos cuando sea aprobada.',
       variant: 'info',
     };
   }
   
+  // 2️⃣ SEGUNDA PRIORIDAD: applicationStatus (solo para draft)
   if (appStatus === 'rejected') {
     return {
       title: '❌ Solicitud rechazada',
@@ -392,11 +406,11 @@ export function getStatusText(business?: Partial<BusinessWithState> | null): {
     };
   }
   
-  if (appStatus === 'ready_for_review') {
+  if (appStatus === 'ready_for_review' && status === 'draft') {
     return {
-      title: '🔥 ¡Listo para publicar!',
-      description: 'Tu perfil está completo. Publica tu negocio y comienza a recibir clientes.',
-      action: '🚀 Publicar mi negocio',
+      title: '✨ Perfil completo',
+      description: 'Tu negocio cumple todos los requisitos. Envíalo a revisión para publicarlo.',
+      action: '🚀 Enviar a revisión',
       variant: 'success',
     };
   }
@@ -404,17 +418,28 @@ export function getStatusText(business?: Partial<BusinessWithState> | null): {
   if (appStatus === 'needs_info') {
     return {
       title: '⚠️ Se necesita más información',
-      description: 'Completa los campos faltantes para poder publicar tu negocio.',
+      description: business.adminNotes || 'Completa los campos faltantes para poder publicar tu negocio.',
       variant: 'warning',
     };
   }
   
-  // draft / submitted
+  // 3️⃣ TERCERA PRIORIDAD: draft genérico (submitted o incompleto)
   const percent = business.completionPercent || 0;
+  const isComplete = business.isPublishReady === true;
+  
+  if (isComplete) {
+    return {
+      title: '✨ Perfil completo',
+      description: `Tu negocio está completo (${percent}%). Envíalo a revisión cuando estés listo.`,
+      action: '🚀 Enviar a revisión',
+      variant: 'success',
+    };
+  }
+  
   return {
     title: '📝 Completando perfil',
-    description: `Tu negocio aún no es visible. Completa tu perfil (${percent}%) para publicarlo.`,
-    action: percent < 100 ? '✏️ Completar perfil' : '🚀 Publicar mi negocio',
+    description: `Tu negocio aún no es visible. Completa tu perfil (${percent}%) para poder publicarlo.`,
+    action: percent >= 50 ? '✏️ Completar perfil' : undefined,
     variant: 'draft',
   };
 }
