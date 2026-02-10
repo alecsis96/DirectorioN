@@ -270,6 +270,71 @@ export const POSITION_TOKENS = {
 } as const;
 
 /**
+ * 📱 DETAIL VIEW TOKENS
+ * Tokens específicos para BusinessDetailView
+ */
+export const DETAIL_VIEW_TOKENS = {
+  free: {
+    // Hero pequeño
+    heroHeight: 'h-32 sm:h-40',
+    heroHeightPx: 160, // Mobile max
+    
+    // Badge discreto
+    badgeText: '✓ Negocio registrado',
+    badgeStyle: 'bg-gray-100 text-gray-600 border border-gray-200 text-xs px-2.5 py-1 rounded-md font-normal',
+    
+    // Sin CTA secundario
+    showSecondaryCTA: false,
+    secondaryCTAText: '',
+    
+    // Mensaje de galería bloqueada
+    showGalleryBlock: true,
+    galleryBlockTitle: 'Este negocio aún no muestra fotos',
+    galleryBlockMessage: 'Los negocios con fotos reciben hasta 3X más clientes.',
+    galleryBlockCTA: 'Ver planes',
+    galleryBlockCTAHref: '/para-negocios',
+  },
+  
+  featured: {
+    // Hero mediano (20% más que FREE)
+    heroHeight: 'h-40 sm:h-48',
+    heroHeightPx: 192, // Mobile max
+    
+    // Badge destacado
+    badgeText: '⭐ Negocio destacado',
+    badgeStyle: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white text-sm px-3.5 py-1.5 rounded-full font-semibold shadow-lg shadow-amber-300/50 ring-2 ring-amber-300',
+    
+    // CTA secundario opcional
+    showSecondaryCTA: true,
+    secondaryCTAText: '📈 Uno de los negocios más vistos en esta zona',
+    secondaryCTAStyle: 'bg-amber-50 text-amber-900 border border-amber-200 px-4 py-3 rounded-xl text-sm font-medium',
+    
+    // Sin bloqueo de galería
+    showGalleryBlock: false,
+    galleryEmptyMessage: 'Agrega fotos para atraer más clientes.',
+  },
+  
+  sponsor: {
+    // Hero grande (50% más que FREE)
+    heroHeight: 'h-48 sm:h-56 md:h-64',
+    heroHeightPx: 256, // Desktop max
+    
+    // Badge premium
+    badgeText: '👑 Negocio patrocinado',
+    badgeStyle: 'bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 text-white text-sm px-4 py-2 rounded-full font-bold shadow-2xl shadow-purple-400/60 ring-4 ring-purple-400 animate-pulse',
+    
+    // CTA secundario premium
+    showSecondaryCTA: true,
+    secondaryCTAText: '🎯 Negocio verificado y destacado en toda la plataforma',
+    secondaryCTAStyle: 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-900 border-2 border-purple-300 px-4 py-3 rounded-xl text-sm font-semibold shadow-lg',
+    
+    // Sin bloqueo de galería
+    showGalleryBlock: false,
+    galleryEmptyMessage: 'Agrega más fotos para mostrar todo lo que ofreces.',
+  },
+} as const;
+
+/**
  * 🎨 HELPER: Get all tokens for a plan
  */
 export function getPlanTokens(plan: BusinessPlan) {
@@ -280,7 +345,22 @@ export function getPlanTokens(plan: BusinessPlan) {
     effects: EFFECT_TOKENS[plan],
     responsive: RESPONSIVE_TOKENS[plan],
     position: POSITION_TOKENS[plan],
+    detailView: DETAIL_VIEW_TOKENS[plan],
   };
+}
+
+/**
+ * 🎨 HELPER: Get detail view tokens
+ */
+export function getDetailViewTokens(plan: BusinessPlan) {
+  return DETAIL_VIEW_TOKENS[plan];
+}
+
+/**
+ * 🎨 HELPER: Get hero height class
+ */
+export function getHeroHeight(plan: BusinessPlan): string {
+  return DETAIL_VIEW_TOKENS[plan].heroHeight;
 }
 
 /**
