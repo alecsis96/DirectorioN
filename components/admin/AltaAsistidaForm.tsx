@@ -47,7 +47,8 @@ export default function AltaAsistidaForm() {
 
     setLoading(true);
     try {
-      const token = await user.getIdToken();
+      // Forzar refresh del token para obtener claims actualizados
+      const token = await user.getIdToken(true);
       const result = await createAssistedBusiness(
         {
           name: formData.nombreNegocio,
