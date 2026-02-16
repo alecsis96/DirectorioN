@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useForm, UseFormRegister } from "react-hook-form";
+import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
+import { useForm, UseFormRegister, Controller } from "react-hook-form";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { doc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { signOut, type User } from "firebase/auth";
 import { submitNewBusiness } from "../app/actions/businesses";
 import { createBusinessImmediately } from "../app/actions/businessActions";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CATEGORY_GROUPS, CATEGORIES, getCategoriesByGroup, resolveCategory, type CategoryGroupId } from "../lib/categoriesCatalog";
 
 // ---------- Tipos ----------
 type DayKey =
@@ -32,7 +33,10 @@ interface WizardData {
 
   // Negocio básico
   businessName: string;
-  category: string;
+  category: string; // legacy label
+  categoryId: string;
+  categoryName: string;
+  categoryGroupId: CategoryGroupId | "";
   tags: string;                // input de texto "pollo, rostizado"
   description: string;
 
@@ -102,6 +106,9 @@ const defaultValues: WizardData = {
   // Negocio
   businessName: "",
   category: "",
+  categoryId: "",
+  categoryName: "",
+  categoryGroupId: "",
   tags: "",
   description: "",
 
@@ -215,12 +222,20 @@ function usePlacesAutocomplete(
 }
 
 // ---------- Componente principal ----------
-export default function BusinessWizardPro() {
+function BusinessWizardProInner() {
   const router = useRouter();
-  const { register, handleSubmit, reset, getValues, setValue, watch, formState } = useForm<WizardData>({
+  const searchParams = useSearchParams();
+  const wizardMode = searchParams?.get('mode'); // 'new' = forzar nuevo negocio
+  const isNewBusinessMode = wizardMode === 'new';
+  
+  const { register, handleSubmit, reset, getValues, setValue, watch, control, formState } = useForm<WizardData>({
     mode: "onBlur",
     defaultValues,
   });
+  
+  // Watch category values for display
+  const watchedGroupId = watch("categoryGroupId") as CategoryGroupId | "";
+  const watchedCategoryId = watch("categoryId") || "";
 
   const [currentStep, setCurrentStep] = useState<StepKey>(steps[0].key);
   const [loading, setLoading] = useState(true);
@@ -249,7 +264,8 @@ export default function BusinessWizardPro() {
     return () => unsubscribe();
   }, []);
 
-  // ✅ Verificar si el usuario ya tiene un negocio registrado
+  //  Verificar si el usuario ya tiene un negocio registrado
+  // Si mode=new, solo informar pero NO bloquear el flujo
   useEffect(() => {
     if (!user?.uid) {
       setExistingBusiness(null);
@@ -284,6 +300,7 @@ export default function BusinessWizardPro() {
   }, [user]);
 
   // Carga progreso guardado
+  // ⚠️ Si mode=new, NO cargar progreso viejo (empezar limpio)
   useEffect(() => {
     let isMounted = true;
 
@@ -294,6 +311,16 @@ export default function BusinessWizardPro() {
         }
         return;
       }
+      
+      // Si mode=new, resetear a valores por defecto y salir (no cargar progreso)
+      if (isNewBusinessMode) {
+        if (isMounted) {
+          reset(defaultValues);
+          setLoading(false);
+        }
+        return;
+      }
+      
       try {
         if (isMounted) {
           setLoading(true);
@@ -305,7 +332,18 @@ export default function BusinessWizardPro() {
         if (snap.exists()) {
           const data = snap.data() as any;
           if (data?.formData) {
-            reset({ ...defaultValues, ...(data.formData as Partial<WizardData>) });
+            const incoming = data.formData as Partial<WizardData>;
+            const resolved = resolveCategory(
+              incoming.categoryId || incoming.categoryName || incoming.category
+            );
+            reset({
+              ...defaultValues,
+              ...incoming,
+              category: incoming.category || resolved.categoryName,
+              categoryId: incoming.categoryId || resolved.categoryId,
+              categoryName: incoming.categoryName || resolved.categoryName,
+              categoryGroupId: incoming.categoryGroupId || resolved.groupId,
+            });
           }
           if (typeof data?.step === "number" && data.step >= 0 && data.step < steps.length) {
             setCurrentStep(steps[data.step].key);
@@ -327,7 +365,7 @@ export default function BusinessWizardPro() {
     return () => {
       isMounted = false;
     };
-  }, [user?.uid, reset]);
+  }, [user?.uid, reset, isNewBusinessMode]);
 
   // Autocomplete
   usePlacesAutocomplete(addressRef, ({ address, lat, lng }) => {
@@ -391,13 +429,13 @@ export default function BusinessWizardPro() {
       if (next) {
         await persist(values, next.key, "wizard");
         setCurrentStep(next.key);
-        setStatusMsg("✓ Tu información se guardó correctamente.");
+        setStatusMsg(" Tu información se guardó correctamente.");
         return;
       }
       
-      // ÚLTIMO PASO: Crear negocio inmediatamente y redirigir
+      // LTIMO PASO: Crear negocio inmediatamente y redirigir
       if (!user?.uid) {
-        setStatusMsg("❌ Debes iniciar sesión para completar el registro.");
+        setStatusMsg(" Debes iniciar sesión para completar el registro.");
         return;
       }
       
@@ -412,6 +450,11 @@ export default function BusinessWizardPro() {
         formData.append("token", token);
         formData.append("formData", JSON.stringify(merged));
         
+        // ✅ Pasar mode=new al backend para evitar dedupe
+        if (isNewBusinessMode) {
+          formData.append("mode", "new");
+        }
+        
         const result = await createBusinessImmediately(formData);
         
         if (!result.success) {
@@ -420,9 +463,9 @@ export default function BusinessWizardPro() {
         
         // Mostrar mensaje apropiado (nuevo o duplicado)
         if (result.isDuplicate) {
-          setStatusMsg("ℹ️ Ya tienes un negocio registrado. Redirigiendo a tu dashboard...");
+          setStatusMsg("️ Ya tienes un negocio registrado. Redirigiendo a tu dashboard...");
         } else {
-          setStatusMsg("✅ ¡Tu negocio ya está registrado! Redirigiendo...");
+          setStatusMsg(" ¡Tu negocio ya está registrado! Redirigiendo...");
         }
         
         // Redirigir inmediatamente al dashboard
@@ -432,13 +475,13 @@ export default function BusinessWizardPro() {
         
       } catch (error) {
         console.error("submit", error);
-        setStatusMsg("❌ No pudimos crear tu negocio. Intenta de nuevo.");
+        setStatusMsg(" No pudimos crear tu negocio. Intenta de nuevo.");
         setIsRedirecting(false);
         setSaving(false);
       }
     } catch (e) {
       console.error("submit", e);
-      setStatusMsg("❌ Ocurrió un error. Intenta de nuevo.");
+      setStatusMsg(" Ocurrió un error. Intenta de nuevo.");
       setIsRedirecting(false);
       setSaving(false);
     }
@@ -447,10 +490,10 @@ export default function BusinessWizardPro() {
   const onSaveDraft = async () => {
     try {
       await persist(getValues(), currentStep, "wizard");
-      setStatusMsg("✓ Tu borrador se guardó correctamente.");
+      setStatusMsg(" Tu borrador se guardó correctamente.");
     } catch (e) {
       console.error("draft", e);
-      setStatusMsg("❌ No pudimos guardar tu borrador. Por favor, intenta de nuevo.");
+      setStatusMsg(" No pudimos guardar tu borrador. Por favor, intenta de nuevo.");
     }
   };
 
@@ -478,7 +521,7 @@ export default function BusinessWizardPro() {
           <div className="grid gap-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                📝 Solicitud de registro simplificada
+                 Solicitud de registro simplificada
               </h3>
               <p className="text-sm text-blue-800">
                 Solo necesitamos estos datos básicos para comenzar. Después de la aprobación, podrás completar toda la información de tu negocio en el dashboard.
@@ -522,30 +565,122 @@ export default function BusinessWizardPro() {
               </Field>
               
               <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Categoría" error={formState.errors.category?.message}>
-                  <select className="input" {...register("category")}>
-                    <option value="">Selecciona una categoría (opcional)</option>
-                    <option value="Restaurante">Restaurante</option>
-                    <option value="Cafetería">Cafetería</option>
-                    <option value="Comida rápida">Comida rápida</option>
-                    <option value="Bar">Bar</option>
-                    <option value="Gimnasio">Gimnasio</option>
-                    <option value="Spa">Spa</option>
-                    <option value="Salón de belleza">Salón de belleza</option>
-                    <option value="Ferretería">Ferretería</option>
-                    <option value="Supermercado">Supermercado</option>
-                    <option value="Papelería">Papelería</option>
-                    <option value="Boutique">Boutique</option>
-                    <option value="Farmacia">Farmacia</option>
-                    <option value="Servicios profesionales">Servicios profesionales</option>
-                    <option value="Tecnología">Tecnología</option>
-                    <option value="Automotriz">Automotriz</option>
-                    <option value="Educación">Educación</option>
-                    <option value="Entretenimiento">Entretenimiento</option>
-                    <option value="Salud">Salud</option>
-                    <option value="Turismo">Turismo</option>
-                    <option value="Otros">Otros</option>
-                  </select>
+                <Field label="Categora" error={formState.errors.category?.message}>
+                  {/* Hidden fields for category metadata */}
+                  <input type="hidden" {...register("categoryName")} />
+                  <input type="hidden" {...register("category")} />
+                  
+                  <div className="space-y-3">
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-700">Grupo</label>
+                        <div className="relative">
+                          <Controller
+                            name="categoryGroupId"
+                            control={control}
+                            render={({ field }) => (
+                              <select
+                                {...field}
+                                className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                onChange={(e) => {
+                                  const nextGroup = e.target.value as CategoryGroupId;
+                                  field.onChange(nextGroup);
+                                  // Clear category when group changes
+                                  setValue("categoryId", "");
+                                  setValue("categoryName", "");
+                                  setValue("category", "");
+                                }}
+                              >
+                                <option value="" disabled>
+                                  Selecciona un grupo
+                                </option>
+                                {CATEGORY_GROUPS.map((group) => (
+                                  <option key={group.id} value={group.id}>
+                                    {group.icon} {group.name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          />
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
+                        </div>
+                        <p className="text-[11px] text-gray-600">
+                          Elige un grupo para acotar las categoras disponibles.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-700">Categora especfica</label>
+                        <div className="relative">
+                          <Controller
+                            name="categoryId"
+                            control={control}
+                            render={({ field }) => {
+                              const availableCats = watchedGroupId ? getCategoriesByGroup(watchedGroupId as CategoryGroupId) : [];
+                              
+                              return (
+                                <select
+                                  key={watchedGroupId || 'no-group'}
+                                  {...field}
+                                  className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                  disabled={!watchedGroupId}
+                                  onChange={(e) => {
+                                    const catId = e.target.value;
+                                    field.onChange(catId);
+                                    
+                                    if (catId) {
+                                      const cat = CATEGORIES.find((c) => c.id === catId);
+                                      if (cat) {
+                                        setValue("categoryName", cat.name);
+                                        setValue("category", cat.name);
+                                      }
+                                    } else {
+                                      setValue("categoryName", "");
+                                      setValue("category", "");
+                                    }
+                                  }}
+                                >
+                                  {!watchedGroupId && <option value="">Selecciona un grupo primero</option>}
+                                  {watchedGroupId && <option value="">Selecciona una categoría</option>}
+                                  {watchedGroupId && availableCats.length === 0 && (
+                                    <option value="">No hay categoras para este grupo</option>
+                                  )}
+                                  {watchedGroupId && availableCats.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
+                                      {cat.icon} {cat.name}
+                                    </option>
+                                  ))}\n                                </select>
+                              );
+                            }}
+                          />
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
+                        </div>
+                        <p className="text-[11px] text-gray-600">
+                          Guardamos el slug estable y la etiqueta legacy para compatibilidad.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                      <span className="text-base">
+                        {(() => {
+                          const availableCats = watchedGroupId ? getCategoriesByGroup(watchedGroupId as CategoryGroupId) : [];
+                          return availableCats.find((c) => c.id === watchedCategoryId)?.icon ?? "";
+                        })()}
+                      </span>
+                      <div>
+                        <div className="font-semibold">
+                          {(() => {
+                            const availableCats = watchedGroupId ? getCategoriesByGroup(watchedGroupId as CategoryGroupId) : [];
+                            return availableCats.find((c) => c.id === watchedCategoryId)?.name ?? "Selecciona una categora";
+                          })()}
+                        </div>
+                        <div className="text-xs text-emerald-700">
+                          Grupo: {CATEGORY_GROUPS.find((g) => g.id === watchedGroupId)?.name ?? "Sin seleccionar"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </Field>
 
                 <Field label="WhatsApp del negocio">
@@ -571,7 +706,7 @@ export default function BusinessWizardPro() {
 
             <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5">
               <p className="text-xs text-amber-900 leading-relaxed">
-                <span className="text-sm">💡</span> Solo necesitamos un medio de contacto.
+                <span className="text-sm"></span> Solo necesitamos un medio de contacto.
                 Después podrás agregar ubicación, horarios, fotos y más desde tu panel.
               </p>
             </div>
@@ -583,23 +718,23 @@ export default function BusinessWizardPro() {
         return (
           <div className="grid gap-4">
             <div className="rounded-2xl border p-4 bg-gradient-to-br from-[#38761D]/5 to-[#38761D]/10">
-              <h3 className="text-lg font-bold text-[#38761D] mb-3">📋 Resumen de tu solicitud</h3>
+              <h3 className="text-lg font-bold text-[#38761D] mb-3"> Resumen de tu solicitud</h3>
               
               <div className="space-y-2 text-sm">
-                <p><strong>Dueño:</strong> {v.ownerName || "—"}</p>
-                <p><strong>Email:</strong> {v.ownerEmail || "—"}</p>
-                <p><strong>Teléfono:</strong> {v.ownerPhone || "—"}</p>
+                <p><strong>Dueño:</strong> {v.ownerName || ""}</p>
+                <p><strong>Email:</strong> {v.ownerEmail || ""}</p>
+                <p><strong>Teléfono:</strong> {v.ownerPhone || ""}</p>
                 <hr className="my-3 border-[#38761D]/20" />
-                <p><strong>Negocio:</strong> {v.businessName || "—"}</p>
-                <p><strong>Categoría:</strong> {v.category || "Sin especificar"}</p>
-                <p><strong>Teléfono del negocio:</strong> {v.phone || "—"}</p>
-                <p><strong>WhatsApp:</strong> {v.whatsapp || "—"}</p>
+                <p><strong>Negocio:</strong> {v.businessName || ""}</p>
+                <p><strong>Categoría:</strong> {v.categoryName || v.category || "Sin especificar"}</p>
+                <p><strong>Teléfono del negocio:</strong> {v.phone || ""}</p>
+                <p><strong>WhatsApp:</strong> {v.whatsapp || ""}</p>
               </div>
             </div>
 
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
               <p className="text-sm text-blue-900">
-                ℹ️ <strong>¿Qué sigue?</strong> <br/>
+                ️ <strong>¿Qué sigue?</strong> <br/>
                 Un administrador revisará tu solicitud.
                 Si es aprobada, podrás acceder a tu dashboard para completar la información de tu negocio y publicarlo en YajaGon.
               </p>
@@ -610,8 +745,7 @@ export default function BusinessWizardPro() {
       default:
         return null;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, formState.errors, register, watch]);
+  }, [currentStep, formState.errors, register, control, setValue, getValues, watchedGroupId, watchedCategoryId]);
 
   const currentIndex = stepToIndex(currentStep);
   const hasNext = currentIndex < steps.length - 1;
@@ -631,11 +765,12 @@ export default function BusinessWizardPro() {
         </div>
       </header>
 
-      {/* ✅ Banner de negocio existente */}
-      {existingBusiness && user && (
+      {/*  Banner de negocio existente */}
+      {/* Si mode=new, mostrar banner informativo pero NO bloquear */}
+      {existingBusiness && user && !isNewBusinessMode && (
         <div className="rounded-xl border-2 border-blue-300 bg-blue-50 p-5 shadow-sm">
           <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 text-3xl">🏪</div>
+            <div className="flex-shrink-0 text-3xl"></div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-blue-900 mb-1">
                 Ya tienes un negocio registrado
@@ -648,9 +783,35 @@ export default function BusinessWizardPro() {
                 onClick={() => router.push(`/dashboard/${existingBusiness.id}`)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
               >
-                📢 Ir a mi Dashboard
-                <span>→</span>
+                 Ir a mi Dashboard
+                <span></span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Banner informativo en modo nuevo negocio */}
+      {existingBusiness && user && isNewBusinessMode && (
+        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 text-3xl">ℹ️</div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-amber-900 mb-1">
+                Registrando un negocio adicional
+              </h3>
+              <p className="text-sm text-amber-800 mb-2">
+                Ya tienes <strong>{existingBusiness.name}</strong> registrado. 
+                Estás creando un nuevo negocio independiente.
+              </p>
+              <a
+                href={`/dashboard/${existingBusiness.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-amber-700 hover:text-amber-900 underline"
+              >
+                Ver mi negocio existente →
+              </a>
             </div>
           </div>
         </div>
@@ -658,7 +819,7 @@ export default function BusinessWizardPro() {
 
       {!user && (
         <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 flex items-start gap-3">
-          <span className="text-xl">🔒</span>
+          <span className="text-xl"></span>
           <div className="flex-1">
             <p className="text-sm font-medium text-blue-900 mb-1">
               Para continuar necesitas iniciar sesión.
@@ -678,7 +839,7 @@ export default function BusinessWizardPro() {
 
       {emailVerificationRequired && user && (
         <div className="rounded-xl border border-yellow-200 bg-yellow-50/50 p-4 flex items-start gap-3">
-          <span className="text-xl">⚠️</span>
+          <span className="text-xl">️</span>
           <div className="flex-1">
             <p className="text-sm font-medium text-yellow-900 mb-1">
               Debes verificar tu correo electrónico
@@ -693,7 +854,7 @@ export default function BusinessWizardPro() {
                   await user.reload();
                   if (user.emailVerified) {
                     setEmailVerificationRequired(false);
-                    setStatusMsg("✓ ¡Email verificado! Ahora puedes continuar.");
+                    setStatusMsg(" ¡Email verificado! Ahora puedes continuar.");
                   } else {
                     setStatusMsg("Tu email aún no está verificado. Por favor, revisa tu bandeja de entrada.");
                   }
@@ -731,7 +892,7 @@ export default function BusinessWizardPro() {
                   Paso {index + 1}
                 </span>
                 {completed && (
-                  <span className="text-[#38761D] text-base">✓</span>
+                  <span className="text-[#38761D] text-base"></span>
                 )}
               </div>
               <span className="block text-left text-sm font-bold">{s.title}</span>
@@ -742,7 +903,7 @@ export default function BusinessWizardPro() {
 
       {statusMsg && (
         <div className={`rounded-xl border-2 px-4 py-4 ${
-          statusMsg.includes('❌') 
+          statusMsg.includes('') 
             ? 'border-red-300 bg-red-50 text-red-800'
             : statusMsg.includes('Redirigiendo')
             ? 'border-blue-400 bg-blue-50 text-blue-800'
@@ -750,9 +911,9 @@ export default function BusinessWizardPro() {
         }`}>
           <p className="font-bold text-base mb-2 flex items-center gap-2">
             <span className="text-xl">
-              {statusMsg.includes('❌') ? '❌' : statusMsg.includes('Redirigiendo') ? '🚀' : '✓'}
+              {statusMsg.includes('') ? '' : statusMsg.includes('Redirigiendo') ? '' : ''}
             </span>
-            <span>{statusMsg.replace('✓', '').replace('❌', '').replace('✅', '').replace('🚀', '').trim()}</span>
+            <span>{statusMsg.replace('', '').replace('', '').replace('', '').replace('', '').trim()}</span>
           </p>
           {isRedirecting && (
             <div className="mt-4 space-y-3">
@@ -761,7 +922,7 @@ export default function BusinessWizardPro() {
                   <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent"></div>
                 </div>
                 <p className="text-sm font-semibold text-gray-900 mb-2">
-                  ✅ Tu negocio ya está registrado.
+                   Tu negocio ya está registrado.
                 </p>
                 <p className="text-xs text-gray-600">
                   Ahora complétalo para aparecer en YajaGon más rápido.
@@ -773,12 +934,12 @@ export default function BusinessWizardPro() {
             <div className="mt-4 space-y-3">
               <div className="bg-white rounded-lg border border-green-200 p-3">
                 <p className="text-sm text-gray-700">
-                  📧 <span className="font-medium">Email registrado:</span>{' '}
+                   <span className="font-medium">Email registrado:</span>{' '}
                   <span className="font-semibold text-gray-900">{submittedEmail}</span>
                 </p>
                 <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
                   <span>⏱️</span>
-                  <span>Tiempo estimado de revisión: <strong>24–48 horas</strong></span>
+                  <span>Tiempo estimado de revisión: <strong>2448 horas</strong></span>
                 </p>
               </div>
               
@@ -787,18 +948,18 @@ export default function BusinessWizardPro() {
                   href="/mis-solicitudes"
                   className="flex-1 inline-block bg-[#38761D] text-white px-4 py-2.5 rounded-lg hover:bg-[#2f5a1a] hover:shadow-md transition font-semibold text-center text-sm"
                 >
-                  📊 Consultar estado de mi solicitud
+                   Consultar estado de mi solicitud
                 </a>
                 <a
                   href={`/solicitud/${encodeURIComponent(submittedEmail)}`}
                   className="flex-1 inline-block border-2 border-gray-300 bg-white text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition font-semibold text-center text-sm"
                 >
-                  📋 Ver todas mis solicitudes
+                   Ver todas mis solicitudes
                 </a>
               </div>
               
               <p className="text-xs text-gray-600 leading-relaxed">
-                💡 Te notificaremos cuando tu solicitud sea aprobada para que puedas completar los datos de tu negocio.
+                 Te notificaremos cuando tu solicitud sea aprobada para que puedas completar los datos de tu negocio.
               </p>
             </div>
           )}
@@ -828,7 +989,7 @@ export default function BusinessWizardPro() {
             </label>
             {showConfirmError && (
               <p className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1">
-                <span>⚠️</span>
+                <span>️</span>
                 <span>Por favor, confirma que la información es correcta antes de enviar.</span>
               </p>
             )}
@@ -842,7 +1003,7 @@ export default function BusinessWizardPro() {
             disabled={currentIndex === 0 || saving}
             className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            ← Anterior
+             Anterior
           </button>
           <div className="flex items-center gap-3">
             {user?.uid && (
@@ -852,7 +1013,7 @@ export default function BusinessWizardPro() {
                 disabled={saving}
                 className="rounded-lg border-2 border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                💾 Guardar borrador
+                 Guardar borrador
               </button>
             )}
             <button
@@ -866,9 +1027,9 @@ export default function BusinessWizardPro() {
                   Redirigiendo...
                 </span>
               ) : hasNext ? (
-                "Siguiente →"
+                "Siguiente "
               ) : (
-                "👉 Completar mi negocio"
+                " Completar mi negocio"
               )}
             </button>
           </div>
@@ -876,7 +1037,7 @@ export default function BusinessWizardPro() {
         
         {!hasNext && (
           <p className="text-xs text-gray-500 text-center mt-2">
-            ⏱️ Tiempo de revisión estimado: 24–48 horas
+            ⏱️ Tiempo de revisión estimado: 2448 horas
           </p>
         )}
       </form>
@@ -963,7 +1124,7 @@ function UserBadge({ user, onSignIn, onSignOut }: { user: User | null; onSignIn:
         <p className="text-sm font-semibold text-gray-800">{user.displayName || user.email}</p>
         <p className="text-xs text-gray-600">{user.email}</p>
         <p className="text-[10px] text-green-600 font-medium mt-0.5">
-          ✓ Sesión activa. Puedes continuar con tu solicitud.
+           Sesión activa. Puedes continuar con tu solicitud.
         </p>
       </div>
       <button 
@@ -975,3 +1136,13 @@ function UserBadge({ user, onSignIn, onSignOut }: { user: User | null; onSignIn:
     </div>
   );
 }
+
+// Wrapper con Suspense para useSearchParams
+export default function BusinessWizardPro() {
+  return (
+    <Suspense fallback={<div className="text-center text-sm text-gray-500">Cargando formulario...</div>}>
+      <BusinessWizardProInner />
+    </Suspense>
+  );
+}
+

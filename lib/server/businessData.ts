@@ -1,5 +1,6 @@
 import { getAdminFirestore } from "./firebaseAdmin";
 import type { Business } from "../../types/business";
+import { resolveCategory } from "../categoriesCatalog";
 
 export function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -21,11 +22,17 @@ export function normalizeBusiness(data: any, id: string): Business {
   const lng = toNumber(data.lng ?? data.longitude ?? data.location?.lng);
   const featuredRaw = data.featured;
   const isOpenRaw = data.isOpen;
+  const resolvedCategory = resolveCategory(
+    asString(data.categoryId || data.categoryName || data.category || data.categoria)
+  );
 
   const business: Business = {
     id,
     name: asString(data.name ?? data.Nombre, "Negocio sin nombre"),
-    category: asString(data.category ?? data.categoria),
+    category: resolvedCategory.categoryName,
+    categoryId: asString(data.categoryId) || resolvedCategory.categoryId,
+    categoryName: data.categoryName || resolvedCategory.categoryName,
+    categoryGroupId: data.categoryGroupId || resolvedCategory.groupId,
     description: asString(data.description ?? data.descripcion),
     address: asString(data.address ?? data.direccion),
     phone: asString(data.phone ?? data.telefono),
@@ -40,7 +47,6 @@ export function normalizeBusiness(data: any, id: string): Business {
     images: [],
   };
 
-  // Incluir plan si existe (free, featured, sponsor)
   const planValue = data.plan;
   if (planValue === 'featured' || planValue === 'sponsor') {
     business.plan = planValue;
@@ -48,13 +54,11 @@ export function normalizeBusiness(data: any, id: string): Business {
     business.plan = 'free';
   }
 
-  // Incluir priceRange si existe
   const priceRangeValue = asString(data.priceRange);
   if (priceRangeValue) {
     business.priceRange = priceRangeValue;
   }
 
-  // Incluir horarios estructurados si existen
   if (data.horarios && typeof data.horarios === "object") {
     try {
       business.horarios = JSON.parse(JSON.stringify(data.horarios));
@@ -76,15 +80,12 @@ export function normalizeBusiness(data: any, id: string): Business {
   const image3 = asString(data.image3 ?? data.imagen3);
   if (image3) business.image3 = image3;
 
-  // Incluir logoUrl si existe
   const logoUrl = asString(data.logoUrl);
   if (logoUrl) business.logoUrl = logoUrl;
 
-  // Incluir coverUrl si existe
   const coverUrl = asString(data.coverUrl);
   if (coverUrl) business.coverUrl = coverUrl;
 
-  // Incluir hasEnvio si existe
   if (data.hasEnvio === true) {
     business.hasEnvio = true;
   }
@@ -139,39 +140,40 @@ export async function fetchBusinesses(
     }
 
     const db = getAdminFirestore();
-    
-    // 🔥 Obtener todos los negocios con businessStatus='published' (nuevo sistema de estados)
-    // El ordenamiento se hace en memoria después para evitar índice compuesto
     const snap = await db
       .collection("businesses")
       .where("businessStatus", "==", "published")
       .get();
+
+    // Filtrar solo negocios activos y visibles
+    let allDocs = snap.docs.filter(doc => {
+      const data = doc.data();
+      const adminStatus = data.adminStatus || 'active';
+      const visibility = data.visibility || 'published';
+      
+      // Solo incluir: adminStatus='active' y visibility='published'
+      return adminStatus === 'active' && visibility === 'published';
+    });
     
-    let allDocs = snap.docs;
-    
-    // Ordenar en memoria por nombre
     allDocs.sort((a, b) => {
       const nameA = String(a.data().name || '').toLowerCase();
       const nameB = String(b.data().name || '').toLowerCase();
       return nameA.localeCompare(nameB, 'es');
     });
-    
-    // Aplicar paginación por cursor si se proporciona lastId
+
     if (lastId) {
       const lastIndex = allDocs.findIndex(doc => doc.id === lastId);
       if (lastIndex !== -1) {
         allDocs = allDocs.slice(lastIndex + 1);
       }
     }
-    
-    // Aplicar límite
+
     const pagedDocs = allDocs.slice(0, safeLimit);
     const businesses = pagedDocs.map((doc) => normalizeBusiness(doc.data(), doc.id));
-    
-    // Determinar si hay más resultados
+
     const nextId = pagedDocs.length > 0 ? pagedDocs[pagedDocs.length - 1].id : null;
     const hasMore = allDocs.length > safeLimit;
-    
+
     const response = {
       businesses,
       nextId,
@@ -195,33 +197,11 @@ export async function fetchBusinesses(
 }
 
 /**
- * Reorganiza los negocios para poner hasta 3 patrocinados al inicio (con rotación aleatoria)
- * seguidos del resto de negocios ordenados por rating.
+ * Reorganiza los negocios para poner patrocinados primero, luego destacados, luego el resto.
  */
 export function sortBusinessesWithSponsors(businesses: Business[]): Business[] {
-  // Separar patrocinados y el resto
-  const sponsored = businesses.filter(b => b.plan === 'sponsor');
-  const others = businesses.filter(b => b.plan !== 'sponsor');
-  
-  // Si hay más de 6 patrocinados, seleccionar 6 al azar
-  let selectedSponsored: Business[] = [];
-  if (sponsored.length > 6) {
-    // Rotación aleatoria: shuffle y tomar los primeros 6
-    const shuffled = [...sponsored].sort(() => Math.random() - 0.5);
-    selectedSponsored = shuffled.slice(0, 6);
-  } else {
-    selectedSponsored = sponsored;
-  }
-  
-  // Ordenar el resto por rating (destacados primero, luego por rating)
-  const sortedOthers = others.sort((a, b) => {
-    // Priorizar destacados
-    if (a.plan === 'featured' && b.plan !== 'featured') return -1;
-    if (a.plan !== 'featured' && b.plan === 'featured') return 1;
-    // Luego por rating
-    return (b.rating ?? 0) - (a.rating ?? 0);
-  });
-  
-  // Retornar patrocinados primero, luego el resto
-  return [...selectedSponsored, ...sortedOthers];
+  const sponsors = businesses.filter((biz) => biz.plan === 'sponsor');
+  const featured = businesses.filter((biz) => biz.plan === 'featured' || biz.featured === true || biz.featured === 'true');
+  const others = businesses.filter((biz) => !sponsors.includes(biz) && !featured.includes(biz));
+  return [...sponsors, ...featured, ...others];
 }

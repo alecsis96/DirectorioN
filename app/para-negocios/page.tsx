@@ -42,7 +42,7 @@ export default function ParaNegociosPage() {
             </p>
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
               <Link
-                href="/registro-negocio"
+                href="/registro-negocio?mode=new"
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-lg font-bold text-emerald-700 shadow-2xl transition-all hover:scale-105 hover:shadow-emerald-500/40"
               >
                 Registrar mi negocio gratis

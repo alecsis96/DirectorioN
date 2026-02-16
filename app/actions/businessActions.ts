@@ -18,10 +18,12 @@ import {
   type ApplicationStatus, 
   type BusinessStatus 
 } from '../../lib/businessStates';
+import { resolveCategory } from '../../lib/categoriesCatalog';
 
 const createBusinessSchema = z.object({
   token: z.string().min(1, 'Missing auth token'),
   formPayload: z.string().min(2, 'Missing form data JSON'),
+  mode: z.enum(['new', 'default']).optional(), // 'new' = forzar nuevo negocio sin dedupe
 });
 
 type DayKey = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
@@ -90,36 +92,41 @@ export async function createBusinessImmediately(formData: FormData) {
     const parsed = createBusinessSchema.parse({
       token: formData.get('token'),
       formPayload: formData.get('formData'),
+      mode: formData.get('mode') || 'default',
     });
 
     const payload = JSON.parse(parsed.formPayload) as Record<string, unknown>;
+    const isNewBusinessMode = parsed.mode === 'new';
     
     // Verificar auth
     const auth = getAdminAuth();
     const decoded = await auth.verifyIdToken(parsed.token);
     const db = getAdminFirestore();
     
-    // ✅ VALIDACIÓN DE DUPLICADOS: Verificar si el usuario ya tiene un negocio
-    const existingBusinessQuery = await db
-      .collection('businesses')
-      .where('ownerId', '==', decoded.uid)
-      .limit(1)
-      .get();
-    
-    if (!existingBusinessQuery.empty) {
-      const existingBusiness = existingBusinessQuery.docs[0];
-      const existingData = existingBusiness.data();
+    // ✅ VALIDACIÓN DE DUPLICADOS: Solo si NO es modo "new"
+    // Si mode=new, permitir crear múltiples negocios del mismo owner
+    if (!isNewBusinessMode) {
+      const existingBusinessQuery = await db
+        .collection('businesses')
+        .where('ownerId', '==', decoded.uid)
+        .limit(1)
+        .get();
       
-      return {
-        success: true,
-        businessId: existingBusiness.id,
-        completionPercent: existingData.completionPercent || 0,
-        isPublishReady: existingData.isPublishReady || false,
-        missingFields: existingData.missingFields || [],
-        redirectUrl: `/dashboard/${existingBusiness.id}`,
-        isDuplicate: true,
-        message: 'Ya tienes un negocio registrado. Te redirigiremos a tu dashboard.',
-      };
+      if (!existingBusinessQuery.empty) {
+        const existingBusiness = existingBusinessQuery.docs[0];
+        const existingData = existingBusiness.data();
+        
+        return {
+          success: true,
+          businessId: existingBusiness.id,
+          completionPercent: existingData.completionPercent || 0,
+          isPublishReady: existingData.isPublishReady || false,
+          missingFields: existingData.missingFields || [],
+          redirectUrl: `/dashboard/${existingBusiness.id}`,
+          isDuplicate: true,
+          message: 'Ya tienes un negocio registrado. Te redirigiremos a tu dashboard.',
+        };
+      }
     }
     
     // Normalizar datos
@@ -128,7 +135,10 @@ export async function createBusinessImmediately(formData: FormData) {
     const ownerEmail = asString(payload.ownerEmail ?? decoded.email ?? '', 200).toLowerCase();
     const ownerPhone = asString(payload.ownerPhone ?? '', 30);
     const description = asString(payload.description, 2000);
-    const category = asString(payload.category ?? '', 120);
+    const resolvedCategory = resolveCategory(
+      asString(payload.categoryId ?? payload.category ?? payload.categoryName ?? '', 120)
+    );
+    const category = resolvedCategory.categoryName;
     const tags = toArrayFromComma(payload.tags, 30);
     const address = asString(payload.address ?? '', 400);
     const colonia = asString(payload.colonia ?? '', 140);
@@ -160,6 +170,9 @@ export async function createBusinessImmediately(formData: FormData) {
       ownerPhone,
       description,
       category,
+      categoryId: resolvedCategory.categoryId,
+      categoryName: resolvedCategory.categoryName,
+      categoryGroupId: resolvedCategory.groupId,
       tags,
       address,
       colonia,
@@ -225,6 +238,9 @@ export async function createBusinessImmediately(formData: FormData) {
       ownerEmail,
       ownerPhone,
       category,
+      categoryId: resolvedCategory.categoryId,
+      categoryName: resolvedCategory.categoryName,
+      categoryGroupId: resolvedCategory.groupId,
       status: stateUpdate.applicationStatus,
       completionPercent: stateUpdate.completionPercent,
       isPublishReady: stateUpdate.isPublishReady,
@@ -310,6 +326,15 @@ export async function updateBusinessWithState(
     }
     
     // Merge updates
+    if (updates.category || (updates as any).categoryId || (updates as any).categoryName) {
+      const resolved = resolveCategory(
+        asString((updates as any).categoryId ?? (updates as any).categoryName ?? updates.category ?? '', 120)
+      );
+      updates.category = resolved.categoryName;
+      (updates as any).categoryId = resolved.categoryId;
+      (updates as any).categoryName = resolved.categoryName;
+      (updates as any).categoryGroupId = resolved.groupId;
+    }
     const updatedData = { ...currentData, ...updates };
     
     // Recalcular estado
@@ -382,11 +407,13 @@ export async function requestPublish(businessId: string, token: string) {
       };
     }
     
-    // Cambiar a in_review
+    // Cambiar a ready_for_review (listo para que admin apruebe)
     await businessRef.update({
-      businessStatus: 'in_review' as BusinessStatus,
+      businessStatus: 'draft' as BusinessStatus, // Mantiene draft hasta aprobación
       applicationStatus: 'ready_for_review' as ApplicationStatus,
       updatedAt: new Date(),
+      submittedForReviewAt: new Date(),
+      submittedForReviewBy: decoded.uid,
       lastReviewRequestedAt: new Date(),
     });
     
@@ -419,6 +446,25 @@ export async function requestPublish(businessId: string, token: string) {
       // No fallar si la actualización de applications falla
     }
     
+    // Notificar admin (Slack + WhatsApp)
+    try {
+      const notifyUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/notify-business-review`;
+      await fetch(notifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          businessId: businessId,
+          businessName: freshData.name || 'Negocio sin nombre',
+        }),
+      });
+    } catch (notifyError) {
+      console.warn('[requestPublish] Error al notificar (no crítico):', notifyError);
+      // No fallar si la notificación falla
+    }
+    
     return {
       success: true,
       message: '¡Tu negocio ha sido enviado a revisión! Te notificaremos cuando sea aprobado.',
@@ -429,6 +475,115 @@ export async function requestPublish(businessId: string, token: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error al solicitar publicación',
+    };
+  }
+}
+
+/**
+ * ⚠️ BORRADO LÓGICO DE NEGOCIO (owner)
+ * 
+ * Marca el negocio como borrado (no elimina físicamente datos)
+ * - Verifica que el usuario sea el owner
+ * - Establece businessStatus = 'deleted'
+ * - Registra timestamp y usuario
+ * - El negocio desaparece de listados públicos y admin
+ * 
+ * TODO: Implementar cleanup de assets (logo/cover) si es necesario
+ */
+export async function deleteBusiness(
+  businessId: string,
+  token: string
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    const auth = getAdminAuth();
+    const db = getAdminFirestore();
+    
+    // Verificar token
+    let decoded;
+    try {
+      decoded = await auth.verifyIdToken(token);
+    } catch (authError) {
+      console.error('[deleteBusiness] Token inválido:', authError);
+      return {
+        success: false,
+        error: 'No autorizado. Inicia sesión nuevamente.',
+      };
+    }
+    
+    // Obtener negocio
+    const businessRef = db.collection('businesses').doc(businessId);
+    const businessSnap = await businessRef.get();
+    
+    if (!businessSnap.exists) {
+      return {
+        success: false,
+        error: 'Negocio no encontrado',
+      };
+    }
+    
+    const businessData = businessSnap.data();
+    
+    // Verificar ownership
+    if (businessData?.ownerId !== decoded.uid) {
+      console.error('[deleteBusiness] Usuario no es owner:', {
+        ownerId: businessData?.ownerId,
+        userId: decoded.uid,
+      });
+      return {
+        success: false,
+        error: 'No tienes permiso para eliminar este negocio',
+      };
+    }
+    
+    // Verificar si ya está eliminado
+    if (businessData?.businessStatus === 'deleted') {
+      return {
+        success: false,
+        error: 'Este negocio ya fue eliminado',
+      };
+    }
+    
+    // Borrado lógico
+    await businessRef.update({
+      businessStatus: 'deleted' as BusinessStatus,
+      deletedAt: new Date(),
+      deletedBy: decoded.uid,
+      updatedAt: new Date(),
+    });
+    
+    // Sincronizar application
+    if (businessData?.ownerId) {
+      try {
+        const appRef = db.collection('applications').doc(businessData.ownerId);
+        const appSnap = await appRef.get();
+        
+        if (appSnap.exists) {
+          await appRef.update({
+            status: 'deleted',
+            updatedAt: new Date(),
+          });
+        }
+      } catch (appError) {
+        console.warn('[deleteBusiness] Error actualizando application (no crítico):', appError);
+      }
+    }
+    
+    // TODO: Cleanup de assets (logo/cover/gallery)
+    // Si tienes un helper para borrar de Cloud Storage, invocarlo aquí
+    // Ejemplo:
+    // if (businessData?.logoUrl) await deleteImageFromStorage(businessData.logoUrl);
+    // if (businessData?.coverUrl) await deleteImageFromStorage(businessData.coverUrl);
+    
+    return {
+      success: true,
+      message: 'Negocio eliminado correctamente',
+    };
+    
+  } catch (error) {
+    console.error('[deleteBusiness] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al eliminar negocio',
     };
   }
 }

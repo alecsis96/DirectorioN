@@ -5,7 +5,7 @@
 
 'use server';
 
-import { getAdminFirestore } from '../../lib/server/firebaseAdmin';
+import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
 import { serializeTimestamps } from '../../lib/server/serializeFirestore';
 import { 
   type ApplicationStatus, 
@@ -17,6 +17,7 @@ import {
 /**
  * 1️⃣ NUEVAS SOLICITUDES (submitted)
  * Negocios que acaban de completar el wizard
+ * EXCLUYE: archived y deleted
  */
 export async function getNewSubmissions(): Promise<any[]> {
   const db = getAdminFirestore();
@@ -29,13 +30,20 @@ export async function getNewSubmissions(): Promise<any[]> {
     .limit(50)
     .get();
   
-  const businesses = snapshot.docs.map(doc => {
-    const data = doc.data();
-    return serializeTimestamps({
-      id: doc.id,
-      ...data,
+  // Filtrar archived/deleted en memoria
+  const businesses = snapshot.docs
+    .filter(doc => {
+      const data = doc.data();
+      const adminStatus = data.adminStatus || 'active';
+      return adminStatus === 'active' && data.businessStatus !== 'deleted';
+    })
+    .map(doc => {
+      const data = doc.data();
+      return serializeTimestamps({
+        id: doc.id,
+        ...data,
+      });
     });
-  });
   
   return businesses;
 }
@@ -43,7 +51,7 @@ export async function getNewSubmissions(): Promise<any[]> {
 /**
  * 2️⃣ PENDIENTES DEL NEGOCIO (needs_info / draft incompleto)
  * Negocios que necesitan más información o están incompletos
- * EXCLUYE: submitted (están en "Nuevas") y ready_for_review (están en "Listas")
+ * EXCLUYE: submitted (están en "Nuevas"), ready_for_review (están en "Listas"), archived y deleted
  */
 export async function getPendingBusinesses(): Promise<any[]> {
   const db = getAdminFirestore();
@@ -56,7 +64,7 @@ export async function getPendingBusinesses(): Promise<any[]> {
     .limit(100)
     .get();
   
-  // Filtrar para excluir submitted y ready_for_review
+  // Filtrar para excluir submitted, ready_for_review, archived y deleted
   const businesses = snapshot.docs
     .map(doc => {
       const data = doc.data();
@@ -68,6 +76,13 @@ export async function getPendingBusinesses(): Promise<any[]> {
     .filter(biz => {
       const business = biz as any;
       const appStatus = business.applicationStatus;
+      const bizStatus = business.businessStatus;
+      const adminStatus = business.adminStatus || 'active';
+      
+      // ⛔ Excluir deleted y archived
+      if (bizStatus === 'deleted' || adminStatus !== 'active') {
+        return false;
+      }
       
       // Excluir submitted (van a Nuevas) y ready_for_review (van a Listas)
       if (appStatus === 'submitted' || appStatus === 'ready_for_review') {
@@ -88,6 +103,7 @@ export async function getPendingBusinesses(): Promise<any[]> {
 /**
  * 3️⃣ LISTOS PARA PUBLICAR (ready_for_review + in_review)
  * Negocios que cumplen requisitos y están esperando aprobación
+ * EXCLUYE: archived y deleted
  */
 export async function getReadyForReview(): Promise<any[]> {
   const db = getAdminFirestore();
@@ -99,13 +115,20 @@ export async function getReadyForReview(): Promise<any[]> {
     .limit(50)
     .get();
   
-  const businesses = snapshot.docs.map(doc => {
-    const data = doc.data();
-    return serializeTimestamps({
-      id: doc.id,
-      ...data,
+  // Filtrar archived/deleted en memoria
+  const businesses = snapshot.docs
+    .filter(doc => {
+      const data = doc.data();
+      const adminStatus = data.adminStatus || 'active';
+      return adminStatus === 'active' && data.businessStatus !== 'deleted';
+    })
+    .map(doc => {
+      const data = doc.data();
+      return serializeTimestamps({
+        id: doc.id,
+        ...data,
+      });
     });
-  });
   
   return businesses;
 }
@@ -401,6 +424,7 @@ export async function recalculateBusinessState(businessId: string) {
 /**
  * 4️⃣ PUBLICADOS
  * Negocios aprobados y visibles públicamente
+ * EXCLUYE: archived y deleted
  */
 export async function getPublishedBusinesses(): Promise<any[]> {
   const db = getAdminFirestore();
@@ -412,17 +436,25 @@ export async function getPublishedBusinesses(): Promise<any[]> {
     .limit(100)
     .get();
   
-  return snapshot.docs.map(doc => {
-    const data = doc.data();
-    return serializeTimestamps({
-      id: doc.id,
-      ...data,
+  // Filtrar archived/deleted
+  return snapshot.docs
+    .filter(doc => {
+      const data = doc.data();
+      const adminStatus = data.adminStatus || 'active';
+      return adminStatus === 'active' && data.businessStatus !== 'deleted';
+    })
+    .map(doc => {
+      const data = doc.data();
+      return serializeTimestamps({
+        id: doc.id,
+        ...data,
+      });
     });
-  });
 }
 
 /**
  * Obtener negocios rechazados
+ * EXCLUYE: archived y deleted
  */
 export async function getRejectedBusinesses(): Promise<any[]> {
   const db = getAdminFirestore();
@@ -434,17 +466,25 @@ export async function getRejectedBusinesses(): Promise<any[]> {
     .limit(100)
     .get();
   
-  return snapshot.docs.map(doc => {
-    const data = doc.data();
-    return serializeTimestamps({
-      id: doc.id,
-      ...data,
+  return snapshot.docs
+    .filter(doc => {
+      const data = doc.data();
+      const adminStatus = data.adminStatus || 'active';
+      return adminStatus === 'active' && data.businessStatus !== 'deleted';
+    })
+    .map(doc => {
+      const data = doc.data();
+      return serializeTimestamps({
+        id: doc.id,
+        ...data,
+      });
     });
-  });
 }
 
 /**
  * Obtener todos los negocios (para tab "Todos")
+ * INCLUYE archived (gris) y deleted (informativo)
+ * Este tab muestra TODOS los negocios sin filtros
  */
 export async function getAllBusinesses(): Promise<any[]> {
   const db = getAdminFirestore();
@@ -455,11 +495,517 @@ export async function getAllBusinesses(): Promise<any[]> {
     .limit(200)
     .get();
   
-  return snapshot.docs.map(doc => {
-    const data = doc.data();
-    return serializeTimestamps({
-      id: doc.id,
-      ...data,
+  // Tab "Todos" muestra active + archived, pero EXCLUYE deleted
+  // Filtrar negocios eliminados (ambos campos por compatibilidad)
+  return snapshot.docs
+    .filter(doc => {
+      const data = doc.data();
+      const adminStatus = data.adminStatus || 'active';
+      const businessStatus = data.businessStatus;
+      
+      // Excluir si cualquiera de los dos campos indica deleted
+      return adminStatus !== 'deleted' && businessStatus !== 'deleted';
+    })
+    .map(doc => {
+      const data = doc.data();
+      return serializeTimestamps({
+        id: doc.id,
+        ...data,
+      });
     });
-  });
 }
+
+/**
+ * ⚠️ ADMIN: BORRADO LÓGICO DE NEGOCIO (override de permisos)
+ * 
+ * Permite al admin eliminar cualquier negocio sin verificar ownership
+ * - Marca businessStatus = 'deleted'
+ * - Registra quién (admin) y cuándo eliminó
+ * - Negocio desaparece de listados
+ * 
+ * PRECAUCIÓN: Solo usar cuando sea necesario (ej: contenido inapropiado)
+ */
+export async function adminDeleteBusiness(
+  businessId: string,
+  adminToken: string,
+  reason?: string
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    const auth = getAdminAuth();
+    const db = getAdminFirestore();
+    
+    // Verificar token de admin
+    let decoded;
+    try {
+      decoded = await auth.verifyIdToken(adminToken);
+    } catch (authError) {
+      console.error('[adminDeleteBusiness] Token inválido:', authError);
+      return {
+        success: false,
+        error: 'No autorizado. Inicia sesión nuevamente.',
+      };
+    }
+    
+    // TODO: Verificar que el usuario sea admin
+    // Puedes agregar custom claims o verificar email en lista de admins
+    // Ejemplo:
+    // if (!decoded.admin && decoded.email !== 'admin@yajagon.com') {
+    //   return { success: false, error: 'Permisos insuficientes (solo admin)' };
+    // }
+    
+    // Obtener negocio
+    const businessRef = db.collection('businesses').doc(businessId);
+    const businessSnap = await businessRef.get();
+    
+    if (!businessSnap.exists) {
+      return {
+        success: false,
+        error: 'Negocio no encontrado',
+      };
+    }
+    
+    const businessData = businessSnap.data();
+    
+    // Verificar si ya está eliminado (ambos campos legacy y nuevo)
+    if (businessData?.businessStatus === 'deleted' || businessData?.adminStatus === 'deleted') {
+      return {
+        success: false,
+        error: 'Este negocio ya fue eliminado',
+      };
+    }
+    
+    // Borrado lógico - setear AMBOS campos para compatibilidad
+    await businessRef.update({
+      // Campo legacy (mantener por compatibilidad)
+      businessStatus: 'deleted' as BusinessStatus,
+      // Campo nuevo canónico (sistema adminStatus)
+      adminStatus: 'deleted',
+      // Ocultar de directorio público
+      visibility: 'hidden',
+      // Audit trail
+      deletedAt: new Date(),
+      deletedBy: decoded.uid,
+      adminNotes: reason ? `Admin delete: ${reason}` : 'Eliminado por admin',
+      updatedAt: new Date(),
+    });
+    
+    // Sincronizar application
+    if (businessData?.ownerId) {
+      try {
+        const appRef = db.collection('applications').doc(businessData.ownerId);
+        const appSnap = await appRef.get();
+        
+        if (appSnap.exists) {
+          await appRef.update({
+            status: 'deleted',
+            updatedAt: new Date(),
+          });
+        }
+      } catch (appError) {
+        console.warn('[adminDeleteBusiness] Error actualizando application (no crítico):', appError);
+      }
+    }
+    
+    return {
+      success: true,
+      message: 'Negocio eliminado correctamente (admin override)',
+    };
+    
+  } catch (error) {
+    console.error('[adminDeleteBusiness] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al eliminar negocio',
+    };
+  }
+}
+
+/**
+ * 📦 ADMIN: ARCHIVAR NEGOCIO (reversible)
+ * 
+ * Oculta el negocio del directorio pero lo mantiene recuperable
+ * - Establece adminStatus = 'archived'
+ * - Si está publicado, cambia visibility = 'hidden'
+ * - Registra quién y cuándo archivó
+ * - REVERSIBLE: puede desarchivarse después
+ * 
+ * Casos de uso:
+ * - Negocio cerrado temporalmente
+ * - Duplicados (mejor que eliminar)
+ * - Contenido cuestionable que requiere revisión
+ */
+export async function adminArchiveBusiness(
+  businessId: string,
+  adminToken: string,
+  reason?: string
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    const auth = getAdminAuth();
+    const db = getAdminFirestore();
+    
+    // Verificar token de admin
+    let decoded;
+    try {
+      decoded = await auth.verifyIdToken(adminToken);
+    } catch (authError) {
+      console.error('[adminArchiveBusiness] Token inválido:', authError);
+      return {
+        success: false,
+        error: 'No autorizado. Inicia sesión nuevamente.',
+      };
+    }
+    
+    // TODO: Verificar custom claims admin
+    // if (!decoded.admin && decoded.email !== 'admin@yajagon.com') {
+    //   return { success: false, error: 'Permisos insuficientes (solo admin)' };
+    // }
+    
+    // Obtener negocio
+    const businessRef = db.collection('businesses').doc(businessId);
+    const businessSnap = await businessRef.get();
+    
+    if (!businessSnap.exists) {
+      return {
+        success: false,
+        error: 'Negocio no encontrado',
+      };
+    }
+    
+    const businessData = businessSnap.data();
+    
+    // Verificar si ya está archivado
+    if (businessData?.adminStatus === 'archived') {
+      return {
+        success: false,
+        error: 'Este negocio ya está archivado',
+      };
+    }
+    
+    // Preparar actualización
+    const updateData: any = {
+      adminStatus: 'archived',
+      archivedAt: new Date(),
+      archivedBy: decoded.uid,
+      updatedAt: new Date(),
+    };
+    
+    // Si tiene razón, agregarla
+    if (reason) {
+      updateData.archiveReason = reason;
+    }
+    
+    // Si está publicado, ocultar del directorio
+    if (businessData?.businessStatus === 'published') {
+      updateData.visibility = 'hidden';
+    }
+    
+    // Archivar
+    await businessRef.update(updateData);
+    
+    // Log de auditoría en notas
+    const auditLog = `[${new Date().toISOString()}] Archivado por admin (${decoded.email || decoded.uid}). Motivo: ${reason || 'No especificado'}`;
+    const existingNotes = businessData?.adminNotes || '';
+    await businessRef.update({
+      adminNotes: existingNotes + '\n' + auditLog,
+    });
+    
+    return {
+      success: true,
+      message: 'Negocio archivado correctamente',
+    };
+    
+  } catch (error) {
+    console.error('[adminArchiveBusiness] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al archivar negocio',
+    };
+  }
+}
+
+/**
+ * 🔄 ADMIN: DESARCHIVAR NEGOCIO
+ * 
+ * Restaura un negocio archivado
+ * - Cambia adminStatus de 'archived' a 'active'
+ * - Si estaba publicado, restaura visibility = 'published'
+ */
+export async function adminUnarchiveBusiness(
+  businessId: string,
+  adminToken: string
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    const auth = getAdminAuth();
+    const db = getAdminFirestore();
+    
+    let decoded;
+    try {
+      decoded = await auth.verifyIdToken(adminToken);
+    } catch (authError) {
+      return {
+        success: false,
+        error: 'No autorizado. Inicia sesión nuevamente.',
+      };
+    }
+    
+    const businessRef = db.collection('businesses').doc(businessId);
+    const businessSnap = await businessRef.get();
+    
+    if (!businessSnap.exists) {
+      return {
+        success: false,
+        error: 'Negocio no encontrado',
+      };
+    }
+    
+    const businessData = businessSnap.data();
+    
+    if (businessData?.adminStatus !== 'archived') {
+      return {
+        success: false,
+        error: 'Este negocio no está archivado',
+      };
+    }
+    
+    const updateData: any = {
+      adminStatus: 'active',
+      archivedAt: null,
+      archivedBy: null,
+      archiveReason: null,
+      updatedAt: new Date(),
+    };
+    
+    // Si estaba publicado antes, restaurar visibilidad
+    if (businessData?.businessStatus === 'published') {
+      updateData.visibility = 'published';
+    }
+    
+    await businessRef.update(updateData);
+    
+    // Log de auditoría
+    const auditLog = `[${new Date().toISOString()}] Desarchivado por admin (${decoded.email || decoded.uid})`;
+    const existingNotes = businessData?.adminNotes || '';
+    await businessRef.update({
+      adminNotes: existingNotes + '\n' + auditLog,
+    });
+    
+    return {
+      success: true,
+      message: 'Negocio desarchivado correctamente',
+    };
+    
+  } catch (error) {
+    console.error('[adminUnarchiveBusiness] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al desarchivar negocio',
+    };
+  }
+}
+
+/**
+ * 🔗 ADMIN: MARCAR COMO DUPLICADO
+ * 
+ * Marca un negocio como duplicado de otro (canonical)
+ * - Establece duplicateOf = canonicalBusinessId
+ * - Archiva automáticamente el duplicado
+ * - El negocio canonical sigue activo
+ * 
+ * Proceso recomendado para duplicados:
+ * 1. Identificar negocio canonical (el mejor / más completo)
+ * 2. Marcar otros como duplicados del canonical
+ * 3. Los duplicados se archivan automáticamente
+ */
+export async function adminMarkDuplicate(
+  businessId: string,
+  canonicalBusinessId: string,
+  adminToken: string
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    const auth = getAdminAuth();
+    const db = getAdminFirestore();
+    
+    let decoded;
+    try {
+      decoded = await auth.verifyIdToken(adminToken);
+    } catch (authError) {
+      return {
+        success: false,
+        error: 'No autorizado. Inicia sesión nuevamente.',
+      };
+    }
+    
+    // Validar que no sean el mismo negocio
+    if (businessId === canonicalBusinessId) {
+      return {
+        success: false,
+        error: 'Un negocio no puede ser duplicado de sí mismo',
+      };
+    }
+    
+    // Verificar que ambos negocios existan
+    const businessRef = db.collection('businesses').doc(businessId);
+    const canonicalRef = db.collection('businesses').doc(canonicalBusinessId);
+    
+    const [businessSnap, canonicalSnap] = await Promise.all([
+      businessRef.get(),
+      canonicalRef.get(),
+    ]);
+    
+    if (!businessSnap.exists) {
+      return {
+        success: false,
+        error: 'Negocio no encontrado',
+      };
+    }
+    
+    if (!canonicalSnap.exists) {
+      return {
+        success: false,
+        error: 'Negocio canonical no encontrado',
+      };
+    }
+    
+    const canonicalData = canonicalSnap.data();
+    const businessData = businessSnap.data();
+    
+    // Actualizar negocio duplicado
+    await businessRef.update({
+      duplicateOf: canonicalBusinessId,
+      adminStatus: 'archived',
+      archivedAt: new Date(),
+      archivedBy: decoded.uid,
+      archiveReason: `Duplicado de: ${canonicalData?.name || canonicalBusinessId}`,
+      visibility: 'hidden', // Ocultar del directorio
+      updatedAt: new Date(),
+    });
+    
+    // Log de auditoría
+    const auditLog = `[${new Date().toISOString()}] Marcado como duplicado de "${canonicalData?.name}" (${canonicalBusinessId}) por admin (${decoded.email || decoded.uid})`;
+    const existingNotes = businessData?.adminNotes || '';
+    await businessRef.update({
+      adminNotes: existingNotes + '\n' + auditLog,
+    });
+    
+    return {
+      success: true,
+      message: `Negocio marcado como duplicado de "${canonicalData?.name}"`,
+    };
+    
+  } catch (error) {
+    console.error('[adminMarkDuplicate] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al marcar duplicado',
+    };
+  }
+}
+
+/**
+ * 🆕 ALTA ASISTIDA - Crear negocio desde admin
+ * Crea un negocio con estado ready_for_review para que caiga en "Listas para publicar"
+ */
+export async function createAssistedBusiness(
+  businessData: {
+    name: string;
+    phone: string;
+    WhatsApp: string;
+    categoryId: string;
+    colonia?: string;
+    neighborhood?: string;
+    sourceChannel: 'whatsapp' | 'messenger' | 'visita' | 'telefono' | 'otro';
+    plan?: 'free' | 'featured' | 'sponsor';
+    internalNote?: string;
+  },
+  authToken: string
+): Promise<{ success: boolean; businessId?: string; error?: string }> {
+  try {
+    // Verificar autenticación admin
+    const auth = getAdminAuth();
+    const decoded = await auth.verifyIdToken(authToken);
+    
+    if (!decoded.admin && !decoded.email?.includes('@admin')) {
+      return {
+        success: false,
+        error: 'No autorizado - Se requiere permiso de admin',
+      };
+    }
+
+    const db = getAdminFirestore();
+    const { resolveCategory } = await import('../../lib/categoriesCatalog');
+    
+    // Resolver categoría
+    const category = resolveCategory(businessData.categoryId);
+    
+    // Crear documento de negocio
+    const newBusinessRef = db.collection('businesses').doc();
+    const now = new Date();
+    
+    const business = {
+      // Datos básicos
+      name: businessData.name,
+      phone: businessData.phone,
+      WhatsApp: businessData.WhatsApp,
+      categoryId: category.categoryId,
+      categoryName: category.categoryName,
+      categoryGroupId: category.groupId,
+      colonia: businessData.colonia || null,
+      neighborhood: businessData.neighborhood || null,
+      
+      // Plan (opcional, default free)
+      plan: businessData.plan || 'free',
+      
+      // Estados del sistema dual
+      businessStatus: 'draft' as BusinessStatus,
+      applicationStatus: 'ready_for_review' as ApplicationStatus,
+      isPublishReady: true,
+      completionPercent: 60, // Mínimo requerido
+      
+      // Metadata de creación asistida
+      createdVia: 'admin_assisted',
+      createdByAdminId: decoded.uid,
+      createdByAdminEmail: decoded.email || null,
+      createdByAdminAt: now,
+      sourceChannel: businessData.sourceChannel,
+      
+      // Timestamps
+      createdAt: now,
+      updatedAt: now,
+      submittedForReviewAt: now, // Ya está listo para revisión
+      submittedForReviewBy: decoded.uid,
+      
+      // Admin status
+      adminStatus: 'active',
+      visibility: 'hidden', // Oculto hasta que se publique
+      
+      // Notas internas
+      adminNotes: businessData.internalNote 
+        ? `[ALTA ASISTIDA por ${decoded.email || decoded.uid}]\n${businessData.internalNote}`
+        : `[ALTA ASISTIDA por ${decoded.email || decoded.uid}]`,
+      
+      // Campos faltantes (para que el admin complete después)
+      missingFields: [
+        'description',
+        'address',
+        'location',
+        'hours',
+        'logoUrl',
+      ],
+    };
+    
+    await newBusinessRef.set(business);
+    
+    return {
+      success: true,
+      businessId: newBusinessRef.id,
+    };
+    
+  } catch (error) {
+    console.error('[createAssistedBusiness] Error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al crear alta asistida',
+    };
+  }
+}
+

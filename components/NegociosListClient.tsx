@@ -58,6 +58,7 @@ import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, PAGE_SIZE, type Filters, type Sort
 import { getBusinessStatus } from './BusinessHours';
 import { useFavorites } from '../context/FavoritesContext';
 import { selectSponsoredRotation } from '../lib/sponsoredRotation';
+import { CATEGORY_GROUPS, CATEGORIES, getCategoriesByGroup, resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
 
 const BusinessModalWrapper = dynamic(() => import('./BusinessModalWrapper'), { ssr: false });
 
@@ -217,7 +218,9 @@ export default function NegociosListClient({
     (next: Filters) => {
       if (typeof window === 'undefined') return;
       const params = new URLSearchParams();
-      if (next.category) params.set('c', next.category);
+      const categoryParam = next.categoryId || next.category;
+      if (categoryParam) params.set('c', categoryParam);
+      if (next.categoryGroupId) params.set('g', next.categoryGroupId);
       if (next.colonia) params.set('co', next.colonia);
       if (next.order && next.order !== DEFAULT_ORDER) params.set('o', next.order);
       if (next.page > 1) params.set('p', String(next.page));
@@ -241,6 +244,9 @@ export default function NegociosListClient({
         const nextPage = options?.resetPage ? 1 : partial.page ?? prev.page;
         const next: Filters = {
           category: partial.category ?? prev.category,
+          categoryId: partial.categoryId ?? prev.categoryId,
+          categoryName: partial.categoryName ?? prev.categoryName,
+          categoryGroupId: partial.categoryGroupId ?? prev.categoryGroupId,
           colonia: partial.colonia ?? prev.colonia,
           order: partial.order ?? prev.order,
           page: nextPage,
@@ -260,12 +266,21 @@ export default function NegociosListClient({
   // Resetear límite de negocios gratuitos cuando cambien filtros o búsqueda
   useEffect(() => {
     setFreeBusinessesLimit(10);
-  }, [uiFilters.category, uiFilters.colonia, uiFilters.order, uiFilters.query]);
+  }, [uiFilters.category, uiFilters.categoryId, uiFilters.categoryGroupId, uiFilters.colonia, uiFilters.order, uiFilters.query]);
 
   const handleCategoryChange = useCallback(
     (eventOrValue: ChangeEvent<HTMLSelectElement> | string) => {
       const value = typeof eventOrValue === 'string' ? eventOrValue : eventOrValue.target.value;
-      updateFilters({ category: value }, { resetPage: true });
+      const resolved = resolveCategory(value);
+      updateFilters(
+        {
+          category: resolved.categoryName,
+          categoryId: resolved.categoryId,
+          categoryName: resolved.categoryName,
+          categoryGroupId: resolved.groupId,
+        },
+        { resetPage: true }
+      );
     },
     [updateFilters],
   );
@@ -298,15 +313,20 @@ export default function NegociosListClient({
 
   const paginated = useMemo(() => {
     const normalizedColonia = uiFilters.colonia;
-    const normalizedCategory = uiFilters.category;
+    const normalizedCategory = uiFilters.categoryId || uiFilters.category;
+    const resolvedCategoryFilter = normalizedCategory ? resolveCategory(normalizedCategory) : null;
     const normalizedQuery = uiFilters.query.trim().toLowerCase();
     const now = new Date();
     
     const filtered = businesses.filter((biz) => {
-      if (normalizedCategory && biz.category !== normalizedCategory) return false;
+      const resolvedBizCategory = resolveCategory(
+        (biz as any).categoryId || (biz as any).categoryName || biz.category
+      );
+      if (resolvedCategoryFilter && resolvedBizCategory.categoryId !== resolvedCategoryFilter.categoryId) return false;
+      if (uiFilters.categoryGroupId && resolvedBizCategory.groupId !== uiFilters.categoryGroupId) return false;
       if (normalizedColonia && normalizeColonia(biz.colonia) !== normalizedColonia) return false;
       if (normalizedQuery) {
-        const haystack = `${biz.name ?? ''} ${biz.address ?? ''} ${biz.category ?? ''} ${biz.description ?? ''} ${biz.phone ?? ''} ${biz.WhatsApp ?? ''} ${biz.colonia ?? ''}`.toLowerCase();
+        const haystack = `${biz.name ?? ''} ${biz.address ?? ''} ${biz.categoryName ?? biz.category ?? ''} ${biz.description ?? ''} ${biz.phone ?? ''} ${biz.WhatsApp ?? ''} ${biz.colonia ?? ''}`.toLowerCase();
         if (!haystack.includes(normalizedQuery)) return false;
       }
       
@@ -639,6 +659,27 @@ export default function NegociosListClient({
               <span className="text-2xl">🏷️</span>
               <span>Explora por categorías</span>
             </h2>
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
+              {CATEGORY_GROUPS.map((group) => (
+                <button
+                  key={group.id}
+                  onClick={() =>
+                    updateFilters(
+                      { category: '', categoryId: '', categoryName: '', categoryGroupId: group.id },
+                      { resetPage: true },
+                    )
+                  }
+                  className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-semibold whitespace-nowrap transition-all ${
+                    uiFilters.categoryGroupId === group.id
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-400 hover:bg-emerald-50'
+                  }`}
+                >
+                  <span>{group.icon}</span>
+                  <span>{group.name}</span>
+                </button>
+              ))}
+            </div>
             
             {/* Scroll horizontal con chips */}
             <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
@@ -771,7 +812,12 @@ export default function NegociosListClient({
           <div className="mb-6 flex flex-wrap gap-2">
             {uiFilters.category && (
               <button
-                onClick={() => updateFilters({ category: '' }, { resetPage: true })}
+                onClick={() =>
+                  updateFilters(
+                    { category: '', categoryId: '', categoryName: '', categoryGroupId: undefined },
+                    { resetPage: true },
+                  )
+                }
                 className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full text-sm font-semibold hover:bg-emerald-700 transition-all shadow-md ring-2 ring-emerald-300"
               >
                 <span className="font-bold">✓</span>
@@ -800,7 +846,12 @@ export default function NegociosListClient({
               </button>
             )}
             <button
-              onClick={() => updateFilters({ category: '', colonia: '', order: DEFAULT_ORDER }, { resetPage: true })}
+              onClick={() =>
+                updateFilters(
+                  { category: '', categoryId: '', categoryName: '', categoryGroupId: undefined, colonia: '', order: DEFAULT_ORDER },
+                  { resetPage: true },
+                )
+              }
               className="inline-flex items-center gap-1 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 hover:text-gray-900 rounded-full transition-all border border-gray-300"
             >
               Limpiar filtros
@@ -1145,14 +1196,28 @@ export default function NegociosListClient({
             <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {categories.sort((a, b) => a.localeCompare(b, 'es')).map((cat) => {
-                  const count = businesses.filter(b => b.category === cat).length;
-                  const isSelected = uiFilters.category === cat;
+                  const resolved = resolveCategory(cat);
+                  const count = businesses.filter(b => {
+                    const resolvedBiz = resolveCategory((b as any).categoryId || (b as any).categoryName || b.category);
+                    return resolvedBiz.categoryId === resolved.categoryId;
+                  }).length;
+                  const isSelected = uiFilters.categoryId
+                    ? uiFilters.categoryId === resolved.categoryId
+                    : uiFilters.category === resolved.categoryName;
                   
                   return (
                     <button
                       key={cat}
                       onClick={() => {
-                        handleCategoryChange(cat);
+                        updateFilters(
+                          {
+                            category: resolved.categoryName,
+                            categoryId: resolved.categoryId,
+                            categoryName: resolved.categoryName,
+                            categoryGroupId: resolved.groupId,
+                          },
+                          { resetPage: true },
+                        );
                         setShowCategoriesModal(false);
                       }}
                       className={`group rounded-xl p-4 text-left transition-all hover:shadow-lg ${

@@ -5,6 +5,7 @@ import type { Business, BusinessPreview } from '../types/business';
 import { pickBusinessPreview } from '../types/business';
 import { fetchBusinesses, toNumber } from '../lib/server/businessData';
 import HomeClient from '../components/HomeClient';
+import { CATEGORIES } from '../lib/categoriesCatalog';
 
 export const metadata: Metadata = {
   title: 'Directorio de Negocios Yajalón - Tu Guía Local de Comercios',
@@ -26,6 +27,7 @@ export const revalidate = 60; // Cache for 60 seconds
 
 export default async function Home() {
   const { businesses: allBusinesses } = await fetchBusinesses(100);
+  const featuredCategories = CATEGORIES.slice(0, 14);
 
   // Separar negocios patrocinados y destacados
   const sponsorBusinesses: BusinessPreview[] = allBusinesses
@@ -194,32 +196,12 @@ export default async function Home() {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Explora por categorías</h2>
           <div className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth pb-2">
-            {[
-              { name: 'Restaurante', icon: '🍽️' },
-              { name: 'Cafetería', icon: '☕' },
-              { name: 'Panadería', icon: '🍞' },
-              { name: 'Comida Rápida', icon: '🍔' },
-              { name: 'Servicios', icon: '🛠️' },
-              { name: 'Comercio', icon: '🛒' },
-              { name: 'Tecnología', icon: '💻' },
-              { name: 'Salud y Belleza', icon: '💆' },
-              { name: 'Educación', icon: '📚' },
-              { name: 'Entretenimiento', icon: '🎭' },
-              { name: 'Deportes', icon: '⚽' },
-              { name: 'Automotriz', icon: '🚗' },
-              { name: 'Construcción', icon: '🏗️' },
-              { name: 'Profesional', icon: '💼' },
-              { name: 'Otro', icon: '📋' },
-            ].map((cat) => {
-              const slug = cat.name.toLowerCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/\s+/g, '-');
-              
+            {featuredCategories.map((cat) => {
+              const slug = cat.id;
               return (
                 <Link
-                  key={cat.name}
-                  href={`/negocios?c=${slug}`}
+                  key={cat.id}
+                  href={`/negocios?c=${slug}&g=${cat.groupId}`}
                   className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full border-2 border-gray-200 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer whitespace-nowrap font-medium text-gray-700 hover:text-blue-600"
                 >
                   <span className="text-lg">{cat.icon}</span>

@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
-import AdminQuickNav from '../../../components/AdminQuickNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -340,8 +339,6 @@ export default async function AdminStatsPage() {
         </div>
       </section>
         </div>
-      
-      <AdminQuickNav />
     </main>
   );
 }

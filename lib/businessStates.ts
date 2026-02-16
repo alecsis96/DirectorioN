@@ -26,6 +26,8 @@
  * 4. Admin aprueba → businessStatus=published, applicationStatus=approved
  */
 
+import { PLAN_PERMISSIONS, type BusinessPlan } from './planPermissions';
+
 // ============================================
 // TIPOS
 // ============================================
@@ -35,12 +37,23 @@ export type ApplicationStatus =
   | 'needs_info'      // Admin solicitó cambios
   | 'ready_for_review' // Cumple requisitos, puede publicarse
   | 'approved'        // Aprobado y publicado
-  | 'rejected';       // Rechazado
+  | 'rejected'        // Rechazado
+  | 'deleted';        // Eliminado
 
 export type BusinessStatus = 
   | 'draft'        // Borrador, no visible
   | 'in_review'    // Enviado a revisión
-  | 'published';   // Publicado y visible
+  | 'published'    // Publicado y visible
+  | 'deleted';     // Eliminado (borrado lógico)
+
+export type AdminStatus =
+  | 'active'       // Normal, visible según businessStatus
+  | 'archived'     // Archivado, no visible pero recuperable
+  | 'deleted';     // Eliminado por admin
+
+export type Visibility =
+  | 'published'    // Visible en directorio público
+  | 'hidden';      // Oculto del directorio
 
 /**
  * Estructura mejorada del negocio con nuevos campos de estado
@@ -93,34 +106,60 @@ export interface BusinessWithState {
 }
 
 /**
+ * Helpers para validar requisitos por plan
+ */
+function isCoverRequiredForPlan(plan?: string): boolean {
+  if (!plan || plan === 'free') return false;
+  return plan === 'featured' || plan === 'sponsor';
+}
+
+function getCoverWeightForPlan(plan?: string): number {
+  // Portada NO disponible para FREE (peso 0)
+  if (!plan || plan === 'free') return 0;
+  // Portada requerida para FEATURED/SPONSOR (peso 30%)
+  return 30;
+}
+
+function getLogoWeightForPlan(plan?: string): number {
+  // Logo opcional para todos los planes
+  // Pero ajustar peso si cover no está disponible (para que FREE pueda llegar a 100%)
+  if (!plan || plan === 'free') return 35; // Aumentado para compensar ausencia de cover
+  return 5; // Peso normal si tiene cover disponible
+}
+
+/**
  * Pesos de cada campo para calcular completitud
  * Total debe sumar 100
  * 
- * ⚡ ACTUALIZACIÓN: Portada ahora es OBLIGATORIA (30%)
- * Todos los planes (incluido FREE) pueden subir 1 portada
+ * ⚠️ IMPORTANTE: Portada es CONDICIONAL por plan
+ * - FREE: NO disponible (peso 0%) → Logo aumenta a 35%
+ * - FEATURED/SPONSOR: REQUERIDA (peso 30%)
  */
 export const FIELD_WEIGHTS = {
-  // CRÍTICOS (obligatorios para publicar) - 90%
-  name: 10,           // >>Obligatorio
-  category: 10,       // Obligatorio
-  location: 10,       // colonia + lat/lng
-  contactPhone: 10,   // phone o WhatsApp
-  description: 10,    // Mínimo 2 caracteres
-  horarios: 10,       // Al menos 1 día configurado
-  coverPhoto: 30,     // 🆕 OBLIGATORIA - Imagen de portada (30%)
+  // CRÍTICOS (obligatorios para publicar) - 90% base
+  name: 10,           // Obligatorio para todos
+  category: 10,       // Obligatorio para todos
+  location: 10,       // colonia + lat/lng - Obligatorio para todos
+  contactPhone: 10,   // phone o WhatsApp - Obligatorio para todos
+  description: 10,    // Mínimo 2 caracteres - Obligatorio para todos
+  horarios: 10,       // Al menos 1 día configurado - Obligatorio para todos
+  coverPhoto: 30,     // ⚠️ CONDICIONAL: 30% si featured/sponsor, 0% si free
   
-  // EXTRAS (mejoran presencia) - 10%
-  logo: 5,            // Imagen de perfil (reducido de 15%)
+  // EXTRAS (mejoran presencia) - 10% base
+  logo: 5,            // ⚠️ CONDICIONAL: 35% si free (compensa cover), 5% si featured/sponsor
   gallery: 3,         // 2+ fotos adicionales (solo planes pagos)
-  socialMedia: 1,     // Facebook o Instagram (reducido)
-  detailedInfo: 1,    // Precio, envío, etc. (reducido)
+  socialMedia: 1,     // Facebook o Instagram
+  detailedInfo: 1,    // Precio, envío, etc.
 } as const;
 
 /**
  * Requisitos mínimos para publicación
  * 
- * ⚡ ACTUALIZACIÓN: coverPhoto ahora es OBLIGATORIA
- * Sin portada, el negocio NO aparece en listados públicos
+ * ⚠️ CAMBIO: coverPhoto es SIEMPRE OPCIONAL (no requisito para ningún plan)
+ * - FREE: cover opcional (beneficio visual)
+ * - FEATURED/SPONSOR: cover opcional pero ALTAMENTE RECOMENDADA
+ * 
+ * Los campos recomendados (no obligatorios) están en getRecommendedImprovements()
  */
 export const PUBLISH_REQUIREMENTS = {
   name: { required: true, min: 2, max: 140 },
@@ -129,7 +168,7 @@ export const PUBLISH_REQUIREMENTS = {
   contact: { required: true },   // phone o WhatsApp
   description: { required: true, min: 2, max: 2000 },
   horarios: { required: true, minDays: 1 },
-  coverPhoto: { required: true }, // 🆕 OBLIGATORIA para todos los planes
+  // ✅ coverPhoto NO es requisito (siempre opcional)
 } as const;
 
 // ============================================
@@ -139,13 +178,22 @@ export const PUBLISH_REQUIREMENTS = {
 /**
  * Calcula el porcentaje de completitud del perfil
  * 
+ * Ajusta pesos dinámicamente según el plan:
+ * - FREE: Sin cover (0%), logo aumenta a 35%
+ * - FEATURED/SPONSOR: Con cover (30%), logo normal 5%
+ * 
  * @param business - Negocio a evaluar
  * @returns Número entre 0-100
  */
 export function computeProfileCompletion(business: Partial<BusinessWithState>): number {
   let score = 0;
+  const plan = business.plan as BusinessPlan | undefined;
   
-  // CRÍTICOS (60%)
+  // Obtener pesos dinámicos según plan
+  const coverWeight = getCoverWeightForPlan(plan);
+  const logoWeight = getLogoWeightForPlan(plan);
+  
+  // CRÍTICOS (obligatorios para publicar) - 60% base
   
   // Nombre (10%)
   if (business.name && business.name.trim().length >= 2) {
@@ -188,16 +236,16 @@ export function computeProfileCompletion(business: Partial<BusinessWithState>): 
     }
   }
   
-  // IMPORTANTES (40%)
+  // IMPORTANTES (40% ajustable según plan)
   
-  // Logo (15%)
+  // Logo (5-35% según plan - Opcional para todos)
   if (business.logoUrl && business.logoUrl.trim().length > 0) {
-    score += FIELD_WEIGHTS.logo;
+    score += logoWeight;
   }
   
-  // Foto de portada (10%)
-  if (business.coverUrl && business.coverUrl.trim().length > 0) {
-    score += FIELD_WEIGHTS.coverPhoto;
+  // Foto de portada (0-30% según plan - Solo featured/sponsor)
+  if (coverWeight > 0 && business.coverUrl && business.coverUrl.trim().length > 0) {
+    score += coverWeight;
   }
   
   // Galería (5%)
@@ -286,14 +334,76 @@ export function isPublishReady(business: Partial<BusinessWithState>): {
     }
   }
   
-  // 🆕 PORTADA OBLIGATORIA
-  if (!business.coverUrl || business.coverUrl.trim().length === 0) {
-    missing.push('imagen de portada (requerida)');
-  }
+  // ✅ PORTADA ELIMINADA DE REQUISITOS
+  // coverPhoto es siempre opcional, ahora está en getRecommendedImprovements()
   
   return {
     ready: missing.length === 0,
     missingFields: missing,
+  };
+}
+
+/**
+ * Obtiene mejoras recomendadas (no requisitos) para mejorar presencia
+ * 
+ * Estas son sugerencias opcionales que mejoran el perfil pero NO bloquean publicación:
+ * - Imagen de portada (especialmente para featured/sponsor)
+ * - Galería de fotos adicionales
+ * - Redes sociales
+ * - Logo
+ * 
+ * @param business - Negocio a evaluar
+ * @returns { recommendations: string[] }
+ */
+export function getRecommendedImprovements(business: Partial<BusinessWithState>): {
+  recommendations: string[];
+} {
+  const recommendations: string[] = [];
+  const plan = business.plan as BusinessPlan | undefined;
+  
+  // Portada - ALTAMENTE recomendada para featured/sponsor, opcional para free
+  if (!business.coverUrl || business.coverUrl.trim().length === 0) {
+    if (plan === 'featured' || plan === 'sponsor') {
+      recommendations.push('🌟 Imagen de portada (altamente recomendada para destacar tu negocio)');
+    } else {
+      recommendations.push('Imagen de portada (mejora visualización)');
+    }
+  }
+  
+  // Logo
+  if (!business.logoUrl || business.logoUrl.trim().length === 0) {
+    recommendations.push('Logo del negocio');
+  }
+  
+  // Galería (solo para planes pagos)
+  if (plan === 'featured' || plan === 'sponsor') {
+    const hasGallery = business.images && business.images.length >= 2;
+    if (!hasGallery) {
+      recommendations.push('Galería de fotos (al menos 2 imágenes adicionales)');
+    }
+  }
+  
+  // Redes sociales
+  const hasSocial = (
+    (business.Facebook && business.Facebook.trim().length > 0) ||
+    (business as any).Instagram && (business as any).Instagram.trim().length > 0
+  );
+  if (!hasSocial) {
+    recommendations.push('Redes sociales (Facebook o Instagram)');
+  }
+  
+  // Info detallada
+  const hasDetailedInfo = (
+    (business as any).priceRange ||
+    (business as any).hasEnvio !== undefined ||
+    ((business as any).servicios && (business as any).servicios.length > 0)
+  );
+  if (!hasDetailedInfo) {
+    recommendations.push('Información adicional (rango de precios, envío, servicios)');
+  }
+  
+  return {
+    recommendations,
   };
 }
 

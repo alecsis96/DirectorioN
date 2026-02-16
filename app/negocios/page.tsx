@@ -7,6 +7,7 @@ import { fetchBusinesses, toNumber, sortBusinessesWithSponsors } from '../../lib
 import { findBusinessesNear } from '../../lib/firestore/search';
 import { COLONIAS_MAP, inferColoniaFromAddress, normalizeColonia } from '../../lib/helpers/colonias';
 import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, type Filters, type SortMode } from '../../lib/negociosFilters';
+import { resolveCategory, type CategoryGroupId } from '../../lib/categoriesCatalog';
 
 export const metadata: Metadata = {
   title: 'Directorio de Negocios en Yajalón - Tu Guía Completa de Comercios Locales',
@@ -27,6 +28,7 @@ export const revalidate = 60; // Cache for 60 seconds
 
 type SearchParams = {
   c?: string;
+  g?: string;
   co?: string;
   o?: string;
   p?: string;
@@ -37,7 +39,14 @@ type SearchParams = {
 };
 
 async function buildBusinessesResult(params: SearchParams) {
-  const category = typeof params.c === 'string' ? params.c : '';
+  const categoryInput = typeof params.c === 'string' ? params.c : '';
+  const groupParam = typeof params.g === 'string' ? params.g : '';
+  const validGroupIds: CategoryGroupId[] = ['food', 'home', 'services', 'health', 'commerce', 'education', 'events', 'other'];
+  const groupFromParam = validGroupIds.includes(groupParam as CategoryGroupId) ? (groupParam as CategoryGroupId) : undefined;
+  const resolvedCategory = categoryInput ? resolveCategory(categoryInput) : undefined;
+  const categoryId = resolvedCategory?.categoryId || '';
+  const categoryName = resolvedCategory?.categoryName || categoryInput;
+  const categoryGroupId = groupFromParam || resolvedCategory?.groupId;
   const coloniaRaw = typeof params.co === 'string' ? params.co : '';
   const colonia = normalizeColonia(coloniaRaw);
   const orderParam = typeof params.o === 'string' ? (params.o as SortMode) : DEFAULT_ORDER;
@@ -110,7 +119,10 @@ async function buildBusinessesResult(params: SearchParams) {
   });
 
   const filters: Filters = {
-    category,
+    category: categoryName,
+    categoryId,
+    categoryName,
+    categoryGroupId,
     colonia,
     order,
     page,

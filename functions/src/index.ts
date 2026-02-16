@@ -235,3 +235,12 @@ export {
   onPackagePurchase,
   dailyMetricsReport,
 } from "./scarcityFunctions";
+
+// ============================================
+// FUNCIONES DE CONTADORES AGREGADOS (OPTIMIZACIÓN)
+// ============================================
+export {
+  updateBusinessCounters,
+  dailyCounterCheck,
+  resyncCounters,
+} from "./counterFunctions";

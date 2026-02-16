@@ -9,6 +9,7 @@
  */
 
 import { BusinessPlan } from './planPermissions';
+import { resolveCategory } from './categoriesCatalog';
 
 export type CategoryTier = 'saturated' | 'specialized' | 'premium';
 export type Zone = 'centro' | 'norte' | 'sur' | 'periferia' | 'city-wide';
@@ -298,27 +299,30 @@ async function countBusinessesInPlan(
   zone?: Zone,
   specialty?: string
 ): Promise<number> {
+  const resolved = resolveCategory(categoryId);
   if (typeof window === 'undefined') {
     // Server-side: usar Firebase Admin
     try {
       const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
       
-      let query = db.collection('businesses')
-        .where('category', '==', categoryId)
-        .where('plan', '==', plan)
-        .where('status', '==', 'published');
-      
-      if (zone) {
-        query = query.where('zone', '==', zone) as any;
-      }
-      
-      if (specialty) {
-        query = query.where('specialty', '==', specialty) as any;
-      }
-      
-      const snapshot = await query.get();
-      return snapshot.size;
+      const buildBaseQuery = () => {
+        let q = db.collection('businesses')
+          .where('plan', '==', plan)
+          .where('status', '==', 'published');
+        if (zone) q = q.where('zone', '==', zone) as any;
+        if (specialty) q = q.where('specialty', '==', specialty) as any;
+        return q;
+      };
+
+      const newQuery = buildBaseQuery().where('categoryId', '==', resolved.categoryId);
+      const legacyQuery = buildBaseQuery().where('category', '==', resolved.categoryName);
+
+      const [newSnap, legacySnap] = await Promise.all([newQuery.get(), legacyQuery.get()]);
+      const ids = new Set<string>();
+      newSnap.forEach((doc) => ids.add(doc.id));
+      legacySnap.forEach((doc) => ids.add(doc.id));
+      return ids.size;
     } catch (error) {
       console.error('Error counting businesses (server):', error);
       return 0;
@@ -329,23 +333,21 @@ async function countBusinessesInPlan(
       const { db } = await import('../firebaseConfig');
       const { collection, query, where, getDocs } = await import('firebase/firestore');
       
-      const constraints = [
-        where('category', '==', categoryId),
+      const baseConstraints = [
         where('plan', '==', plan),
         where('status', '==', 'published'),
       ];
-      
-      if (zone) {
-        constraints.push(where('zone', '==', zone));
-      }
-      
-      if (specialty) {
-        constraints.push(where('specialty', '==', specialty));
-      }
-      
-      const q = query(collection(db, 'businesses'), ...constraints);
-      const snapshot = await getDocs(q);
-      return snapshot.size;
+      if (zone) baseConstraints.push(where('zone', '==', zone));
+      if (specialty) baseConstraints.push(where('specialty', '==', specialty));
+
+      const qNew = query(collection(db, 'businesses'), where('categoryId', '==', resolved.categoryId), ...baseConstraints);
+      const qLegacy = query(collection(db, 'businesses'), where('category', '==', resolved.categoryName), ...baseConstraints);
+
+      const [newSnap, legacySnap] = await Promise.all([getDocs(qNew), getDocs(qLegacy)]);
+      const ids = new Set<string>();
+      newSnap.forEach((doc) => ids.add(doc.id));
+      legacySnap.forEach((doc) => ids.add(doc.id));
+      return ids.size;
     } catch (error) {
       console.error('Error counting businesses (client):', error);
       return 0;
@@ -362,23 +364,31 @@ async function getWaitlistPosition(
   zone?: Zone,
   specialty?: string
 ): Promise<number> {
+  const resolved = resolveCategory(categoryId);
   if (typeof window === 'undefined') {
     // Server-side
     try {
       const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
       
-      let query = db.collection('waitlist')
-        .where('category', '==', categoryId)
-        .where('targetPlan', '==', plan)
-        .where('status', '==', 'waiting')
-        .orderBy('createdAt', 'asc');
-      
-      if (zone) query = query.where('zone', '==', zone) as any;
-      if (specialty) query = query.where('specialty', '==', specialty) as any;
-      
-      const snapshot = await query.get();
-      return snapshot.size + 1;
+      const base = () => {
+        let q = db.collection('waitlist')
+          .where('targetPlan', '==', plan)
+          .where('status', '==', 'waiting')
+          .orderBy('createdAt', 'asc');
+        if (zone) q = q.where('zone', '==', zone) as any;
+        if (specialty) q = q.where('specialty', '==', specialty) as any;
+        return q;
+      };
+
+      const newQuery = base().where('categoryId', '==', resolved.categoryId);
+      const legacyQuery = base().where('category', '==', resolved.categoryName);
+
+      const [newSnap, legacySnap] = await Promise.all([newQuery.get(), legacyQuery.get()]);
+      const ids = new Set<string>();
+      newSnap.forEach((doc) => ids.add(doc.id));
+      legacySnap.forEach((doc) => ids.add(doc.id));
+      return ids.size + 1;
     } catch (error) {
       console.error('Error getting waitlist position (server):', error);
       return 1;
@@ -389,19 +399,22 @@ async function getWaitlistPosition(
       const { db } = await import('../firebaseConfig');
       const { collection, query, where, orderBy, getDocs } = await import('firebase/firestore');
       
-      const constraints = [
-        where('category', '==', categoryId),
+      const baseConstraints = [
         where('targetPlan', '==', plan),
         where('status', '==', 'waiting'),
         orderBy('createdAt', 'asc'),
       ];
-      
-      if (zone) constraints.push(where('zone', '==', zone));
-      if (specialty) constraints.push(where('specialty', '==', specialty));
-      
-      const q = query(collection(db, 'waitlist'), ...constraints);
-      const snapshot = await getDocs(q);
-      return snapshot.size + 1;
+      if (zone) baseConstraints.push(where('zone', '==', zone));
+      if (specialty) baseConstraints.push(where('specialty', '==', specialty));
+
+      const qNew = query(collection(db, 'waitlist'), where('categoryId', '==', resolved.categoryId), ...baseConstraints);
+      const qLegacy = query(collection(db, 'waitlist'), where('category', '==', resolved.categoryName), ...baseConstraints);
+
+      const [newSnap, legacySnap] = await Promise.all([getDocs(qNew), getDocs(qLegacy)]);
+      const ids = new Set<string>();
+      newSnap.forEach((doc) => ids.add(doc.id));
+      legacySnap.forEach((doc) => ids.add(doc.id));
+      return ids.size + 1;
     } catch (error) {
       console.error('Error getting waitlist position (client):', error);
       return 1;
@@ -422,6 +435,7 @@ export async function addToWaitlist(
   position: number;
   estimatedWaitDays: number;
 }> {
+  const resolved = resolveCategory(categoryId);
   if (typeof window === 'undefined') {
     // Server-side
     try {
@@ -430,7 +444,10 @@ export async function addToWaitlist(
       
       await db.collection('waitlist').add({
         businessId,
-        category: categoryId,
+        category: resolved.categoryName,
+        categoryId: resolved.categoryId,
+        categoryName: resolved.categoryName,
+        categoryGroupId: resolved.groupId,
         targetPlan,
         zone: zone || null,
         specialty: specialty || null,
@@ -448,7 +465,10 @@ export async function addToWaitlist(
       
       await addDoc(collection(db, 'waitlist'), {
         businessId,
-        category: categoryId,
+        category: resolved.categoryName,
+        categoryId: resolved.categoryId,
+        categoryName: resolved.categoryName,
+        categoryGroupId: resolved.groupId,
         targetPlan,
         zone: zone || null,
         specialty: specialty || null,
@@ -460,7 +480,7 @@ export async function addToWaitlist(
     }
   }
   
-  const position = await getWaitlistPosition(categoryId, targetPlan, zone, specialty);
+  const position = await getWaitlistPosition(resolved.categoryId, targetPlan, zone, specialty);
   
   // Estimar días de espera (promedio 30 días por posición)
   const estimatedWaitDays = position * 30;
@@ -480,24 +500,32 @@ export async function notifyWaitlistWhenAvailable(
   zone?: Zone,
   specialty?: string
 ): Promise<void> {
+  const resolved = resolveCategory(categoryId);
   try {
     const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
     const db = getFirestore();
+    const base = () => {
+      let q = db.collection('waitlist')
+        .where('targetPlan', '==', plan)
+        .where('status', '==', 'waiting');
+      if (zone) q = q.where('zone', '==', zone) as any;
+      if (specialty) q = q.where('specialty', '==', specialty) as any;
+      return q;
+    };
+
+    const [snapNew, snapLegacy] = await Promise.all([
+      base().where('categoryId', '==', resolved.categoryId).orderBy('createdAt', 'asc').limit(1).get(),
+      base().where('category', '==', resolved.categoryName).orderBy('createdAt', 'asc').limit(1).get(),
+    ]);
+
+    const candidates = [...snapNew.docs, ...snapLegacy.docs];
+    const waitlistEntry = candidates.sort((a, b) => {
+      const aTime = a.get('createdAt')?.toMillis?.() ?? Number.MAX_SAFE_INTEGER;
+      const bTime = b.get('createdAt')?.toMillis?.() ?? Number.MAX_SAFE_INTEGER;
+      return aTime - bTime;
+    })[0];
     
-    let query = db.collection('waitlist')
-      .where('category', '==', categoryId)
-      .where('targetPlan', '==', plan)
-      .where('status', '==', 'waiting')
-      .orderBy('createdAt', 'asc')
-      .limit(1);
-    
-    if (zone) query = query.where('zone', '==', zone) as any;
-    if (specialty) query = query.where('specialty', '==', specialty) as any;
-    
-    const firstInLine = await query.get();
-    
-    if (!firstInLine.empty) {
-      const waitlistEntry = firstInLine.docs[0];
+    if (waitlistEntry) {
       const data = waitlistEntry.data();
       const businessId = data.businessId;
       

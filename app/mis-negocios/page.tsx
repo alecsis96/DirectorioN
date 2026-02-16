@@ -150,7 +150,7 @@ export default function MisNegociosPage() {
               <p className="text-gray-600 mt-1">Gestiona y edita tus negocios registrados</p>
             </div>
             <Link
-              href="/registro-negocio"
+              href="/registro-negocio?mode=new"
               className="flex items-center gap-2 px-4 py-2 bg-[#38761D] text-white rounded-lg font-semibold hover:bg-[#2f5a1a] transition shadow-md hover:shadow-lg"
             >
               <Plus className="w-5 h-5" />

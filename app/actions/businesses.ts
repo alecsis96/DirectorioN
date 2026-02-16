@@ -1,13 +1,20 @@
-'use server';
+﻿'use server';
 
 import { z } from 'zod';
 import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../lib/adminOverrides';
 import { updateBusinessState } from '../../lib/businessStates';
+import { resolveCategory } from '../../lib/categoriesCatalog';
 
 const LAST_STEP_INDEX = 1;
 
 type SubmitMode = 'wizard' | 'application';
+
+type DayKey = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
+type HorarioDia = { abierto: boolean; desde: string; hasta: string };
+type HorariosSemana = Partial<Record<DayKey, HorarioDia>>;
+
+const weekdays: DayKey[] = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
 const submitActionSchema = z.object({
   token: z.string().min(1, 'Missing auth token'),
@@ -35,6 +42,9 @@ const updateActionSchema = z.object({
 const ALLOWED_FIELDS = new Set([
   'name',
   'category',
+  'categoryId',
+  'categoryName',
+  'categoryGroupId',
   'address',
   'colonia',
   'description',
@@ -49,12 +59,6 @@ const ALLOWED_FIELDS = new Set([
   'lng',
 ]);
 
-type DayKey = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes' | 'sabado' | 'domingo';
-type HorarioDia = { abierto: boolean; desde: string; hasta: string };
-type HorariosSemana = Partial<Record<DayKey, HorarioDia>>;
-
-const weekdays: DayKey[] = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-
 const parseJsonObject = (value: string, label: string) => {
   try {
     const parsed = JSON.parse(value);
@@ -67,17 +71,17 @@ const parseJsonObject = (value: string, label: string) => {
   }
 };
 
-function resolveMode(mode: unknown): SubmitMode {
+const resolveMode = (mode: unknown): SubmitMode => {
   return mode === 'application' ? 'application' : 'wizard';
-}
+};
 
-function asString(value: unknown, max = 500): string {
+const asString = (value: unknown, max = 500): string => {
   if (value === null || value === undefined) return '';
   const str = String(value).trim();
   return str.length > max ? str.slice(0, max) : str;
-}
+};
 
-function toArrayFromComma(value: unknown, maxItems = 30): string[] {
+const toArrayFromComma = (value: unknown, maxItems = 30): string[] => {
   const str = asString(value, 2000);
   if (!str) return [];
   return str
@@ -85,29 +89,25 @@ function toArrayFromComma(value: unknown, maxItems = 30): string[] {
     .map((p) => p.trim())
     .filter(Boolean)
     .slice(0, maxItems);
-}
+};
 
-function parseLatLng(value: unknown): number | null {
+const parseLatLng = (value: unknown): number | null => {
   const str = asString(value, 50);
   if (!str) return null;
   const parsed = Number(str.replace(',', '.'));
   return Number.isFinite(parsed) ? parsed : null;
-}
+};
 
-function coerceStringArray(value: unknown, allowed?: string[], maxItems = 20): string[] {
+const coerceStringArray = (value: unknown, allowed?: string[], maxItems = 20): string[] => {
   if (!Array.isArray(value)) return [];
-  const items = value
-    .map((entry) => asString(entry, 100))
-    .filter(Boolean);
+  const items = value.map((entry) => asString(entry, 100)).filter(Boolean);
   const filtered = allowed?.length ? items.filter((item) => allowed.includes(item)) : items;
   return Array.from(new Set(filtered)).slice(0, maxItems);
-}
+};
 
-function isValidTimeStr(value: string): boolean {
-  return /^[0-2]\d:[0-5]\d$/.test(value);
-}
+const isValidTimeStr = (value: string): boolean => /^[0-2]\d:[0-5]\d$/.test(value);
 
-function normalizeHorarios(value: unknown): HorariosSemana {
+const normalizeHorarios = (value: unknown): HorariosSemana => {
   const normalized: HorariosSemana = {};
   if (typeof value !== 'object' || value === null) return normalized;
   const obj = value as Record<string, any>;
@@ -120,9 +120,9 @@ function normalizeHorarios(value: unknown): HorariosSemana {
     normalized[key] = { abierto, desde, hasta };
   });
   return normalized;
-}
+};
 
-function labelDia(day: DayKey): string {
+const labelDia = (day: DayKey): string => {
   const labels: Record<DayKey, string> = {
     lunes: 'Lun',
     martes: 'Mar',
@@ -133,9 +133,9 @@ function labelDia(day: DayKey): string {
     domingo: 'Dom',
   };
   return labels[day];
-}
+};
 
-function summarizeHorarios(value: HorariosSemana): string {
+const summarizeHorarios = (value: HorariosSemana): string => {
   const parts: string[] = [];
   weekdays.forEach((day) => {
     const cfg = value[day];
@@ -143,19 +143,19 @@ function summarizeHorarios(value: HorariosSemana): string {
     parts.push(cfg.abierto ? `${labelDia(day)} ${cfg.desde}-${cfg.hasta}` : `${labelDia(day)} cerrado`);
   });
   return parts.join('; ');
-}
+};
 
-function normalizeEmailValue(value: string) {
-  if (!value) return '';
-  return value.trim().toLowerCase();
-}
+const normalizeEmailValue = (value: string) => (value ? value.trim().toLowerCase() : '');
 
 function buildSummary(formData: Record<string, unknown>, email: string, uid: string) {
   const businessName = asString(formData.businessName ?? 'Negocio sin nombre', 140);
   const ownerName = asString(formData.ownerName ?? formData.displayName ?? 'Propietario desconocido', 140);
   const ownerEmail = normalizeEmailValue(asString(formData.ownerEmail ?? formData.email ?? email ?? uid, 200));
   const ownerPhone = asString(formData.ownerPhone ?? '', 30);
-  const category = asString(formData.category ?? 'Sin categoría', 80);
+  const resolvedCategory = resolveCategory(
+    asString(formData.categoryId ?? formData.category ?? formData.categoryName ?? '', 120)
+  );
+  const category = resolvedCategory.categoryName || 'Sin categoría';
   const businessPhone = asString((formData as any).phone ?? '', 30);
   const whatsapp = asString((formData as any).whatsapp ?? '', 30);
 
@@ -192,7 +192,10 @@ function buildApplicationPayload(
   const ownerEmail = normalizeEmailValue(asString(formData.ownerEmail ?? owner.email ?? '', 200));
   const ownerPhone = asString(formData.ownerPhone ?? '', 30);
   const description = asString(formData.description, 2000);
-  const category = asString(formData.category ?? '', 120);
+  const resolvedCategory = resolveCategory(
+    asString(formData.categoryId ?? formData.category ?? formData.categoryName ?? '', 120)
+  );
+  const category = resolvedCategory.categoryName;
   const tags = toArrayFromComma(formData.tags, 30);
   const address = asString(formData.address ?? '', 400);
   const colonia = asString(formData.colonia ?? '', 140);
@@ -217,8 +220,8 @@ function buildApplicationPayload(
   const promocionesActivas = asString(formData.promocionesActivas ?? '', 500);
   const horarios = normalizeHorarios(formData.horarios);
   const hours = summarizeHorarios(horarios);
-  const plan = asString(formData.plan ?? 'free', 20) || 'free';
-  const featured = Boolean(formData.featured);
+  const plan = 'free';
+  const featured = false;
   const notes = asString(formData.notes ?? '', 800);
 
   const payload: Record<string, unknown> = {
@@ -228,6 +231,9 @@ function buildApplicationPayload(
     ownerPhone,
     description,
     category,
+    categoryId: resolvedCategory.categoryId,
+    categoryName: resolvedCategory.categoryName,
+    categoryGroupId: resolvedCategory.groupId,
     tags,
     address,
     colonia,
@@ -252,13 +258,13 @@ function buildApplicationPayload(
     promocionesActivas,
     horarios,
     hours,
-    plan: 'free', // Siempre inicia como free hasta que sea aprobado
-    featured: false,
+    plan,
+    featured,
     ownerId: owner.uid,
     ownerUid: owner.uid,
     notes,
     formData,
-    status: 'pending', // Siempre pending hasta aprobación del admin
+    status: 'pending',
   };
 
   if (lat != null && lng != null) {
@@ -266,16 +272,6 @@ function buildApplicationPayload(
   }
 
   return payload;
-}
-
-function sanitizeUpdates(source: Record<string, unknown>) {
-  const target: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(source)) {
-    if (!ALLOWED_FIELDS.has(key)) continue;
-    if (value === undefined) continue;
-    target[key] = value;
-  }
-  return target;
 }
 
 export async function submitNewBusiness(formData: FormData) {
@@ -288,7 +284,7 @@ export async function submitNewBusiness(formData: FormData) {
   });
 
   const payload = parseJsonObject(parsed.formPayload, 'formData');
-  const mode = resolveMode(parsed.mode);
+  const mode: SubmitMode = resolveMode(parsed.mode);
 
   const auth = getAdminAuth();
   const decoded = await auth.verifyIdToken(parsed.token);
@@ -322,8 +318,7 @@ export async function submitNewBusiness(formData: FormData) {
       console.error('[server-action submitNewBusiness] webhook error', error);
     }
 
-    // Enviar email de bienvenida (solo si es nueva aplicación)
-    if (!snapshot.exists && decoded.email) {
+    if (decoded.email) {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         await fetch(`${baseUrl}/api/send-email-notification`, {
@@ -338,44 +333,6 @@ export async function submitNewBusiness(formData: FormData) {
         });
       } catch (emailError) {
         console.warn('[server-action] Failed to send welcome email:', emailError);
-        // No fallar la operación si el email falla
-      }
-
-      // Notificar al admin por WhatsApp (solo si es nueva aplicación)
-      try {
-        const businessId = decoded.uid; // Usamos el uid como businessId temporal
-        
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        const notifyResponse = await fetch(`${baseUrl}/api/notify/wizard-complete`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${parsed.token}`,
-          },
-          body: JSON.stringify({
-            businessId,
-            businessName: asString(payload.businessName, 140),
-            category: asString(payload.category, 80),
-            phone: asString(payload.phone ?? payload.whatsapp, 30),
-            ownerName: asString(payload.ownerName ?? decoded.name, 140),
-            ownerEmail: decoded.email,
-            timestamp: new Date().toLocaleString('es-MX', {
-              timeZone: 'America/Mexico_City',
-              dateStyle: 'short',
-              timeStyle: 'short',
-            }),
-          }),
-        });
-
-        if (notifyResponse.ok) {
-          const notifyResult = await notifyResponse.json();
-          console.log('✅ [WhatsApp] Notification sent:', notifyResult);
-          notified = notified || notifyResult.whatsapp?.sent || notifyResult.slack?.sent;
-        } else {
-          console.warn('[WhatsApp] Notification endpoint failed:', notifyResponse.status);
-        }
-      } catch (whatsappError) {
-        console.warn('[server-action] Failed to send WhatsApp notification:', whatsappError);
       }
     }
 
@@ -407,6 +364,7 @@ export async function submitNewBusiness(formData: FormData) {
   const justSubmitted = typeof currentStep === 'number' && currentStep >= LAST_STEP_INDEX;
 
   let notified = false;
+  // When wizard is completed (justSubmitted), send notifications
   if (justSubmitted) {
     const summary = buildSummary(payload, decoded.email ?? '', decoded.uid);
     try {
@@ -415,7 +373,6 @@ export async function submitNewBusiness(formData: FormData) {
       console.error('[server-action submitNewBusiness] webhook after wizard error', error);
     }
 
-    // Enviar email de bienvenida al completar wizard
     if (decoded.email) {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -431,46 +388,7 @@ export async function submitNewBusiness(formData: FormData) {
         });
       } catch (emailError) {
         console.warn('[server-action] Failed to send welcome email after wizard:', emailError);
-        // No fallar la operación si el email falla
       }
-    }
-
-    // Notificar al admin por WhatsApp al completar wizard (nuevo sistema robusto)
-    try {
-      // Generar businessId único si no existe
-      const businessId = decoded.uid; // Usamos el uid como businessId para el wizard
-      
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      const notifyResponse = await fetch(`${baseUrl}/api/notify/wizard-complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${parsed.token}`,
-        },
-        body: JSON.stringify({
-          businessId,
-          businessName: asString(payload.businessName, 140),
-          category: asString(payload.category, 80),
-          phone: asString(payload.phone ?? payload.whatsapp, 30),
-          ownerName: asString(payload.ownerName ?? decoded.name, 140),
-          ownerEmail: decoded.email,
-          timestamp: new Date().toLocaleString('es-MX', {
-            timeZone: 'America/Mexico_City',
-            dateStyle: 'short',
-            timeStyle: 'short',
-          }),
-        }),
-      });
-
-      if (notifyResponse.ok) {
-        const notifyResult = await notifyResponse.json();
-        console.log('✅ [WhatsApp] Notification sent:', notifyResult);
-        notified = notified || notifyResult.whatsapp?.sent || notifyResult.slack?.sent;
-      } else {
-        console.warn('[WhatsApp] Notification endpoint failed:', notifyResponse.status);
-      }
-    } catch (whatsappError) {
-      console.warn('[server-action] Failed to send WhatsApp notification after wizard:', whatsappError);
     }
   }
 
@@ -485,9 +403,24 @@ export async function updateBusinessDetails(businessId: string, formData: FormDa
   });
 
   const updates = parseJsonObject(parsed.updates, 'updates');
-  const sanitized = sanitizeUpdates(updates);
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(updates)) {
+    if (!ALLOWED_FIELDS.has(key)) continue;
+    if (value === undefined) continue;
+    sanitized[key] = value;
+  }
   if (!Object.keys(sanitized).length) {
     throw new Error('No hay campos válidos para actualizar.');
+  }
+
+  if ('category' in sanitized || 'categoryId' in sanitized || 'categoryName' in sanitized) {
+    const resolved = resolveCategory(
+      asString((sanitized as any).categoryId ?? (sanitized as any).category ?? (sanitized as any).categoryName ?? '', 120)
+    );
+    sanitized.category = resolved.categoryName;
+    sanitized.categoryId = resolved.categoryId;
+    sanitized.categoryName = resolved.categoryName;
+    (sanitized as any).categoryGroupId = resolved.groupId;
   }
 
   const auth = getAdminAuth();
@@ -510,7 +443,6 @@ export async function updateBusinessDetails(businessId: string, formData: FormDa
   sanitized.updatedAt = new Date();
   await ref.set(sanitized, { merge: true });
 
-  // 🔥 CRÍTICO: Recalcular estado después de actualizar
   const updatedSnap = await ref.get();
   if (updatedSnap.exists) {
     const updatedData = updatedSnap.data() as Record<string, unknown>;

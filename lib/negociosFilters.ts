@@ -1,7 +1,12 @@
+import type { CategoryGroupId } from "./categoriesCatalog";
+
 export type SortMode = "destacado" | "rating" | "az";
 
 export type Filters = {
   category: string;
+  categoryId?: string;
+  categoryName?: string;
+  categoryGroupId?: CategoryGroupId;
   colonia: string;
   order: SortMode;
   page: number;
@@ -14,6 +19,9 @@ export const DEFAULT_ORDER: SortMode = "destacado";
 
 export const DEFAULT_FILTER_STATE: Filters = {
   category: "",
+  categoryId: "",
+  categoryName: "",
+  categoryGroupId: undefined,
   colonia: "",
   order: DEFAULT_ORDER,
   page: 1,

@@ -2,9 +2,9 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import AdminApplicationsList, { type AdminApplication } from '../../../components/AdminApplicationsList';
-import AdminQuickNav from '../../../components/AdminQuickNav';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
+import { requireLegacyAccess } from '../../../lib/legacyRouteGuard';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +71,9 @@ async function fetchPendingApplications(): Promise<AdminApplication[]> {
 }
 
 export default async function AdminApplicationsPage() {
+  // Guard: verificar si rutas legacy están habilitadas
+  requireLegacyAccess('/admin/applications');
+  
   await requireAdmin();
   const applications = await fetchPendingApplications();
 
@@ -87,9 +90,6 @@ export default async function AdminApplicationsPage() {
         {/* Content */}
         <AdminApplicationsList applications={applications} />
       </div>
-      
-      {/* Navegación flotante */}
-      <AdminQuickNav />
     </main>
   );
 }

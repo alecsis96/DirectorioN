@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import AdminBusinessPanel from '../../../components/AdminBusinessPanel';
+import AdminBusinessPanel from '../../../../components/AdminBusinessPanel';
 
 export const metadata: Metadata = {
   title: 'Solicitudes de Negocios | Admin',

@@ -1,7 +1,12 @@
+﻿import { resolveCategory, type CategoryGroupId } from "../lib/categoriesCatalog";
+
 export type Business = {
   id?: string;
   name: string;
   category?: string;
+  categoryId?: string;
+  categoryName?: string;
+  categoryGroupId?: CategoryGroupId;
   description?: string;
   colonia?: string;
   neighborhood?: string;
@@ -45,9 +50,9 @@ export type Business = {
   // Status field (legacy - mantener por compatibilidad)
   status?: 'draft' | 'review' | 'published' | 'rejected';
   
-  // 🆕 Sistema Dual-State (nuevo sistema de estados)
-  businessStatus?: 'draft' | 'in_review' | 'published';
-  applicationStatus?: 'submitted' | 'needs_info' | 'ready_for_review' | 'approved' | 'rejected';
+  // Sistema Dual-State (nuevo sistema de estados)
+  businessStatus?: 'draft' | 'in_review' | 'published' | 'deleted';
+  applicationStatus?: 'submitted' | 'needs_info' | 'ready_for_review' | 'approved' | 'rejected' | 'deleted';
   completionPercent?: number; // 0-100
   isPublishReady?: boolean;
   missingFields?: string[];
@@ -57,6 +62,19 @@ export type Business = {
   publishedAt?: string; // ISO timestamp
   createdAt?: string; // ISO timestamp
   updatedAt?: string; // ISO timestamp
+  submittedForReviewAt?: string; // ISO timestamp - cuando se envió a revisión
+  submittedForReviewBy?: string; // userId - quien envió a revisión
+  lastReviewRequestedAt?: string; // ISO timestamp - última solicitud de revisión
+  deletedAt?: string; // ISO timestamp - cuando se eliminó
+  deletedBy?: string; // userId - quien eliminó
+  
+  // Admin Operations (gestión de duplicados y archivado)
+  adminStatus?: 'active' | 'archived' | 'deleted'; // Estado administrativo
+  visibility?: 'published' | 'hidden'; // Visibilidad en directorio
+  duplicateOf?: string; // businessId del negocio canonical si es duplicado
+  archivedAt?: string; // ISO timestamp - cuando se archivó
+  archivedBy?: string; // userId admin - quien archivó
+  archiveReason?: string; // Motivo del archivado
   
   // Payment fields
   isActive?: boolean;
@@ -99,6 +117,9 @@ export interface BusinessPreview {
   id: string;
   name: string;
   category: string;
+  categoryId?: string;
+  categoryName?: string;
+  categoryGroupId?: CategoryGroupId;
   colonia: string;
   rating?: number | null;
   ownerId?: string;
@@ -124,6 +145,8 @@ export interface BusinessPreview {
 }
 
 export const pickBusinessPreview = (biz: Business): BusinessPreview => {
+  const resolved = resolveCategory(biz.categoryId || biz.categoryName || biz.category);
+  const categoryName = biz.categoryName || resolved.categoryName;
   const phone = typeof biz.phone === "string" && biz.phone.trim().length ? biz.phone.trim() : undefined;
   const whatsapp = typeof biz.WhatsApp === "string" && biz.WhatsApp.trim().length ? biz.WhatsApp.trim() : undefined;
   const sanitizedHorarios = biz.horarios ? { ...biz.horarios } : undefined;
@@ -131,7 +154,10 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
   return {
     id: biz.id ?? "",
     name: biz.name,
-    category: biz.category ?? "",
+    category: categoryName ?? biz.category ?? "",
+    categoryId: biz.categoryId ?? resolved.categoryId,
+    categoryName: categoryName ?? resolved.categoryName,
+    categoryGroupId: biz.categoryGroupId ?? resolved.groupId,
     colonia: biz.colonia ?? biz.neighborhood ?? "",
     ownerId: biz.ownerId,
     ownerEmail: biz.ownerEmail,

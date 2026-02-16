@@ -42,6 +42,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Forbidden: You are not the owner of this business' });
     }
 
+    // 🔒 THROTTLING: Evitar notificaciones duplicadas en menos de 30 minutos
+    const lastNotified = businessData?.submittedForReviewAt;
+    if (lastNotified) {
+      const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
+      const lastNotifiedTime = lastNotified.toMillis?.() || lastNotified.seconds * 1000 || 0;
+      
+      if (lastNotifiedTime > thirtyMinutesAgo) {
+        console.log('[notify-business-review] Throttled: notification sent recently');
+        return res.status(200).json({ 
+          ok: true, 
+          throttled: true,
+          message: 'Notification already sent recently' 
+        });
+      }
+    }
+
     // Construir mensaje para Slack/webhook
     const webhookUrl = process.env.SLACK_WEBHOOK_URL || process.env.NOTIFY_WEBHOOK_URL;
     

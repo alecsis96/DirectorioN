@@ -4,7 +4,6 @@ import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdm
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import PaymentManager from '../../../components/PaymentManagerWrapper';
 import ReceiptListClient from '../../../components/ReceiptListClient';
-import AdminQuickNav from '../../../components/AdminQuickNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -198,8 +197,6 @@ export default async function AdminPaymentsPage() {
           <ReceiptListClient initialReceipts={receipts} />
         </div>
       </div>
-      
-      <AdminQuickNav />
     </main>
     );
   } catch (error) {

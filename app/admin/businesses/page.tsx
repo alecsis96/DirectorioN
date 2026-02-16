@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import AdminBusinessList from '../../../components/AdminBusinessList';
-import AdminQuickNav from '../../../components/AdminQuickNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -176,9 +175,6 @@ export default async function AdminBusinessesPage() {
           </>
         )}
       </div>
-      
-      {/* Navegación flotante */}
-      <AdminQuickNav />
     </main>
   );
 }

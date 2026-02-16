@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { auth } from '../../../firebaseConfig';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import Link from 'next/link';
-import AdminQuickNav from '../../../components/AdminQuickNav';
 import {
   REPORT_REASON_LABELS,
   REPORT_STATUS_LABELS,
@@ -312,8 +311,6 @@ export default function AdminReportsPage() {
           </div>
         )}
       </div>
-      
-      <AdminQuickNav />
     </main>
   );
 }

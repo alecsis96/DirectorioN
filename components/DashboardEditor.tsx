@@ -3,7 +3,7 @@
  * Dashboard para editar negocios
  * Con nuevo sistema de estados y completitud
  */
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -19,10 +19,11 @@ import ScarcityBadge from './ScarcityBadge';
 import { BsBank, BsUpload } from 'react-icons/bs';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
 import { updateBusinessDetails } from '../app/actions/businesses';
-import { requestPublish, updateBusinessWithState } from '../app/actions/businessActions';
+import { requestPublish, updateBusinessWithState, deleteBusiness } from '../app/actions/businessActions';
 import { computeProfileCompletion, updateBusinessState, type BusinessWithState } from '../lib/businessStates';
 import type { Business } from '../types/business';
 import { YAJALON_COLONIAS } from '../lib/helpers/colonias';
+import { CATEGORY_GROUPS, CATEGORIES, getCategoriesByGroup, resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
 
 type DaySchedule = { open: boolean; start: string; end: string };
 type WeeklySchedule = Record<string, DaySchedule>;
@@ -35,7 +36,10 @@ type AddressState = {
 
 type FormState = {
   name: string;
-  category: string;
+  category: string; // legacy label
+  categoryId: string;
+  categoryName: string;
+  categoryGroupId: CategoryGroupId;
   address: string;
   colonia: string;
   description: string;
@@ -76,6 +80,9 @@ function parseHours(value?: string) {
 const defaultFormState = {
   name: '',
   category: '',
+  categoryId: '',
+  categoryName: '',
+  categoryGroupId: 'food' as CategoryGroupId,
   address: '',
   colonia: '',
   description: '',
@@ -95,10 +102,14 @@ const defaultFormState = {
 function mapToFormState(data?: Partial<Business>): FormState {
   if (!data) return { ...defaultFormState };
   const { openTime, closeTime } = parseHours(typeof data.hours === 'string' ? data.hours : undefined);
+  const resolvedCategory = resolveCategory(data.categoryId || data.categoryName || data.category);
   return {
     ...defaultFormState,
     name: data.name ?? '',
-    category: data.category ?? '',
+    category: data.category ?? resolvedCategory.categoryName ?? '',
+    categoryId: data.categoryId ?? resolvedCategory.categoryId,
+    categoryName: data.categoryName ?? resolvedCategory.categoryName,
+    categoryGroupId: data.categoryGroupId ?? resolvedCategory.groupId,
     address: data.address ?? '',
     colonia: data.colonia ?? '',
     description: data.description ?? '',
@@ -205,6 +216,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   const [biz, setBiz] = useState<Business | null>(normalizedInitial ?? null);
   const [form, setForm] = useState<FormState>(() => mapToFormState(normalizedInitial));
   const [schedule, setSchedule] = useState<WeeklySchedule>(() => mapToScheduleState(normalizedInitial));
+  const [selectedGroupId, setSelectedGroupId] = useState<CategoryGroupId>(() => form.categoryGroupId || 'food');
+  const availableCategories = useMemo(
+    () => getCategoriesByGroup(selectedGroupId),
+    [selectedGroupId]
+  );
 
   // Estados de UI consolidados
   const [uiState, setUiState] = useState({
@@ -226,6 +242,25 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   // Estado para errores de validación
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+  const handleCategorySelect = useCallback((categoryId: string) => {
+    const cat = CATEGORIES.find((c) => c.id === categoryId);
+    if (!cat) return;
+    setForm((prev) => ({
+      ...prev,
+      category: cat.name,
+      categoryId: cat.id,
+      categoryName: cat.name,
+      categoryGroupId: cat.groupId,
+    }));
+    setSelectedGroupId(cat.groupId);
+  }, []);
+
+  useEffect(() => {
+    if (form.categoryGroupId && form.categoryGroupId !== selectedGroupId) {
+      setSelectedGroupId(form.categoryGroupId as CategoryGroupId);
+    }
+  }, [form.categoryGroupId, selectedGroupId]);
+
   // Ref para saber si ya se cargaron los datos iniciales
   const isInitialLoadRef = useRef(true);
 
@@ -242,6 +277,12 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
   // NUEVO: Estado para manejar la publicación
   const [publishLoading, setPublishLoading] = useState(false);
+  
+  // Estado para modal de eliminación
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteCheckbox, setDeleteCheckbox] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Sincronizar businessState cuando cambie biz
   useEffect(() => {
@@ -296,7 +337,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     const total = 12;
 
     if (form.name?.trim()) completed++;
-    if (form.category) completed++;
+    if (form.categoryId || form.category) completed++;
     if (form.description?.trim() && form.description.length >= 20) completed++;
     if (form.phone?.trim()) completed++;
     if (form.address?.trim()) completed++;
@@ -318,7 +359,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     if (!form.name?.trim()) {
       errors.name = 'El nombre es obligatorio';
     }
-    if (!form.category) {
+    if (!form.categoryId && !form.categoryName) {
       errors.category = 'Selecciona una categoría';
     }
     if (!form.description?.trim() || form.description.length < 20) {
@@ -351,7 +392,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     isInitialLoadRef.current = true;
     
     setBiz(data);
-    setForm(mapToFormState(data));
+    const mapped = mapToFormState(data);
+    setForm(mapped);
+    setSelectedGroupId(mapped.categoryGroupId || 'food');
     setAddr(mapToAddressState(data));
     setSchedule(mapToScheduleState(data));
     setHasUnsavedChanges(false);
@@ -499,9 +542,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       const result = await requestPublish(id, token);
       
       if (result.success) {
+        // ✅ Mantener draft hasta que admin apruebe
         setBusinessState(prev => ({
           ...prev,
-          businessStatus: 'in_review',
+          businessStatus: 'draft', // Correcto: permanece draft hasta aprobación
           applicationStatus: 'ready_for_review',
         }));
         
@@ -533,57 +577,63 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     }
   };
 
-  async function submitForReview() {
-    if (!id || !userCanEdit || !biz) return;
-    if (biz.status !== 'draft' && biz.status !== 'rejected') {
-      setUiState(prev => ({ ...prev, msg: 'Este negocio ya esta en revision o publicado.' }));
+  // ============================================
+  // HANDLER: Eliminar negocio (con confirmación segura)
+  // ============================================
+  
+  const handleDeleteBusiness = async () => {
+    if (!id || !biz || !user) return;
+    
+    // Validar confirmación
+    const confirmValid = 
+      deleteConfirmText.trim().toLowerCase() === 'eliminar' ||
+      deleteConfirmText.trim().toLowerCase() === biz.name?.toLowerCase();
+    
+    if (!confirmValid || !deleteCheckbox) {
+      setUiState(prev => ({ 
+        ...prev, 
+        msg: 'Debes completar la confirmación correctamente' 
+      }));
       return;
     }
     
-    // Validar formulario completo
-    if (!validateForm()) {
-      setUiState(prev => ({ ...prev, msg: 'Por favor completa todos los campos obligatorios marcados con *' }));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    setUiState(prev => ({ ...prev, submitting: true, msg: 'Enviando a revision...' }));
+    setDeleteLoading(true);
     try {
-      await updateDoc(doc(db, 'businesses', id), {
-        status: 'review',
-        submittedAt: new Date(),
-        ownerId: biz.ownerId,
-        ownerEmail: biz.ownerEmail,
-      });
-
-      try {
-        const token = await user?.getIdToken();
-        if (token) {
-          await fetch('/api/notify-business-review', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              businessId: id,
-              businessName: form.name || biz.name,
-            }),
-          });
-        }
-      } catch (notifyError) {
-        console.warn('Error al notificar al admin:', notifyError);
+      const token = await user.getIdToken();
+      const result = await deleteBusiness(id, token);
+      
+      if (result.success) {
+        // Redirigir a home después de eliminar
+        setUiState(prev => ({ 
+          ...prev, 
+          msg: '✅ Negocio eliminado correctamente. Redirigiendo...' 
+        }));
+        
+        setTimeout(() => {
+          router.push('/');
+        }, 2000);
+      } else {
+        setUiState(prev => ({ 
+          ...prev, 
+          msg: result.error || 'No se pudo eliminar el negocio.' 
+        }));
+        setShowDeleteModal(false);
       }
-
-      setBiz((prev) => prev ? ({ ...prev, status: 'review' }) : null);
-      setUiState(prev => ({ ...prev, msg: 'Negocio enviado a revision. Te notificaremos cuando sea aprobado.' }));
     } catch (error) {
-      console.error('Error al enviar a revision:', error);
-      setUiState(prev => ({ ...prev, msg: 'Error al enviar. Intenta nuevamente.' }));
+      console.error('Error al eliminar negocio:', error);
+      setUiState(prev => ({ 
+        ...prev, 
+        msg: error instanceof Error ? error.message : 'Error al eliminar negocio' 
+      }));
+      setShowDeleteModal(false);
     } finally {
-      setUiState(prev => ({ ...prev, submitting: false }));
+      setDeleteLoading(false);
     }
-  }
+  };
+
+  // ============================================
+  // UTILITY: Upgrade by payment transfer
+  // ============================================
 
   async function handleUpgradeByTransfer(targetPlan: 'featured' | 'sponsor' = 'sponsor') {
     if (!id || !biz || !user) return;
@@ -824,10 +874,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
             </div>
           )}
 
-          {/* Información adicional del perfil (mantener para referencia) */}
+          {/* Botones de acción principales */}
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 mb-6">
-
-            <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4">
+            <div className="flex flex-wrap gap-2 w-full md:w-auto">
               <button
                 onClick={() => {
                   if (biz.id) {
@@ -843,16 +892,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 <span className="hidden sm:inline">Vista previa</span>
                 <span className="sm:hidden">Preview</span>
               </button>
-              {(biz.status === 'draft' || biz.status === 'rejected') && (
-                <button
-                  onClick={submitForReview}
-                  disabled={uiState.submitting}
-                  className="px-3 sm:px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-xs sm:text-sm font-semibold disabled:opacity-60 flex-1 sm:flex-initial"
-                >
-                  <span className="hidden sm:inline">{uiState.submitting ? 'Enviando...' : 'Enviar a revision'}</span>
-                  <span className="sm:hidden">{uiState.submitting ? 'Enviando...' : 'Revisar'}</span>
-                </button>
-              )}
               <button
                 onClick={save}
                 disabled={uiState.busy}
@@ -888,28 +927,62 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Categoría <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      className={`border rounded-lg px-3 py-2 w-full ${validationErrors.category ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
-                      value={form.category}
-                      onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    >
-                      <option value="">Selecciona una categoría</option>
-                    <option value="Restaurante">Restaurante</option>
-                    <option value="Cafetería">Cafetería</option>
-                    <option value="Panadería">Panadería</option>
-                    <option value="Comida Rápida">Comida Rápida</option>
-                    <option value="Servicios">Servicios</option>
-                    <option value="Comercio">Comercio</option>
-                    <option value="Tecnología">Tecnología</option>
-                    <option value="Salud y Belleza">Salud y Belleza</option>
-                    <option value="Educación">Educación</option>
-                    <option value="Entretenimiento">Entretenimiento</option>
-                    <option value="Deportes">Deportes</option>
-                    <option value="Automotriz">Automotriz</option>
-                    <option value="Construcción">Construcción</option>
-                    <option value="Profesional">Profesional</option>
-                    <option value="Otro">Otro</option>
-                    </select>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {CATEGORY_GROUPS.map((group) => {
+                          const isSelected = selectedGroupId === group.id;
+                          return (
+                            <button
+                              key={group.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedGroupId(group.id);
+                                setForm((prev) => ({ ...prev, categoryGroupId: group.id }));
+                                const first = getCategoriesByGroup(group.id)[0];
+                                if (first) {
+                                  handleCategorySelect(first.id);
+                                }
+                              }}
+                              className={`flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all ${
+                                isSelected
+                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
+                                  : 'border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/40'
+                              }`}
+                            >
+                              <span className="text-lg">{group.icon}</span>
+                              <span className="text-xs font-semibold leading-tight">{group.name}</span>
+                              {group.description && <span className="text-[11px] text-gray-500">{group.description}</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {availableCategories.map((cat) => {
+                          const isSelected = form.categoryId ? form.categoryId === cat.id : form.category === cat.name;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => handleCategorySelect(cat.id)}
+                              className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition-all ${
+                                isSelected
+                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
+                                  : 'border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/60'
+                              }`}
+                            >
+                              <span className="flex items-center gap-2">
+                                <span className="text-lg">{cat.icon}</span>
+                                <span className="font-semibold">{cat.name}</span>
+                              </span>
+                              {isSelected && <span className="text-xs font-semibold text-emerald-700">Elegida</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Guardamos el slug estable (categoryId) y mantenemos la etiqueta legacy para compatibilidad con datos anteriores.
+                      </p>
+                    </div>
                     {validationErrors.category && (
                       <p className="text-red-500 text-xs mt-1">{validationErrors.category}</p>
                     )}
@@ -1253,33 +1326,33 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               </div>
 
-              {/* Logo y Banner - Solo para planes Featured y Sponsor */}
+              {/* Logo del negocio - Disponible para TODOS los planes (OPCIONAL) */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-2xl">🎨</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Logo del negocio</h2>
+                  <span className="text-xs px-2 py-0.5 rounded-full border bg-gray-100 text-gray-700 border-gray-300">
+                    Opcional
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full border bg-green-100 text-green-700 border-green-300">
+                    Todos los planes
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Tu logo aparece en las tarjetas de tu negocio y mejora el reconocimiento de marca. 
+                  <span className="font-semibold text-[#38761D]"> No es obligatorio</span>, pero ayuda a que los clientes te identifiquen fácilmente.
+                </p>
+                <LogoUploader
+                  businessId={id!}
+                  logoUrl={biz.logoUrl || null}
+                  logoPublicId={biz.logoPublicId || null}
+                  onChange={(url, publicId) => setBiz((b) => b ? ({ ...b, logoUrl: url, logoPublicId: publicId }) : null)}
+                />
+              </div>
+
+              {/* Banner/Cover - Solo para planes Featured y Sponsor */}
               {(biz.plan === 'featured' || biz.plan === 'sponsor') && (
                 <>
-                  {/* Sección de Logo */}
-                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">🎨</span>
-                      <h2 className="text-lg font-semibold text-gray-900">Logo del negocio</h2>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                        biz.plan === 'featured' 
-                          ? 'bg-amber-100 text-amber-700 border-amber-300' 
-                          : 'bg-purple-100 text-purple-700 border-purple-300'
-                      }`}>
-                        Incluido en tu plan
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Tu logo aparece en las tarjetas de tu negocio y mejora el reconocimiento de marca
-                    </p>
-                    <LogoUploader
-                      businessId={id!}
-                      logoUrl={biz.logoUrl || null}
-                      logoPublicId={biz.logoPublicId || null}
-                      onChange={(url, publicId) => setBiz((b) => b ? ({ ...b, logoUrl: url, logoPublicId: publicId }) : null)}
-                    />
-                  </div>
-
                   {/* Sección de Banner/Cover */}
                   <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
                     <div className="flex items-center gap-2">
@@ -1311,20 +1384,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
             {/* Lateral */}
             <div className="space-y-4">
-              {biz.status === 'draft' && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-2">
-                  <h3 className="font-semibold text-yellow-900">Borrador</h3>
-                  <p className="text-sm text-yellow-800">Completa la informacion y envia a revision para publicar.</p>
-                  <button
-                    onClick={submitForReview}
-                    disabled={uiState.submitting}
-                    className="w-full px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-sm font-semibold disabled:opacity-60"
-                  >
-                    {uiState.submitting ? 'Enviando...' : 'Enviar a revision'}
-                  </button>
-                </div>
-              )}
-
               {/* Sistema avanzado de upgrade con escasez artificial */}
               {biz.plan === 'free' && biz.category && (
                 <div className="space-y-6">
@@ -1627,7 +1686,38 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     </div>
                   </div>
                 )}
-                <div className="flex flex-col gap-2">
+                
+                {/* ⚠️ ZONA DE PELIGRO */}
+                <div className="mt-8 border-2 border-red-200 rounded-xl bg-red-50 p-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <span className="text-2xl">⚠️</span>
+                    <div>
+                      <h3 className="text-lg font-bold text-red-900 mb-1">Zona de Peligro</h3>
+                      <p className="text-sm text-red-700">
+                        Acciones permanentes que no se pueden deshacer
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg p-4 border-2 border-red-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Eliminar negocio</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Esta acción es permanente y eliminará todos los datos
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-semibold"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col gap-2 mt-6">
                   <button
                     onClick={() => signOut(auth)}
                     className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
@@ -1647,6 +1737,102 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
             </div>
           </div>
         </>
+      )}
+      
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <span className="text-3xl">⚠️</span>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-red-900 mb-1">¿Eliminar negocio?</h3>
+                <p className="text-sm text-gray-600">
+                  Esta acción es <strong>permanente</strong> y no se puede deshacer
+                </p>
+              </div>
+            </div>
+            
+            {/* Lista de consecuencias */}
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+              <p className="text-sm font-semibold text-red-900 mb-2">Se perderá:</p>
+              <ul className="text-xs text-red-800 space-y-1 ml-4 list-disc">
+                <li>Todos los datos del negocio</li>
+                <li>Imágenes y contenido subido</li>
+                <li>Estadísticas y reportes</li>
+                <li>El negocio desaparecerá del directorio</li>
+              </ul>
+            </div>
+            
+            {/* Confirmación por texto */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Para confirmar, escribe <span className="text-red-600 font-mono">ELIMINAR</span> o el nombre exacto de tu negocio:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Escribe ELIMINAR o el nombre del negocio"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Nombre del negocio: <span className="font-semibold">{biz?.name}</span>
+              </p>
+            </div>
+            
+            {/* Checkbox de confirmación */}
+            <div className="mb-6">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteCheckbox}
+                  onChange={(e) => setDeleteCheckbox(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <span className="text-sm text-gray-700">
+                  Entiendo que esta acción es <strong>permanente</strong> y no se puede deshacer
+                </span>
+              </label>
+            </div>
+            
+            {/* Botones */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                  setDeleteCheckbox(false);
+                }}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteBusiness}
+                disabled={
+                  deleteLoading ||
+                  !deleteCheckbox ||
+                  !(
+                    deleteConfirmText.trim().toLowerCase() === 'eliminar' ||
+                    deleteConfirmText.trim().toLowerCase() === biz?.name?.toLowerCase()
+                  )
+                }
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleteLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Eliminando...</span>
+                  </div>
+                ) : (
+                  'Eliminar permanentemente'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
     </>

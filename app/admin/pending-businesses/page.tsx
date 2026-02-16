@@ -1,9 +1,9 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import PendingBusinessesList from '../../../components/PendingBusinessesList';
-import AdminQuickNav from '../../../components/AdminQuickNav';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
+import { requireLegacyAccess } from '../../../lib/legacyRouteGuard';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +83,9 @@ async function fetchPendingBusinesses(): Promise<PendingBusiness[]> {
 }
 
 export default async function PendingBusinessesPage() {
+  // Guard: verificar si rutas legacy están habilitadas
+  requireLegacyAccess('/admin/pending-businesses');
+  
   await requireAdmin();
   const businesses = await fetchPendingBusinesses();
 
@@ -98,8 +101,6 @@ export default async function PendingBusinessesPage() {
         </div>
         <PendingBusinessesList businesses={businesses} />
       </div>
-      
-      <AdminQuickNav />
     </main>
   );
 }

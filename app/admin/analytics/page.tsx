@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { auth } from '../../../firebaseConfig';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import Link from 'next/link';
-import AdminQuickNav from '../../../components/AdminQuickNav';
 import useSWR from 'swr';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -587,8 +586,6 @@ export default function AnalyticsPage() {
           </div>
         )}
       </div>
-      
-      <AdminQuickNav />
     </main>
   );
 }

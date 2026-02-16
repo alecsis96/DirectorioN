@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import ReviewsModerationClient from '../../../components/ReviewsModerationClient';
-import AdminQuickNav from '../../../components/AdminQuickNav';
 
 export const metadata = {
   title: 'Moderación de Reseñas | Admin',
@@ -152,8 +151,6 @@ export default async function ReviewsModerationPage() {
           <ReviewsModerationClient initialReviews={reviews} />
         </Suspense>
       </div>
-      
-      <AdminQuickNav />
     </main>
   );
 }
