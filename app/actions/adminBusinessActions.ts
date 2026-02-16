@@ -924,7 +924,8 @@ export async function createAssistedBusiness(
     const auth = getAdminAuth();
     const decoded = await auth.verifyIdToken(authToken);
     
-    if (!decoded.admin && !decoded.email?.includes('@admin')) {
+    const { hasAdminOverride } = await import('../../lib/adminOverrides');
+    if (!decoded.admin && !hasAdminOverride(decoded.email)) {
       return {
         success: false,
         error: 'No autorizado - Se requiere permiso de admin',
