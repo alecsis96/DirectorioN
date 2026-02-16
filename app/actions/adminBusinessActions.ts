@@ -156,6 +156,7 @@ export async function approveBusiness(
   await businessRef.update({
     businessStatus: 'published' as BusinessStatus,
     applicationStatus: 'approved' as ApplicationStatus,
+    visibility: 'published', // Hacer visible en directorio público
     publishedAt: new Date(),
     lastReviewedAt: new Date(),
     adminNotes: adminNotes || null,
