@@ -7,6 +7,7 @@ import { trackCTA, trackBusinessInteraction } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
 import { getBusinessStatus } from "./BusinessHours";
 import { useFavorites } from "../context/FavoritesContext";
+import { resolveCategory } from "../lib/categoriesCatalog";
 import { generateBusinessPlaceholder } from "../lib/placeholderGenerator";
 import { 
   getPlanTokens, 
@@ -144,60 +145,81 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     }
   };
 
-  // Mapeo de categorías a iconos/emojis
-  const getCategoryIcon = (category: string | undefined): string => {
-    if (!category) return '🏢';
+  // Obtener ícono de categoría desde el catálogo oficial
+  const getCategoryIcon = (categoryName: string | undefined, categoryId: string | undefined): string => {
+    if (!categoryName && !categoryId) return '🏢';
     
-    const categoryIcons: Record<string, string> = {
-      'Restaurante': '🍽️',
-      'Comida Rápida': '🍔',
-      'Cafetería': '☕',
-      'Bar': '🍺',
-      'Panadería': '🥖',
-      'Supermercado': '🛒',
-      'Tienda': '🏪',
-      'Ropa': '👔',
-      'Zapatos': '👞',
-      'Joyería': '💍',
-      'Electrónica': '📱',
-      'Ferretería': '🔨',
-      'Farmacia': '💊',
-      'Hospital': '🏥',
-      'Clínica': '⚕️',
-      'Dentista': '🦷',
-      'Gimnasio': '💪',
-      'Spa': '💆',
-      'Salón de Belleza': '💇',
-      'Barbería': '💈',
-      'Taller': '🔧',
-      'Mecánico': '🚗',
-      'Gasolinera': '⛽',
-      'Hotel': '🏨',
-      'Educación': '📚',
-      'Escuela': '🎓',
-      'Librería': '📖',
-      'Papelería': '📝',
-      'Floristería': '💐',
-      'Mascotas': '🐾',
-      'Veterinaria': '🐕',
-      'Banco': '🏦',
-      'Seguros': '🛡️',
-      'Inmobiliaria': '🏠',
-      'Construcción': '🏗️',
-      'Lavandería': '🧺',
-      'Fotografía': '📷',
-      'Imprenta': '🖨️',
-      'Transporte': '🚚',
-      'Turismo': '✈️',
-      'Entretenimiento': '🎭',
-      'Cine': '🎬',
-      'Deportes': '⚽',
-      'Música': '🎵',
-      'Arte': '🎨',
-      'Otro': '🏢'
+    // Intentar resolver desde el catálogo usando categoryId o categoryName
+    const resolved = resolveCategory(categoryId || categoryName || '');
+    return resolved.categoryId !== 'otro' ? resolved.categoryName : '🏢';
+  };
+  
+  // Helper para obtener el ícono emoji de la categoría
+  const getCategoryEmoji = (): string => {
+    const categoryId = ('categoryId' in business && typeof business.categoryId === 'string' ? business.categoryId : null);
+    const categoryName = business.category;
+    
+    // Intentar resolver desde el catálogo
+    const resolved = resolveCategory(categoryId || categoryName || '');
+    
+    // El catálogo no tiene emojis directamente, usar mapeo manual como fallback
+    const emojiMap: Record<string, string> = {
+      'restaurantes': '🍽️',
+      'taquerias': '🌮',
+      'polleria_rosticeria': '🍗',
+      'pizzeria': '🍕',
+      'comida_rapida': '🍔',
+      'cafeteria': '☕',
+      'panaderia': '🥖',
+      'mariscos': '🦐',
+      'cocina_economica': '🍲',
+      'antojitos': '🥙',
+      'bar_cantina': '🍻',
+      'heladeria': '🍦',
+      'abarrotes': '🛒',
+      'supermercado': '🛍️',
+      'papeleria': '📄',
+      'tienda_ropa': '👗',
+      'calzado': '👟',
+      'regalos': '🎁',
+      'joyeria': '💍',
+      'electronica': '💻',
+      'celulares': '📱',
+      'muebles': '🛋️',
+      'deportes': '🏀',
+      'servicios_generales': '🛠️',
+      'servicios_profesionales': '💼',
+      'taller_mecanico': '🔧',
+      'mensajeria': '📦',
+      'imprenta': '🖨️',
+      'limpieza': '🧹',
+      'ciber_centro': '🖥️',
+      'reparacion_electronica': '🔌',
+      'farmacias': '💊',
+      'clinica': '🏥',
+      'dentista': '😁',
+      'estetica': '💇',
+      'barberia': '✂️',
+      'spa': '🧖',
+      'veterinarias': '🐾',
+      'ferreterias': '🔩',
+      'materiales_construccion': '🏗️',
+      'refaccionaria': '🚗',
+      'tlapaleria': '🧰',
+      'cerrajeria': '🔑',
+      'vidrieria': '🪟',
+      'salon_eventos': '🎉',
+      'fotografia_video': '📸',
+      'banquetes': '🍽️',
+      'sonido_iluminacion': '🎤',
+      'renta_mobiliario': '🪑',
+      'clases_particulares': '📚',
+      'guarderia': '🧸',
+      'idiomas': '🌐',
+      'otro': '🏢'
     };
-
-    return categoryIcons[category] || '🏢';
+    
+    return emojiMap[resolved.categoryId] || '🏢';
   };
 
 // 🎨 Badge classes (si aplica)
@@ -208,32 +230,33 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     <article 
       className={getCardClasses(plan)}
     >
-      {/* 🎨 PORTADA CON JERARQUÍA VISUAL */}
-      {/* FREE: 120px | DESTACADO: 145px | PATROCINADO: 180px */}
-      <div className={`relative ${getCoverHeight(plan, true)} w-full overflow-hidden ${tokens.colors.coverOverlay}`}>
-        <img 
-          src={bannerUrl} 
-          alt={`Portada de ${business.name}`} 
-          className={`w-full h-full object-cover object-center ${tokens.effects.transition}`}
-        />
-        
-        {/* 🏷️ BADGE PREMIUM (solo featured y sponsor) */}
-        {badgeClasses && badgeText && (
-          <div className="absolute top-3 left-3 z-10">
-            <span className={badgeClasses}>
-              {badgeText}
-            </span>
-          </div>
-        )}
-      </div>
+      {/* 🎨 PORTADA CON JERARQUÍA VISUAL - Solo para negocios premium */}
+      {plan !== 'free' && (
+        <div className={`relative ${getCoverHeight(plan, true)} w-full overflow-hidden ${tokens.colors.coverOverlay}`}>
+          <img 
+            src={bannerUrl} 
+            alt={`Portada de ${business.name}`} 
+            className={`w-full h-full object-cover object-center ${tokens.effects.transition}`}
+          />
+          
+          {/* 🏷️ BADGE PREMIUM (solo featured y sponsor) */}
+          {badgeClasses && badgeText && (
+            <div className="absolute top-3 left-3 z-10">
+              <span className={badgeClasses}>
+                {badgeText}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* ❤️ BOTÓN FAVORITOS - posición dinámica según altura de portada */}
+      {/* ❤️ BOTÓN FAVORITOS - posición ajustada: sin portada para free, con portada para premium */}
       <button
         type="button"
         onClick={handleFavoriteToggle}
         disabled={isTogglingFavorite}
         className={`absolute right-3 w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-30 ${
-          plan === 'sponsor' ? 'top-[188px]' : plan === 'featured' ? 'top-[153px]' : 'top-[128px]'
+          plan === 'sponsor' ? 'top-[188px]' : plan === 'featured' ? 'top-[153px]' : 'top-3'
         } ${
           isTogglingFavorite ? 'scale-90 opacity-70' : 'hover:scale-110 active:scale-95'
         }`}
@@ -257,7 +280,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
           
           {/* 🏢 FILA SUPERIOR: Logo + Nombre + Info */}
           <div className="flex items-start gap-3 relative z-10">
-            {/* v2: Logo/Avatar - Premium 48px mobile-first, Free mantiene 64px */}
+            {/* Logo/Avatar - Premium usa logo pequeño, Free usa logo o ícono de categoría */}
             {plan !== 'free' ? (
               <div className="flex-shrink-0">
                 <img 
@@ -268,11 +291,19 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               </div>
             ) : (
               <div className="flex-shrink-0">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 shadow-sm flex items-center justify-center text-2xl">
-                  {getCategoryIcon(business.category)}
-                </div>
+                {logoUrl && logoUrl !== 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E' ? (
+                  <img 
+                    src={logoUrl} 
+                    alt={`Logo de ${business.name}`}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-300 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 shadow-sm flex items-center justify-center text-2xl">
+                    {getCategoryEmoji()}
+                  </div>
+                )}
               </div>
-            )}
+            )}            
             
             {/* Contenido al lado del icono */}
             <div className="flex-1 min-w-0 flex flex-col gap-1">
@@ -297,7 +328,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
                     plan === 'featured' ? 'bg-amber-100 text-amber-700' :
                     'bg-gray-100 text-gray-600'
                   }`}>
-                    {getCategoryIcon(business.category)} {business.category}
+                    {getCategoryEmoji()} {business.category}
                   </span>
                 )}
                 {business.colonia && (
