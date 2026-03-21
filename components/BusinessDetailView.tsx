@@ -17,6 +17,7 @@ import type { ReactImageGalleryItem } from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 
 import BusinessHours from "./BusinessHours";
+import RestaurantOrderExperience from "./RestaurantOrderExperience";
 import type { Business } from "../types/business";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { optionalPublicEnv } from "../lib/env";
@@ -75,74 +76,6 @@ type ReviewDoc = {
 
   updated?: any;
 
-};
-
-type MenuProduct = {
-  id: string;
-  name: string;
-  price: number;
-};
-
-type CartItem = MenuProduct & {
-  quantity: number;
-};
-
-const ORDER_CENTER_WHATSAPP = "5219191565865";
-
-const MOCK_MENU_PRODUCTS: MenuProduct[] = [
-  { id: "hamburguesa-clasica", name: "Hamburguesa Clasica", price: 100 },
-  { id: "papas-sazonadas", name: "Papas sazonadas", price: 65 },
-  { id: "alitas-bbq", name: "Alitas BBQ", price: 140 },
-  { id: "refresco", name: "Refresco", price: 20 },
-  { id: "agua-fresca", name: "Agua fresca", price: 30 },
-];
-
-const formatCurrency = (amount: number) =>
-  `$${Number.isInteger(amount) ? amount.toFixed(0) : amount.toFixed(2)}`;
-
-const sanitizeWhatsappValue = (value: string) =>
-  value
-    .normalize("NFKC")
-    .replace(/[\u0000-\u001F\u007F]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const buildOrderWhatsappUrl = ({
-  phone,
-  restaurantName,
-  items,
-  customerName,
-  deliveryAddress,
-}: {
-  phone: string;
-  restaurantName: string;
-  items: CartItem[];
-  customerName: string;
-  deliveryAddress: string;
-}) => {
-  const normalizedPhone = normalizeDigits(phone);
-  if (!normalizedPhone || items.length === 0) return "";
-
-  const orderLines = items.flatMap((item) => [
-    `${item.quantity}x ${item.name} (${formatCurrency(item.quantity * item.price)})`,
-    "",
-  ]);
-
-  const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const message = [
-    `Hola YajaGon, quiero hacer un pedido de: ${restaurantName}`,
-    "",
-    "Mi orden:",
-    "",
-    ...orderLines,
-    `Total: ${formatCurrency(totalAmount)}`,
-    "",
-    "Mis datos:",
-    `Nombre: ${customerName}`,
-    `Direccion: ${deliveryAddress}`,
-  ].join("\n");
-
-  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 };
 
 const readSaveDataPreference = () => {
@@ -258,10 +191,6 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
   const [showReportModal, setShowReportModal] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [showAllGalleryImages, setShowAllGalleryImages] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [customerName, setCustomerName] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [orderError, setOrderError] = useState("");
 
   // Notificar cambios en el estado de la galería
   useEffect(() => {
@@ -273,14 +202,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
     () => resolveCategory(business.categoryId || business.categoryName || business.category),
     [business.categoryId, business.categoryName, business.category]
   );
-  const showOrderCart = resolvedCategory.groupId === "food";
-
-  useEffect(() => {
-    setCartItems([]);
-    setCustomerName("");
-    setDeliveryAddress("");
-    setOrderError("");
-  }, [business.id]);
+  const showOrderCart = resolvedCategory.groupId === "food" && Boolean(businessId);
 
   // Detectar cuando el componente está montado en el cliente
   useEffect(() => {
@@ -459,64 +381,6 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
   const cleanText = (s: string) => s.replace(/https?:\/\/\S+/gi, "").replace(/www\.\S+/gi, "").trim();
 
-  const addToCart = useCallback((product: MenuProduct) => {
-    setOrderError("");
-    setCartItems((current) => {
-      const existing = current.find((item) => item.id === product.id);
-      if (existing) {
-        return current.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...current, { ...product, quantity: 1 }];
-    });
-  }, []);
-
-  const updateCartQuantity = useCallback((productId: string, nextQuantity: number) => {
-    setOrderError("");
-    setCartItems((current) => {
-      if (nextQuantity <= 0) {
-        return current.filter((item) => item.id !== productId);
-      }
-      return current.map((item) =>
-        item.id === productId ? { ...item, quantity: nextQuantity } : item
-      );
-    });
-  }, []);
-
-  const removeFromCart = useCallback((productId: string) => {
-    setOrderError("");
-    setCartItems((current) => current.filter((item) => item.id !== productId));
-  }, []);
-
-  const sanitizedRestaurantName = sanitizeWhatsappValue(business.name || "Restaurante");
-  const sanitizedCustomerName = sanitizeWhatsappValue(customerName);
-  const sanitizedDeliveryAddress = sanitizeWhatsappValue(deliveryAddress);
-  const cartTotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [cartItems]
-  );
-  const cartCount = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
-    [cartItems]
-  );
-  const orderWhatsappUrl = useMemo(
-    () =>
-      buildOrderWhatsappUrl({
-        phone: ORDER_CENTER_WHATSAPP,
-        restaurantName: sanitizedRestaurantName,
-        items: cartItems,
-        customerName: sanitizedCustomerName,
-        deliveryAddress: sanitizedDeliveryAddress,
-      }),
-    [cartItems, sanitizedCustomerName, sanitizedDeliveryAddress, sanitizedRestaurantName]
-  );
-  const canCheckout =
-    cartItems.length > 0 &&
-    sanitizedCustomerName.length > 0 &&
-    sanitizedDeliveryAddress.length > 0 &&
-    Boolean(orderWhatsappUrl);
-
 
 
   async function handleSubmit(e: React.FormEvent) {
@@ -690,37 +554,6 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
     if (!hasMapLink) return;
     trackDetailCTA('maps');
   }, [trackDetailCTA, hasMapLink]);
-
-  const handleOrderCheckout = useCallback(() => {
-    if (cartItems.length === 0) {
-      setOrderError("Agrega al menos un producto al carrito.");
-      return;
-    }
-    if (!sanitizedCustomerName) {
-      setOrderError("Escribe tu nombre para generar el pedido.");
-      return;
-    }
-    if (!sanitizedDeliveryAddress) {
-      setOrderError("Escribe la direccion de entrega.");
-      return;
-    }
-    if (!orderWhatsappUrl) {
-      setOrderError("No pudimos generar el enlace de WhatsApp.");
-      return;
-    }
-
-    setOrderError("");
-    trackDetailCTA("whatsapp");
-    trackDetailInteraction("order_checkout_clicked");
-    window.open(orderWhatsappUrl, "_blank", "noopener,noreferrer");
-  }, [
-    cartItems.length,
-    orderWhatsappUrl,
-    sanitizedCustomerName,
-    sanitizedDeliveryAddress,
-    trackDetailCTA,
-    trackDetailInteraction,
-  ]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
@@ -1186,199 +1019,12 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
 
 
-      {showOrderCart && (
-        <section
-          id="pedido-section"
-          className="overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-amber-50 shadow-sm"
-        >
-          <div className="border-b border-emerald-100 bg-white/80 px-4 py-4 backdrop-blur">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">
-                  Pedido rapido
-                </p>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Carrito ligero para pedir por WhatsApp
-                </h2>
-              </div>
-              <p className="text-sm text-gray-600">
-                Demo con menu simulado. El checkout abre WhatsApp sin procesar pagos.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-5 p-4 lg:grid-cols-[1.35fr_0.95fr]">
-            <div className="space-y-3">
-              {MOCK_MENU_PRODUCTS.map((product) => {
-                const currentQuantity =
-                  cartItems.find((item) => item.id === product.id)?.quantity ?? 0;
-
-                return (
-                  <article
-                    key={product.id}
-                    className="rounded-2xl border border-white/80 bg-white p-4 shadow-[0_10px_30px_rgba(16,185,129,0.08)]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900">{product.name}</h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Preparado al momento para pedidos del perfil.
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
-                        {formatCurrency(product.price)}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => addToCart(product)}
-                        className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                      >
-                        Agregar al carrito
-                      </button>
-                      <span className="text-sm font-medium text-gray-600">
-                        {currentQuantity > 0 ? `${currentQuantity} en carrito` : "Sin agregar"}
-                      </span>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            <aside className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Tu carrito</h3>
-                  <p className="text-sm text-gray-500">
-                    {cartCount} {cartCount === 1 ? "articulo" : "articulos"} seleccionados
-                  </p>
-                </div>
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">
-                  {formatCurrency(cartTotal)}
-                </span>
-              </div>
-
-              <div className="space-y-3 py-4">
-                {cartItems.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
-                    Agrega productos para preparar el mensaje del pedido.
-                  </div>
-                ) : (
-                  cartItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-gray-100 bg-gray-50 p-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-gray-900">{item.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {formatCurrency(item.price)} c/u
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-sm font-medium text-red-500 transition hover:text-red-600"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between gap-3">
-                        <div className="inline-flex items-center rounded-full border border-gray-200 bg-white">
-                          <button
-                            type="button"
-                            onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
-                            className="px-3 py-1.5 text-lg text-gray-600 transition hover:text-gray-900"
-                            aria-label={`Reducir cantidad de ${item.name}`}
-                          >
-                            -
-                          </button>
-                          <span className="min-w-10 px-2 text-center text-sm font-semibold text-gray-900">
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
-                            className="px-3 py-1.5 text-lg text-gray-600 transition hover:text-gray-900"
-                            aria-label={`Aumentar cantidad de ${item.name}`}
-                          >
-                            +
-                          </button>
-                        </div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {formatCurrency(item.quantity * item.price)}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="space-y-3 border-t border-gray-100 pt-4">
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-gray-700">Nombre</span>
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => {
-                      setCustomerName(e.target.value);
-                      setOrderError("");
-                    }}
-                    placeholder="Tu nombre"
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-gray-700">
-                    Direccion de entrega
-                  </span>
-                  <input
-                    type="text"
-                    value={deliveryAddress}
-                    onChange={(e) => {
-                      setDeliveryAddress(e.target.value);
-                      setOrderError("");
-                    }}
-                    placeholder="Colonia, calle y referencia"
-                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                  />
-                </label>
-
-                {orderError && <p className="text-sm font-medium text-red-600">{orderError}</p>}
-
-                <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-600">
-                  <p className="font-medium text-gray-900">Vista previa del mensaje</p>
-                  <p className="mt-1">
-                    Se enviara a {sanitizedRestaurantName || "el restaurante"} con total{" "}
-                    <span className="font-semibold text-gray-900">{formatCurrency(cartTotal)}</span>.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleOrderCheckout}
-                  disabled={!canCheckout}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 font-semibold text-white transition hover:bg-[#128C7E] disabled:cursor-not-allowed disabled:bg-gray-300"
-                >
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                  Enviar pedido por WhatsApp
-                </button>
-
-                <p className="text-xs leading-relaxed text-gray-500">
-                  El enlace usa <code>encodeURIComponent</code>, limpia espacios extra y caracteres
-                  de control para evitar que el mensaje se rompa en movil.
-                </p>
-              </div>
-            </aside>
-          </div>
-        </section>
+      {showOrderCart && businessId && (
+        <RestaurantOrderExperience
+          businessId={businessId}
+          businessName={business.name}
+          businessCategory={business.category}
+        />
       )}
 
       {/* Descripcion */}
