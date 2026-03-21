@@ -18,6 +18,11 @@ type Props = {
 
 const buildCartKey = (productId: string) => productId;
 
+async function readJson<T>(response: Response) {
+  const raw = await response.text();
+  return raw ? (JSON.parse(raw) as T) : ({} as T);
+}
+
 export default function RestaurantOrderExperience({
   businessId,
   businessName,
@@ -25,7 +30,7 @@ export default function RestaurantOrderExperience({
 }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [hasLoadError, setHasLoadError] = useState(false);
   const [openCategories, setOpenCategories] = useState<string[]>([]);
   const [cart, setCart] = useState<Record<string, OrderItem>>({});
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -34,11 +39,13 @@ export default function RestaurantOrderExperience({
   const [checkoutError, setCheckoutError] = useState("");
 
   useEffect(() => {
+    let isActive = true;
     const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 12000);
 
     async function loadProducts() {
       setIsLoading(true);
-      setError("");
+      setHasLoadError(false);
       setProducts([]);
       setOpenCategories([]);
       setCart({});
@@ -47,30 +54,54 @@ export default function RestaurantOrderExperience({
       setCheckoutError("");
 
       try {
-        const response = await fetch(`/api/products/${encodeURIComponent(businessId)}`, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/products/business/${encodeURIComponent(businessId)}`,
+          {
+            signal: controller.signal,
+            cache: "no-store",
+          }
+        );
 
-        const payload = (await response.json()) as ProductsApiResponse;
+        const payload = await readJson<ProductsApiResponse>(response);
 
         if (!response.ok) {
           throw new Error(payload.error || "No pudimos cargar el menu.");
         }
 
-        setProducts(Array.isArray(payload.products) ? payload.products : []);
+        const nextProducts = Array.isArray(payload.products) ? payload.products : [];
+        const categories = Array.from(
+          new Set(
+            nextProducts.map((product) => sanitizeWhatsappValue(product.categoria_platillo || "General") || "General")
+          )
+        );
+
+        setProducts(nextProducts);
+        setOpenCategories(categories.length > 0 ? [categories[0]] : []);
       } catch (fetchError: any) {
-        if (fetchError?.name === "AbortError") return;
-        setError(fetchError?.message || "No pudimos cargar el menu.");
+        if (!isActive) return;
+
+        if (fetchError?.name === "AbortError") {
+          setHasLoadError(true);
+          return;
+        }
+
+        setHasLoadError(true);
       } finally {
-        if (!controller.signal.aborted) {
+        window.clearTimeout(timeoutId);
+
+        if (isActive) {
           setIsLoading(false);
         }
       }
     }
 
     loadProducts();
-    return () => controller.abort();
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [businessId]);
 
   useEffect(() => {
@@ -118,6 +149,8 @@ export default function RestaurantOrderExperience({
       }),
     [businessName, cartItems, customerName, deliveryAddress]
   );
+
+  const showFallback = !isLoading && (hasLoadError || groupedProducts.length === 0);
 
   const toggleCategory = (category: string) => {
     setOpenCategories((current) =>
@@ -207,153 +240,175 @@ export default function RestaurantOrderExperience({
         id="pedido-section"
         className="rounded-[28px] border border-orange-100 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]"
       >
-        <div className="border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-amber-50 px-4 py-5 sm:px-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-600">
-            Menu digital
-          </p>
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900">Explora el menu por categorias</h2>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                Vista mobile-first con acordeon, acciones tactiles y checkout ligero por WhatsApp.
+        {showFallback ? (
+          <div className="px-4 py-6 sm:px-5">
+            <div className="rounded-[24px] border border-dashed border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-600">
+                Pedido directo
               </p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">
+                Consulta el menu con el negocio
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                Este perfil todavia no tiene un menu digital publicado aqui. Usa los botones de
+                contacto del negocio para preguntar por precios, disponibilidad y entrega.
+              </p>
+              <div className="mt-4 inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                {hasLoadError ? "Menu temporalmente no disponible" : "Menu aun no publicado"}
+              </div>
             </div>
-            <span className="inline-flex w-fit items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
-              {groupedProducts.length} categorias
-            </span>
           </div>
-        </div>
-
-        <div className="px-3 py-4 sm:px-4">
-          {isLoading && (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="animate-pulse rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5"
-                >
-                  <div className="h-4 w-40 rounded bg-slate-200" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!isLoading && error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          {!isLoading && !error && groupedProducts.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
-              <p className="text-base font-semibold text-slate-900">Este negocio aun no tiene productos cargados.</p>
-              <p className="mt-2 text-sm text-slate-500">
-                Cuando el menu este disponible, aqui aparecera organizado por categorias.
+        ) : (
+          <>
+            <div className="border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-amber-50 px-4 py-5 sm:px-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-600">
+                Menu digital
               </p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    Explora el menu por categorias
+                  </h2>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                    Vista mobile-first con acordeon, acciones tactiles y checkout ligero por
+                    WhatsApp.
+                  </p>
+                </div>
+                <span className="inline-flex w-fit items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+                  {groupedProducts.length} categorias
+                </span>
+              </div>
             </div>
-          )}
 
-          {!isLoading && !error && groupedProducts.length > 0 && (
-            <div className="space-y-3">
-              {groupedProducts.map(({ category, items }) => {
-                const isOpen = openCategories.includes(category);
-
-                return (
-                  <section
-                    key={category}
-                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleCategory(category)}
-                      className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-orange-50 active:scale-[0.99]"
+            <div className="px-3 py-4 sm:px-4">
+              {isLoading && (
+                <div className="space-y-3">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="animate-pulse rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5"
                     >
-                      <div>
-                        <p className="text-base font-semibold text-slate-900">{category}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
-                          {items.length} {items.length === 1 ? "producto" : "productos"}
-                        </p>
-                      </div>
-                      <span
-                        className={`inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition ${
-                          isOpen ? "rotate-180 bg-orange-100 text-orange-700" : ""
-                        }`}
-                        aria-hidden="true"
+                      <div className="h-4 w-40 rounded bg-slate-200" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!isLoading && groupedProducts.length > 0 && (
+                <div className="space-y-3">
+                  {groupedProducts.map(({ category, items }) => {
+                    const isOpen = openCategories.includes(category);
+
+                    return (
+                      <section
+                        key={category}
+                        className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
                       >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </span>
-                    </button>
-
-                    {isOpen && (
-                      <div className="space-y-3 border-t border-slate-100 bg-slate-50 px-3 py-3">
-                        {items.map((product) => {
-                          const quantity = cart[buildCartKey(product.id)]?.quantity ?? 0;
-
-                          return (
-                            <article
-                              key={product.id}
-                              className="rounded-2xl border border-white bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.05)]"
+                        <button
+                          type="button"
+                          onClick={() => toggleCategory(category)}
+                          className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-orange-50 active:scale-[0.99]"
+                        >
+                          <div>
+                            <p className="text-base font-semibold text-slate-900">{category}</p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400">
+                              {items.length} {items.length === 1 ? "producto" : "productos"}
+                            </p>
+                          </div>
+                          <span
+                            className={`inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition ${
+                              isOpen ? "rotate-180 bg-orange-100 text-orange-700" : ""
+                            }`}
+                            aria-hidden="true"
+                          >
+                            <svg
+                              className="h-5 w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
                             >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <h3 className="text-base font-semibold text-slate-900">{product.nombre}</h3>
-                                  <p className="mt-1 text-sm text-slate-500">
-                                    {formatOrderCurrency(product.precio)}
-                                  </p>
-                                </div>
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </span>
+                        </button>
 
-                                {quantity > 0 ? (
-                                  <div className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50">
-                                    <button
-                                      type="button"
-                                      onClick={() => removeFromCart(product)}
-                                      className="px-3 py-2 text-lg font-semibold text-orange-700 transition hover:text-orange-900"
-                                      aria-label={`Quitar ${product.nombre}`}
-                                    >
-                                      -
-                                    </button>
-                                    <span className="min-w-9 px-2 text-center text-sm font-semibold text-slate-900">
-                                      {quantity}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => addToCart(product)}
-                                      className="px-3 py-2 text-lg font-semibold text-orange-700 transition hover:text-orange-900"
-                                      aria-label={`Agregar ${product.nombre}`}
-                                    >
-                                      +
-                                    </button>
+                        {isOpen && (
+                          <div className="space-y-3 border-t border-slate-100 bg-slate-50 px-3 py-3">
+                            {items.map((product) => {
+                              const quantity = cart[buildCartKey(product.id)]?.quantity ?? 0;
+
+                              return (
+                                <article
+                                  key={product.id}
+                                  className="rounded-2xl border border-white bg-white px-4 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.05)]"
+                                >
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="min-w-0">
+                                      <h3 className="text-base font-semibold text-slate-900">
+                                        {product.nombre}
+                                      </h3>
+                                      <p className="mt-1 text-sm text-slate-500">
+                                        {formatOrderCurrency(product.precio)}
+                                      </p>
+                                    </div>
+
+                                    {quantity > 0 ? (
+                                      <div className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50">
+                                        <button
+                                          type="button"
+                                          onClick={() => removeFromCart(product)}
+                                          className="px-3 py-2 text-lg font-semibold text-orange-700 transition hover:text-orange-900"
+                                          aria-label={`Quitar ${product.nombre}`}
+                                        >
+                                          -
+                                        </button>
+                                        <span className="min-w-9 px-2 text-center text-sm font-semibold text-slate-900">
+                                          {quantity}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => addToCart(product)}
+                                          className="px-3 py-2 text-lg font-semibold text-orange-700 transition hover:text-orange-900"
+                                          aria-label={`Agregar ${product.nombre}`}
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => addToCart(product)}
+                                        className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
+                                      >
+                                        Agregar
+                                      </button>
+                                    )}
                                   </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => addToCart(product)}
-                                    className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
-                                  >
-                                    Agregar
-                                  </button>
-                                )}
-                              </div>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
+                                </article>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </section>
 
-      {totalItems > 0 && (
+      {!showFallback && totalItems > 0 && (
         <button
           type="button"
           onClick={handleOpenCheckout}
-          className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-between gap-3 rounded-2xl bg-slate-950 px-4 py-4 text-left text-white shadow-[0_20px_40px_rgba(15,23,42,0.35)] transition hover:bg-slate-900 md:inset-x-auto md:right-6 md:min-w-[360px] md:left-auto"
+          className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-between gap-3 rounded-2xl bg-slate-950 px-4 py-4 text-left text-white shadow-[0_20px_40px_rgba(15,23,42,0.35)] transition hover:bg-slate-900 md:inset-x-auto md:left-auto md:right-6 md:min-w-[360px]"
         >
           <div className="min-w-0">
             <p className="text-sm font-medium text-white/70">Pedido en curso</p>
@@ -369,7 +424,7 @@ export default function RestaurantOrderExperience({
         </button>
       )}
 
-      {isCheckoutOpen && (
+      {!showFallback && isCheckoutOpen && (
         <div className="fixed inset-0 z-50">
           <button
             type="button"
@@ -472,7 +527,8 @@ export default function RestaurantOrderExperience({
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
                   <p className="font-medium text-slate-900">Mensaje listo para WhatsApp</p>
                   <p className="mt-1">
-                    Incluye el resumen del pedido, tu nombre y la direccion capturada en este checkout.
+                    Incluye el resumen del pedido, tu nombre y la direccion capturada en este
+                    checkout.
                   </p>
                 </div>
               </div>

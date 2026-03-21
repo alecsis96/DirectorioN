@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import type { Product, ProductsApiResponse } from '../types/product';
 
@@ -12,6 +12,12 @@ type ProductFormState = {
   nombre: string;
   precio: string;
   categoria_platillo: string;
+};
+
+type ProductMutationResponse = {
+  product?: Product;
+  message?: string;
+  error?: string;
 };
 
 const INITIAL_FORM_STATE: ProductFormState = {
@@ -27,10 +33,44 @@ const formatCurrency = (amount: number) =>
     maximumFractionDigits: 2,
   }).format(amount);
 
+const buildProductsEndpoint = (businessId: string) =>
+  `/api/products/business/${encodeURIComponent(businessId)}?includeUnavailable=true`;
+
+async function readJson<T>(response: Response) {
+  const raw = await response.text();
+  return raw ? (JSON.parse(raw) as T) : ({} as T);
+}
+
+async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+
+    return {
+      response,
+      payload: await readJson<T>(response),
+    };
+  } catch (requestError: any) {
+    if (requestError?.name === 'AbortError') {
+      throw new Error('La solicitud tardo demasiado. Intenta de nuevo.');
+    }
+
+    throw requestError;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 export default function MenuManager({ businessId }: MenuManagerProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -40,38 +80,48 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
   const [busyProductIds, setBusyProductIds] = useState<string[]>([]);
 
   useEffect(() => {
+    let isActive = true;
+
     if (!businessId) {
       setProducts([]);
       setIsLoading(false);
-      setError('No se proporcionó un negocio válido.');
+      setError('No se proporciono un negocio valido.');
       return;
     }
 
     const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 12000);
 
     async function loadProducts() {
       setIsLoading(true);
       setError('');
 
       try {
-        const response = await fetch(`/api/products/${encodeURIComponent(businessId)}`, {
+        const response = await fetch(buildProductsEndpoint(businessId), {
           method: 'GET',
           signal: controller.signal,
           cache: 'no-store',
         });
-
-        const payload = (await response.json()) as ProductsApiResponse & { error?: string };
+        const payload = await readJson<ProductsApiResponse & { error?: string }>(response);
 
         if (!response.ok) {
-          throw new Error(payload.error || 'No pudimos cargar el menú.');
+          throw new Error(payload.error || 'No pudimos cargar el menu.');
         }
 
         setProducts(Array.isArray(payload.products) ? payload.products : []);
       } catch (fetchError: any) {
-        if (fetchError?.name === 'AbortError') return;
-        setError(fetchError?.message || 'No pudimos cargar el menú.');
+        if (!isActive) return;
+
+        if (fetchError?.name === 'AbortError') {
+          setError('La carga del menu tardo demasiado. Intenta de nuevo.');
+          return;
+        }
+
+        setError(fetchError?.message || 'No pudimos cargar el menu.');
       } finally {
-        if (!controller.signal.aborted) {
+        window.clearTimeout(timeoutId);
+
+        if (isActive) {
           setIsLoading(false);
         }
       }
@@ -79,8 +129,12 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
 
     loadProducts();
 
-    return () => controller.abort();
-  }, [businessId]);
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [businessId, reloadKey]);
 
   const groupedProducts = useMemo(() => {
     const groups = new Map<string, Product[]>();
@@ -102,11 +156,16 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
 
   const totalProducts = products.length;
 
-  const openCreateModal = () => {
+  const resetModalState = () => {
     setEditingProduct(null);
     setForm(INITIAL_FORM_STATE);
     setFormError('');
+  };
+
+  const openCreateModal = () => {
+    resetModalState();
     setFeedbackMessage('');
+    setError('');
     setIsModalOpen(true);
   };
 
@@ -119,15 +178,14 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     });
     setFormError('');
     setFeedbackMessage('');
+    setError('');
     setIsModalOpen(true);
   };
 
-  const closeModal = () => {
-    if (isSaving) return;
+  const closeModal = (force = false) => {
+    if (isSaving && !force) return;
     setIsModalOpen(false);
-    setEditingProduct(null);
-    setForm(INITIAL_FORM_STATE);
-    setFormError('');
+    resetModalState();
   };
 
   const markProductBusy = (productId: string, isBusy: boolean) => {
@@ -140,6 +198,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     const nextAvailability = !(product.disponibilidad ?? true);
 
     setFeedbackMessage('');
+    setError('');
     markProductBusy(product.id, true);
     setProducts((current) =>
       current.map((item) =>
@@ -148,18 +207,16 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     );
 
     try {
-      const response = await fetch(`/api/products/${encodeURIComponent(product.id)}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ disponibilidad: nextAvailability }),
-      });
-
-      const payload = (await response.json()) as {
-        product?: Product;
-        error?: string;
-      };
+      const { response, payload } = await requestJson<ProductMutationResponse>(
+        `/api/products/${encodeURIComponent(product.id)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ disponibilidad: nextAvailability }),
+        }
+      );
 
       if (!response.ok || !payload.product) {
         throw new Error(payload.error || 'No pudimos actualizar la disponibilidad.');
@@ -170,8 +227,8 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
       );
       setFeedbackMessage(
         nextAvailability
-          ? `"${product.nombre}" ahora está disponible.`
-          : `"${product.nombre}" ahora está oculto del menú.`
+          ? `"${product.nombre}" ahora esta disponible.`
+          : `"${product.nombre}" ahora esta oculto del menu.`
       );
     } catch (toggleError: any) {
       setProducts((current) =>
@@ -186,21 +243,20 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
   };
 
   const handleDeleteProduct = async (product: Product) => {
-    const confirmed = window.confirm(`¿Eliminar "${product.nombre}" del menú?`);
+    const confirmed = window.confirm(`Eliminar "${product.nombre}" del menu?`);
     if (!confirmed) return;
 
     setFeedbackMessage('');
+    setError('');
     markProductBusy(product.id, true);
 
     try {
-      const response = await fetch(`/api/products/${encodeURIComponent(product.id)}`, {
-        method: 'DELETE',
-      });
-
-      const payload = (await response.json()) as {
-        message?: string;
-        error?: string;
-      };
+      const { response, payload } = await requestJson<ProductMutationResponse>(
+        `/api/products/${encodeURIComponent(product.id)}`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       if (!response.ok) {
         throw new Error(payload.error || 'No pudimos eliminar el producto.');
@@ -215,7 +271,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const nombre = form.nombre.trim();
@@ -245,18 +301,13 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     const method = editingProduct ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(endpoint, {
+      const { response, payload: data } = await requestJson<ProductMutationResponse>(endpoint, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       });
-
-      const data = (await response.json()) as {
-        product?: Product;
-        error?: string;
-      };
 
       if (!response.ok || !data.product) {
         throw new Error(data.error || 'No pudimos guardar el producto.');
@@ -266,15 +317,16 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
         if (editingProduct) {
           return current.map((item) => (item.id === data.product!.id ? data.product! : item));
         }
+
         return [data.product!, ...current];
       });
 
       setFeedbackMessage(
         editingProduct
           ? `"${data.product.nombre}" fue actualizado.`
-          : `"${data.product.nombre}" fue agregado al menú.`
+          : `"${data.product.nombre}" fue agregado al menu.`
       );
-      closeModal();
+      closeModal(true);
     } catch (submitError: any) {
       setFormError(submitError?.message || 'No pudimos guardar el producto.');
     } finally {
@@ -288,11 +340,11 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600">
-              Menú del negocio
+              Menu del negocio
             </p>
             <h2 className="mt-1 text-2xl font-bold text-gray-900">Administrador de platillos</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Agrega, edita, oculta o elimina productos del menú sin recargar la página.
+              Agrega, edita, oculta o elimina productos del menu sin recargar la pagina.
             </p>
           </div>
 
@@ -318,8 +370,18 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
       )}
 
       {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+          <p className="font-semibold text-amber-900">No pudimos cargar el menu actual.</p>
+          <p className="mt-1">
+            Puedes reintentar la carga o crear tu primer producto si este negocio aun no tiene menu.
+          </p>
+          <button
+            type="button"
+            onClick={() => setReloadKey((current) => current + 1)}
+            className="mt-3 inline-flex items-center justify-center rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
+          >
+            Reintentar carga
+          </button>
         </div>
       )}
 
@@ -335,14 +397,14 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
             </div>
           ))}
         </div>
-      ) : groupedProducts.length === 0 ? (
+      ) : !error && groupedProducts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-2xl">
             🍽️
           </div>
-          <h3 className="mt-4 text-lg font-semibold text-gray-900">Todavía no hay platillos</h3>
+          <h3 className="mt-4 text-lg font-semibold text-gray-900">Todavia no hay platillos</h3>
           <p className="mt-2 text-sm text-gray-600">
-            Comienza agregando productos para construir el menú visible en el perfil del negocio.
+            Comienza agregando productos para construir el menu visible en el perfil del negocio.
           </p>
           <button
             type="button"
@@ -360,14 +422,10 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
               className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
             >
               <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{category}</h3>
-                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-gray-400">
-                      {items.length} {items.length === 1 ? 'producto' : 'productos'}
-                    </p>
-                  </div>
-                </div>
+                <h3 className="text-lg font-semibold text-gray-900">{category}</h3>
+                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-gray-400">
+                  {items.length} {items.length === 1 ? 'producto' : 'productos'}
+                </p>
               </div>
 
               <div className="divide-y divide-gray-100">
@@ -449,7 +507,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/50 p-0 sm:items-center sm:p-4">
           <button
             type="button"
-            onClick={closeModal}
+            onClick={() => closeModal()}
             className="absolute inset-0 cursor-default"
             aria-label="Cerrar modal"
           />
@@ -468,11 +526,17 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
 
                 <button
                   type="button"
-                  onClick={closeModal}
+                  onClick={() => closeModal()}
                   disabled={isSaving}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -488,7 +552,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
                   onChange={(event) =>
                     setForm((current) => ({ ...current, nombre: event.target.value }))
                   }
-                  placeholder="Ej. Hamburguesa clásica"
+                  placeholder="Ej. Hamburguesa clasica"
                   className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 />
               </label>
@@ -509,7 +573,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
               </label>
 
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-700">Categoría</span>
+                <span className="mb-1.5 block text-sm font-medium text-gray-700">Categoria</span>
                 <input
                   type="text"
                   value={form.categoria_platillo}
@@ -533,7 +597,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
               <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={closeModal}
+                  onClick={() => closeModal()}
                   disabled={isSaving}
                   className="inline-flex items-center justify-center rounded-2xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -547,8 +611,8 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
                   {isSaving
                     ? 'Guardando...'
                     : editingProduct
-                    ? 'Guardar cambios'
-                    : 'Crear platillo'}
+                      ? 'Guardar cambios'
+                      : 'Crear platillo'}
                 </button>
               </div>
             </form>
