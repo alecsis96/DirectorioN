@@ -155,6 +155,10 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
   }, [products]);
 
   const totalProducts = products.length;
+  const isCatalogInfraError =
+    error.includes('catalogo') ||
+    error.includes('Firestore') ||
+    error.includes('FIREBASE_SERVICE_ACCOUNT');
 
   const resetModalState = () => {
     setEditingProduct(null);
@@ -371,9 +375,14 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
 
       {error && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-          <p className="font-semibold text-amber-900">No pudimos cargar el menu actual.</p>
-          <p className="mt-1">
-            Puedes reintentar la carga o crear tu primer producto si este negocio aun no tiene menu.
+          <p className="font-semibold text-amber-900">
+            {isCatalogInfraError ? 'El catalogo de productos no esta disponible.' : 'No pudimos cargar el menu actual.'}
+          </p>
+          <p className="mt-1">{error}</p>
+          <p className="mt-2 text-amber-900/80">
+            {isCatalogInfraError
+              ? 'Si esto pasa en produccion, configura FIREBASE_SERVICE_ACCOUNT y valida los permisos de Firestore.'
+              : 'Puedes reintentar la carga o crear tu primer producto si este negocio aun no tiene menu.'}
           </p>
           <button
             type="button"
@@ -400,7 +409,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
       ) : !error && groupedProducts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-2xl">
-            🍽️
+            Menu
           </div>
           <h3 className="mt-4 text-lg font-semibold text-gray-900">Todavia no hay platillos</h3>
           <p className="mt-2 text-sm text-gray-600">

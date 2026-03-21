@@ -1,9 +1,11 @@
-import mongoose from "mongoose";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import Product from "@/lib/models/Product";
-import { connectToMongo } from "@/lib/server/mongodb";
+import {
+  deleteProduct,
+  getProductsStoreErrorMessage,
+  updateProduct,
+} from "@/lib/server/productsStore";
 
 export const runtime = "nodejs";
 
@@ -13,28 +15,12 @@ type RouteContext = {
 
 const allowedFields = ["business_id", "nombre", "precio", "categoria_platillo", "disponibilidad"];
 
-function serializeProduct(product: any) {
-  return {
-    id: String(product._id),
-    business_id: product.business_id,
-    nombre: product.nombre,
-    precio: product.precio,
-    categoria_platillo: product.categoria_platillo,
-    disponibilidad:
-      typeof product.disponibilidad === "boolean" ? product.disponibilidad : undefined,
-    createdAt: product.createdAt?.toISOString?.(),
-    updatedAt: product.updatedAt?.toISOString?.(),
-  };
-}
-
-async function updateProduct(request: NextRequest, context: RouteContext) {
+async function updateProductHandler(request: NextRequest, context: RouteContext) {
   try {
-    await connectToMongo();
-
     const resolvedParams = await context.params;
     const productId = String(resolvedParams.product_id || "").trim();
 
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
+    if (!productId) {
       return NextResponse.json({ error: "product_id invalido." }, { status: 400 });
     }
 
@@ -74,47 +60,42 @@ async function updateProduct(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const product = await Product.findByIdAndUpdate(productId, updates, {
-      new: true,
-      runValidators: true,
-    });
+    const product = await updateProduct(productId, updates);
 
     if (!product) {
       return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
     }
 
-    return NextResponse.json({ product: serializeProduct(product) });
+    return NextResponse.json({ product });
   } catch (error) {
     console.error("[api/products/:product_id] UPDATE failed", error);
     return NextResponse.json(
-      { error: "No pudimos actualizar el producto." },
-      { status: 500 }
+      { error: getProductsStoreErrorMessage(error) },
+      { status: 503 }
     );
   }
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
-  return updateProduct(request, context);
+  return updateProductHandler(request, context);
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
-  return updateProduct(request, context);
+  return updateProductHandler(request, context);
 }
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
-    await connectToMongo();
-
     const resolvedParams = await context.params;
     const productId = String(resolvedParams.product_id || "").trim();
 
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
+    if (!productId) {
       return NextResponse.json({ error: "product_id invalido." }, { status: 400 });
     }
 
-    const deletedProduct = await Product.findByIdAndDelete(productId);
+    const deleted = await deleteProduct(productId);
 
-    if (!deletedProduct) {
+    if (!deleted) {
       return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
     }
 
@@ -122,11 +103,8 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   } catch (error) {
     console.error("[api/products/:product_id] DELETE failed", error);
     return NextResponse.json(
-      { error: "No pudimos eliminar el producto." },
-      { status: 500 }
+      { error: getProductsStoreErrorMessage(error) },
+      { status: 503 }
     );
   }
 }
-
-
-
