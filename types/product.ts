@@ -4,6 +4,7 @@ export type Product = {
   nombre: string;
   precio: number;
   categoria_platillo: string;
+  disponibilidad?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };

@@ -47,3 +47,4 @@ export async function GET(
     return NextResponse.json({ error: message, products: [] }, { status: 500 });
   }
 }
+

@@ -24,6 +24,10 @@ const productSchema = new Schema(
       trim: true,
       default: "General",
     },
+    disponibilidad: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,
