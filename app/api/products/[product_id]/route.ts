@@ -13,7 +13,14 @@ type RouteContext = {
   params: { product_id: string } | Promise<{ product_id: string }>;
 };
 
-const allowedFields = ["business_id", "nombre", "precio", "categoria_platillo", "disponibilidad"];
+const allowedFields = [
+  "business_id",
+  "nombre",
+  "descripcion",
+  "precio",
+  "categoria_platillo",
+  "disponibilidad",
+];
 
 async function updateProductHandler(request: NextRequest, context: RouteContext) {
   try {

@@ -2,6 +2,7 @@ export type Product = {
   id: string;
   business_id: string;
   nombre: string;
+  descripcion?: string;
   precio: number;
   categoria_platillo: string;
   disponibilidad?: boolean;

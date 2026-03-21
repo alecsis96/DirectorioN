@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -352,6 +352,11 @@ export default function RestaurantOrderExperience({
                                       <h3 className="text-base font-semibold text-slate-900">
                                         {product.nombre}
                                       </h3>
+                                      {product.descripcion && (
+                                        <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                                          {product.descripcion}
+                                        </p>
+                                      )}
                                       <p className="mt-1 text-sm text-slate-500">
                                         {formatOrderCurrency(product.precio)}
                                       </p>
@@ -552,3 +557,5 @@ export default function RestaurantOrderExperience({
     </>
   );
 }
+
+

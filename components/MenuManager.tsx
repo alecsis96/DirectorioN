@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
@@ -10,6 +10,7 @@ type MenuManagerProps = {
 
 type ProductFormState = {
   nombre: string;
+  descripcion: string;
   precio: string;
   categoria_platillo: string;
 };
@@ -22,6 +23,7 @@ type ProductMutationResponse = {
 
 const INITIAL_FORM_STATE: ProductFormState = {
   nombre: '',
+  descripcion: '',
   precio: '',
   categoria_platillo: '',
 };
@@ -177,6 +179,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     setEditingProduct(product);
     setForm({
       nombre: product.nombre,
+      descripcion: product.descripcion || '',
       precio: String(product.precio),
       categoria_platillo: product.categoria_platillo,
     });
@@ -279,6 +282,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     event.preventDefault();
 
     const nombre = form.nombre.trim();
+    const descripcion = form.descripcion.trim();
     const categoria_platillo = form.categoria_platillo.trim() || 'General';
     const precio = Number(form.precio);
 
@@ -295,6 +299,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     const payload = {
       business_id: businessId,
       nombre,
+      descripcion,
       precio,
       categoria_platillo,
     };
@@ -465,6 +470,11 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
                         <p className="mt-1 text-sm font-medium text-gray-600">
                           {formatCurrency(product.precio)}
                         </p>
+                        {product.descripcion && (
+                          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+                            {product.descripcion}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
@@ -567,6 +577,19 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
               </label>
 
               <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-gray-700">Descripcion o detalles</span>
+                <textarea
+                  value={form.descripcion}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, descripcion: event.target.value }))
+                  }
+                  rows={3}
+                  placeholder="Ej. Incluye papas y refresco de 355 ml"
+                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                />
+              </label>
+
+              <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-gray-700">Precio</span>
                 <input
                   type="number"
@@ -631,3 +654,5 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     </div>
   );
 }
+
+

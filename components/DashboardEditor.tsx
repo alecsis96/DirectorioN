@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 /**
  * Dashboard para editar negocios
  * Con nuevo sistema de estados y completitud
@@ -158,6 +158,15 @@ type DashboardEditorProps = {
   initialBusiness?: Business | null;
 };
 
+type EditorTabId = 'info' | 'operacion' | 'catalogo' | 'gestion';
+
+const EDITOR_TABS: Array<{ id: EditorTabId; label: string; shortLabel: string }> = [
+  { id: 'info', label: 'Informacion', shortLabel: 'Info' },
+  { id: 'operacion', label: 'Contacto y ubicacion', shortLabel: 'Operacion' },
+  { id: 'catalogo', label: 'Catalogo y medios', shortLabel: 'Catalogo' },
+  { id: 'gestion', label: 'Gestion y plan', shortLabel: 'Gestion' },
+];
+
 export default function EditBusiness({ businessId, initialBusiness }: DashboardEditorProps) {
   const router = useRouter();
   const id = businessId;
@@ -165,7 +174,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
   const normalizedInitial = initialBusiness ?? undefined;
 
-  // Función para comprimir imágenes antes de subirlas
+  // FunciÃƒÂ³n para comprimir imÃƒÂ¡genes antes de subirlas
   const compressImage = useCallback(async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -176,7 +185,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
           let width = img.width;
           let height = img.height;
           
-          // Reducir tamaño si es muy grande
+          // Reducir tamaÃƒÂ±o si es muy grande
           const maxSize = 1200;
           if (width > maxSize || height > maxSize) {
             if (width > height) {
@@ -226,6 +235,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     [form.categoryId, form.categoryName, form.category, biz?.categoryId, biz?.categoryName, biz?.category]
   );
   const supportsMenuManagement = currentBusinessCategory.groupId === 'food' && Boolean(id);
+  const selectedCategoryGroup = useMemo(
+    () => CATEGORY_GROUPS.find((group) => group.id === selectedGroupId),
+    [selectedGroupId]
+  );
+  const [activeTab, setActiveTab] = useState<EditorTabId>('info');
 
   // Estados de UI consolidados
   const [uiState, setUiState] = useState({
@@ -238,13 +252,13 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   // Estado para controlar el toast
   const [showToast, setShowToast] = useState(false);
 
-  // Estado para último guardado
+  // Estado para ÃƒÂºltimo guardado
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // Estado para detectar cambios sin guardar
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Estado para errores de validación
+  // Estado para errores de validaciÃƒÂ³n
   const [validationErrors] = useState<Record<string, string>>({});
 
   const handleCategorySelect = useCallback((categoryId: string) => {
@@ -280,10 +294,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     rejectionReason: biz?.rejectionReason || '',
   });
 
-  // NUEVO: Estado para manejar la publicación
+  // NUEVO: Estado para manejar la publicaciÃƒÂ³n
   const [, setPublishLoading] = useState(false);
 
-  // Estado para modal de eliminación
+  // Estado para modal de eliminaciÃƒÂ³n
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteCheckbox, setDeleteCheckbox] = useState(false);
@@ -316,14 +330,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     }
   }, [uiState.msg, uiState.upgradeBusy]);
 
-  // Detectar cambios en el formulario (solo después de carga inicial)
+  // Detectar cambios en el formulario (solo despuÃƒÂ©s de carga inicial)
   useEffect(() => {
     if (!isInitialLoadRef.current) {
       setHasUnsavedChanges(true);
     }
   }, [form, schedule, addr]);
 
-  // Confirmación antes de salir con cambios sin guardar
+  // ConfirmaciÃƒÂ³n antes de salir con cambios sin guardar
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
@@ -357,7 +371,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     setSchedule(mapToScheduleState(data));
     setHasUnsavedChanges(false);
     
-    // Esperar a que los estados se actualicen antes de permitir detección de cambios
+    // Esperar a que los estados se actualicen antes de permitir detecciÃƒÂ³n de cambios
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         isInitialLoadRef.current = false;
@@ -477,7 +491,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         }
       }
       
-      // Actualizar timestamp de guardado (ya no es necesario setHasUnsavedChanges aquí)
+      // Actualizar timestamp de guardado (ya no es necesario setHasUnsavedChanges aquÃƒÂ­)
       setLastSaved(new Date());
       
       // Scroll suave hacia arriba
@@ -490,7 +504,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     }
   }
 
-  // NUEVO: Handler para solicitar publicación con el nuevo sistema
+  // NUEVO: Handler para solicitar publicaciÃƒÂ³n con el nuevo sistema
   const handleRequestPublish = async () => {
     if (!id || !biz || !user) return;
     
@@ -500,16 +514,16 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       const result = await requestPublish(id, token);
       
       if (result.success) {
-        // ✅ Mantener draft hasta que admin apruebe
+        // Ã¢Å“â€¦ Mantener draft hasta que admin apruebe
         setBusinessState(prev => ({
           ...prev,
-          businessStatus: 'draft', // Correcto: permanece draft hasta aprobación
+          businessStatus: 'draft', // Correcto: permanece draft hasta aprobaciÃƒÂ³n
           applicationStatus: 'ready_for_review',
         }));
         
         setUiState(prev => ({ 
           ...prev, 
-          msg: '🚀 ¡Solicitud de publicación enviada! Revisaremos tu negocio pronto.' 
+          msg: 'Ã°Å¸Å¡â‚¬ Ã‚Â¡Solicitud de publicaciÃƒÂ³n enviada! Revisaremos tu negocio pronto.' 
         }));
         
         // Recargar datos del negocio
@@ -521,14 +535,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       } else {
         setUiState(prev => ({ 
           ...prev, 
-          msg: result.error || 'No se pudo enviar la solicitud. Asegúrate de completar todos los campos obligatorios.' 
+          msg: result.error || 'No se pudo enviar la solicitud. AsegÃƒÂºrate de completar todos los campos obligatorios.' 
         }));
       }
     } catch (error) {
-      console.error('Error al solicitar publicación:', error);
+      console.error('Error al solicitar publicaciÃƒÂ³n:', error);
       setUiState(prev => ({ 
         ...prev, 
-        msg: error instanceof Error ? error.message : 'Error al solicitar publicación' 
+        msg: error instanceof Error ? error.message : 'Error al solicitar publicaciÃƒÂ³n' 
       }));
     } finally {
       setPublishLoading(false);
@@ -536,13 +550,13 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   };
 
   // ============================================
-  // HANDLER: Eliminar negocio (con confirmación segura)
+  // HANDLER: Eliminar negocio (con confirmaciÃƒÂ³n segura)
   // ============================================
   
   const handleDeleteBusiness = async () => {
     if (!id || !biz || !user) return;
     
-    // Validar confirmación
+    // Validar confirmaciÃƒÂ³n
     const confirmValid = 
       deleteConfirmText.trim().toLowerCase() === 'eliminar' ||
       deleteConfirmText.trim().toLowerCase() === biz.name?.toLowerCase();
@@ -550,7 +564,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     if (!confirmValid || !deleteCheckbox) {
       setUiState(prev => ({ 
         ...prev, 
-        msg: 'Debes completar la confirmación correctamente' 
+        msg: 'Debes completar la confirmaciÃƒÂ³n correctamente' 
       }));
       return;
     }
@@ -561,10 +575,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       const result = await deleteBusiness(id, token);
       
       if (result.success) {
-        // Redirigir a home después de eliminar
+        // Redirigir a home despuÃƒÂ©s de eliminar
         setUiState(prev => ({ 
           ...prev, 
-          msg: '✅ Negocio eliminado correctamente. Redirigiendo...' 
+          msg: 'Ã¢Å“â€¦ Negocio eliminado correctamente. Redirigiendo...' 
         }));
         
         setTimeout(() => {
@@ -638,10 +652,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       const data = await res.json().catch(() => ({ error: 'Error de servidor' }));
       if (!res.ok) {
         if (res.status === 413) {
-          throw new Error('El archivo es demasiado grande. Intenta con un archivo más pequeño (máx 3MB).');
+          throw new Error('El archivo es demasiado grande. Intenta con un archivo mÃƒÂ¡s pequeÃƒÂ±o (mÃƒÂ¡x 3MB).');
         }
         if (res.status === 401) {
-          throw new Error('Sesión expirada. Por favor, cierra sesión y vuelve a iniciar.');
+          throw new Error('SesiÃƒÂ³n expirada. Por favor, cierra sesiÃƒÂ³n y vuelve a iniciar.');
         }
         if (res.status === 500) {
           throw new Error('Error del servidor. Intenta de nuevo en unos momentos.');
@@ -655,9 +669,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         paymentStatus: (prev.paymentStatus || 'pending') as Business['paymentStatus'],
       }) : null);
       setReceiptState({ file: null, notes: '', plan: 'sponsor' });
-      setUiState(prev => ({ ...prev, msg: '✅ Comprobante enviado exitosamente. Validaremos el pago y activaremos tu plan en breve.' }));
+      setUiState(prev => ({ ...prev, msg: 'Ã¢Å“â€¦ Comprobante enviado exitosamente. Validaremos el pago y activaremos tu plan en breve.' }));
       
-      // Limpiar mensaje de éxito después de 8 segundos
+      // Limpiar mensaje de ÃƒÂ©xito despuÃƒÂ©s de 8 segundos
       setTimeout(() => {
         setUiState(prev => ({ ...prev, msg: '' }));
       }, 8000);
@@ -671,7 +685,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
   if (authLoading) {
     return (
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <main className="mx-auto max-w-6xl overflow-x-hidden px-4 py-6 pb-40 sm:px-6 sm:py-8">
         <p className="text-gray-500">Cargando...</p>
       </main>
     );
@@ -687,13 +701,13 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
           <div className={`p-4 rounded-xl shadow-2xl border-2 backdrop-blur-sm ${
             uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') || uiState.msg.includes('demasiado grande') || uiState.msg.includes('expirada') || uiState.msg.includes('servidor')
               ? 'bg-red-50/95 text-red-900 border-red-300'
-              : uiState.msg.includes('✅') || uiState.msg.includes('exitosamente') || uiState.msg.includes('Validaremos') || uiState.msg.includes('Guardado')
+              : uiState.msg.includes('Ã¢Å“â€¦') || uiState.msg.includes('exitosamente') || uiState.msg.includes('Validaremos') || uiState.msg.includes('Guardado')
               ? 'bg-green-50/95 text-green-900 border-green-300'
               : 'bg-blue-50/95 text-blue-900 border-blue-300'
           }`}>
             <div className="flex items-start gap-3">
               <span className="text-xl flex-shrink-0">
-                {uiState.msg.includes('Error') ? '❌' : uiState.msg.includes('✅') ? '✅' : 'ℹ️'}
+                {uiState.msg.includes('Error') ? 'Ã¢ÂÅ’' : uiState.msg.includes('Ã¢Å“â€¦') ? 'Ã¢Å“â€¦' : 'Ã¢â€žÂ¹Ã¯Â¸Â'}
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold">{uiState.msg}</p>
@@ -727,33 +741,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
             </div>
           </div>
         </div>
-      )}
-
-      {/* Botón flotante de guardar */}
-      {biz && userCanEdit && (
-        <button
-          onClick={save}
-          disabled={uiState.busy}
-          className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[9999] px-4 sm:px-6 py-3 sm:py-4 bg-[#38761D] text-white rounded-full shadow-2xl hover:bg-[#2d5a15] transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 sm:gap-3 group"
-        >
-          {uiState.busy ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white flex-shrink-0"></div>
-              <span className="font-semibold text-sm sm:text-base whitespace-nowrap">Guardando...</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="font-semibold text-sm sm:text-base hidden xs:inline whitespace-nowrap">Guardar cambios</span>
-              <span className="font-semibold text-sm xs:hidden">Guardar</span>
-            </>
-          )}
-        </button>
-      )}
-
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 pb-32">
+      )}      <main className="mx-auto max-w-6xl overflow-x-hidden px-4 py-6 pb-40 sm:px-6 sm:py-8">
       {!biz ? (
         <p className="text-gray-500">Cargando...</p>
       ) : !userCanEdit ? (
@@ -775,7 +763,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   </span>
                   {hasUnsavedChanges && (
                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 animate-pulse">
-                      ● Cambios sin guardar
+                      Ã¢â€”Â Cambios sin guardar
                     </span>
                   )}
                 </div>
@@ -783,7 +771,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   <p className="text-sm text-gray-600">{user?.email || biz.ownerEmail || 'Sesion iniciada'}</p>
                   {lastSaved && !hasUnsavedChanges && (
                     <p className="text-xs text-gray-500">
-                      ✓ Guardado hace {Math.round((Date.now() - lastSaved.getTime()) / 60000)} min
+                      Ã¢Å“â€œ Guardado hace {Math.round((Date.now() - lastSaved.getTime()) / 60000)} min
                     </p>
                   )}
                 </div>
@@ -811,48 +799,69 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
           
           {/* Loading state mientras se carga el negocio */}
           {!biz && !uiState.msg && (
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-center gap-3">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
-                <p className="text-sm text-blue-800">Cargando información del negocio...</p>
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                <p className="text-sm text-blue-800">Cargando informacion del negocio...</p>
               </div>
             </div>
           )}
 
-          {/* Botones de acción principales */}
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 mb-6">
-            <div className="flex flex-wrap gap-2 w-full md:w-auto">
-              <button
-                onClick={() => {
-                  if (biz.id) {
-                    window.open(`/negocios/${biz.id}`, '_blank');
-                  }
-                }}
-                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-xs sm:text-sm font-medium flex-1 sm:flex-initial"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                <span className="hidden sm:inline">Vista previa</span>
-                <span className="sm:hidden">Preview</span>
-              </button>
-              <button
-                onClick={save}
-                disabled={uiState.busy}
-                className="px-3 sm:px-4 py-2 bg-[#38761D] text-white rounded-lg hover:bg-[#2d5a15] transition text-xs sm:text-sm font-semibold disabled:opacity-60 flex-1 sm:flex-initial"
-              >
-                <span className="hidden sm:inline">{uiState.busy ? 'Guardando...' : 'Guardar cambios'}</span>
-                <span className="sm:hidden">{uiState.busy ? 'Guardando...' : 'Guardar'}</span>
-              </button>
+          <div className="mb-6 space-y-4">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900">Editor mobile-first</p>
+                  <p className="mt-1 break-words text-sm text-gray-600">
+                    Divide la edicion por secciones para avanzar con menos scroll y mantener el guardado siempre a la mano.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    if (biz.id) {
+                      window.open(`/negocios/${biz.id}`, "_blank");
+                    }
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-200 sm:w-auto"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  Vista previa
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-2 shadow-sm">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {EDITOR_TABS.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`inline-flex min-w-max items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                        isActive
+                          ? "bg-[#38761D] text-white shadow-sm"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      <span className="sm:hidden">{tab.shortLabel}</span>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="space-y-6 min-w-0">
             {/* Principal */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900">Información básica</h2>
+            <div className="space-y-6 min-w-0">
+              <div className={`${activeTab === 'info' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
+                <h2 className="text-lg font-semibold text-gray-900">InformaciÃƒÂ³n bÃƒÂ¡sica</h2>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -870,61 +879,59 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Categoría <span className="text-red-500">*</span>
+                      CategorÃƒÂ­a <span className="text-red-500">*</span>
                     </label>
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {CATEGORY_GROUPS.map((group) => {
-                          const isSelected = selectedGroupId === group.id;
-                          return (
-                            <button
-                              key={group.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedGroupId(group.id);
-                                setForm((prev) => ({ ...prev, categoryGroupId: group.id }));
-                                const first = getCategoriesByGroup(group.id)[0];
-                                if (first) {
-                                  handleCategorySelect(first.id);
-                                }
-                              }}
-                              className={`flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all ${
-                                isSelected
-                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
-                                  : 'border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/40'
-                              }`}
-                            >
-                              <span className="text-lg">{group.icon}</span>
-                              <span className="text-xs font-semibold leading-tight">{group.name}</span>
-                              {group.description && <span className="text-[11px] text-gray-500">{group.description}</span>}
-                            </button>
-                          );
-                        })}
+                                        <div className="space-y-3">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Grupo principal
+                        <select
+                          value={selectedGroupId}
+                          onChange={(e) => {
+                            const nextGroupId = e.target.value as CategoryGroupId;
+                            setSelectedGroupId(nextGroupId);
+                            setForm((prev) => ({ ...prev, categoryGroupId: nextGroupId }));
+                            const nextCategory = getCategoriesByGroup(nextGroupId)[0];
+                            if (nextCategory) {
+                              handleCategorySelect(nextCategory.id);
+                            }
+                          }}
+                          className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-3 text-sm text-gray-900 outline-none transition focus:border-[#38761D] focus:ring-2 focus:ring-[#38761D]/15"
+                        >
+                          {CATEGORY_GROUPS.map((group) => (
+                            <option key={group.id} value={group.id}>
+                              {group.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="block text-sm font-medium text-gray-700">
+                        Categoria visible
+                        <select
+                          value={form.categoryId || ''}
+                          onChange={(e) => handleCategorySelect(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-3 text-sm text-gray-900 outline-none transition focus:border-[#38761D] focus:ring-2 focus:ring-[#38761D]/15"
+                        >
+                          {availableCategories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-3 text-sm text-emerald-900">
+                        <p className="font-semibold">
+                          {selectedCategoryGroup?.icon ? `${selectedCategoryGroup.icon} ` : ''}{currentBusinessCategory.categoryName || 'Sin categoria seleccionada'}
+                        </p>
+                        {selectedCategoryGroup?.description && (
+                          <p className="mt-1 text-xs leading-relaxed text-emerald-700 break-words">
+                            {selectedCategoryGroup.description}
+                          </p>
+                        )}
                       </div>
-                      <div className="grid sm:grid-cols-2 gap-2">
-                        {availableCategories.map((cat) => {
-                          const isSelected = form.categoryId ? form.categoryId === cat.id : form.category === cat.name;
-                          return (
-                            <button
-                              key={cat.id}
-                              type="button"
-                              onClick={() => handleCategorySelect(cat.id)}
-                              className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm transition-all ${
-                                isSelected
-                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
-                                  : 'border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/60'
-                              }`}
-                            >
-                              <span className="flex items-center gap-2">
-                                <span className="text-lg">{cat.icon}</span>
-                                <span className="font-semibold">{cat.name}</span>
-                              </span>
-                              {isSelected && <span className="text-xs font-semibold text-emerald-700">Elegida</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <p className="text-xs text-gray-500">
+
+                      <p className="text-xs text-gray-500 break-words">
                         Guardamos el slug estable (categoryId) y mantenemos la etiqueta legacy para compatibilidad con datos anteriores.
                       </p>
                     </div>
@@ -955,13 +962,13 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción <span className="text-red-500">*</span>
-                    <span className="text-gray-500 text-xs ml-2">(Mínimo 20 caracteres)</span>
+                    DescripciÃƒÂ³n <span className="text-red-500">*</span>
+                    <span className="text-gray-500 text-xs ml-2">(MÃƒÂ­nimo 20 caracteres)</span>
                   </label>
                   <textarea
                     className={`border rounded-lg px-3 py-2 w-full ${validationErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
                     rows={3}
-                    placeholder="Descripción breve de tu negocio"
+                    placeholder="DescripciÃƒÂ³n breve de tu negocio"
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                   />
@@ -975,12 +982,12 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+              <div className={`${activeTab === 'operacion' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
                 <h2 className="text-lg font-semibold text-gray-900">Contacto y redes</h2>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Teléfono <span className="text-red-500">*</span>
+                      TelÃƒÂ©fono <span className="text-red-500">*</span>
                     </label>
                     <input
                       className={`border rounded-lg px-3 py-2 w-full ${validationErrors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'}`}
@@ -1017,14 +1024,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+              <div className={`${activeTab === 'operacion' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">🚚</span>
-                  <h2 className="text-lg font-semibold text-gray-900">Opciones de envío</h2>
+                  <span className="text-2xl">Ã°Å¸Å¡Å¡</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Opciones de envÃƒÂ­o</h2>
                 </div>
                 
                 <div className="space-y-4">
-                  {/* Checkbox principal de envío */}
+                  {/* Checkbox principal de envÃƒÂ­o */}
                   <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition">
                     <input
                       type="checkbox"
@@ -1033,7 +1040,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                         setForm({ 
                           ...form, 
                           hasEnvio: e.target.checked,
-                          // Si desactiva envío, resetear campos
+                          // Si desactiva envÃƒÂ­o, resetear campos
                           envioCost: e.target.checked ? form.envioCost : 'free',
                           envioInfo: e.target.checked ? form.envioInfo : ''
                         });
@@ -1041,18 +1048,18 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       className="w-5 h-5 text-[#38761D] rounded focus:ring-[#38761D] mt-0.5 flex-shrink-0"
                     />
                     <div className="flex-1">
-                      <span className="font-medium text-gray-900">Ofrezco servicio de envío a domicilio</span>
-                      <p className="text-sm text-gray-600 mt-1">Marca esta opción si entregas productos o servicios</p>
+                      <span className="font-medium text-gray-900">Ofrezco servicio de envÃƒÂ­o a domicilio</span>
+                      <p className="text-sm text-gray-600 mt-1">Marca esta opciÃƒÂ³n si entregas productos o servicios</p>
                     </div>
                   </label>
 
-                  {/* Opciones adicionales cuando está activado */}
+                  {/* Opciones adicionales cuando estÃƒÂ¡ activado */}
                   {form.hasEnvio && (
                     <div className="ml-8 space-y-4 pl-4 border-l-2 border-emerald-200">
-                      {/* Costo de envío */}
+                      {/* Costo de envÃƒÂ­o */}
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">
-                          Costo del envío
+                          Costo del envÃƒÂ­o
                         </label>
                         <div className="space-y-2">
                           <label className="flex items-center gap-2 cursor-pointer">
@@ -1064,7 +1071,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                               onChange={(e) => setForm({ ...form, envioCost: e.target.value })}
                               className="w-4 h-4 text-[#38761D] focus:ring-[#38761D]"
                             />
-                            <span className="text-sm font-medium text-gray-900">🎁 Gratis</span>
+                            <span className="text-sm font-medium text-gray-900">Ã°Å¸Å½Â Gratis</span>
                           </label>
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -1075,7 +1082,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                               onChange={(e) => setForm({ ...form, envioCost: e.target.value })}
                               className="w-4 h-4 text-[#38761D] focus:ring-[#38761D]"
                             />
-                            <span className="text-sm font-medium text-gray-900">💵 Tiene costo</span>
+                            <span className="text-sm font-medium text-gray-900">Ã°Å¸â€™Âµ Tiene costo</span>
                           </label>
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -1086,25 +1093,25 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                               onChange={(e) => setForm({ ...form, envioCost: e.target.value })}
                               className="w-4 h-4 text-[#38761D] focus:ring-[#38761D]"
                             />
-                            <span className="text-sm font-medium text-gray-900">📍 Depende de la ubicación</span>
+                            <span className="text-sm font-medium text-gray-900">Ã°Å¸â€œÂ Depende de la ubicaciÃƒÂ³n</span>
                           </label>
                         </div>
                       </div>
 
-                      {/* Información adicional del envío */}
+                      {/* InformaciÃƒÂ³n adicional del envÃƒÂ­o */}
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">
-                          Información adicional (opcional)
+                          InformaciÃƒÂ³n adicional (opcional)
                         </label>
                         <textarea
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#38761D] focus:border-transparent"
                           rows={3}
-                          placeholder="Ej: Envío gratis en compras mayores a $500, Costo $30 dentro de la ciudad, Zona de cobertura: centro y colonias cercanas"
+                          placeholder="Ej: EnvÃƒÂ­o gratis en compras mayores a $500, Costo $30 dentro de la ciudad, Zona de cobertura: centro y colonias cercanas"
                           value={form.envioInfo}
                           onChange={(e) => setForm({ ...form, envioInfo: e.target.value })}
                         />
                         <p className="text-xs text-gray-500">
-                          💡 Tip: Menciona zonas de cobertura, tiempo de entrega, o condiciones especiales
+                          Ã°Å¸â€™Â¡ Tip: Menciona zonas de cobertura, tiempo de entrega, o condiciones especiales
                         </p>
                       </div>
                     </div>
@@ -1116,13 +1123,13 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                     <p className="text-xs font-semibold text-emerald-900 mb-1">Vista previa para clientes:</p>
                     <div className="flex items-start gap-2 text-sm text-emerald-800">
-                      <span className="text-lg">🚚</span>
+                      <span className="text-lg">Ã°Å¸Å¡Å¡</span>
                       <div>
                         <p className="font-medium">
-                          Servicio de envío disponible
+                          Servicio de envÃƒÂ­o disponible
                           {form.envioCost === 'free' && ' - Gratis'}
                           {form.envioCost === 'paid' && ' - Con costo'}
-                          {form.envioCost === 'varies' && ' - Costo según ubicación'}
+                          {form.envioCost === 'varies' && ' - Costo segÃƒÂºn ubicaciÃƒÂ³n'}
                         </p>
                         {form.envioInfo && (
                           <p className="text-xs mt-1 text-emerald-700">{form.envioInfo}</p>
@@ -1133,24 +1140,24 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+              <div className={`${activeTab === 'operacion' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Ubicación</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">UbicaciÃƒÂ³n</h2>
                     <p className="text-xs text-gray-500 mt-1">
-                      Escribe tu dirección o referencia. El mapa es opcional.
+                      Escribe tu direcciÃƒÂ³n o referencia. El mapa es opcional.
                     </p>
                   </div>
                 </div>
                 <AddressPicker value={addr} onChange={handleAddressChange} />
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+              <div className={`${activeTab === 'operacion' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
                 <h2 className="text-lg font-semibold text-gray-900">Horarios</h2>
                 
-                {/* Acciones rápidas de horarios */}
+                {/* Acciones rÃƒÂ¡pidas de horarios */}
                 <div className="flex flex-wrap gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-900 font-medium w-full mb-1">Acciones rápidas:</p>
+                  <p className="text-xs text-blue-900 font-medium w-full mb-1">Acciones rÃƒÂ¡pidas:</p>
                   <button
                     type="button"
                     onClick={() => {
@@ -1253,11 +1260,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900">Galería</h2>
+              <div className={`${activeTab === 'catalogo' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
+                <h2 className="text-lg font-semibold text-gray-900">GalerÃƒÂ­a</h2>
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600">
-                    {biz.plan === 'free' ? '📷 Plan Gratuito: Logo + Portada (obligatoria) + Sin galería adicional' :
+                    {biz.plan === 'free' ? 'Ã°Å¸â€œÂ· Plan Gratuito: Logo + Portada (obligatoria) + Sin galerÃƒÂ­a adicional' :
                      biz.plan === 'featured' ? 'Plan Destacado: Logo + Banner + hasta 2 fotos' : 
                      biz.plan === 'sponsor' ? 'Plan Patrocinado: Logo + Banner + hasta 10 fotos' : 
                      'Galeria de imagenes'}
@@ -1272,9 +1279,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               </div>
 
               {/* Logo del negocio - Disponible para TODOS los planes (OPCIONAL) */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+              <div className={`${activeTab === 'catalogo' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-2xl">🎨</span>
+                  <span className="text-2xl">Ã°Å¸Å½Â¨</span>
                   <h2 className="text-lg font-semibold text-gray-900">Logo del negocio</h2>
                   <span className="text-xs px-2 py-0.5 rounded-full border bg-gray-100 text-gray-700 border-gray-300">
                     Opcional
@@ -1285,7 +1292,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                 </div>
                 <p className="text-sm text-gray-600">
                   Tu logo aparece en las tarjetas de tu negocio y mejora el reconocimiento de marca. 
-                  <span className="font-semibold text-[#38761D]"> No es obligatorio</span>, pero ayuda a que los clientes te identifiquen fácilmente.
+                  <span className="font-semibold text-[#38761D]"> No es obligatorio</span>, pero ayuda a que los clientes te identifiquen fÃƒÂ¡cilmente.
                 </p>
                 <LogoUploader
                   businessId={id!}
@@ -1298,10 +1305,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               {/* Banner/Cover - Solo para planes Featured y Sponsor */}
               {(biz.plan === 'featured' || biz.plan === 'sponsor') && (
                 <>
-                  {/* Sección de Banner/Cover */}
-                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+                  {/* SecciÃƒÂ³n de Banner/Cover */}
+              <div className={`${activeTab === 'catalogo' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl">🖼️</span>
+                      <span className="text-2xl">Ã°Å¸â€“Â¼Ã¯Â¸Â</span>
                       <h2 className="text-lg font-semibold text-gray-900">Banner de portada</h2>
                       <span className={`text-xs px-2 py-0.5 rounded-full border ${
                         biz.plan === 'featured' 
@@ -1313,7 +1320,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     </div>
                     <p className="text-sm text-gray-600">
                       {biz.plan === 'sponsor' 
-                        ? 'Banner destacado que aparece en tu tarjeta premium con diseño exclusivo' 
+                        ? 'Banner destacado que aparece en tu tarjeta premium con diseÃƒÂ±o exclusivo' 
                         : 'Banner que aparece en la parte superior de tu perfil de negocio'}
                     </p>
                     <CoverUploader
@@ -1327,7 +1334,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               )}
 
               {supportsMenuManagement && id && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+              <div className={`${activeTab === 'catalogo' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600">
@@ -1344,10 +1351,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   <MenuManager businessId={id} />
                 </div>
               )}
-            </div>
-
             {/* Lateral */}
-            <div className="space-y-4">
+            <div className={`${activeTab === 'gestion' ? '' : 'hidden ' }space-y-4 min-w-0`}>
               {/* Sistema avanzado de upgrade con escasez artificial */}
               {biz.plan === 'free' && biz.category && (
                 <div className="space-y-6">
@@ -1377,7 +1382,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 space-y-4" data-payment-section>
                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <span>💎</span> Planes y precios
+                  <span>Ã°Å¸â€™Å½</span> Planes y precios
                 </h3>
                 
                 <PaymentInfo
@@ -1400,10 +1405,10 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       <div className="flex items-start justify-between mb-3 gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h4 className="text-base sm:text-lg font-bold text-blue-900">⭐ Plan Destacado</h4>
+                            <h4 className="text-base sm:text-lg font-bold text-blue-900">Ã¢Â­Â Plan Destacado</h4>
                             <span className="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full">POPULAR</span>
                           </div>
-                          <p className="text-xs sm:text-sm text-blue-700">Aparece en sección destacada</p>
+                          <p className="text-xs sm:text-sm text-blue-700">Aparece en secciÃƒÂ³n destacada</p>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-xl sm:text-2xl font-bold text-blue-900">$99</p>
@@ -1413,24 +1418,24 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       
                       <div className="space-y-1.5 text-sm text-blue-900">
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
-                          <span className="flex-1">Aparece en sección destacada del home</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
+                          <span className="flex-1">Aparece en secciÃƒÂ³n destacada del home</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
                           <span className="flex-1">Badge premium dorado</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
-                          <span className="flex-1">Hasta 10 imágenes en galería</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
+                          <span className="flex-1">Hasta 10 imÃƒÂ¡genes en galerÃƒÂ­a</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
-                          <span className="flex-1">Reportes básicos de visitas</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
+                          <span className="flex-1">Reportes bÃƒÂ¡sicos de visitas</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
-                          <span className="flex-1">Prioridad en búsquedas</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
+                          <span className="flex-1">Prioridad en bÃƒÂºsquedas</span>
                         </div>
                       </div>
                     </div>
@@ -1443,9 +1448,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       <div className="flex items-start justify-between mb-3 gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h4 className="text-base sm:text-lg font-bold text-purple-900">🚀 Plan Patrocinado</h4>
+                            <h4 className="text-base sm:text-lg font-bold text-purple-900">Ã°Å¸Å¡â‚¬ Plan Patrocinado</h4>
                           </div>
-                          <p className="text-xs sm:text-sm text-purple-700">Máxima visibilidad garantizada</p>
+                          <p className="text-xs sm:text-sm text-purple-700">MÃƒÂ¡xima visibilidad garantizada</p>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-xl sm:text-2xl font-bold text-purple-900">$199</p>
@@ -1455,50 +1460,50 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       
                       <div className="space-y-1.5 text-sm text-purple-900">
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
                           <span className="font-semibold flex-1">Todo lo del plan Destacado +</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
                           <span className="flex-1">Aparece SIEMPRE en la parte superior</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
-                          <span className="flex-1">Badge VIP con animación</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
+                          <span className="flex-1">Badge VIP con animaciÃƒÂ³n</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
-                          <span className="flex-1">Imágenes ILIMITADAS en galería</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
+                          <span className="flex-1">ImÃƒÂ¡genes ILIMITADAS en galerÃƒÂ­a</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
                           <span className="flex-1">Logo y portada personalizada</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
-                          <span className="flex-1">Reportes completos + analíticas avanzadas</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
+                          <span className="flex-1">Reportes completos + analÃƒÂ­ticas avanzadas</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <span className="text-green-600 flex-shrink-0">✓</span>
+                          <span className="text-green-600 flex-shrink-0">Ã¢Å“â€œ</span>
                           <span className="flex-1">Soporte prioritario</span>
                         </div>
                       </div>
                       
                       <div className="mt-3 p-2 bg-white/60 rounded-lg border border-purple-200">
                         <p className="text-[10px] sm:text-xs text-purple-900 font-semibold text-center">
-                          🔥 Ideal para negocios que buscan dominar su sector
+                          Ã°Å¸â€Â¥ Ideal para negocios que buscan dominar su sector
                         </p>
                       </div>
                     </div>
 
-                    {/* Garantía y beneficios */}
+                    {/* GarantÃƒÂ­a y beneficios */}
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
                       <div className="flex items-start gap-2">
-                        <span className="text-xl">🎁</span>
+                        <span className="text-xl">Ã°Å¸Å½Â</span>
                         <div className="flex-1 text-xs text-green-900">
-                          <p className="font-bold mb-1">✓ Sin permanencia - Cancela cuando quieras</p>
-                          <p>✓ Activación inmediata tras validar tu pago</p>
-                          <p>✓ Soporte por WhatsApp y email</p>
+                          <p className="font-bold mb-1">Ã¢Å“â€œ Sin permanencia - Cancela cuando quieras</p>
+                          <p>Ã¢Å“â€œ ActivaciÃƒÂ³n inmediata tras validar tu pago</p>
+                          <p>Ã¢Å“â€œ Soporte por WhatsApp y email</p>
                         </div>
                       </div>
                     </div>
@@ -1510,7 +1515,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                     <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-50 text-purple-700 border border-purple-200 inline-block">
                       Pago por transferencia o sucursal
                     </span>
-                    <p className="text-xs sm:text-sm text-gray-700">Envía tu comprobante y activaremos el plan al validarlo.</p>
+                    <p className="text-xs sm:text-sm text-gray-700">EnvÃƒÂ­a tu comprobante y activaremos el plan al validarlo.</p>
                   </div>
                   <div className="grid gap-2">
                     <label className="text-xs font-semibold text-gray-700">
@@ -1527,7 +1532,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     <label className="text-xs font-semibold text-gray-700">
                       Comprobante (PDF/JPG/PNG)
-                      <span className="ml-1 text-gray-500 font-normal">(Imágenes se comprimen automáticamente)</span>
+                      <span className="ml-1 text-gray-500 font-normal">(ImÃƒÂ¡genes se comprimen automÃƒÂ¡ticamente)</span>
                       <div className="mt-1 flex flex-col gap-2">
                         <input
                           type="file"
@@ -1546,7 +1551,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                             <div className="flex items-center gap-2 justify-between sm:justify-end flex-shrink-0">
                               <span className="text-emerald-600 font-semibold whitespace-nowrap">{(receiptState.file.size / 1024).toFixed(0)} KB</span>
                               {receiptState.file.type.startsWith('image/') && (
-                                <span className="text-emerald-600 text-[10px] whitespace-nowrap">📷 Se comprimirá</span>
+                                <span className="text-emerald-600 text-[10px] whitespace-nowrap">Ã°Å¸â€œÂ· Se comprimirÃƒÂ¡</span>
                               )}
                             </div>
                           </div>
@@ -1601,9 +1606,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                         <p><span className="font-medium text-gray-700">Beneficiario:</span> Oscar Alexis Gonzalez Perez</p>
                       </div>
                       <div className="mt-3 pt-3 border-t border-gray-300">
-                        <p className="font-medium text-gray-700 mb-1">Envía tu comprobante:</p>
-                        <p className="break-words">📧 Email: <span className="break-all font-mono text-[11px] text-blue-600">al36xiz@gmail.com</span></p>
-                        <p className="break-words mt-1">📱 WhatsApp: <span className="break-all font-mono text-[11px] text-green-600">+52 919 156 5865</span></p>
+                        <p className="font-medium text-gray-700 mb-1">EnvÃƒÂ­a tu comprobante:</p>
+                        <p className="break-words">Ã°Å¸â€œÂ§ Email: <span className="break-all font-mono text-[11px] text-blue-600">al36xiz@gmail.com</span></p>
+                        <p className="break-words mt-1">Ã°Å¸â€œÂ± WhatsApp: <span className="break-all font-mono text-[11px] text-green-600">+52 919 156 5865</span></p>
                         <p className="mt-2 text-gray-500">Activaremos tu plan al validar el pago.</p>
                       </div>
                     </div>
@@ -1637,24 +1642,24 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   <div className={`p-4 rounded-lg text-sm font-medium transition-all duration-300 animate-[slideDown_0.3s_ease-out] ${
                     uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') || uiState.msg.includes('demasiado grande') || uiState.msg.includes('expirada') || uiState.msg.includes('servidor')
                       ? 'bg-red-50 text-red-800 border-2 border-red-300 shadow-sm'
-                      : uiState.msg.includes('✅') || uiState.msg.includes('exitosamente') || uiState.msg.includes('Validaremos')
+                      : uiState.msg.includes('Ã¢Å“â€¦') || uiState.msg.includes('exitosamente') || uiState.msg.includes('Validaremos')
                       ? 'bg-green-50 text-green-800 border-2 border-green-300 shadow-sm'
                       : 'bg-blue-50 text-blue-800 border-2 border-blue-300 shadow-sm'
                   }`}>
                     <div className="flex items-start gap-2">
                       <span className="flex-shrink-0 text-lg">
-                        {uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') ? '❌' : 
-                         uiState.msg.includes('✅') || uiState.msg.includes('exitosamente') ? '✅' : 'ℹ️'}
+                        {uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') ? 'Ã¢ÂÅ’' : 
+                         uiState.msg.includes('Ã¢Å“â€¦') || uiState.msg.includes('exitosamente') ? 'Ã¢Å“â€¦' : 'Ã¢â€žÂ¹Ã¯Â¸Â'}
                       </span>
                       <p className="flex-1">{uiState.msg}</p>
                     </div>
                   </div>
                 )}
                 
-                {/* ⚠️ ZONA DE PELIGRO */}
+                {/* Ã¢Å¡Â Ã¯Â¸Â ZONA DE PELIGRO */}
                 <div className="mt-8 border-2 border-red-200 rounded-xl bg-red-50 p-6">
                   <div className="flex items-start gap-3 mb-4">
-                    <span className="text-2xl">⚠️</span>
+                    <span className="text-2xl">Ã¢Å¡Â Ã¯Â¸Â</span>
                     <div>
                       <h3 className="text-lg font-bold text-red-900 mb-1">Zona de Peligro</h3>
                       <p className="text-sm text-red-700">
@@ -1668,7 +1673,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                       <div>
                         <p className="text-sm font-semibold text-gray-900">Eliminar negocio</p>
                         <p className="text-xs text-gray-600 mt-1">
-                          Esta acción es permanente y eliminará todos los datos
+                          Esta acciÃƒÂ³n es permanente y eliminarÃƒÂ¡ todos los datos
                         </p>
                       </div>
                       <button
@@ -1700,35 +1705,60 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               </div>
             </div>
           </div>
+          </div>
         </>
       )}
       
-      {/* Modal de confirmación de eliminación */}
+      {biz && userCanEdit && (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 p-4 shadow-md backdrop-blur">
+          <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900">Guardar cambios</p>
+              <p className="mt-1 break-words text-xs text-gray-500">
+                {hasUnsavedChanges
+                  ? "Hay cambios pendientes en esta pantalla."
+                  : lastSaved
+                    ? `Ultimo guardado: ${lastSaved.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}`
+                    : "Tus cambios se reflejan al guardar."}
+              </p>
+            </div>
+            <button
+              onClick={save}
+              disabled={uiState.busy}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-[#38761D] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#2d5a15] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[220px]"
+            >
+              {uiState.busy ? "Guardando..." : hasUnsavedChanges ? "Guardar cambios" : "Guardar y continuar"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmaciÃƒÂ³n de eliminaciÃƒÂ³n */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-start gap-3 mb-4">
-              <span className="text-3xl">⚠️</span>
+              <span className="text-3xl">Ã¢Å¡Â Ã¯Â¸Â</span>
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-red-900 mb-1">¿Eliminar negocio?</h3>
+                <h3 className="text-xl font-bold text-red-900 mb-1">Ã‚Â¿Eliminar negocio?</h3>
                 <p className="text-sm text-gray-600">
-                  Esta acción es <strong>permanente</strong> y no se puede deshacer
+                  Esta acciÃƒÂ³n es <strong>permanente</strong> y no se puede deshacer
                 </p>
               </div>
             </div>
             
             {/* Lista de consecuencias */}
             <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-sm font-semibold text-red-900 mb-2">Se perderá:</p>
+              <p className="text-sm font-semibold text-red-900 mb-2">Se perderÃƒÂ¡:</p>
               <ul className="text-xs text-red-800 space-y-1 ml-4 list-disc">
                 <li>Todos los datos del negocio</li>
-                <li>Imágenes y contenido subido</li>
-                <li>Estadísticas y reportes</li>
-                <li>El negocio desaparecerá del directorio</li>
+                <li>ImÃƒÂ¡genes y contenido subido</li>
+                <li>EstadÃƒÂ­sticas y reportes</li>
+                <li>El negocio desaparecerÃƒÂ¡ del directorio</li>
               </ul>
             </div>
             
-            {/* Confirmación por texto */}
+            {/* ConfirmaciÃƒÂ³n por texto */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Para confirmar, escribe <span className="text-red-600 font-mono">ELIMINAR</span> o el nombre exacto de tu negocio:
@@ -1745,7 +1775,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
               </p>
             </div>
             
-            {/* Checkbox de confirmación */}
+            {/* Checkbox de confirmaciÃƒÂ³n */}
             <div className="mb-6">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
@@ -1755,7 +1785,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   className="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                 />
                 <span className="text-sm text-gray-700">
-                  Entiendo que esta acción es <strong>permanente</strong> y no se puede deshacer
+                  Entiendo que esta acciÃƒÂ³n es <strong>permanente</strong> y no se puede deshacer
                 </span>
               </label>
             </div>
@@ -1802,5 +1832,18 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

@@ -6,6 +6,7 @@ import { serializeTimestamps } from "./serializeFirestore";
 type ProductRecord = {
   business_id: string;
   nombre: string;
+  descripcion?: string;
   precio: number;
   categoria_platillo: string;
   disponibilidad: boolean;
@@ -16,6 +17,7 @@ type ProductRecord = {
 type ProductPayload = {
   business_id: string;
   nombre: string;
+  descripcion?: string;
   precio: number;
   categoria_platillo: string;
   disponibilidad?: boolean;
@@ -30,6 +32,7 @@ function toProductResponse(id: string, data: ProductRecord) {
     id,
     business_id: data.business_id,
     nombre: data.nombre,
+    descripcion: data.descripcion || "",
     precio: Number(data.precio || 0),
     categoria_platillo: data.categoria_platillo || "General",
     disponibilidad: typeof data.disponibilidad === "boolean" ? data.disponibilidad : true,
@@ -94,6 +97,7 @@ export async function createProduct(payload: ProductPayload) {
   const record: ProductRecord = {
     business_id: payload.business_id,
     nombre: payload.nombre,
+    descripcion: payload.descripcion || "",
     precio: payload.precio,
     categoria_platillo: payload.categoria_platillo || "General",
     disponibilidad: typeof payload.disponibilidad === "boolean" ? payload.disponibilidad : true,
@@ -118,6 +122,8 @@ export async function updateProduct(productId: string, updates: ProductUpdatePay
   const nextRecord: ProductRecord = {
     ...current,
     ...updates,
+    descripcion:
+      typeof updates.descripcion === "string" ? updates.descripcion : current.descripcion || "",
     categoria_platillo:
       typeof updates.categoria_platillo === "string" && updates.categoria_platillo.trim()
         ? updates.categoria_platillo

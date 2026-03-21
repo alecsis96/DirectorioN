@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const business_id = String(body?.business_id || "").trim();
     const nombre = String(body?.nombre || "").trim();
+    const descripcion = String(body?.descripcion || "").trim();
     const categoria_platillo = String(body?.categoria_platillo || "General").trim() || "General";
     const precio = Number(body?.precio);
     const disponibilidad =
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
     const product = await createProduct({
       business_id,
       nombre,
+      descripcion,
       precio,
       categoria_platillo,
       disponibilidad,
