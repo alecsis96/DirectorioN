@@ -232,6 +232,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
       setProducts((current) =>
         current.map((item) => (item.id === product.id ? payload.product! : item))
       );
+      setReloadKey((current) => current + 1);
       setFeedbackMessage(
         nextAvailability
           ? `"${product.nombre}" ahora esta disponible.`
@@ -270,6 +271,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
       }
 
       setProducts((current) => current.filter((item) => item.id !== product.id));
+      setReloadKey((current) => current + 1);
       setFeedbackMessage(payload.message || 'Producto eliminado correctamente.');
     } catch (deleteError: any) {
       setError(deleteError?.message || 'No pudimos eliminar el producto.');
@@ -335,6 +337,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
           ? `"${data.product.nombre}" fue actualizado.`
           : `"${data.product.nombre}" fue agregado al menu.`
       );
+      setReloadKey((current) => current + 1);
       closeModal(true);
     } catch (submitError: any) {
       setFormError(submitError?.message || 'No pudimos guardar el producto.');
@@ -654,5 +657,4 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     </div>
   );
 }
-
 
