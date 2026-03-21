@@ -6,8 +6,8 @@
 import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db, signInWithGoogle } from '../firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebaseConfig';
 import ImageUploader from './ImageUploader';
 import LogoUploader from './LogoUploader';
 import CoverUploader from './CoverUploader';
@@ -16,11 +16,11 @@ import PaymentInfo from './PaymentInfo';
 import BusinessStatusBanner from './BusinessStatusBanner';
 import FeatureUpsell from './FeatureUpsell';
 import ScarcityBadge from './ScarcityBadge';
+import MenuManager from './MenuManager';
 import { BsBank, BsUpload } from 'react-icons/bs';
 import { useAuth, canEditBusiness } from '../hooks/useAuth';
 import { updateBusinessDetails } from '../app/actions/businesses';
-import { requestPublish, updateBusinessWithState, deleteBusiness } from '../app/actions/businessActions';
-import { computeProfileCompletion, updateBusinessState, type BusinessWithState } from '../lib/businessStates';
+import { requestPublish, deleteBusiness } from '../app/actions/businessActions';
 import type { Business } from '../types/business';
 import { YAJALON_COLONIAS } from '../lib/helpers/colonias';
 import { CATEGORY_GROUPS, CATEGORIES, getCategoriesByGroup, resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
@@ -221,6 +221,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     () => getCategoriesByGroup(selectedGroupId),
     [selectedGroupId]
   );
+  const currentBusinessCategory = useMemo(
+    () => resolveCategory(form.categoryId || form.categoryName || form.category || biz?.categoryId || biz?.categoryName || biz?.category),
+    [form.categoryId, form.categoryName, form.category, biz?.categoryId, biz?.categoryName, biz?.category]
+  );
+  const supportsMenuManagement = currentBusinessCategory.groupId === 'food' && Boolean(id);
 
   // Estados de UI consolidados
   const [uiState, setUiState] = useState({
@@ -240,7 +245,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Estado para errores de validación
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors] = useState<Record<string, string>>({});
 
   const handleCategorySelect = useCallback((categoryId: string) => {
     const cat = CATEGORIES.find((c) => c.id === categoryId);
@@ -276,8 +281,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   });
 
   // NUEVO: Estado para manejar la publicación
-  const [publishLoading, setPublishLoading] = useState(false);
-  
+  const [, setPublishLoading] = useState(false);
+
   // Estado para modal de eliminación
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -329,53 +334,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
-
-  // Calcular completitud del perfil
-  const calculateCompleteness = useCallback(() => {
-    if (!biz) return 0;
-    let completed = 0;
-    const total = 12;
-
-    if (form.name?.trim()) completed++;
-    if (form.categoryId || form.category) completed++;
-    if (form.description?.trim() && form.description.length >= 20) completed++;
-    if (form.phone?.trim()) completed++;
-    if (form.address?.trim()) completed++;
-    if (form.colonia) completed++;
-    if (addr.lat && addr.lng) completed++;
-    if (form.WhatsApp?.trim()) completed++;
-    if (Object.values(schedule).some(h => h.open)) completed++;
-    if (biz.images && biz.images.length > 0) completed++;
-    if (biz.logoUrl) completed++;
-    if (biz.coverUrl) completed++;
-
-    return Math.round((completed / total) * 100);
-  }, [form, biz, addr, schedule]);
-
-  // Validar campos requeridos
-  const validateForm = useCallback(() => {
-    const errors: Record<string, string> = {};
-    
-    if (!form.name?.trim()) {
-      errors.name = 'El nombre es obligatorio';
-    }
-    if (!form.categoryId && !form.categoryName) {
-      errors.category = 'Selecciona una categoría';
-    }
-    if (!form.description?.trim() || form.description.length < 20) {
-      errors.description = 'La descripción debe tener al menos 20 caracteres';
-    }
-    if (!form.phone?.trim()) {
-      errors.phone = 'El teléfono es obligatorio';
-    }
-    if (!form.colonia) {
-      errors.colonia = 'Selecciona una colonia';
-    }
-    
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  }, [form]);
-
   // Estados del recibo consolidados
   const [receiptState, setReceiptState] = useState<{
     file: File | null;
@@ -647,22 +605,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       
       // Si es imagen, comprimir antes de enviar
       if (receiptState.file.type.startsWith('image/')) {
-        console.log('[DashboardEditor] Comprimiendo imagen...', { 
-          originalSize: receiptState.file.size, 
-          type: receiptState.file.type 
-        });
         base64Data = await compressImage(receiptState.file);
-        const compressedSize = Math.ceil((base64Data.length * 3) / 4);
-        console.log('[DashboardEditor] Imagen comprimida', { 
-          originalSize: receiptState.file.size, 
-          compressedSize,
-          reduction: `${((1 - compressedSize / receiptState.file.size) * 100).toFixed(1)}%`
-        });
       } else {
         // Para PDFs, convertir directamente
-        console.log('[DashboardEditor] Convirtiendo PDF a base64...', { 
-          size: receiptState.file.size 
-        });
         const buffer = await receiptState.file.arrayBuffer();
         const bytes = new Uint8Array(buffer);
         let binary = '';
@@ -1380,6 +1325,25 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                   </div>
                 </>
               )}
+
+              {supportsMenuManagement && id && (
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600">
+                        Menu del negocio
+                      </p>
+                      <h2 className="mt-1 text-lg font-semibold text-gray-900">
+                        Gestiona tus platillos y disponibilidad
+                      </h2>
+                      <p className="mt-2 text-sm text-gray-600">
+                        Los cambios que hagas aqui se reflejan en el perfil publico del negocio y en el flujo de pedido por WhatsApp.
+                      </p>
+                    </div>
+                  </div>
+                  <MenuManager businessId={id} />
+                </div>
+              )}
             </div>
 
             {/* Lateral */}
@@ -1838,3 +1802,5 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
     </>
   );
 }
+
+

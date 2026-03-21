@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown, FaDownload, FaChartBar, FaCheckSquare, FaSquare, FaExclamationTriangle } from 'react-icons/fa';
+import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown, FaDownload, FaChartBar, FaCheckSquare, FaSquare, FaExclamationTriangle, FaUtensils } from 'react-icons/fa';
 import { auth } from '../firebaseConfig';
 
 interface BusinessData {
@@ -45,7 +45,7 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-function getPlanBadge(plan: string, subscriptionStatus?: string) {
+function getPlanBadge(plan: string, _subscriptionStatus?: string) {
   if (plan === 'sponsor') {
     return <span className="px-2 py-1 text-xs font-semibold bg-purple-100 text-purple-800 rounded">👑 Patrocinado</span>;
   }
@@ -570,7 +570,6 @@ export default function AdminBusinessList({ businesses }: Props) {
       }
       
       const token = await user.getIdToken();
-      console.log('Deleting business:', businessId);
       
       const res = await fetch('/api/admin/delete-business', {
         method: 'POST',
@@ -580,10 +579,7 @@ export default function AdminBusinessList({ businesses }: Props) {
         },
         body: JSON.stringify({ businessId }),
       });
-
-      console.log('Response status:', res.status);
       const data = await res.json();
-      console.log('Response data:', data);
 
       if (!res.ok) {
         throw new Error(data.error || 'Error al eliminar negocio');
@@ -972,6 +968,13 @@ export default function AdminBusinessList({ businesses }: Props) {
                       <FaEdit />
                     </Link>
                     <Link
+                      href={`/admin/businesses/${business.id}/menu`}
+                      className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                      title="Gestionar menú"
+                    >
+                      <FaUtensils />
+                    </Link>
+                    <Link
                       href={`/admin/analytics?businessId=${business.id}`}
                       className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                       title="Ver analytics"
@@ -1106,4 +1109,5 @@ export default function AdminBusinessList({ businesses }: Props) {
     </div>
   );
 }
+
 
