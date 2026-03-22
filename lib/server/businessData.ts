@@ -1,4 +1,5 @@
 import { getAdminFirestore } from "./firebaseAdmin";
+import { downgradeExpiredPremiumPlans } from "./premiumPlanExpiry";
 import type { Business } from "../../types/business";
 import { resolveCategory } from "../categoriesCatalog";
 
@@ -132,6 +133,8 @@ export async function fetchBusinesses(
   lastId?: string
 ): Promise<PaginatedBusinesses> {
   try {
+    await downgradeExpiredPremiumPlans();
+
     const safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
     const cacheKey = `${safeLimit}:${lastId ?? 'first'}`;
     const cached = BUSINESS_CACHE.get(cacheKey);

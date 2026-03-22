@@ -2,6 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { downgradeExpiredPremiumPlans } from '../../../lib/server/premiumPlanExpiry';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import AdminBusinessList from '../../../components/AdminBusinessList';
 
@@ -116,6 +117,7 @@ async function getBusinessStats() {
 
 export default async function AdminBusinessesPage() {
   await requireAdmin();
+  await downgradeExpiredPremiumPlans({ force: true });
   const [businesses, stats] = await Promise.all([
     fetchAllBusinesses(),
     getBusinessStats(),

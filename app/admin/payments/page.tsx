@@ -1,6 +1,7 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { downgradeExpiredPremiumPlans } from '../../../lib/server/premiumPlanExpiry';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import PaymentManager from '../../../components/PaymentManagerWrapper';
 import ReceiptListClient from '../../../components/ReceiptListClient';
@@ -144,6 +145,7 @@ async function getTransferReceipts(): Promise<TransferReceipt[]> {
 export default async function AdminPaymentsPage() {
   try {
     await requireAdmin();
+    await downgradeExpiredPremiumPlans({ force: true });
     const [businesses, receipts] = await Promise.all([
       getBusinessesWithPaymentIssues(), 
       getTransferReceipts()

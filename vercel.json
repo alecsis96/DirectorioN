@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/check-expired-payments",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/expire-premium-plans",
+      "schedule": "0 * * * *"
     }
   ]
 }
