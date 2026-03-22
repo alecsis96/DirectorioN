@@ -34,7 +34,7 @@
     },
     {
       "path": "/api/cron/expire-premium-plans",
-      "schedule": "0 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
