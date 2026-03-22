@@ -1506,11 +1506,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                 <div className="min-w-0">
 
-                  <p className="text-sm font-medium text-gray-900">Editor mobile-first</p>
+                  <p className="text-sm font-medium text-gray-900">Administra tu negocio facilmente</p>
 
                   <p className="mt-1 break-words text-sm text-gray-600">
 
-                    Divide la edicion por secciones para avanzar con menos scroll y mantener el guardado siempre a la mano.
+                    Completa cada seccion para mantener tu perfil actualizado y recibir mas clientes.
 
                   </p>
 
@@ -2376,7 +2376,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               {supportsMenuManagement && id && (
 
-              <div className={`${activeTab === 'catalogo' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
+              <div className={`${activeTab === 'catalogo' ? '' : 'hidden '}overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 space-y-4`}>
 
                   <div className="flex items-start justify-between gap-3 flex-wrap">
 
@@ -2500,9 +2500,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               <div className={`${activeTab === 'catalogo' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center">
 
-                      <span className="text-2xl">🖼</span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-700">Portada</span>
 
                       <h2 className="text-lg font-semibold text-gray-900">Banner de portada</h2>
 
@@ -3248,7 +3248,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
       {biz && userCanEdit && (
 
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 p-4 shadow-md backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 p-4 shadow-md backdrop-blur">
 
           <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 

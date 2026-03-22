@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+
 import { auth } from '../firebaseConfig';
 
 type Props = {
@@ -10,7 +11,12 @@ type Props = {
   onChange: (url: string | null, publicId: string | null) => void;
 };
 
-export default function CoverUploader({ businessId, coverUrl, coverPublicId, onChange }: Props) {
+export default function CoverUploader({
+  businessId,
+  coverUrl,
+  coverPublicId,
+  onChange,
+}: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -19,15 +25,14 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validaciones
     if (file.size > 10 * 1024 * 1024) {
-      setError('La imagen de portada no debe superar 10MB');
+      setError('La imagen de portada no debe superar 10 MB.');
       return;
     }
 
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
-      setError('Solo se permiten imágenes JPG, PNG o WebP');
+      setError('Solo se permiten imagenes JPG, PNG o WebP.');
       return;
     }
 
@@ -36,7 +41,6 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
     setUploading(true);
 
     try {
-      // 1. Eliminar imagen anterior si existe
       if (coverPublicId) {
         const user = auth.currentUser;
         if (user) {
@@ -52,7 +56,6 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
         }
       }
 
-      // 2. Subir nueva imagen de portada
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', 'unsigned');
@@ -67,17 +70,16 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
       );
 
       if (!cloudinaryResponse.ok) {
-        throw new Error('Error al subir la imagen de portada a Cloudinary');
+        throw new Error('Error al subir la imagen de portada a Cloudinary.');
       }
 
       const cloudinaryData = await cloudinaryResponse.json();
       const newCoverUrl = cloudinaryData.secure_url;
       const newCoverPublicId = cloudinaryData.public_id;
 
-      // 3. Guardar en Firestore
       const user = auth.currentUser;
       if (!user) {
-        throw new Error('Debes iniciar sesión');
+        throw new Error('Debes iniciar sesion.');
       }
 
       const token = await user.getIdToken();
@@ -88,7 +90,7 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          businessId: businessId,
+          businessId,
           updates: {
             coverUrl: newCoverUrl,
             coverPublicId: newCoverPublicId,
@@ -98,14 +100,14 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
 
       if (!updateResponse.ok) {
         const errorData = await updateResponse.json();
-        throw new Error(errorData.error || 'Error al guardar la portada');
+        throw new Error(errorData.error || 'Error al guardar la portada.');
       }
 
       onChange(newCoverUrl, newCoverPublicId);
-      setSuccess('Portada actualizada exitosamente');
+      setSuccess('Portada actualizada exitosamente.');
     } catch (err: any) {
       console.error('Error uploading cover:', err);
-      setError(err.message || 'Error al subir la portada');
+      setError(err?.message || 'Error al subir la portada.');
     } finally {
       setUploading(false);
     }
@@ -114,7 +116,7 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
   const handleRemoveCover = async () => {
     if (!coverPublicId) return;
 
-    const confirmed = confirm('¿Estás seguro de eliminar la imagen de portada?');
+    const confirmed = window.confirm('Estas seguro de eliminar la imagen de portada?');
     if (!confirmed) return;
 
     setUploading(true);
@@ -122,7 +124,6 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
     setSuccess(null);
 
     try {
-      // 1. Eliminar de Cloudinary
       const user = auth.currentUser;
       if (user) {
         const token = await user.getIdToken();
@@ -136,9 +137,10 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
         });
       }
 
-      // 2. Actualizar Firestore
       const user2 = auth.currentUser;
-      if (!user2) throw new Error('Debes iniciar sesión');
+      if (!user2) {
+        throw new Error('Debes iniciar sesion.');
+      }
 
       const token = await user2.getIdToken();
       const updateResponse = await fetch('/api/businesses/update', {
@@ -148,7 +150,7 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          businessId: businessId,
+          businessId,
           updates: {
             coverUrl: null,
             coverPublicId: null,
@@ -157,45 +159,43 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
       });
 
       if (!updateResponse.ok) {
-        throw new Error('Error al eliminar la portada');
+        throw new Error('Error al eliminar la portada.');
       }
 
       onChange(null, null);
-      setSuccess('Portada eliminada exitosamente');
+      setSuccess('Portada eliminada exitosamente.');
     } catch (err: any) {
       console.error('Error removing cover:', err);
-      setError(err.message || 'Error al eliminar la portada');
+      setError(err?.message || 'Error al eliminar la portada.');
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-6 shadow-md">
-      <div className="flex items-start gap-4">
-        {/* Preview */}
-        <div className="flex-shrink-0">
+    <div className="overflow-hidden rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 via-white to-pink-50 p-4 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="w-full lg:max-w-sm">
           {coverUrl ? (
             <img
               src={coverUrl}
               alt="Portada del negocio"
-              className="w-48 h-28 object-cover rounded-lg border-2 border-purple-300 shadow-sm"
+              className="h-40 w-full rounded-2xl border border-purple-200 object-cover shadow-sm sm:h-44"
             />
           ) : (
-            <div className="w-48 h-28 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+            <div className="flex h-40 w-full items-center justify-center rounded-2xl border border-dashed border-purple-200 bg-white px-4 text-center text-sm text-gray-500 sm:h-44">
               Sin portada
             </div>
           )}
         </div>
 
-        {/* Controls */}
-        <div className="flex-1 space-y-3">
-          <div>
+        <div className="min-w-0 flex-1 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <label
               htmlFor="cover-upload"
-              className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg font-medium cursor-pointer hover:bg-purple-700 transition shadow-sm"
+              className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-700 sm:w-auto"
             >
-              {uploading ? 'Subiendo...' : coverUrl ? 'Cambiar Portada' : 'Subir Portada'}
+              {uploading ? 'Subiendo...' : coverUrl ? 'Cambiar portada' : 'Subir portada'}
             </label>
             <input
               id="cover-upload"
@@ -205,31 +205,39 @@ export default function CoverUploader({ businessId, coverUrl, coverPublicId, onC
               disabled={uploading}
               className="hidden"
             />
+
+            {coverUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveCover}
+                disabled={uploading}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-red-100 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-200 disabled:opacity-50 sm:w-auto"
+              >
+                Eliminar portada
+              </button>
+            )}
           </div>
 
-          {coverUrl && (
-            <button
-              onClick={handleRemoveCover}
-              disabled={uploading}
-              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition disabled:opacity-50"
-            >
-              Eliminar Portada
-            </button>
-          )}
-
-          <p className="text-xs text-purple-700">
-            📐 Recomendado: 1200x400px (proporción 3:1) • Máx. 10MB • JPG, PNG o WebP
-          </p>
+          <div className="rounded-2xl border border-purple-100 bg-white/80 p-4">
+            <p className="text-sm font-semibold text-gray-900">Recomendaciones de imagen</p>
+            <p className="mt-2 break-words text-sm leading-relaxed text-gray-600">
+              Usa una portada horizontal para que tu negocio se vea mejor en el perfil.
+              Recomendado: 1200 x 400 px, proporcion 3:1, maximo 10 MB.
+            </p>
+            <p className="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-purple-700">
+              Formatos permitidos: JPG, PNG y WebP
+            </p>
+          </div>
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
-              ⚠️ {error}
+            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
             </p>
           )}
 
           {success && (
-            <p className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
-              ✓ {success}
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {success}
             </p>
           )}
         </div>

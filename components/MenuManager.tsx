@@ -82,6 +82,35 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
   const [busyProductIds, setBusyProductIds] = useState<string[]>([]);
 
   useEffect(() => {
+    if (!isModalOpen || typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
+    const { body, documentElement } = document;
+    const scrollY = window.scrollY;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyPosition = body.style.position;
+    const previousBodyTop = body.style.top;
+    const previousBodyWidth = body.style.width;
+    const previousHtmlOverflow = documentElement.style.overflow;
+
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+    documentElement.style.overflow = 'hidden';
+
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      body.style.position = previousBodyPosition;
+      body.style.top = previousBodyTop;
+      body.style.width = previousBodyWidth;
+      documentElement.style.overflow = previousHtmlOverflow;
+      window.scrollTo({ top: scrollY });
+    };
+  }, [isModalOpen]);
+
+  useEffect(() => {
     let isActive = true;
 
     if (!businessId) {
@@ -526,7 +555,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/50 p-0 sm:items-center sm:p-4">
+        <div className="fixed inset-0 z-[80] flex items-end justify-center overflow-y-auto bg-gray-950/60 p-0 sm:items-center sm:p-4">
           <button
             type="button"
             onClick={() => closeModal()}
@@ -534,7 +563,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
             aria-label="Cerrar modal"
           />
 
-          <div className="relative z-10 w-full rounded-t-3xl bg-white shadow-2xl sm:max-w-lg sm:rounded-3xl">
+          <div className="relative z-[81] w-full overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-w-lg sm:rounded-3xl">
             <div className="border-b border-gray-100 px-5 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -565,90 +594,96 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-700">Nombre</span>
-                <input
-                  type="text"
-                  value={form.nombre}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, nombre: event.target.value }))
-                  }
-                  placeholder="Ej. Hamburguesa clasica"
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                />
-              </label>
+            <form onSubmit={handleSubmit} className="flex max-h-[88vh] flex-col">
+              <div className="space-y-4 overflow-y-auto px-5 py-5">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-gray-700">Nombre</span>
+                  <input
+                    type="text"
+                    value={form.nombre}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, nombre: event.target.value }))
+                    }
+                    placeholder="Ej. Hamburguesa clasica"
+                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
 
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-700">Descripcion o detalles</span>
-                <textarea
-                  value={form.descripcion}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, descripcion: event.target.value }))
-                  }
-                  rows={3}
-                  placeholder="Ej. Incluye papas y refresco de 355 ml"
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                />
-              </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Descripcion o detalles
+                  </span>
+                  <textarea
+                    value={form.descripcion}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, descripcion: event.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Ej. Incluye papas y refresco de 355 ml"
+                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
 
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-700">Precio</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.precio}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, precio: event.target.value }))
-                  }
-                  placeholder="0.00"
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                />
-              </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-gray-700">Precio</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.precio}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, precio: event.target.value }))
+                    }
+                    placeholder="0.00"
+                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
 
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-700">Categoria</span>
-                <input
-                  type="text"
-                  value={form.categoria_platillo}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      categoria_platillo: event.target.value,
-                    }))
-                  }
-                  placeholder="Ej. Bebidas, Postres, Entradas"
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                />
-              </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-gray-700">Categoria</span>
+                  <input
+                    type="text"
+                    value={form.categoria_platillo}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        categoria_platillo: event.target.value,
+                      }))
+                    }
+                    placeholder="Ej. Bebidas, Postres, Entradas"
+                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
 
-              {formError && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {formError}
+                {formError && (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {formError}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-gray-100 bg-white px-5 py-4">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => closeModal()}
+                    disabled={isSaving}
+                    className="inline-flex items-center justify-center rounded-2xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSaving
+                      ? 'Guardando...'
+                      : editingProduct
+                        ? 'Guardar cambios'
+                        : 'Crear platillo'}
+                  </button>
                 </div>
-              )}
-
-              <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => closeModal()}
-                  disabled={isSaving}
-                  className="inline-flex items-center justify-center rounded-2xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSaving
-                    ? 'Guardando...'
-                    : editingProduct
-                      ? 'Guardar cambios'
-                      : 'Crear platillo'}
-                </button>
               </div>
             </form>
           </div>
