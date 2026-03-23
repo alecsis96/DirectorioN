@@ -28,6 +28,7 @@ import { useBusinessHistory } from "../hooks/useBusinessHistory";
 import { generateBusinessPlaceholder } from "../lib/placeholderGenerator";
 import { getDetailViewTokens, getHeroHeight, type BusinessPlan } from "../lib/designTokens";
 import { resolveCategory } from "../lib/categoriesCatalog";
+import { MENU_FEATURE_ENABLED } from "../lib/featureFlags";
 
 import { upsertReview, reviewsQuery, ReviewSchema } from "../lib/firestore/reviews";
 import { hasAdminOverride } from "../lib/adminOverrides";
@@ -202,7 +203,8 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
     () => resolveCategory(business.categoryId || business.categoryName || business.category),
     [business.categoryId, business.categoryName, business.category]
   );
-  const showOrderCart = resolvedCategory.groupId === "food" && Boolean(businessId);
+  const showOrderCart =
+    MENU_FEATURE_ENABLED && resolvedCategory.groupId === "food" && Boolean(businessId);
 
   // Detectar cuando el componente está montado en el cliente
   useEffect(() => {

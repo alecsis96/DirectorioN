@@ -5,6 +5,7 @@ import { FaArrowLeft, FaUtensils } from 'react-icons/fa';
 
 import MenuManager from '@/components/MenuManager';
 import { hasAdminOverride } from '@/lib/adminOverrides';
+import { MENU_FEATURE_ENABLED } from '@/lib/featureFlags';
 import { getAdminAuth, getAdminFirestore } from '@/lib/server/firebaseAdmin';
 
 async function requireAdmin() {
@@ -58,6 +59,10 @@ export default async function AdminBusinessMenuPage({
 }: {
   params: { id: string } | Promise<{ id: string }>;
 }) {
+  if (!MENU_FEATURE_ENABLED) {
+    redirect('/admin/businesses');
+  }
+
   await requireAdmin();
 
   const resolvedParams = await params;
@@ -110,3 +115,4 @@ export default async function AdminBusinessMenuPage({
     </main>
   );
 }
+

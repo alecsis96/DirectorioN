@@ -5,6 +5,7 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown, FaDownload, FaChartBar, FaCheckSquare, FaSquare, FaExclamationTriangle, FaUtensils } from 'react-icons/fa';
 import { auth } from '../firebaseConfig';
+import { MENU_FEATURE_ENABLED } from '../lib/featureFlags';
 
 interface BusinessData {
   id: string;
@@ -967,13 +968,15 @@ export default function AdminBusinessList({ businesses }: Props) {
                     >
                       <FaEdit />
                     </Link>
-                    <Link
-                      href={`/admin/businesses/${business.id}/menu`}
-                      className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                      title="Gestionar menú"
-                    >
-                      <FaUtensils />
-                    </Link>
+                    {MENU_FEATURE_ENABLED ? (
+                      <Link
+                        href={`/admin/businesses/${business.id}/menu`}
+                        className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                        title="Gestionar menu"
+                      >
+                        <FaUtensils />
+                      </Link>
+                    ) : null}
                     <Link
                       href={`/admin/analytics?businessId=${business.id}`}
                       className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"

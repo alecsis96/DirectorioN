@@ -49,6 +49,7 @@ import type { Business } from '../types/business';
 import { YAJALON_COLONIAS } from '../lib/helpers/colonias';
 
 import { CATEGORY_GROUPS, CATEGORIES, getCategoriesByGroup, resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
+import { MENU_FEATURE_ENABLED } from '../lib/featureFlags';
 
 type DaySchedule = { open: boolean; start: string; end: string };
 
@@ -434,7 +435,8 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
   );
 
-  const supportsMenuManagement = currentBusinessCategory.groupId === 'food' && Boolean(id);
+  const supportsMenuManagement =
+    MENU_FEATURE_ENABLED && currentBusinessCategory.groupId === 'food' && Boolean(id);
 
   const selectedCategoryGroup = useMemo(
 
