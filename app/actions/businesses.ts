@@ -5,6 +5,7 @@ import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin'
 import { hasAdminOverride } from '../../lib/adminOverrides';
 import { updateBusinessState } from '../../lib/businessStates';
 import { resolveCategory } from '../../lib/categoriesCatalog';
+import { getResourceLimit } from '../../lib/planPermissions';
 
 const LAST_STEP_INDEX = 1;
 
@@ -212,7 +213,8 @@ function buildApplicationPayload(
   const tiktok = asString(formData.tiktok ?? '', 200);
   const logoUrl = asString(formData.logoUrl ?? '', 400);
   const coverPhoto = asString(formData.coverPhoto ?? '', 400);
-  const gallery = toArrayFromComma(formData.gallery, 50);
+  const plan = 'free' as const;
+  const gallery = toArrayFromComma(formData.gallery, getResourceLimit(plan, 'galleryPhotos'));
   const videoPromoUrl = asString(formData.videoPromoUrl ?? '', 400);
   const metodoPago = coerceStringArray(formData.metodoPago);
   const servicios = coerceStringArray(formData.servicios);
@@ -220,7 +222,6 @@ function buildApplicationPayload(
   const promocionesActivas = asString(formData.promocionesActivas ?? '', 500);
   const horarios = normalizeHorarios(formData.horarios);
   const hours = summarizeHorarios(horarios);
-  const plan = 'free';
   const featured = false;
   const notes = asString(formData.notes ?? '', 800);
 

@@ -2420,7 +2420,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                   <p className="text-sm text-gray-600">
 
-                    {biz.plan === 'free' ? '📷 Plan Gratuito: Logo + Portada (obligatoria) + Sin galería adicional' :
+                    {biz.plan === 'free' ? '📷 Plan Gratuito: hasta 2 fotos en galería' :
 
                      biz.plan === 'featured' ? 'Plan Destacado: Logo + Banner + hasta 2 fotos' : 
 
@@ -2594,16 +2594,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                   
 
-                  <FeatureUpsell 
-
-                    feature="gallery"
-
-                    currentPlan="free"
-
-                    variant="banner"
-
-                  />
-
                 </div>
 
               )}
@@ -2700,7 +2690,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                           <span className="text-green-600 flex-shrink-0">OK</span>
 
-                          <span className="flex-1">Hasta 10 imagenes en galeria</span>
+                          <span className="flex-1">Hasta 2 imagenes en galeria</span>
 
                         </div>
 

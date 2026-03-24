@@ -530,7 +530,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
       : `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
   }
   const planValue = String((business as any)?.plan ?? "").toLowerCase();
-  const hasPremiumGallery = planValue === "featured" || planValue === "sponsor";
+  const hasGallery = galleryItems.length > 0;
 
   // Helper para tracking de eventos en esta vista
   const trackDetailCTA = useCallback(
@@ -562,10 +562,10 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
     console.info("detail_render", {
       id: business.id,
       saveData: dataSaverEnabled,
-      hasGallery: hasPremiumGallery && !dataSaverEnabled && galleryItems.length > 0,
+      hasGallery: !dataSaverEnabled && hasGallery,
       hasMap: Boolean(embedSrc),
     });
-  }, [business.id, dataSaverEnabled, hasPremiumGallery, galleryItems.length, embedSrc]);
+  }, [business.id, dataSaverEnabled, hasGallery, embedSrc]);
 
 
   // -------- JSON-LD (SEO Local) ----------
@@ -943,8 +943,8 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
                 Cómo llegar
               </button>
             )}
-            {/* Chip Galería - Para planes premium con fotos */}
-            {(plan === 'featured' || plan === 'sponsor') && allGalleryImages.length > 0 && !dataSaverEnabled && (
+            {/* Chip Galería - Visible si el negocio tiene fotos */}
+            {allGalleryImages.length > 0 && !dataSaverEnabled && (
               <button
                 onClick={() => document.getElementById('galeria-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors"
@@ -1042,7 +1042,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
         <h2 className="text-xl font-semibold text-gray-900 mb-4">📷 Galería de Fotos</h2>
         
         {/* Plan FREE: Galería bloqueada con mensaje motivacional */}
-        {plan === 'free' && detailTokens.showGalleryBlock ? (
+        {plan === 'free' && 'galleryBlockTitle' in detailTokens && detailTokens.showGalleryBlock ? (
           <div className="relative rounded-xl border-2 border-dashed border-gray-300 bg-gradient-to-br from-gray-50 to-gray-100 p-8 text-center overflow-hidden">
             {/* Decoración de fondo */}
             <div className="absolute inset-0 opacity-5">
@@ -1081,7 +1081,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
           </div>
         ) : (
           /* Plan FEATURED/SPONSOR: Galería visible */
-          (plan === 'featured' || plan === 'sponsor') && allGalleryImages.length > 0 && !dataSaverEnabled ? (
+          allGalleryImages.length > 0 && !dataSaverEnabled ? (
             <>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-normal text-gray-500">
@@ -1149,7 +1149,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
               <div className="text-4xl mb-3">📸</div>
               <p className="text-sm text-gray-600">
                 {plan === 'free' 
-                  ? 'Mejora tu plan para agregar fotos y atraer más clientes.'
+                  ? ('galleryEmptyMessage' in detailTokens ? detailTokens.galleryEmptyMessage : 'Este negocio aún no muestra fotos.')
                   : (plan === 'featured' || plan === 'sponsor') && 'galleryEmptyMessage' in detailTokens
                     ? detailTokens.galleryEmptyMessage 
                     : 'No hay fotos disponibles aún.'}

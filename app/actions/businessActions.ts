@@ -19,6 +19,7 @@ import {
   type BusinessStatus 
 } from '../../lib/businessStates';
 import { resolveCategory } from '../../lib/categoriesCatalog';
+import { getResourceLimit } from '../../lib/planPermissions';
 
 const createBusinessSchema = z.object({
   token: z.string().min(1, 'Missing auth token'),
@@ -153,7 +154,8 @@ export async function createBusinessImmediately(formData: FormData) {
     const website = asString(payload.website ?? '', 200);
     const logoUrl = asString(payload.logoUrl ?? '', 400);
     const coverPhoto = asString(payload.coverPhoto ?? '', 400);
-    const gallery = toArrayFromComma(payload.gallery, 50);
+    const plan = 'free' as const;
+    const gallery = toArrayFromComma(payload.gallery, getResourceLimit(plan, 'galleryPhotos'));
     const videoPromoUrl = asString(payload.videoPromoUrl ?? '', 400);
     const horarios = normalizeHorarios(payload.horarios);
     const metodoPago = coerceStringArray(payload.metodoPago);
@@ -202,7 +204,7 @@ export async function createBusinessImmediately(formData: FormData) {
       updatedAt: new Date(),
       
       // Plan
-      plan: 'free',
+      plan,
       featured: false,
       isActive: true,
     };

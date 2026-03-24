@@ -25,12 +25,12 @@ export const PLAN_PERMISSIONS = {
       'location',       // Dirección, mapa, coordenadas
       'hours',          // Horario de atención
       'socialLinks',    // Facebook (opcional)
+      'gallery',        // Hasta 2 fotos adicionales
     ],
     
     // ❌ BLOQUEADO - Features premium
     deniedFeatures: [
       'coverImage',     // Portada hero NO disponible
-      'gallery',        // Galería adicional NO disponible
       'metrics',        // Métricas analíticas NO disponibles
       'badge',          // Sin badges de distinción
       'priorityRanking', // Sin posicionamiento preferencial
@@ -42,9 +42,9 @@ export const PLAN_PERMISSIONS = {
       logo: { required: true, count: 1 },
       profilePhoto: { required: true, count: 1 },
       coverImage: { required: false, count: 0 },
-      galleryPhotos: { required: false, count: 0 },
+      galleryPhotos: { required: false, count: 2 },
       description: { maxChars: 500 },
-      totalPhotos: 2, // logo + profilePhoto
+      totalPhotos: 4, // logo + profilePhoto + 2 gallery
     },
     
     // 🎨 Jerarquía visual
@@ -61,7 +61,7 @@ export const PLAN_PERMISSIONS = {
     // 💬 Mensajes de upsell
     upsellMessages: {
       coverImage: 'Agrega una portada llamativa y destaca sobre otros negocios. Disponible en Plan Destacado.',
-      gallery: 'Muestra hasta 5 fotos de tu negocio y recibe 3X más clientes. Disponible desde $199/mes.',
+      gallery: 'Mantén tus 2 fotos y desbloquea portada, prioridad y métricas básicas con Plan Destacado.',
       metrics: 'Conoce cuántas personas ven tu negocio, dan clic en WhatsApp y más. Upgrade a Plan Destacado.',
       badge: 'Gana un badge de "Negocio Destacado" y aumenta tu credibilidad. Desde $199/mes.',
     },
@@ -100,9 +100,9 @@ export const PLAN_PERMISSIONS = {
       logo: { required: true, count: 1 },
       profilePhoto: { required: true, count: 1 },
       coverImage: { required: true, count: 1 },
-      galleryPhotos: { required: false, count: 5 },
+      galleryPhotos: { required: false, count: 2 },
       description: { maxChars: 1000 },
-      totalPhotos: 7, // logo + profile + cover + 5 gallery
+      totalPhotos: 5, // logo + profile + cover + 2 gallery
     },
     
     // 🎨 Jerarquía visual
@@ -321,8 +321,10 @@ export function getUpgradeValueProp(fromPlan: BusinessPlan, feature: string): {
       targetPlan: 'featured',
     },
     gallery: {
-      title: 'Muestra tu Negocio con Fotos',
-      benefit: 'Las fotos aumentan la confianza y conversiones hasta 250%',
+      title: fromPlan === 'free' ? 'Haz que tus fotos destaquen más' : 'Muestra más de tu negocio con fotos',
+      benefit: fromPlan === 'free'
+        ? 'Mantén tus 2 fotos y además desbloquea portada, prioridad y métricas básicas'
+        : 'Sube hasta 10 fotos y muestra todo lo que ofreces',
       cta: fromPlan === 'free' ? 'Ver Plan Destacado' : 'Ver Plan Patrocinado',
       targetPlan,
     },
@@ -382,15 +384,15 @@ export const PLAN_COMPARISON_TABLE = [
   },
   {
     feature: 'Galería de fotos',
-    free: '❌ 0 fotos',
-    featured: '✅ Hasta 5 fotos',
+    free: '✅ Hasta 2 fotos',
+    featured: '✅ Hasta 2 fotos',
     sponsor: '✅ Hasta 10 fotos',
     category: 'Imágenes',
   },
   {
     feature: 'Total de fotos',
-    free: '2 fotos',
-    featured: '7 fotos',
+    free: '4 fotos',
+    featured: '5 fotos',
     sponsor: '12 fotos',
     category: 'Imágenes',
   },

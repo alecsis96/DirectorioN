@@ -349,8 +349,8 @@ export function PlanComparison({ currentPlan, highlightRecommended = true }: Pla
           <tbody>
             <tr className="border-b border-gray-100">
               <td className="py-3 px-4 text-gray-900">Total de fotos</td>
-              <td className="py-3 px-4 text-center text-gray-600">2</td>
-              <td className="py-3 px-4 text-center text-gray-900 font-semibold">7</td>
+              <td className="py-3 px-4 text-center text-gray-600">4</td>
+              <td className="py-3 px-4 text-center text-gray-900 font-semibold">5</td>
               <td className="py-3 px-4 text-center text-gray-900 font-semibold">12</td>
             </tr>
             <tr className="border-b border-gray-100">
@@ -361,8 +361,8 @@ export function PlanComparison({ currentPlan, highlightRecommended = true }: Pla
             </tr>
             <tr className="border-b border-gray-100">
               <td className="py-3 px-4 text-gray-900">Galería</td>
-              <td className="py-3 px-4 text-center">❌</td>
-              <td className="py-3 px-4 text-center text-gray-900 font-semibold">5 fotos</td>
+              <td className="py-3 px-4 text-center text-gray-900 font-semibold">2 fotos</td>
+              <td className="py-3 px-4 text-center text-gray-900 font-semibold">2 fotos</td>
               <td className="py-3 px-4 text-center text-gray-900 font-semibold">10 fotos</td>
             </tr>
             <tr className="border-b border-gray-100">

@@ -13,12 +13,13 @@ export type BusinessPlan = 'free' | 'featured' | 'sponsor';
 /**
  * 📐 LAYOUT TOKENS
  * Controlan dimensiones y espaciado
+ * 🎯 CONSISTENCIA: Todas las portadas tienen la misma altura base (180px) para uniformidad
  */
 export const LAYOUT_TOKENS = {
   free: {
-    // Portada estándar
-    coverHeight: 'h-[120px]',
-    coverHeightPx: 120,
+    // Portada altura consistente
+    coverHeight: 'h-[180px]',
+    coverHeightPx: 180,
     
     // Card compacta y eficiente
     cardPadding: 'p-4',
@@ -32,9 +33,9 @@ export const LAYOUT_TOKENS = {
   },
   
   featured: {
-    // Portada 20% más alta
-    coverHeight: 'h-[145px]',
-    coverHeightPx: 145,
+    // Portada altura consistente
+    coverHeight: 'h-[180px]',
+    coverHeightPx: 180,
     
     // Card con más respiración
     cardPadding: 'p-5',
@@ -48,7 +49,7 @@ export const LAYOUT_TOKENS = {
   },
   
   sponsor: {
-    // Hero cover - 50% más alta
+    // Portada altura consistente
     coverHeight: 'h-[180px]',
     coverHeightPx: 180,
     
@@ -226,23 +227,24 @@ export const EFFECT_TOKENS = {
 /**
  * 📱 RESPONSIVE TOKENS
  * Ajustes por breakpoint
+ * 🎯 CONSISTENCIA: Todas las portadas tienen la misma altura para uniformidad visual en carruseles
  */
 export const RESPONSIVE_TOKENS = {
   free: {
-    // Estándar en todos los tamaños
-    coverHeightMobile: 'h-[120px]',
-    coverHeightDesktop: 'md:h-[120px]',
+    // Altura consistente en todos los planes
+    coverHeightMobile: 'h-[180px]',
+    coverHeightDesktop: 'md:h-[200px]',
   },
   
   featured: {
-    // Crece en desktop
-    coverHeightMobile: 'h-[135px]',
-    coverHeightDesktop: 'md:h-[150px]',
+    // Altura consistente en todos los planes
+    coverHeightMobile: 'h-[180px]',
+    coverHeightDesktop: 'md:h-[200px]',
   },
   
   sponsor: {
-    // Hero en desktop
-    coverHeightMobile: 'h-[160px]',
+    // Altura consistente en todos los planes
+    coverHeightMobile: 'h-[180px]',
     coverHeightDesktop: 'md:h-[200px]',
   },
 } as const;
@@ -288,11 +290,12 @@ export const DETAIL_VIEW_TOKENS = {
     secondaryCTAText: '',
     
     // Mensaje de galería bloqueada
-    showGalleryBlock: true,
+    showGalleryBlock: false,
     galleryBlockTitle: 'Este negocio aún no muestra fotos',
     galleryBlockMessage: 'Los negocios con fotos reciben hasta 3X más clientes.',
     galleryBlockCTA: 'Ver planes',
     galleryBlockCTAHref: '/para-negocios',
+    galleryEmptyMessage: 'Este negocio aún no muestra fotos.',
   },
   
   featured: {

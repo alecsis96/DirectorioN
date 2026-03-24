@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminFirestore } from '../../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../../lib/adminOverrides';
+import { getResourceLimit, normalizePlan } from '../../../../lib/planPermissions';
 
 const ALLOWED_FIELDS = new Set([
   'name',
@@ -32,6 +33,27 @@ function sanitizeUpdates(source: Record<string, unknown>) {
     target[key] = value;
   }
   return target;
+}
+
+function sanitizeImageItems(value: unknown, maxImages: number) {
+  if (!Array.isArray(value) || maxImages <= 0) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+
+      const url = typeof (item as { url?: unknown }).url === 'string'
+        ? (item as { url: string }).url.trim().slice(0, 500)
+        : '';
+      const publicId = typeof (item as { publicId?: unknown }).publicId === 'string'
+        ? (item as { publicId: string }).publicId.trim().slice(0, 300)
+        : '';
+
+      if (!url) return null;
+      return { url, publicId };
+    })
+    .filter((item): item is { url: string; publicId: string } => Boolean(item))
+    .slice(0, maxImages);
 }
 
 export async function POST(request: NextRequest) {
@@ -69,6 +91,11 @@ export async function POST(request: NextRequest) {
     }
 
     const sanitized = sanitizeUpdates(updates);
+    if ('images' in sanitized) {
+      const plan = normalizePlan(typeof data.plan === 'string' ? data.plan : 'free');
+      const galleryLimit = getResourceLimit(plan, 'galleryPhotos');
+      sanitized.images = sanitizeImageItems(sanitized.images, galleryLimit);
+    }
     if (!Object.keys(sanitized).length) {
       return NextResponse.json({ error: 'No hay campos válidos para actualizar' }, { status: 400 });
     }

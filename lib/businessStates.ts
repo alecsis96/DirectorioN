@@ -26,7 +26,7 @@
  * 4. Admin aprueba → businessStatus=published, applicationStatus=approved
  */
 
-import { PLAN_PERMISSIONS, type BusinessPlan } from './planPermissions';
+import { PLAN_PERMISSIONS, getResourceLimit, normalizePlan, type BusinessPlan } from './planPermissions';
 
 // ============================================
 // TIPOS
@@ -147,7 +147,7 @@ export const FIELD_WEIGHTS = {
   
   // EXTRAS (mejoran presencia) - 10% base
   logo: 5,            // ⚠️ CONDICIONAL: 35% si free (compensa cover), 5% si featured/sponsor
-  gallery: 3,         // 2+ fotos adicionales (solo planes pagos)
+  gallery: 3,         // 2+ fotos adicionales según el límite del plan
   socialMedia: 1,     // Facebook o Instagram
   detailedInfo: 1,    // Precio, envío, etc.
 } as const;
@@ -376,7 +376,9 @@ export function getRecommendedImprovements(business: Partial<BusinessWithState>)
   }
   
   // Galería (solo para planes pagos)
-  if (plan === 'featured' || plan === 'sponsor') {
+  const normalizedPlan = normalizePlan(plan);
+  const galleryLimit = getResourceLimit(normalizedPlan, 'galleryPhotos');
+  if (galleryLimit >= 2) {
     const hasGallery = business.images && business.images.length >= 2;
     if (!hasGallery) {
       recommendations.push('Galería de fotos (al menos 2 imágenes adicionales)');

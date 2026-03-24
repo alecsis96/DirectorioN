@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { auth } from '../firebaseConfig';
+import { getResourceLimit, normalizePlan } from '../lib/planPermissions';
 
 interface UpdateResponse {
   ok: boolean;
@@ -10,13 +11,14 @@ type ImageItem = { url: string; publicId: string };
 export default function ImageUploader({ businessId, images, onChange, plan }:{ businessId: string; images: ImageItem[]; onChange: (imgs: ImageItem[]) => void; plan?: string; }){
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
-  
-  // ⚡ ACTUALIZACIÓN: Plan FREE YA NO puede subir galería (solo coverImage)
-  // Plan DESTACADO: máximo 2 fotos para mantener diseño limpio
-  // Plan PATROCINADO: hasta 10 fotos para máxima exhibición
-  const canUploadImages = plan === 'featured' || plan === 'sponsor';
-  
-  const maxImages = plan === 'featured' ? 2 : plan === 'sponsor' ? 10 : 0;
+  const normalizedPlan = normalizePlan(plan);
+  const maxImages = getResourceLimit(normalizedPlan, 'galleryPhotos');
+  const canUploadImages = maxImages > 0;
+  const planLabel =
+    normalizedPlan === 'featured' ? 'Destacado' :
+    normalizedPlan === 'sponsor' ? 'Patrocinado' :
+    'Gratuito';
+
   const currentCount = images?.length || 0;
   const canAddMore = currentCount < maxImages;
 
@@ -27,7 +29,7 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
     
     // Validar límite de fotos según plan
     if (!canAddMore) {
-      setMsg(`❌ Límite de ${maxImages} fotos alcanzado para plan ${plan === 'featured' ? 'Destacado' : 'Patrocinado'}`);
+      setMsg(`❌ Límite de ${maxImages} fotos alcanzado para plan ${planLabel}`);
       setTimeout(() => setMsg(''), 4000);
       return;
     }
@@ -127,19 +129,10 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-6 text-center">
         <p className="text-lg font-semibold text-gray-800 mb-2">🖼️ Galería de fotos adicionales</p>
         <p className="text-sm text-gray-600 mb-4">
-          La subida de <strong>fotos adicionales</strong> está disponible solo para planes <span className="font-bold text-orange-600">Destacado</span> o <span className="font-bold text-purple-600">Patrocinado</span>.
+          Tu plan actual no incluye fotos adicionales en la galería.
         </p>
-        <div className="bg-white border border-blue-300 rounded-lg p-4 text-left">
-          <p className="text-xs text-gray-700 mb-2">✅ <strong>IMPORTANTE:</strong> Todos los planes incluyen:</p>
-          <ul className="text-xs text-gray-600 space-y-1 ml-4">
-            <li>• <strong>1 Imagen de portada</strong> (OBLIGATORIA)</li>
-            <li>• Información completa del negocio</li>
-            <li>• Ubicación en mapa</li>
-            <li>• Botones de contacto</li>
-          </ul>
-        </div>
         <p className="text-xs text-gray-500 mt-4">
-          Plan actual: <span className="font-semibold">{plan || 'Gratuito'}</span>
+          Plan actual: <span className="font-semibold">{planLabel}</span>
         </p>
       </div>
     );
@@ -153,12 +146,17 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
           <span className="text-sm font-semibold text-gray-700">
             Fotos ({currentCount}/{maxImages})
           </span>
-          {plan === 'featured' && (
+          {normalizedPlan === 'free' && (
+            <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full border border-slate-300">
+              Plan Gratuito
+            </span>
+          )}
+          {normalizedPlan === 'featured' && (
             <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full border border-amber-300">
               Plan Destacado
             </span>
           )}
-          {plan === 'sponsor' && (
+          {normalizedPlan === 'sponsor' && (
             <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full border border-purple-300">
               Plan Patrocinado
             </span>
@@ -181,7 +179,7 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
         />
         {!canAddMore && (
           <p className="text-xs text-orange-600 bg-orange-50 border border-orange-200 rounded-lg p-2">
-            ⚠️ Límite de {maxImages} fotos alcanzado para plan {plan === 'featured' ? 'Destacado' : 'Patrocinado'}
+            ⚠️ Límite de {maxImages} fotos alcanzado para plan {planLabel}
           </p>
         )}
         {msg && (
@@ -216,9 +214,6 @@ export default function ImageUploader({ businessId, images, onChange, plan }:{ b
     </div>
   );
 }
-
-
-
 
 
 
