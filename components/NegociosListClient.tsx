@@ -30,14 +30,13 @@
 
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
 // Swiper para carrusel de PREMIUMs
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
@@ -58,7 +57,7 @@ import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, PAGE_SIZE, type Filters, type Sort
 import { getBusinessStatus } from './BusinessHours';
 import { useFavorites } from '../context/FavoritesContext';
 import { selectSponsoredRotation } from '../lib/sponsoredRotation';
-import { CATEGORY_GROUPS, CATEGORIES, getCategoriesByGroup, resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
+import { resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
 
 const BusinessModalWrapper = dynamic(() => import('./BusinessModalWrapper'), { ssr: false });
 
@@ -126,7 +125,7 @@ export default function NegociosListClient({
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessPreview | Business | null>(null);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  const [compactView, setCompactView] = useState(false); // Vista Compacta: fuerza BusinessCard para todos
+  const [compactView] = useState(false); // Se mantiene por compatibilidad hasta retirar la variante compacta
   const [freeBusinessesLimit, setFreeBusinessesLimit] = useState(10);
   const [uiFilters, setUiFilters] = useState<Filters>(() => ({
     category: initialFilters.category || '',
@@ -497,6 +496,16 @@ export default function NegociosListClient({
     quickFilterTopRated ||
     quickFilterDelivery ||
     quickFilterNew;
+  const activeFilterCount = [
+    Boolean(uiFilters.category),
+    Boolean(uiFilters.colonia),
+    Boolean(uiFilters.query),
+    uiFilters.order !== DEFAULT_ORDER,
+    quickFilterOpen,
+    quickFilterTopRated,
+    quickFilterDelivery,
+    quickFilterNew,
+  ].filter(Boolean).length;
   const quickFilterButtonClass = (active: boolean) =>
     `inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition sm:text-sm ${
       active
@@ -504,7 +513,7 @@ export default function NegociosListClient({
         : 'border border-gray-200 bg-white text-gray-700 hover:border-emerald-300 hover:text-emerald-700'
     }`;
   const utilityControlClass =
-    'h-10 rounded-full border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100';
+    'h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 sm:w-auto sm:min-w-[148px]';
   const activeFilterChipClass =
     'inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800';
 
@@ -582,50 +591,70 @@ export default function NegociosListClient({
               </div>
           
           {/* H2 dinÃ¡mico segÃºn filtros/bÃºsqueda */}
-              <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCategoriesModal(true)}
-                    className="inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 text-sm font-semibold text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
-                  >
-                    Categorias
-                  </button>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Refinar resultados
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Categoria, zona y prioridad para encontrar mas rapido.
+                      </p>
+                    </div>
+                    {hasActiveFilters ? (
+                      <span className="inline-flex items-center self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                        {activeFilterCount} activos
+                      </span>
+                    ) : null}
+                  </div>
 
-                  <label className="inline-flex items-center">
-                    <span className="sr-only">Filtrar por colonia</span>
-                    <select value={uiFilters.colonia} onChange={handleColoniaChange} className={`${utilityControlClass} min-w-[148px] sm:min-w-[148px]`}>
-                      <option value="">Todas las zonas</option>
-                      {colonias.map((colonia) => (
-                        <option key={colonia} value={normalizeColonia(colonia)}>
-                          {colonia}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowCategoriesModal(true)}
+                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                    >
+                      Categorias
+                    </button>
 
-                  <label className="inline-flex items-center">
-                    <span className="sr-only">Ordenar negocios</span>
-                    <select value={uiFilters.order} onChange={handleOrderChange} className={`${utilityControlClass} min-w-[148px] sm:min-w-[148px]`}>
-                      <option value={DEFAULT_ORDER}>Relevancia</option>
-                      <option value="rating">Mejor calificados</option>
-                      <option value="az">A-Z</option>
-                    </select>
-                  </label>
-              </div>
+                    <label className="block">
+                      <span className="sr-only">Filtrar por colonia</span>
+                      <select value={uiFilters.colonia} onChange={handleColoniaChange} className={utilityControlClass}>
+                        <option value="">Todas las zonas</option>
+                        {colonias.map((colonia) => (
+                          <option key={colonia} value={normalizeColonia(colonia)}>
+                            {colonia}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-              <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => toggleQuickFilter('open')} className={quickFilterButtonClass(quickFilterOpen)}>
-                    Abiertos ahora
-                  </button>
-                  <button type="button" onClick={() => toggleQuickFilter('delivery')} className={quickFilterButtonClass(quickFilterDelivery)}>
-                    Con envio
-                  </button>
-                  <button type="button" onClick={() => toggleQuickFilter('topRated')} className={quickFilterButtonClass(quickFilterTopRated)}>
-                    4.5+
-                  </button>
-                  <button type="button" onClick={() => toggleQuickFilter('new')} className={quickFilterButtonClass(quickFilterNew)}>
-                    Nuevos
-                  </button>
+                    <label className="block">
+                      <span className="sr-only">Ordenar negocios</span>
+                      <select value={uiFilters.order} onChange={handleOrderChange} className={utilityControlClass}>
+                        <option value={DEFAULT_ORDER}>Relevancia</option>
+                        <option value="rating">Mejor calificados</option>
+                        <option value="az">A-Z</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => toggleQuickFilter('open')} className={quickFilterButtonClass(quickFilterOpen)}>
+                      Abiertos ahora
+                    </button>
+                    <button type="button" onClick={() => toggleQuickFilter('delivery')} className={quickFilterButtonClass(quickFilterDelivery)}>
+                      Con envio
+                    </button>
+                    <button type="button" onClick={() => toggleQuickFilter('topRated')} className={quickFilterButtonClass(quickFilterTopRated)}>
+                      4.5+
+                    </button>
+                    <button type="button" onClick={() => toggleQuickFilter('new')} className={quickFilterButtonClass(quickFilterNew)}>
+                      Nuevos
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -659,19 +688,6 @@ export default function NegociosListClient({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {viewMode === 'list' && uiFilters.query ? (
-                    <button
-                      onClick={() => setCompactView(!compactView)}
-                      className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition sm:text-sm ${
-                        compactView
-                          ? 'border border-emerald-300 bg-emerald-50 text-emerald-700'
-                          : 'border border-gray-200 bg-white text-gray-700 hover:border-emerald-300 hover:text-emerald-700'
-                      }`}
-                    >
-                      Vista compacta
-                    </button>
-                  ) : null}
-
                   {hasActiveFilters ? (
                     <button
                       type="button"
@@ -896,58 +912,6 @@ export default function NegociosListClient({
             })()}
           </div>
         )}
-
-        {/* CategorÃ­as Destacadas - DiseÃ±o horizontal con emojis (igual que Home) */}
-        {!uiFilters.category && !uiFilters.query && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && categories.length > 0 && (
-          <div className="mb-8" suppressHydrationWarning>
-            <h2 className="mb-4 text-xl font-bold text-gray-800">Explora por categorias</h2>
-            <div className="mb-2 flex flex-wrap gap-2 pb-1">
-              {CATEGORY_GROUPS.map((group) => (
-                <button
-                  key={group.id}
-                  onClick={() =>
-                    updateFilters(
-                      { category: '', categoryId: '', categoryName: '', categoryGroupId: group.id },
-                      { resetPage: true },
-                    )
-                  }
-                  className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-semibold whitespace-nowrap transition-all ${
-                    uiFilters.categoryGroupId === group.id
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-400 hover:bg-emerald-50'
-                  }`}
-                >
-                  <span>{group.name}</span>
-                </button>
-              ))}
-            </div>
-            
-            <div className="pb-2">
-              <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => {
-                  const count = businesses.filter(b => b.category === cat).length;
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => handleCategoryChange(cat)}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all hover:shadow-md whitespace-nowrap flex-shrink-0"
-                    >
-                      <span className="font-semibold">{cat}</span>
-                      <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        
-        
-
-
-        {/* Toggle Vista Compacta - Solo cuando hay bÃºsqueda activa (es donde es Ãºtil) */}
-
 
         {/* Filtros activos - Chips para mostrar filtros seleccionados */}
         {false && (uiFilters.category || uiFilters.colonia || uiFilters.order !== DEFAULT_ORDER) && (
