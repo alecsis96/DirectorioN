@@ -29,9 +29,8 @@ const QUICK_LINKS = [
 
 const BUSINESS_BENEFITS = [
   "Tu negocio aparece con perfil profesional, categoria clara y CTA directo a WhatsApp.",
-  "Las promociones ganan visibilidad arriba de los listados y empujan urgencia real.",
+  "Las promociones ganan visibilidad arriba de la exploracion y empujan urgencia real.",
   "Puedes empezar con registro directo y luego escalar a mayor visibilidad.",
-  "La alta asistida elimina la friccion para negocios con baja adopcion digital.",
 ];
 
 const ASSISTED_STEPS = [
@@ -80,14 +79,14 @@ export default async function Home() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#d8e4d8] bg-white/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#0f7a47] backdrop-blur">
               <Megaphone className="h-3.5 w-3.5" />
-              Clientes + WhatsApp + alta facil
+              Clientes + WhatsApp + promos activas
             </div>
             <h1 className="mt-6 max-w-4xl font-serif text-4xl font-semibold leading-[1.02] tracking-tight text-slate-950 sm:text-5xl lg:text-[4.3rem]">
               Consigue mas clientes para tu negocio en Yajalon.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-slate-700 sm:text-lg">
-              Aparece en YajaGon y empieza a recibir mensajes por WhatsApp hoy mismo. Sin complicaciones. Nosotros
-              tambien podemos hacerlo por ti.
+              Aparece en YajaGon y empieza a recibir mensajes por WhatsApp hoy mismo. Perfil claro, promociones
+              visibles y contacto rapido para que te encuentren sin dar vueltas.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -105,13 +104,6 @@ export default async function Home() {
                 Ver promociones y negocios
                 <Search className="h-4 w-4" />
               </a>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-600">
-              <Link href="/alta-asistida" className="inline-flex items-center gap-2 font-semibold text-[#0f7a47]">
-                O mandanos WhatsApp y lo subimos por ti
-                <ChevronRight className="h-4 w-4" />
-              </Link>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -133,36 +125,33 @@ export default async function Home() {
               <HomePromoSpotlight promotion={featuredPromotion} />
             ) : (
               <div className="rounded-[32px] border border-[#d9c58f] bg-[linear-gradient(180deg,#fff8ea_0%,#ffffff_100%)] p-7 shadow-[0_28px_90px_rgba(108,74,17,0.14)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Alta asistida rapida</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Visibilidad que mueve clics</p>
                 <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-slate-950">
-                  No sabes subir tu negocio o no tienes tiempo?
+                  Una promo clara y un WhatsApp visible valen mas que pasar desapercibido.
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-slate-700">
-                  Mandanos fotos, WhatsApp, direccion y horario. Nosotros lo publicamos para que empieces a recibir
-                  contactos sin enredarte con formularios.
+                  La home ya esta pensada para empujar accion: oferta visible, contacto rapido y una vitrina corta que
+                  no ahoga al usuario con demasiado inventario.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-                  <span className="rounded-full bg-white px-3 py-1">Fotos</span>
-                  <span className="rounded-full bg-white px-3 py-1">WhatsApp</span>
-                  <span className="rounded-full bg-white px-3 py-1">Direccion</span>
-                  <span className="rounded-full bg-white px-3 py-1">Horario</span>
+                  <span className="rounded-full bg-white px-3 py-1">WhatsApp visible</span>
+                  <span className="rounded-full bg-white px-3 py-1">Promos activas</span>
+                  <span className="rounded-full bg-white px-3 py-1">Ubicacion clara</span>
                 </div>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <Link
-                    href="/alta-asistida"
+                    href="/registro-negocio?mode=new"
                     className="inline-flex items-center justify-center gap-2 rounded-[18px] bg-[#0f7a47] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#0b6238]"
                   >
-                    Solicitar ayuda
+                    Registrar negocio
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <a
-                    href={footerWhatsAppHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href="#promociones-activas"
                     className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
                   >
-                    Mandar WhatsApp
-                    <MessageCircle className="h-4 w-4" />
+                    Ver promociones
+                    <ChevronRight className="h-4 w-4" />
                   </a>
                 </div>
               </div>
@@ -208,7 +197,7 @@ export default async function Home() {
                     </h3>
                     <p className="mt-4 text-sm leading-6 text-slate-600">
                       Si el negocio publica una oferta clara y tiene WhatsApp activo, esta zona empuja clics rapido sin
-                      convertir la home en otro listado largo.
+                      sobrecargar la portada.
                     </p>
                   </div>
                   <div className="mt-8 flex flex-col gap-3">
@@ -220,10 +209,10 @@ export default async function Home() {
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                     <Link
-                      href="/alta-asistida"
+                      href="/para-negocios"
                       className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-[#d9c58f] bg-white px-5 py-3 text-sm font-semibold text-[#8f5b14] transition hover:bg-[#fff7ea]"
                     >
-                      Solicitar alta asistida
+                      Ver opciones para negocios
                     </Link>
                   </div>
                 </div>
@@ -281,11 +270,11 @@ export default async function Home() {
               Para negocios
             </p>
             <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-              Tu negocio no necesita un directorio. Necesita conversaciones y confianza.
+              Tu negocio necesita verse claro y recibir mensajes.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-[#d8e7da] sm:text-base">
-              El bloque comercial ya no vende "gratis para siempre". Vende visibilidad, contactos por WhatsApp,
-              promociones y una presencia que se vea seria desde la primera visita.
+              Crea un perfil serio, activa promociones y deja un boton directo a WhatsApp para convertir visitas en
+              conversaciones reales.
             </p>
 
             <div className="mt-7 space-y-3">
@@ -317,32 +306,6 @@ export default async function Home() {
               </Link>
             </article>
 
-            <article className="rounded-[30px] border border-[#d9c58f] bg-[#fff8ea] p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Alta asistida</p>
-              <h3 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
-                Si no tienes tiempo, nosotros lo registramos por ti.
-              </h3>
-              <p className="mt-4 text-sm leading-6 text-slate-600">
-                Esta via debe verse central porque en mercado local vale mas ayudar a publicar que esperar a que el
-                negocio complete solo el proceso digital.
-              </p>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/alta-asistida"
-                  className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-[#8f5b14] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#75480f]"
-                >
-                  Solicitar alta asistida
-                </Link>
-                <a
-                  href={footerWhatsAppHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-[#d4ba7a] bg-white px-5 py-3 text-sm font-semibold text-[#8f5b14] transition hover:bg-[#fff4d9]"
-                >
-                  Hablar por WhatsApp
-                </a>
-              </div>
-            </article>
           </div>
         </div>
       </section>
@@ -353,11 +316,10 @@ export default async function Home() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Alta asistida directa</p>
               <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                No tienes tiempo o no sabes subir tu negocio? Nosotros lo hacemos por ti.
+                No tienes tiempo o no sabes subir tu negocio?
               </h2>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-700 sm:text-base">
-                Solo mandanos WhatsApp con fotos, direccion, horario y tu numero de contacto. Lo publicamos contigo
-                para que empieces a recibir mensajes sin meterte a un proceso pesado.
+                Nosotros lo hacemos por ti. Solo mandanos WhatsApp y lo publicamos.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2">
@@ -370,20 +332,13 @@ export default async function Home() {
             </div>
 
             <div className="flex flex-col gap-3 lg:min-w-[280px]">
-              <Link
-                href="/alta-asistida"
-                className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-[#0f7a47] px-6 py-4 text-sm font-semibold text-white transition hover:bg-[#0b6238]"
-              >
-                Solicitar alta asistida
-                <ArrowRight className="h-4 w-4" />
-              </Link>
               <a
                 href={footerWhatsAppHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-slate-200 bg-white px-6 py-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-[#0f7a47] px-6 py-4 text-sm font-semibold text-white transition hover:bg-[#0b6238]"
               >
-                Mandar WhatsApp ahora
+                Quiero que lo hagan por mi
                 <MessageCircle className="h-4 w-4" />
               </a>
               <p className="text-center text-xs font-medium uppercase tracking-[0.16em] text-[#8f5b14]">
@@ -403,8 +358,8 @@ export default async function Home() {
                 Los niveles comerciales ahora se entienden en un vistazo.
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
-                Patrocinado domina, destacado gana presencia y organico sigue viendose digno. Eso corrige la igualdad
-                visual que hoy aplana la monetizacion y confunde el valor de cada plan.
+                Patrocinado domina y destacado gana presencia. La home solo muestra una vitrina corta para empujar clics
+                sin robarle foco a la conversion.
               </p>
             </div>
             <Link href="/para-negocios" className="inline-flex items-center gap-2 text-sm font-semibold text-[#0f7a47]">
@@ -414,7 +369,7 @@ export default async function Home() {
           </div>
 
           {homeData.hasBusinesses ? (
-            <div className="mt-8 space-y-8">
+            <div className="mt-8 space-y-6">
               {homeData.sponsorShowcase.length > 0 ? (
                 <div>
                   <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#8f5b14]">
@@ -435,7 +390,7 @@ export default async function Home() {
                     <Sparkles className="h-4 w-4 text-[#8f5b14]" />
                     Destacados
                   </div>
-                  <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-5 md:grid-cols-2">
                     {homeData.featuredShowcase.map((business) => (
                       <HomeBusinessCard key={business.id} business={business} variant="featured" />
                     ))}
@@ -459,7 +414,7 @@ export default async function Home() {
                 La vitrina premium ya esta lista.
               </h3>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Cuando entren mas negocios destacados y patrocinados, esta seccion puede crecer sin volver la home un catalogo.
+                Cuando entren mas negocios destacados y patrocinados, esta seccion puede crecer sin inflar la portada.
               </p>
             </div>
           )}
@@ -475,8 +430,8 @@ export default async function Home() {
                 Tu negocio puede empezar a recibir contactos hoy mismo.
               </h2>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-[#d8e7da] sm:text-base">
-                Si ya tienes la informacion, entra al registro. Si no quieres lidiar con formularios, pide alta
-                asistida y lo dejamos visible contigo.
+                Si ya tienes la informacion, entra al registro y deja tu perfil listo para recibir contactos por
+                WhatsApp cuanto antes.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -488,10 +443,10 @@ export default async function Home() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                href="/alta-asistida"
+                href="/para-negocios"
                 className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-white/18 bg-white/10 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/16 sm:text-base"
               >
-                Solicitar alta asistida
+                Ver opciones para negocios
               </Link>
             </div>
           </div>
@@ -503,11 +458,11 @@ export default async function Home() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">YajaGon</p>
             <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
-              Escaparate local para clientes, promociones y altas asistidas.
+              Escaparate local para clientes, promociones y contacto rapido.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">
-              Hecho para Yajalon, Chiapas. Menos ruido de directorio, mas claridad para descubrir y mas caminos para
-              que los negocios reciban mensajes reales.
+              Hecho para Yajalon, Chiapas. Mas claridad para descubrir rapido y mas caminos para que los negocios
+              reciban mensajes reales.
             </p>
           </div>
 
@@ -520,8 +475,8 @@ export default async function Home() {
               <Link href="/registro-negocio?mode=new" className="transition hover:text-slate-950">
                 Registrar mi negocio
               </Link>
-              <Link href="/alta-asistida" className="transition hover:text-slate-950">
-                Solicitar alta asistida
+              <Link href="/promociones" className="transition hover:text-slate-950">
+                Ver promociones activas
               </Link>
               <Link href="/para-negocios" className="transition hover:text-slate-950">
                 Ver propuesta para negocios

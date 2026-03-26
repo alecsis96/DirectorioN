@@ -44,8 +44,8 @@ const CARD_STYLES: Record<
   free: {
     wrapper:
       "relative rounded-[28px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg",
-    content: "p-5",
-    title: "text-xl",
+    content: "p-4 sm:p-5",
+    title: "text-lg sm:text-xl",
     badge: "border border-slate-200 bg-white text-slate-600",
     badgeText: "Perfil base",
     cta: "border border-[#0f7a47] text-[#0f7a47] hover:bg-[#eef7f1]",
@@ -54,8 +54,8 @@ const CARD_STYLES: Record<
   featured: {
     wrapper:
       "relative overflow-hidden rounded-[30px] border border-[#d8c27b] bg-white shadow-[0_20px_60px_rgba(109,85,28,0.12)] transition hover:-translate-y-1 hover:shadow-xl",
-    content: "p-5",
-    title: "text-2xl",
+    content: "p-4 sm:p-5",
+    title: "text-xl sm:text-2xl",
     badge: "bg-[#f3e2a7] text-[#6d551c]",
     badgeText: "Destacado",
     cta: "bg-[#1d2a3b] text-white hover:bg-[#121d2b]",
@@ -64,8 +64,8 @@ const CARD_STYLES: Record<
   sponsor: {
     wrapper:
       "relative overflow-hidden rounded-[32px] border border-[#d5b15a] bg-[linear-gradient(180deg,#fffaf0_0%,#ffffff_100%)] shadow-[0_28px_90px_rgba(108,74,17,0.18)] transition hover:-translate-y-1 hover:shadow-[0_34px_100px_rgba(108,74,17,0.22)]",
-    content: "p-6",
-    title: "text-[1.9rem]",
+    content: "p-4 sm:p-5 lg:p-6",
+    title: "text-[1.35rem] sm:text-[1.6rem] lg:text-[1.9rem]",
     badge: "bg-[#8f5b14] text-white",
     badgeText: "Patrocinado",
     cta: "bg-[#0f7a47] text-white hover:bg-[#0b6238]",
@@ -202,24 +202,24 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         type="button"
         onClick={handleFavoriteToggle}
         disabled={isTogglingFavorite}
-        className={`absolute right-4 top-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/95 shadow-lg transition ${
+        className={`absolute right-3 top-3 z-30 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/95 shadow-lg transition sm:right-4 sm:top-4 sm:h-11 sm:w-11 ${
           isTogglingFavorite ? "scale-95 opacity-70" : "hover:scale-105"
         }`}
         aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
       >
-        <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-slate-400"}`} />
+        <Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-slate-400"}`} />
       </button>
 
       {styles.showCover ? (
-        <div className={`relative overflow-hidden ${plan === "sponsor" ? "h-64" : "h-52"}`}>
+        <div className={`relative overflow-hidden ${plan === "sponsor" ? "h-44 sm:h-56 lg:h-64" : "h-36 sm:h-44 lg:h-52"}`}>
           <img src={imageSrc} alt={`Imagen de ${business.name}`} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
-          <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${styles.badge}`}>
+          <div className="absolute left-3 top-3 flex flex-wrap gap-2 sm:left-4 sm:top-4">
+            <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] sm:px-3 sm:text-xs ${styles.badge}`}>
               {styles.badgeText}
             </span>
             {promoText ? (
-              <span className="inline-flex rounded-full bg-white/92 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f5b14]">
+              <span className="inline-flex rounded-full bg-white/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8f5b14] sm:px-3 sm:text-xs">
                 Promo activa
               </span>
             ) : null}
@@ -228,75 +228,77 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       ) : null}
 
       <div className={styles.content}>
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3 sm:gap-4">
           {isPremium ? (
             <img
               src={logoSrc}
               alt={`Logo de ${business.name}`}
-              className={`rounded-2xl border border-white/50 object-cover shadow-sm ${plan === "sponsor" ? "h-16 w-16" : "h-14 w-14"}`}
+              className={`rounded-2xl border border-white/50 object-cover shadow-sm ${plan === "sponsor" ? "h-12 w-12 sm:h-16 sm:w-16" : "h-11 w-11 sm:h-14 sm:w-14"}`}
             />
           ) : (
-            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eef4ef] text-2xl">
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eef4ef] text-xl sm:h-14 sm:w-14 sm:text-2xl">
               {categoryIcon}
             </div>
           )}
 
           <div className="min-w-0 flex-1">
             {!isPremium ? (
-              <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${styles.badge}`}>
+              <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] sm:px-3 sm:text-[11px] ${styles.badge}`}>
                 {styles.badgeText}
               </span>
             ) : null}
 
-            <h3 className={`mt-3 font-serif font-semibold tracking-tight text-slate-950 ${styles.title}`}>{business.name}</h3>
+            <h3 className={`mt-2 font-serif font-semibold tracking-tight text-slate-950 sm:mt-3 ${styles.title}`}>{business.name}</h3>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
-              {business.category ? <span className="rounded-full bg-[#eef4ef] px-3 py-1">{business.category}</span> : null}
-              {business.colonia ? <span className="rounded-full bg-slate-100 px-3 py-1">{business.colonia}</span> : null}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-600 sm:mt-3 sm:gap-2 sm:text-xs">
+              {business.category ? <span className="rounded-full bg-[#eef4ef] px-2.5 py-1 sm:px-3">{business.category}</span> : null}
+              {business.colonia ? <span className="rounded-full bg-slate-100 px-2.5 py-1 sm:px-3">{business.colonia}</span> : null}
               {ratingValue > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#fbf4e6] px-3 py-1 text-[#8f5b14]">
-                  <Star className="h-3.5 w-3.5 fill-current" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#fbf4e6] px-2.5 py-1 text-[#8f5b14] sm:px-3">
+                  <Star className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" />
                   {ratingValue.toFixed(1)}
                 </span>
               ) : null}
               {promoText && !isPremium ? (
-                <span className="rounded-full bg-[#fff3e8] px-3 py-1 text-[#a84f0f]">Promo activa</span>
+                <span className="rounded-full bg-[#fff3e8] px-2.5 py-1 text-[#a84f0f] sm:px-3">Promo activa</span>
               ) : null}
             </div>
           </div>
         </div>
 
         {business.description ? (
-          <p className={`mt-4 text-sm leading-6 text-slate-600 ${isPremium ? "line-clamp-3" : "line-clamp-2"}`}>{business.description}</p>
+          <p className={`mt-3 text-[13px] leading-5 text-slate-600 sm:mt-4 sm:text-sm sm:leading-6 ${isPremium ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-1 sm:line-clamp-2"}`}>
+            {business.description}
+          </p>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium sm:mt-4 sm:gap-2 sm:text-xs">
           {statusChip ? (
-            <span className={`rounded-full px-3 py-1 ${statusChip.tone === "open" || isOpenNow ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-slate-100 text-slate-600"}`}>
+            <span className={`rounded-full px-2.5 py-1 sm:px-3 ${statusChip.tone === "open" || isOpenNow ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-slate-100 text-slate-600"}`}>
               {statusChip.label}
             </span>
           ) : null}
-          {business.WhatsApp ? <span className="rounded-full bg-[#eef7f1] px-3 py-1 text-[#0f7a47]">Contacto rapido por WhatsApp</span> : null}
-          {business.hasEnvio ? <span className="rounded-full bg-[#fff3e8] px-3 py-1 text-[#a84f0f]">Acepta pedidos o envio</span> : null}
+          {business.WhatsApp ? <span className="rounded-full bg-[#eef7f1] px-2.5 py-1 text-[#0f7a47] sm:px-3">WhatsApp rapido</span> : null}
+          {business.hasEnvio ? <span className="rounded-full bg-[#fff3e8] px-2.5 py-1 text-[#a84f0f] sm:px-3">Pedidos o envio</span> : null}
         </div>
 
         <a
           href={mapsHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900"
+          className="mt-3 inline-flex items-center gap-2 text-[13px] text-slate-600 transition hover:text-slate-900 sm:mt-4 sm:text-sm"
         >
-          <MapPin className="h-4 w-4" />
+          <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span className="line-clamp-1">{addressText}</span>
         </a>
 
-        <div className={`mt-5 flex flex-col gap-3 ${plan === "sponsor" ? "sm:flex-row" : ""}`}>
+        <div className={`mt-4 grid gap-2 ${callHref ? "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_44px]" : "grid-cols-2"} sm:mt-5 sm:gap-3 ${plan === "sponsor" ? "lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_48px]" : ""}`}>
           {whatsappHref ? (
             <a
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${styles.cta}`}
+              className={`inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-11 sm:px-4 sm:text-sm ${styles.cta}`}
               aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
               onClick={(event) => {
                 event.stopPropagation();
@@ -304,41 +306,39 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               }}
             >
               <MessageCircle className="h-4 w-4" />
-              {plan === "sponsor" ? "Abrir WhatsApp" : "Contactar por WhatsApp"}
+              {plan === "sponsor" ? "WhatsApp" : "Contactar"}
             </a>
           ) : (
             <button
               type="button"
               onClick={handleViewDetails}
-              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${styles.cta}`}
+              className={`inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-11 sm:px-4 sm:text-sm ${styles.cta}`}
             >
               Ver perfil
               <ArrowRight className="h-4 w-4" />
             </button>
           )}
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleViewDetails}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-50"
+          <button
+            type="button"
+            onClick={handleViewDetails}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-slate-200 px-3 text-[13px] font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11 sm:px-4 sm:text-sm"
+          >
+            Ver detalles
+          </button>
+          {callHref ? (
+            <a
+              href={callHref}
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
+              aria-label={`Llamar a ${business.name}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                trackCTA("call", businessId || "", business.name);
+              }}
             >
-              Ver detalles
-            </button>
-            {callHref ? (
-              <a
-                href={callHref}
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                aria-label={`Llamar a ${business.name}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  trackCTA("call", businessId || "", business.name);
-                }}
-              >
-                <Phone className="h-4 w-4" />
-              </a>
-            ) : null}
-          </div>
+              <Phone className="h-4 w-4" />
+            </a>
+          ) : null}
         </div>
       </div>
     </article>

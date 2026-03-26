@@ -548,7 +548,7 @@ export default function NegociosListClient({
                       <span className="text-lg font-semibold text-purple-600">({allSponsored.length})</span>
                     </h2>
                     <p className="text-sm text-gray-500 mt-1 ml-11">
-                      Aparecen antes que el resto y funcionan como la vitrina premium del listado.
+                      Aparecen antes que el resto y funcionan como la vitrina premium para captar miradas rapido.
                     </p>
                   </div>
                   
