@@ -117,12 +117,12 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[99999] flex items-start md:items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-4 md:py-0"
+      className="fixed inset-0 z-[99999] flex items-start justify-center overflow-y-auto bg-black/60 px-3 py-3 backdrop-blur-sm sm:px-4 sm:py-4 md:items-center md:py-0"
       onClick={onClose}
       style={{ isolation: 'isolate' }}
     >
       <div
-        className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl my-auto overflow-hidden"
+        className="relative my-auto w-full max-w-5xl overflow-hidden rounded-[24px] bg-white shadow-2xl"
         style={{ maxHeight: 'calc(100vh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -141,7 +141,7 @@ export default function BusinessModalWrapper({ businessPreview, onClose }: Props
         </button>
 
         {/* Content with scroll */}
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
+        <div className="overflow-x-hidden overflow-y-auto" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600" />

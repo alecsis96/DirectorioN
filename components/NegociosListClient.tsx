@@ -510,7 +510,7 @@ export default function NegociosListClient({
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800 font-sans">
-      <section className="max-w-6xl mx-auto px-6 py-2 pb-24 md:pb-10">
+      <section className="mx-auto max-w-6xl overflow-x-hidden px-4 py-2 pb-24 sm:px-6 md:pb-10">
         {/* Breadcrumbs con Schema.org - Solo cuando hay filtros activos (evita redundancia con nav inferior) */}
         {(uiFilters.category || uiFilters.colonia) && (
           <nav aria-label="Breadcrumb" className="mb-4">
@@ -583,7 +583,7 @@ export default function NegociosListClient({
           
           {/* H2 dinÃ¡mico segÃºn filtros/bÃºsqueda */}
               <div className="-mx-1 overflow-x-auto pb-1">
-                <div className="flex min-w-max gap-2 px-1">
+                <div className="flex w-max gap-2 px-1">
                   <button
                     type="button"
                     onClick={() => setShowCategoriesModal(true)}
@@ -616,7 +616,7 @@ export default function NegociosListClient({
               </div>
 
               <div className="-mx-1 overflow-x-auto pb-1">
-                <div className="flex min-w-max gap-2 px-1">
+                <div className="flex w-max gap-2 px-1">
                   <button type="button" onClick={() => toggleQuickFilter('open')} className={quickFilterButtonClass(quickFilterOpen)}>
                     Abiertos ahora
                   </button>
@@ -690,7 +690,7 @@ export default function NegociosListClient({
 
               {hasActiveFilters ? (
                 <div className="-mx-1 overflow-x-auto pb-1">
-                  <div className="flex min-w-max gap-2 px-1">
+                  <div className="flex w-max gap-2 px-1">
                   {uiFilters.query ? (
                     <button
                       type="button"
@@ -795,8 +795,8 @@ export default function NegociosListClient({
               if (sponsored.length === 0) return null;
               
               return (
-                <div className="mb-8 -mx-1">
-                  <div className="mb-4 px-6">
+                <div className="mb-8 overflow-hidden">
+                  <div className="mb-4 px-1 sm:px-2">
                     <h2 className="text-2xl font-bold text-gray-800">
                       Negocios premium <span className="text-lg font-semibold text-purple-600">({allSponsored.length})</span>
                     </h2>
@@ -817,7 +817,7 @@ export default function NegociosListClient({
                       768: { slidesPerView: sponsored.length >= 2 ? 2 : 1 },
                       1024: { slidesPerView: sponsored.length >= 3 ? 3 : sponsored.length },
                     }}
-                    className="sponsored-carousel"
+                    className="sponsored-carousel overflow-visible"
                   >
                     {sponsored.map((business) => (
                       <SwiperSlide key={business.id}>
@@ -836,7 +836,7 @@ export default function NegociosListClient({
 
         {/* Negocios PREMIUMs del Mes - Carrusel */}
         {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
-          <div className="mb-10">
+          <div className="mb-10 overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-800">Mas negocios premium</h2>
             </div>
@@ -929,7 +929,7 @@ export default function NegociosListClient({
             </div>
             
             <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
-              <div className="flex gap-2 min-w-max">
+              <div className="flex w-max gap-2">
                 {categories.map((cat) => {
                   const count = businesses.filter(b => b.category === cat).length;
                   return (
