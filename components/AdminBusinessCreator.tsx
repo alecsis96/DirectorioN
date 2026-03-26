@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '../firebaseConfig';
 import { BsBuilding, BsPerson, BsPhone, BsGeoAlt, BsTag } from 'react-icons/bs';
+import { getStoragePlanForVisibleTier, type VisibleBusinessTier } from '../lib/businessPlanVisibility';
 
 export default function AdminBusinessCreator() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function AdminBusinessCreator() {
     whatsapp: '',
     
     // Plan
-    plan: 'free' as 'free' | 'featured' | 'sponsor',
+    plan: 'free' as VisibleBusinessTier,
     status: 'published'
   });
 
@@ -77,7 +78,8 @@ export default function AdminBusinessCreator() {
         createdAt: new Date().toISOString(),
         createdBy: 'admin',
         adminCreator: user.email,
-        featured: formData.plan === 'featured',
+        plan: getStoragePlanForVisibleTier(formData.plan),
+        featured: formData.plan === 'premium',
         published: true,
         viewCount: 0,
         reviewCount: 0,
@@ -211,13 +213,12 @@ export default function AdminBusinessCreator() {
                 onChange={(e) => setFormData({ ...formData, plan: e.target.value as any })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#38761D] focus:border-transparent"
               >
-                <option value="free">🆓 Gratuito</option>
-                <option value="featured">⭐ Destacado</option>
-                <option value="sponsor">👑 Patrocinado</option>
+                <option value="free">🆓 Free</option>
+                <option value="premium">💎 Premium</option>
               </select>
-              {(formData.plan === 'featured' || formData.plan === 'sponsor') && (
+              {formData.plan === 'premium' && (
                 <p className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                  ℹ️ Se establecerá automáticamente el próximo pago en 30 días
+                  ℹ️ Se guardara con plan premium compatible y proximo pago en 30 dias
                 </p>
               )}
             </div>

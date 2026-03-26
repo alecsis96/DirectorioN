@@ -5,10 +5,11 @@ import { ArrowRight, Heart, MessageCircle, Phone, Star } from "lucide-react";
 import { normalizeDigits, waLink } from "../lib/helpers/contact";
 import { trackCTA, trackBusinessInteraction } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
-import { getBusinessStatus } from "./BusinessHours";
 import { useFavorites } from "../context/FavoritesContext";
 import { CATEGORIES, resolveCategory } from "../lib/categoriesCatalog";
 import { generateBusinessPlaceholder } from "../lib/placeholderGenerator";
+import { asPlanInput, getVisibleTierBadgeLabel, resolvePremiumVisualVariant } from "../lib/businessPlanVisibility";
+import { resolveCardHighlight, resolveCardStatusChip } from "./businessCardContent";
 
 type CardBusiness = BusinessPreview | Business;
 
@@ -18,13 +19,6 @@ type Props = {
 };
 
 type PlanVariant = "free" | "featured" | "sponsor";
-
-type StatusChip =
-  | {
-      tone: "open" | "neutral";
-      label: string;
-    }
-  | null;
 
 const PLACEHOLDER_LOGO =
   'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f4f4f5" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E';
@@ -43,12 +37,12 @@ const CARD_STYLES: Record<
 > = {
   free: {
     wrapper:
-      "relative rounded-[28px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg",
+      "relative rounded-[26px] border border-slate-200 bg-slate-50/70 shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
     content: "p-4 sm:p-5",
-    title: "text-lg sm:text-xl",
-    badge: "border border-slate-200 bg-white text-slate-600",
+    title: "text-base sm:text-lg",
+    badge: "border border-slate-200 bg-slate-50 text-slate-500",
     badgeText: "Perfil base",
-    cta: "border border-[#0f7a47] text-[#0f7a47] hover:bg-[#eef7f1]",
+    cta: "border border-slate-300 bg-white text-slate-800 hover:bg-slate-100",
     showCover: false,
   },
   featured: {
@@ -57,27 +51,21 @@ const CARD_STYLES: Record<
     content: "p-4 sm:p-5",
     title: "text-xl sm:text-2xl",
     badge: "bg-[#f3e2a7] text-[#6d551c]",
-    badgeText: "Destacado",
+    badgeText: "Premium",
     cta: "bg-[#1d2a3b] text-white hover:bg-[#121d2b]",
     showCover: true,
   },
   sponsor: {
     wrapper:
-      "relative overflow-hidden rounded-[32px] border border-[#d5b15a] bg-[linear-gradient(180deg,#fffaf0_0%,#fff7e7_28%,#ffffff_100%)] shadow-[0_28px_90px_rgba(108,74,17,0.18)] transition hover:-translate-y-1 hover:shadow-[0_34px_100px_rgba(108,74,17,0.22)]",
+      "relative overflow-hidden rounded-[32px] border border-[#c79425] bg-[linear-gradient(180deg,#fffaf0_0%,#fff3d8_26%,#ffffff_100%)] shadow-[0_30px_100px_rgba(108,74,17,0.22)] ring-1 ring-[#f4dd98]/80 transition hover:-translate-y-1 hover:shadow-[0_38px_110px_rgba(108,74,17,0.28)]",
     content: "p-4 sm:p-5 lg:p-6",
     title: "text-[1.35rem] sm:text-[1.6rem] lg:text-[1.9rem]",
-    badge: "bg-[#8f5b14] text-white",
-    badgeText: "Patrocinado",
-    cta: "bg-[#0f7a47] text-white hover:bg-[#0b6238]",
+    badge: "bg-[#7a4b00] text-white shadow-[0_8px_20px_rgba(122,75,0,0.24)]",
+    badgeText: "Premium",
+    cta: "bg-[#0f7a47] text-white shadow-[0_12px_26px_rgba(15,122,71,0.24)] hover:bg-[#0b6238]",
     showCover: true,
   },
 };
-
-function normalizePlan(plan?: string): PlanVariant {
-  if (plan === "sponsor" || plan === "patrocinado") return "sponsor";
-  if (plan === "featured" || plan === "destacado") return "featured";
-  return "free";
-}
 
 function getBusinessImage(business: CardBusiness) {
   return (
@@ -105,26 +93,13 @@ function getCategoryIcon(business: CardBusiness) {
   return category?.icon ?? "🏪";
 }
 
-function buildStatusChip(business: CardBusiness): StatusChip {
-  const hasStructuredHours = Boolean("horarios" in business && business.horarios && Object.keys(business.horarios).length > 0);
-  const hasHoursText = Boolean(business.hours && business.hours.trim().length > 0);
-
-  if (!hasStructuredHours && !hasHoursText) {
-    return null;
-  }
-
-  if (!hasHoursText || !business.hours) {
-    return null;
-  }
-
-  const status = getBusinessStatus(business.hours);
-
-  return status.isOpen ? { tone: "open", label: "Abierto ahora" } : { tone: "neutral", label: "Cerrado" };
-}
-
 const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const businessId = business?.id || (business as any)?.businessId || undefined;
-  const plan = normalizePlan("plan" in business ? business.plan : undefined);
+  const planInput = asPlanInput({
+    plan: "plan" in business ? business.plan : undefined,
+    featured: "featured" in business ? business.featured : undefined,
+  });
+  const plan = ("plan" in business || "featured" in business) ? resolvePremiumVisualVariant(planInput) : "free";
   const styles = CARD_STYLES[plan];
   const isPremium = plan !== "free";
   const imageSrc = getBusinessImage(business);
@@ -133,14 +108,36 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
   const callHref = business.phone ? `tel:${normalizeDigits(business.phone)}` : null;
   const whatsappHref = business.WhatsApp ? waLink(business.WhatsApp) : "";
-  const promoText =
-    "promocionesActivas" in business && typeof business.promocionesActivas === "string" && business.promocionesActivas.trim().length > 0
-      ? business.promocionesActivas.trim()
-      : "";
-  const statusChip = buildStatusChip(business);
+  const highlight = resolveCardHighlight(business, plan);
+  const statusChip = resolveCardStatusChip(business);
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const isFavorite = businessId ? favorites.includes(businessId) : false;
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+
+  const highlightClasses =
+    highlight.kind === "promo"
+      ? plan === "sponsor"
+        ? "border border-[#d5b15a] bg-[#fff1cc] text-[#6f4b10]"
+        : plan === "featured"
+          ? "border border-[#e4cf8d] bg-[#fff8e7] text-[#7b5a16]"
+          : "border border-[#f2d2b8] bg-[#fff3e8] text-[#a84f0f]"
+      : highlight.kind === "neutral"
+        ? plan === "sponsor"
+          ? "border border-[#e4c56f] bg-[#fff8e7] text-[#6f4b10]"
+          : "border border-slate-200 bg-slate-50 text-slate-700"
+        : highlight.kind === "status"
+          ? statusChip?.tone === "open"
+            ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+            : "border border-red-200 bg-red-50 text-red-700"
+          : "border border-slate-200 bg-white text-slate-700";
+  const showSecondaryDetails = Boolean(whatsappHref);
+  const actionGridClass = showSecondaryDetails
+    ? callHref
+      ? "grid-cols-[minmax(0,1fr)_44px_44px]"
+      : "grid-cols-[minmax(0,1fr)_44px]"
+    : callHref
+      ? "grid-cols-[minmax(0,1fr)_44px]"
+      : "grid-cols-1";
 
   const handleViewDetails = () => {
     if (!onViewDetails) return;
@@ -194,7 +191,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] sm:px-3 sm:text-xs ${styles.badge}`}>
               {styles.badgeText}
             </span>
-            {promoText ? (
+            {highlight.isPromo ? (
               <span className="inline-flex rounded-full bg-white/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8f5b14] sm:px-3 sm:text-xs">
                 Promo activa
               </span>
@@ -220,7 +217,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
           <div className="min-w-0 flex-1">
             {!isPremium ? (
               <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] sm:px-3 sm:text-[11px] ${styles.badge}`}>
-                {styles.badgeText}
+                {getVisibleTierBadgeLabel(planInput)}
               </span>
             ) : null}
 
@@ -235,29 +232,38 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
                   {ratingValue.toFixed(1)}
                 </span>
               ) : null}
-              {promoText && !isPremium ? (
+              {highlight.isPromo && !isPremium ? (
                 <span className="rounded-full bg-[#fff3e8] px-2.5 py-1 text-[#a84f0f] sm:px-3">Promo activa</span>
               ) : null}
             </div>
           </div>
         </div>
 
-        {business.description ? (
-          <p className={`mt-3 text-[13px] leading-5 text-slate-600 sm:mt-4 sm:text-sm sm:leading-6 ${isPremium ? "line-clamp-2" : "line-clamp-1 sm:line-clamp-2"}`}>
-            {business.description}
-          </p>
+        {highlight.kind !== "none" ? (
+          <div className={`mt-3 rounded-[20px] px-3 py-2.5 sm:mt-4 ${highlightClasses}`}>
+            {highlight.label ? (
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">
+                {highlight.label}
+              </p>
+            ) : null}
+            {highlight.text ? (
+              <p className="mt-1 line-clamp-2 text-[13px] leading-5 sm:text-sm">
+                {highlight.text}
+              </p>
+            ) : null}
+          </div>
         ) : null}
 
         <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium sm:mt-4 sm:gap-2 sm:text-xs">
-          {statusChip ? (
-            <span className={`rounded-full px-2.5 py-1 sm:px-3 ${statusChip.tone === "open" ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-slate-100 text-slate-600"}`}>
+          {statusChip && highlight.kind !== "status" ? (
+            <span className={`rounded-full px-2.5 py-1 sm:px-3 ${statusChip.tone === "open" ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-red-50 text-red-700 ring-1 ring-red-200"}`}>
               {statusChip.label}
             </span>
           ) : null}
           {business.hasEnvio ? <span className="rounded-full bg-[#fff3e8] px-2.5 py-1 text-[#a84f0f] sm:px-3">Pedidos o envio</span> : null}
         </div>
 
-        <div className={`mt-4 grid gap-2 ${callHref ? "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_44px]" : "grid-cols-2"} sm:mt-5 sm:gap-3 ${plan === "sponsor" ? "lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_48px]" : ""}`}>
+        <div className={`mt-4 grid gap-2 sm:mt-5 sm:gap-3 ${actionGridClass}`}>
           {whatsappHref ? (
             <a
               href={whatsappHref}
@@ -271,7 +277,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               }}
             >
               <MessageCircle className="h-4 w-4" />
-              {plan === "sponsor" ? "WhatsApp" : "Enviar WhatsApp"}
+              WhatsApp
             </a>
           ) : (
             <button
@@ -284,17 +290,20 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={handleViewDetails}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-slate-200 px-3 text-[13px] font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11 sm:px-4 sm:text-sm"
-          >
-            Ver detalles
-          </button>
+          {showSecondaryDetails ? (
+            <button
+              type="button"
+              onClick={handleViewDetails}
+              className="inline-flex h-10 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
+              aria-label={`Ver perfil de ${business.name}`}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : null}
           {callHref ? (
             <a
               href={callHref}
-              className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
+              className="inline-flex h-10 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
               aria-label={`Llamar a ${business.name}`}
               onClick={(event) => {
                 event.stopPropagation();

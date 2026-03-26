@@ -11,22 +11,21 @@ type Benefit = {
 
 const BENEFITS: Benefit[] = [
   { icon: '01', title: 'Mas clientes', copy: 'Visibilidad inmediata ante personas de Yajalon que buscan lo que vendes.' },
-  { icon: '02', title: 'Reputacion real', copy: 'Reseñas y calificaciones de usuarios reales que generan confianza.' },
+  { icon: '02', title: 'Reputacion real', copy: 'Mas confianza con fotos, perfil claro y presencia local bien presentada.' },
   { icon: '03', title: 'Contacto directo', copy: 'Botones de WhatsApp, llamada y Google Maps para que te contacten sin friccion.' },
-  { icon: '04', title: 'Panel de control', copy: 'Edita tu informacion, fotos, horarios y responde reseñas cuando quieras.' },
-  { icon: '05', title: 'Gratis para empezar', copy: 'Sin tarjeta ni letras chiquitas. Empieza hoy y crece cuando necesites.' },
-  { icon: '06', title: 'Sistema de favoritos', copy: 'Los usuarios pueden guardar tu negocio para encontrarte facilmente.' },
+  { icon: '04', title: 'Panel de control', copy: 'Edita tu informacion, fotos, horarios y presencia cuando quieras.' },
+  { icon: '05', title: 'Free para empezar', copy: 'Sin tarjeta ni letras chiquitas. Empieza hoy y activa premium cuando lo necesites.' },
+  { icon: '06', title: 'Campanas aparte', copy: 'Promociones temporales para mover pedidos, clics y mensajes sin mezclarlo con tu plan.' },
 ];
 
 export const metadata: Metadata = {
-  title: 'Unete al Directorio de Yajalon | Planes para tu negocio',
-  description: 'Registra tu negocio en minutos, gratis. Escala a planes con mayor visibilidad cuando quieras.',
+  title: 'Activa Free o Premium en YajaGon | Mas visibilidad en Yajalon',
+  description: 'Registra tu negocio en YajaGon, empieza con free y activa premium o campanas cuando quieras mas visibilidad.',
 };
 
 export default function ParaNegociosPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#eef2f7] via-[#f4f7fb] to-[#eef2f7] text-gray-900">
-      {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-600 to-emerald-700 px-6 py-16 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.12),transparent_45%),radial-gradient(circle_at_80%_10%,rgba(255,255,255,0.18),transparent_40%)]" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-10 text-center md:grid md:grid-cols-2 md:items-center md:text-left">
@@ -35,10 +34,10 @@ export default function ParaNegociosPage() {
               <span className="text-yellow-200">+</span> +150 negocios ya confian en nosotros
             </div>
             <h1 className="text-4xl font-extrabold leading-tight drop-shadow-sm md:text-5xl">
-              Listo para llegar a mas clientes en Yajalon?
+              Listo para conseguir mas clientes en Yajalon?
             </h1>
             <p className="text-lg text-emerald-50 md:text-xl">
-              Publica tu negocio gratis, recibe contactos por WhatsApp y aparece primero con nuestros planes destacados.
+              Publica tu negocio gratis, recibe contactos por WhatsApp y activa premium o campanas cuando quieras mas visibilidad.
             </p>
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
               <Link
@@ -52,26 +51,25 @@ export default function ParaNegociosPage() {
                 href="#planes"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white/40 bg-white/10 px-6 py-3 text-lg font-semibold backdrop-blur-sm transition-all hover:bg-white/20"
               >
-                Ver planes y precios
+                Ver free y premium
               </Link>
             </div>
-            <p className="text-sm text-emerald-100">Sin tarjeta - Activacion inmediata - Cancela cuando quieras</p>
+            <p className="text-sm text-emerald-100">Sin tarjeta - Activacion inmediata - Campanas aparte cuando las necesites</p>
           </div>
           <div className="relative mx-auto flex h-full max-w-md justify-center md:justify-end">
             <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
             <div className="relative flex h-56 w-56 items-center justify-center rounded-3xl bg-white/15 backdrop-blur-md shadow-2xl">
-              <Image src="/images/logo.png" alt="Directorio Yajalon" fill className="object-contain drop-shadow-2xl" priority />
+              <Image src="/images/logo.png" alt="YajaGon" fill className="object-contain drop-shadow-2xl" priority />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Beneficios */}
       <section className="px-6 py-16">
         <div className="mx-auto max-w-6xl space-y-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 md:text-4xl">Por que registrarte</h2>
-            <p className="mt-3 text-lg text-gray-600">Beneficios claros para crecer tu negocio sin complicaciones.</p>
+            <h2 className="text-3xl font-extrabold text-gray-900 md:text-4xl">Por que entrar a YajaGon</h2>
+            <p className="mt-3 text-lg text-gray-600">Empieza con presencia base y escala a premium o campanas cuando haga sentido.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {BENEFITS.map((benefit) => (
@@ -94,24 +92,22 @@ export default function ParaNegociosPage() {
         </div>
       </section>
 
-      {/* Planes */}
       <section id="planes" className="px-6 py-16">
         <ParaNegociosPricingClient />
       </section>
 
-      {/* CTA Final */}
       <section className="relative overflow-hidden bg-gradient-to-r from-emerald-700 via-emerald-600 to-green-700 px-6 py-16 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,#ffffff,transparent_35%),radial-gradient(circle_at_80%_0%,#c7f9cc,transparent_25%)] opacity-20" />
         <div className="relative mx-auto max-w-4xl space-y-4 text-center">
           <h2 className="text-3xl font-extrabold md:text-4xl">Listo para crecer tu negocio?</h2>
-          <p className="text-lg text-emerald-50 md:text-xl">Unete al directorio mas visitado de Yajalon y recibe mas clientes desde hoy mismo.</p>
+          <p className="text-lg text-emerald-50 md:text-xl">Activa tu perfil, gana visibilidad local y mueve mensajes por WhatsApp desde hoy.</p>
           <Link
             href="/registro-negocio"
             className="inline-flex items-center gap-2 rounded-xl bg-white px-10 py-4 text-lg font-bold text-emerald-600 shadow-2xl transition-all hover:scale-105"
           >
-            Registrar mi Negocio Ahora
+            Registrar mi negocio ahora
           </Link>
-          <p className="text-sm text-emerald-100">Solo 5 minutos - 100% gratis para empezar</p>
+          <p className="text-sm text-emerald-100">Solo 5 minutos - Free para empezar</p>
         </div>
       </section>
     </main>

@@ -2,6 +2,7 @@ import { getAdminFirestore } from "./firebaseAdmin";
 import { downgradeExpiredPremiumPlans } from "./premiumPlanExpiry";
 import type { Business } from "../../types/business";
 import { resolveCategory } from "../categoriesCatalog";
+import { asPlanInput, resolveLegacyPlan } from "../businessPlanVisibility";
 
 export function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -35,6 +36,8 @@ export function normalizeBusiness(data: any, id: string): Business {
     categoryName: data.categoryName || resolvedCategory.categoryName,
     categoryGroupId: data.categoryGroupId || resolvedCategory.groupId,
     description: asString(data.description ?? data.descripcion),
+    shortDescription: asString(data.shortDescription ?? data.short_description ?? data.resumenCorto ?? data.resumen_corto),
+    specialty: asString(data.specialty ?? data.especialidad),
     promocionesActivas: asString(data.promocionesActivas),
     address: asString(data.address ?? data.direccion),
     phone: asString(data.phone ?? data.telefono),
@@ -49,12 +52,10 @@ export function normalizeBusiness(data: any, id: string): Business {
     images: [],
   };
 
-  const planValue = data.plan;
-  if (planValue === 'featured' || planValue === 'sponsor') {
-    business.plan = planValue;
-  } else {
-    business.plan = 'free';
-  }
+  business.plan = resolveLegacyPlan({
+    plan: data.plan,
+    featured: featuredRaw,
+  });
 
   const priceRangeValue = asString(data.priceRange);
   if (priceRangeValue) {
@@ -204,8 +205,8 @@ export async function fetchBusinesses(
  * Reorganiza los negocios para poner patrocinados primero, luego destacados, luego el resto.
  */
 export function sortBusinessesWithSponsors(businesses: Business[]): Business[] {
-  const sponsors = businesses.filter((biz) => biz.plan === 'sponsor');
-  const featured = businesses.filter((biz) => biz.plan === 'featured' || biz.featured === true || biz.featured === 'true');
+  const sponsors = businesses.filter((biz) => resolveLegacyPlan(asPlanInput(biz)) === 'sponsor');
+  const featured = businesses.filter((biz) => resolveLegacyPlan(asPlanInput(biz)) === 'featured');
   const others = businesses.filter((biz) => !sponsors.includes(biz) && !featured.includes(biz));
   return [...sponsors, ...featured, ...others];
 }

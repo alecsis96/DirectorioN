@@ -1,12 +1,19 @@
 import { CATEGORIES, type CategoryItem } from "./categoriesCatalog";
 import type { Business, BusinessPreview } from "../types/business";
 import { pickBusinessPreview } from "../types/business";
+import { getBusinessPromotionMessage, resolveBusinessCampaign } from "./campaigns";
+import { asPlanInput, getLegacyPlanPriority, isPremiumBusiness, resolvePremiumVisualVariant } from "./businessPlanVisibility";
 
 export type HomePromotion = {
   business: BusinessPreview;
   message: string;
   promoCode?: string;
   urgencyLabel: string;
+};
+
+export type HomePremiumShowcaseItem = {
+  business: BusinessPreview;
+  variant: "featured" | "sponsor";
 };
 
 export type HomeCategorySummary = {
@@ -29,6 +36,7 @@ export type HomePageData = {
   metrics: HomeMetric[];
   promotions: HomePromotion[];
   popularCategories: HomeCategorySummary[];
+  premiumShowcase: HomePremiumShowcaseItem[];
   sponsorShowcase: BusinessPreview[];
   featuredShowcase: BusinessPreview[];
   organicShowcase: BusinessPreview[];
@@ -55,8 +63,6 @@ const DEFAULT_CATEGORY_IDS = [
   "servicios_profesionales",
 ];
 
-const PROMO_CODE_REGEX = /(?:codigo|code)\s*[:\-]?\s*([A-Z0-9-]{3,})/i;
-
 function asPreview(business: Business): BusinessPreview {
   return pickBusinessPreview(business);
 }
@@ -71,31 +77,12 @@ function businessRankScore(business: Business): number {
   return rating * 10 + hasWhatsApp * 5 + hasCover * 3 + hasLogo * 2 + hasDescription;
 }
 
-function trimPromoMessage(input?: string): string {
-  if (!input) return "";
-
-  return input
-    .replace(/\s+/g, " ")
-    .replace(/[|]+/g, " ")
-    .trim();
-}
-
-function getUrgencyLabel(message: string): string {
-  const lowerMessage = message.toLowerCase();
-
-  if (/(solo|hoy|ultima|ultimos|vigente|hasta|aprovecha)/.test(lowerMessage)) {
-    return "Consulta vigencia hoy";
-  }
-
-  return "Pregunta disponibilidad por WhatsApp";
-}
-
 function buildPromotionItems(businesses: Business[]): HomePromotion[] {
   return businesses
-    .filter((business) => typeof business.promocionesActivas === "string" && business.promocionesActivas.trim().length > 0)
+    .filter((business) => getBusinessPromotionMessage(business).length > 0)
     .sort((left, right) => {
-      const leftPlanScore = left.plan === "sponsor" ? 2 : left.plan === "featured" ? 1 : 0;
-      const rightPlanScore = right.plan === "sponsor" ? 2 : right.plan === "featured" ? 1 : 0;
+      const leftPlanScore = getLegacyPlanPriority(asPlanInput(left));
+      const rightPlanScore = getLegacyPlanPriority(asPlanInput(right));
 
       if (leftPlanScore !== rightPlanScore) {
         return rightPlanScore - leftPlanScore;
@@ -105,14 +92,13 @@ function buildPromotionItems(businesses: Business[]): HomePromotion[] {
     })
     .slice(0, 4)
     .map((business) => {
-      const message = trimPromoMessage(business.promocionesActivas);
-      const promoCodeMatch = message.match(PROMO_CODE_REGEX);
+      const campaign = resolveBusinessCampaign(business, "carousel");
 
       return {
         business: asPreview(business),
-        message,
-        promoCode: promoCodeMatch?.[1],
-        urgencyLabel: getUrgencyLabel(message),
+        message: campaign?.message ?? "",
+        promoCode: campaign?.promoCode,
+        urgencyLabel: campaign?.urgencyLabel ?? "Pregunta disponibilidad por WhatsApp",
       };
     });
 }
@@ -191,8 +177,8 @@ function buildMetrics(businesses: Business[], promotions: HomePromotion[]): Home
     },
     {
       value: `${activePromotionCount}+`,
-      label: "promociones activas",
-      helper: "Ofertas visibles arriba del listado tradicional.",
+      label: "campanas activas",
+      helper: "Promociones temporales visibles arriba del inventario.",
     },
     {
       value: `${categoryCount}+`,
@@ -214,22 +200,23 @@ function sortByRank(businesses: Business[]) {
 export function buildHomePageData(allBusinesses: Business[]): HomePageData {
   const businesses = sortByRank(allBusinesses);
   const promotions = buildPromotionItems(businesses);
-  const sponsorBusinesses = businesses.filter((business) => business.plan === "sponsor");
+  const sponsorBusinesses = businesses.filter((business) => resolvePremiumVisualVariant(asPlanInput(business)) === "sponsor" && isPremiumBusiness(asPlanInput(business)));
   const featuredBusinesses = businesses.filter(
-    (business) => business.plan === "featured" || business.featured === true || business.featured === "true"
+    (business) => resolvePremiumVisualVariant(asPlanInput(business)) === "featured" && isPremiumBusiness(asPlanInput(business))
   );
   const organicBusinesses = businesses.filter(
-    (business) =>
-      business.plan !== "sponsor" &&
-      business.plan !== "featured" &&
-      business.featured !== true &&
-      business.featured !== "true"
+    (business) => !isPremiumBusiness(asPlanInput(business))
   );
+  const premiumShowcase: HomePremiumShowcaseItem[] = [...sponsorBusinesses.slice(0, 2), ...featuredBusinesses.slice(0, 4)].map((business) => ({
+    business: asPreview(business),
+    variant: resolvePremiumVisualVariant(asPlanInput(business)) === "sponsor" ? "sponsor" : "featured",
+  }));
 
   return {
     metrics: buildMetrics(businesses, promotions),
     promotions,
     popularCategories: buildCategoryItems(businesses),
+    premiumShowcase,
     sponsorShowcase: sponsorBusinesses.slice(0, 2).map(asPreview),
     featuredShowcase: featuredBusinesses.slice(0, 4).map(asPreview),
     organicShowcase: organicBusinesses.slice(0, 4).map(asPreview),

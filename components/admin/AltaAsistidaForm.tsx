@@ -5,9 +5,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { CATEGORY_GROUPS, CATEGORIES } from '@/lib/categoriesCatalog';
 import { createAssistedBusiness } from '@/app/actions/adminBusinessActions';
+import { getStoragePlanForVisibleTier, type VisibleBusinessTier } from '@/lib/businessPlanVisibility';
 
 type SourceChannel = 'whatsapp' | 'messenger' | 'visita' | 'telefono' | 'otro';
-type PlanType = 'free' | 'featured' | 'sponsor';
+type PlanType = VisibleBusinessTier;
 
 export default function AltaAsistidaForm() {
   const { user } = useAuth();
@@ -58,7 +59,7 @@ export default function AltaAsistidaForm() {
           colonia: formData.colonia || undefined,
           neighborhood: formData.colonia || undefined,
           sourceChannel: formData.sourceChannel,
-          plan: formData.planInicial,
+          plan: getStoragePlanForVisibleTier(formData.planInicial),
           internalNote: formData.internalNote || undefined,
         },
         token
@@ -219,12 +220,11 @@ export default function AltaAsistidaForm() {
             onChange={(e) => setFormData({ ...formData, planInicial: e.target.value as PlanType })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           >
-            <option value="free">🆓 Free (Básico)</option>
-            <option value="featured">⭐ Featured (Destacado)</option>
-            <option value="sponsor">💎 Sponsor (Premium)</option>
+            <option value="free">🆓 Free</option>
+            <option value="premium">💎 Premium</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">
-            Solo preselección. No obliga portada ni validaciones adicionales.
+            Solo preseleccion. Se guarda con compatibilidad legacy sin exponer planes viejos.
           </p>
         </div>
 

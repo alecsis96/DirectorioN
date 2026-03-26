@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, MessageCircle, Store, Tag } from "lucide-react";
+import { isPremiumBusiness } from "../../lib/businessPlanVisibility";
 import { waLink } from "../../lib/helpers/contact";
 import { generateBusinessPlaceholder } from "../../lib/placeholderGenerator";
 import type { HomePromotion } from "../../lib/homePage";
@@ -21,12 +22,12 @@ export default function HomePromotionCard({ promotion }: Props) {
   const businessHref = `/negocios/${promotion.business.id}`;
   const whatsappHref = promotion.business.WhatsApp ? waLink(promotion.business.WhatsApp) : null;
   const imageSrc = getPromotionImage(promotion);
-  const isSponsor = promotion.business.plan === "sponsor";
+  const isPremium = isPremiumBusiness(promotion.business);
 
   return (
     <article
       className={`overflow-hidden rounded-[28px] border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${
-        isSponsor ? "border-[#e2c16c]" : "border-[#dbe7de]"
+        isPremium ? "border-[#e2c16c]" : "border-[#dbe7de]"
       }`}
     >
       <div className="relative h-40 overflow-hidden bg-slate-100 sm:h-52">

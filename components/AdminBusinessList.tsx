@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown, FaDownload, FaChartBar, FaCheckSquare, FaSquare, FaExclamationTriangle, FaUtensils } from 'react-icons/fa';
 import { auth } from '../firebaseConfig';
 import { MENU_FEATURE_ENABLED } from '../lib/featureFlags';
+import { getLegacyPlanPriority, resolveVisibleTier } from '../lib/businessPlanVisibility';
 
 interface BusinessData {
   id: string;
@@ -47,23 +48,20 @@ const fetcher = async (url: string) => {
 };
 
 function getPlanBadge(plan: string, _subscriptionStatus?: string) {
-  if (plan === 'sponsor') {
-    return <span className="px-2 py-1 text-xs font-semibold bg-purple-100 text-purple-800 rounded">👑 Patrocinado</span>;
+  if (resolveVisibleTier(plan) === 'premium') {
+    return <span className="px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">Premium</span>;
   }
-  if (plan === 'featured') {
-    return <span className="px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded">⭐ Destacado</span>;
-  }
-  return <span className="px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded">🆓 Gratuito</span>;
+  return <span className="px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded">Free</span>;
 }
 
 function getSubscriptionStatusBadge(status?: string) {
   if (!status) return null;
   
   const statusConfig: Record<string, { label: string; color: string }> = {
-    active: { label: '✓ Activa', color: 'bg-green-100 text-green-800' },
-    payment_failed: { label: '⚠️ Pago fallido', color: 'bg-red-100 text-red-800' },
-    canceled: { label: '✕ Cancelada', color: 'bg-gray-100 text-gray-600' },
-    past_due: { label: '⏰ Vencida', color: 'bg-yellow-100 text-yellow-800' },
+    active: { label: 'âœ“ Activa', color: 'bg-green-100 text-green-800' },
+    payment_failed: { label: 'âš ï¸ Pago fallido', color: 'bg-red-100 text-red-800' },
+    canceled: { label: 'âœ• Cancelada', color: 'bg-gray-100 text-gray-600' },
+    past_due: { label: 'â° Vencida', color: 'bg-yellow-100 text-yellow-800' },
   };
 
   const config = statusConfig[status] || { label: status, color: 'bg-gray-100 text-gray-600' };
@@ -93,9 +91,9 @@ export default function AdminBusinessList({ businesses }: Props) {
   const [planLoading, setPlanLoading] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   
-  // Estados de búsqueda y filtros
+  // Estados de bÃºsqueda y filtros
   const [searchTerm, setSearchTerm] = useState('');
-  const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'featured' | 'sponsor'>('all');
+  const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'premium'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled' | 'payment_issue'>('all');
   
   // Estados de sorting
@@ -106,10 +104,10 @@ export default function AdminBusinessList({ businesses }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
 
-  // Filtrado, búsqueda y sorting en tiempo real
+  // Filtrado, bÃºsqueda y sorting en tiempo real
   const filteredItems = useMemo(() => {
     let filtered = items.filter(business => {
-      // Filtro de búsqueda
+      // Filtro de bÃºsqueda
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = 
         !searchTerm || 
@@ -118,7 +116,7 @@ export default function AdminBusinessList({ businesses }: Props) {
         business.ownerEmail?.toLowerCase().includes(searchLower);
 
       // Filtro de plan
-      const matchesPlan = planFilter === 'all' || business.plan === planFilter;
+      const matchesPlan = planFilter === 'all' || resolveVisibleTier(business.plan) === planFilter;
 
       // Filtro de estado
       let matchesStatus = true;
@@ -127,7 +125,7 @@ export default function AdminBusinessList({ businesses }: Props) {
       } else if (statusFilter === 'disabled') {
         matchesStatus = business.isActive === false;
       } else if (statusFilter === 'payment_issue') {
-        matchesStatus = business.plan !== 'free' && 
+        matchesStatus = resolveVisibleTier(business.plan) !== 'free' && 
           (business.stripeSubscriptionStatus === 'payment_failed' || 
            business.stripeSubscriptionStatus === 'past_due');
       }
@@ -152,9 +150,8 @@ export default function AdminBusinessList({ businesses }: Props) {
 
       // Plan ordering: sponsor > featured > free
       if (sortField === 'plan') {
-        const planOrder: Record<string, number> = { sponsor: 3, featured: 2, free: 1 };
-        aVal = planOrder[aVal] || 0;
-        bVal = planOrder[bVal] || 0;
+        aVal = getLegacyPlanPriority(aVal);
+        bVal = getLegacyPlanPriority(bVal);
       }
 
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
@@ -186,17 +183,17 @@ export default function AdminBusinessList({ businesses }: Props) {
       'Nombre Negocio',
       'Propietario',
       'Email',
-      'Categoría',
+      'CategorÃ­a',
       'Plan',
-      'Estado Suscripción',
+      'Estado SuscripciÃ³n',
       'Estado',
       'Vistas',
-      'Reseñas',
+      'ReseÃ±as',
       'Rating Promedio',
-      'Fecha Creación',
-      'Fecha Aprobación',
-      'Próximo Pago',
-      'Último Pago',
+      'Fecha CreaciÃ³n',
+      'Fecha AprobaciÃ³n',
+      'PrÃ³ximo Pago',
+      'Ãšltimo Pago',
       'Expira',
     ];
 
@@ -237,16 +234,16 @@ export default function AdminBusinessList({ businesses }: Props) {
   const predictiveAlerts = useMemo(() => {
     const alerts: Array<{ type: 'warning' | 'danger' | 'info'; message: string; count: number }> = [];
 
-    // Negocios con planes próximos a vencer (dentro de 7 días)
+    // Negocios con planes prÃ³ximos a vencer (dentro de 7 dÃ­as)
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
     const expiringSoon = filteredItems.filter(b => 
-      b.plan !== 'free' && 
+      resolveVisibleTier(b.plan) !== 'free' && 
       b.planExpiresAt && 
       new Date(b.planExpiresAt) <= sevenDaysFromNow
     );
     if (expiringSoon.length > 0) {
-      alerts.push({ type: 'warning', message: 'Negocios con plan próximo a vencer', count: expiringSoon.length });
+      alerts.push({ type: 'warning', message: 'Negocios con plan prÃ³ximo a vencer', count: expiringSoon.length });
     }
 
     // Negocios sin actividad reciente (0 vistas)
@@ -257,7 +254,7 @@ export default function AdminBusinessList({ businesses }: Props) {
 
     // Negocios con problemas de pago
     const paymentIssues = filteredItems.filter(b => 
-      b.plan !== 'free' && 
+      resolveVisibleTier(b.plan) !== 'free' && 
       (b.stripeSubscriptionStatus === 'payment_failed' || b.stripeSubscriptionStatus === 'past_due')
     );
     if (paymentIssues.length > 0) {
@@ -299,7 +296,8 @@ export default function AdminBusinessList({ businesses }: Props) {
       return;
     }
 
-    if (!confirm(`¿Cambiar ${selectedIds.size} negocios al plan ${plan}?`)) return;
+    const visiblePlan = plan === 'sponsor' ? 'premium' : plan;
+    if (!confirm(`Â¿Cambiar ${selectedIds.size} negocios al plan ${visiblePlan}?`)) return;
 
     setBulkLoading(true);
     try {
@@ -320,9 +318,9 @@ export default function AdminBusinessList({ businesses }: Props) {
       // Revalidar datos
       await mutate();
       setSelectedIds(new Set());
-      alert(`✅ ${selectedIds.size} negocios actualizados`);
+      alert(`âœ… ${selectedIds.size} negocios actualizados`);
     } catch (error: any) {
-      alert('❌ Error: ' + error.message);
+      alert('âŒ Error: ' + error.message);
     } finally {
       setBulkLoading(false);
     }
@@ -334,10 +332,10 @@ export default function AdminBusinessList({ businesses }: Props) {
       return;
     }
 
-    const reason = prompt('Motivo de deshabilitación masiva:', 'Acción administrativa');
+    const reason = prompt('Motivo de deshabilitaciÃ³n masiva:', 'AcciÃ³n administrativa');
     if (!reason) return;
 
-    if (!confirm(`¿Deshabilitar ${selectedIds.size} negocios?`)) return;
+    if (!confirm(`Â¿Deshabilitar ${selectedIds.size} negocios?`)) return;
 
     setBulkLoading(true);
     try {
@@ -358,9 +356,9 @@ export default function AdminBusinessList({ businesses }: Props) {
       // Revalidar datos
       await mutate();
       setSelectedIds(new Set());
-      alert(`✅ ${selectedIds.size} negocios deshabilitados`);
+      alert(`âœ… ${selectedIds.size} negocios deshabilitados`);
     } catch (error: any) {
-      alert('❌ Error: ' + error.message);
+      alert('âŒ Error: ' + error.message);
     } finally {
       setBulkLoading(false);
     }
@@ -372,7 +370,7 @@ export default function AdminBusinessList({ businesses }: Props) {
       return;
     }
 
-    if (!confirm(`¿Habilitar ${selectedIds.size} negocios?`)) return;
+    if (!confirm(`Â¿Habilitar ${selectedIds.size} negocios?`)) return;
 
     setBulkLoading(true);
     try {
@@ -389,9 +387,9 @@ export default function AdminBusinessList({ businesses }: Props) {
       // Revalidar datos
       await mutate();
       setSelectedIds(new Set());
-      alert(`✅ ${selectedIds.size} negocios habilitados`);
+      alert(`âœ… ${selectedIds.size} negocios habilitados`);
     } catch (error: any) {
-      alert('❌ Error: ' + error.message);
+      alert('âŒ Error: ' + error.message);
     } finally {
       setBulkLoading(false);
     }
@@ -402,7 +400,7 @@ export default function AdminBusinessList({ businesses }: Props) {
 
     const user = auth.currentUser;
     if (!user) {
-      alert('Debes iniciar sesi��n como administrador');
+      alert('Debes iniciar sesiï¿½ï¿½n como administrador');
       return;
     }
 
@@ -424,7 +422,7 @@ export default function AdminBusinessList({ businesses }: Props) {
         throw new Error(data.error || 'Error al actualizar plan');
       }
 
-      // Mutación optimista
+      // MutaciÃ³n optimista
       mutate(
         (current) => {
           if (!current) return current;
@@ -456,16 +454,16 @@ export default function AdminBusinessList({ businesses }: Props) {
   };
 
   const handleDisable = async (businessId: string) => {
-    const reason = prompt('Motivo de deshabilitación:', 'Violación de términos de servicio');
+    const reason = prompt('Motivo de deshabilitaciÃ³n:', 'ViolaciÃ³n de tÃ©rminos de servicio');
     if (!reason) return;
 
-    if (!confirm('¿Estás seguro de que deseas deshabilitar este negocio?')) return;
+    if (!confirm('Â¿EstÃ¡s seguro de que deseas deshabilitar este negocio?')) return;
 
     setLoading(businessId);
     try {
       const user = auth.currentUser;
       if (!user) {
-        alert('❌ Debes iniciar sesión');
+        alert('âŒ Debes iniciar sesiÃ³n');
         return;
       }
       
@@ -485,7 +483,7 @@ export default function AdminBusinessList({ businesses }: Props) {
         throw new Error(data.error || 'Error al deshabilitar negocio');
       }
 
-      // Mutación optimista
+      // MutaciÃ³n optimista
       mutate(
         (current) => {
           if (!current) return current;
@@ -499,16 +497,16 @@ export default function AdminBusinessList({ businesses }: Props) {
         { revalidate: true }
       );
 
-      alert('✅ Negocio deshabilitado exitosamente');
+      alert('âœ… Negocio deshabilitado exitosamente');
     } catch (error: any) {
-      alert('❌ Error: ' + error.message);
+      alert('âŒ Error: ' + error.message);
     } finally {
       setLoading(null);
     }
   };
 
   const handleEnable = async (businessId: string) => {
-    if (!confirm('¿Estás seguro de que deseas habilitar este negocio?')) return;
+    if (!confirm('Â¿EstÃ¡s seguro de que deseas habilitar este negocio?')) return;
 
     setLoading(businessId);
     try {
@@ -524,7 +522,7 @@ export default function AdminBusinessList({ businesses }: Props) {
         throw new Error(data.error || 'Error al habilitar negocio');
       }
 
-      // Mutación optimista
+      // MutaciÃ³n optimista
       mutate(
         (current) => {
           if (!current) return current;
@@ -538,9 +536,9 @@ export default function AdminBusinessList({ businesses }: Props) {
         { revalidate: true }
       );
 
-      alert('✅ Negocio habilitado exitosamente');
+      alert('âœ… Negocio habilitado exitosamente');
     } catch (error: any) {
-      alert('❌ Error: ' + error.message);
+      alert('âŒ Error: ' + error.message);
     } finally {
       setLoading(null);
     }
@@ -548,16 +546,16 @@ export default function AdminBusinessList({ businesses }: Props) {
 
   const handleDelete = async (businessId: string) => {
     const confirmText = prompt(
-      '⚠️ ADVERTENCIA: Esta acción es IRREVERSIBLE.\n\n' +
-      'Se eliminará:\n' +
+      'âš ï¸ ADVERTENCIA: Esta acciÃ³n es IRREVERSIBLE.\n\n' +
+      'Se eliminarÃ¡:\n' +
       '- El negocio\n' +
-      '- Todas sus reseñas\n' +
-      '- El usuario dueño\n\n' +
+      '- Todas sus reseÃ±as\n' +
+      '- El usuario dueÃ±o\n\n' +
       'Escribe "ELIMINAR" para confirmar:'
     );
 
     if (confirmText !== 'ELIMINAR') {
-      alert('Eliminación cancelada');
+      alert('EliminaciÃ³n cancelada');
       return;
     }
 
@@ -565,7 +563,7 @@ export default function AdminBusinessList({ businesses }: Props) {
     try {
       const user = auth.currentUser;
       if (!user) {
-        alert('❌ Debes iniciar sesión');
+        alert('âŒ Debes iniciar sesiÃ³n');
         setLoading(null);
         return;
       }
@@ -586,7 +584,7 @@ export default function AdminBusinessList({ businesses }: Props) {
         throw new Error(data.error || 'Error al eliminar negocio');
       }
 
-      // Mutación optimista - eliminar del array
+      // MutaciÃ³n optimista - eliminar del array
       mutate(
         (current) => {
           if (!current) return current;
@@ -598,10 +596,10 @@ export default function AdminBusinessList({ businesses }: Props) {
         { revalidate: true }
       );
 
-      alert('✅ Negocio eliminado permanentemente');
+      alert('âœ… Negocio eliminado permanentemente');
     } catch (error: any) {
       console.error('Delete error:', error);
-      alert('❌ Error: ' + error.message);
+      alert('âŒ Error: ' + error.message);
     } finally {
       setLoading(null);
     }
@@ -628,7 +626,7 @@ export default function AdminBusinessList({ businesses }: Props) {
       {/* Indicador de loading */}
       {isLoading && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-          <p className="text-blue-600 text-sm">🔄 Actualizando datos...</p>
+          <p className="text-blue-600 text-sm">ðŸ”„ Actualizando datos...</p>
         </div>
       )}
 
@@ -672,16 +670,15 @@ export default function AdminBusinessList({ businesses }: Props) {
             <div className="flex flex-wrap gap-2">
               <select
                 onChange={(e) => {
-                  if (e.target.value) handleBulkPlanChange(e.target.value);
+                  if (e.target.value) handleBulkPlanChange(e.target.value === 'premium' ? 'sponsor' : e.target.value);
                   e.target.value = '';
                 }}
                 disabled={bulkLoading}
                 className="px-3 py-2 text-sm border-2 border-blue-300 rounded-lg bg-white font-medium hover:border-blue-400 transition-colors disabled:opacity-50"
               >
                 <option value="">Cambiar plan...</option>
-                <option value="free">🆓 Gratuito</option>
-                <option value="featured">⭐ Destacado</option>
-                <option value="sponsor">👑 Patrocinado</option>
+                <option value="free">Free</option>
+                <option value="sponsor">Premium</option>
               </select>
               <button
                 onClick={handleBulkEnable}
@@ -755,7 +752,7 @@ export default function AdminBusinessList({ businesses }: Props) {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Reseñas <SortIcon field="reviewCount" />
+            ReseÃ±as <SortIcon field="reviewCount" />
           </button>
           <button
             onClick={() => handleSort('avgRating')}
@@ -790,9 +787,9 @@ export default function AdminBusinessList({ businesses }: Props) {
         </div>
       </div>
 
-      {/* Barra de búsqueda y filtros */}
+      {/* Barra de bÃºsqueda y filtros */}
       <div className="bg-white rounded-lg shadow-md p-4 space-y-4">
-        {/* Búsqueda */}
+        {/* BÃºsqueda */}
         <div className="relative">
           <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
@@ -807,7 +804,7 @@ export default function AdminBusinessList({ businesses }: Props) {
               onClick={() => setSearchTerm('')}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              ✕
+              âœ•
             </button>
           )}
         </div>
@@ -825,9 +822,8 @@ export default function AdminBusinessList({ businesses }: Props) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             >
               <option value="all">Todos los planes</option>
-              <option value="free">🆓 Gratuito</option>
-              <option value="featured">⭐ Destacado</option>
-              <option value="sponsor">👑 Patrocinado</option>
+              <option value="free">Free</option>
+              <option value="premium">Premium</option>
             </select>
           </div>
 
@@ -842,9 +838,9 @@ export default function AdminBusinessList({ businesses }: Props) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             >
               <option value="all">Todos</option>
-              <option value="active">✓ Activos</option>
-              <option value="disabled">🚫 Deshabilitados</option>
-              <option value="payment_issue">⚠️ Problemas de pago</option>
+              <option value="active">âœ“ Activos</option>
+              <option value="disabled">ðŸš« Deshabilitados</option>
+              <option value="payment_issue">âš ï¸ Problemas de pago</option>
             </select>
           </div>
         </div>
@@ -884,7 +880,7 @@ export default function AdminBusinessList({ businesses }: Props) {
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <FaSearch className="mx-auto text-gray-400 text-4xl mb-3" />
           <p className="text-gray-600 text-lg">No se encontraron negocios</p>
-          <p className="text-gray-500 text-sm mt-1">Intenta con otros criterios de búsqueda</p>
+          <p className="text-gray-500 text-sm mt-1">Intenta con otros criterios de bÃºsqueda</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -905,7 +901,7 @@ export default function AdminBusinessList({ businesses }: Props) {
                     )}
                   </button>
                   
-                  {/* Información principal */}
+                  {/* InformaciÃ³n principal */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex-1">
@@ -916,31 +912,31 @@ export default function AdminBusinessList({ businesses }: Props) {
                           {getPlanBadge(business.plan, business.stripeSubscriptionStatus)}
                           {business.isActive === false && (
                             <span className="px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded">
-                              🚫 Deshabilitado
+                              ðŸš« Deshabilitado
                             </span>
                           )}
-                          {business.plan !== 'free' && getSubscriptionStatusBadge(business.stripeSubscriptionStatus)}
+                          {resolveVisibleTier(business.plan) !== 'free' && getSubscriptionStatusBadge(business.stripeSubscriptionStatus)}
                         </div>
                         <div className="text-sm text-gray-600">
                           <span className="font-medium">{business.ownerName || 'Sin nombre'}</span>
-                          {' • '}
+                          {' â€¢ '}
                           <span className="text-gray-500">{business.ownerEmail}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Métricas clave */}
+                    {/* MÃ©tricas clave */}
                     <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
                       <div className="flex items-center gap-1">
-                        <span>👁️</span>
+                        <span>ðŸ‘ï¸</span>
                         <span>{business.viewCount || 0}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span>💬</span>
+                        <span>ðŸ’¬</span>
                         <span>{business.reviewCount || 0}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span>⭐</span>
+                        <span>â­</span>
                         <span>{business.avgRating?.toFixed(1) || '0.0'}</span>
                       </div>
                       {business.category && (
@@ -987,7 +983,7 @@ export default function AdminBusinessList({ businesses }: Props) {
                     <button
                       onClick={() => setExpandedId(expandedId === business.id ? null : business.id)}
                       className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      title={expandedId === business.id ? "Contraer" : "Ver más opciones"}
+                      title={expandedId === business.id ? "Contraer" : "Ver mÃ¡s opciones"}
                     >
                       {expandedId === business.id ? <FaChevronUp /> : <FaChevronDown />}
                     </button>
@@ -1004,38 +1000,37 @@ export default function AdminBusinessList({ businesses }: Props) {
                       Cambiar Plan (Pago manual)
                     </p>
                     <select
-                      value={business.plan}
+                      value={resolveVisibleTier(business.plan) === 'premium' ? 'sponsor' : 'free'}
                       onChange={(e) => handlePlanChange(business.id, e.target.value)}
                       disabled={planLoading === business.id}
                       className="w-full sm:w-64 text-sm border-2 border-blue-300 rounded-lg px-3 py-2 bg-white font-medium hover:border-blue-400 transition-colors disabled:opacity-50"
                     >
-                      <option value="free">🆓 Gratuito</option>
-                      <option value="featured">⭐ Destacado</option>
-                      <option value="sponsor">👑 Patrocinado</option>
+                      <option value="free">Free</option>
+                      <option value="sponsor">Premium</option>
                     </select>
                     {planLoading === business.id && (
                       <p className="text-xs text-blue-600 mt-1">Actualizando...</p>
                     )}
                   </div>
 
-                  {/* Información de pagos */}
-                  {business.plan !== 'free' && (
+                  {/* InformaciÃ³n de pagos */}
+                  {resolveVisibleTier(business.plan) !== 'free' && (
                     <div>
                       <p className="text-xs font-medium text-gray-700 uppercase mb-2">
-                        Información de Pago
+                        InformaciÃ³n de Pago
                       </p>
                       <div className="space-y-1 text-sm text-gray-600">
                         {business.nextPaymentDate ? (
                           <div>
-                            <span className="font-medium">Próximo pago:</span>{' '}
+                            <span className="font-medium">PrÃ³ximo pago:</span>{' '}
                             {new Date(business.nextPaymentDate).toLocaleDateString('es-MX')}
                           </div>
                         ) : (
-                          <div className="text-yellow-600">⚠️ Sin fecha de pago</div>
+                          <div className="text-yellow-600">âš ï¸ Sin fecha de pago</div>
                         )}
                         {business.lastPaymentDate && (
                           <div className="text-xs text-gray-500">
-                            Último pago: {new Date(business.lastPaymentDate).toLocaleDateString('es-MX')}
+                            Ãšltimo pago: {new Date(business.lastPaymentDate).toLocaleDateString('es-MX')}
                           </div>
                         )}
                         {business.planExpiresAt && (

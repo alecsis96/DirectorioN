@@ -8,7 +8,6 @@ import {
   Megaphone,
   Search,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import HomeBusinessCard from "../components/home/HomeBusinessCard";
 import HomePromotionCard from "../components/home/HomePromotionCard";
@@ -29,8 +28,8 @@ const QUICK_LINKS = [
 
 const BUSINESS_BENEFITS = [
   "Perfil con fotos, categoria clara y boton directo a WhatsApp.",
-  "Promociones visibles para mover pedidos y mensajes.",
-  "Empieza hoy y gana mas visibilidad cuando lo necesites.",
+  "Campanas activas para mover pedidos y mensajes.",
+  "Empieza hoy y activa premium cuando quieras ganar mas visibilidad.",
 ];
 
 const ASSISTED_STEPS = [
@@ -42,13 +41,13 @@ const ASSISTED_STEPS = [
 export const metadata: Metadata = {
   title: "Consigue mas clientes en Yajalon | YajaGon",
   description:
-    "YajaGon ayuda a negocios locales a conseguir contactos por WhatsApp, mostrar promociones y registrarse con ayuda si hace falta.",
+    "YajaGon ayuda a negocios locales a conseguir contactos por WhatsApp, mover campanas y registrarse con ayuda si hace falta.",
   robots: {
     index: true,
     follow: true,
   },
   openGraph: {
-    title: "YajaGon | Mas clientes y promociones locales en Yajalon",
+    title: "YajaGon | Mas clientes y campanas locales en Yajalon",
     description:
       "Explora negocios locales rapido o registra el tuyo para recibir contactos por WhatsApp y ganar visibilidad real.",
     type: "website",
@@ -81,13 +80,13 @@ export default async function Home() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#d8e4d8] bg-white/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#0f7a47] backdrop-blur">
               <Megaphone className="h-3.5 w-3.5" />
-              Clientes + WhatsApp + promos activas
+              Clientes + WhatsApp + campanas activas
             </div>
             <h1 className="mt-6 max-w-4xl font-serif text-4xl font-semibold leading-[1.02] tracking-tight text-slate-950 sm:text-5xl lg:text-[4.3rem]">
               Consigue mas clientes para tu negocio en Yajalon.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-slate-700 sm:text-lg">
-              Aparece en YajaGon y empieza a recibir mensajes por WhatsApp hoy mismo. Perfil claro, promociones
+              Aparece en YajaGon y empieza a recibir mensajes por WhatsApp hoy mismo. Perfil claro, campanas
               visibles y contacto rapido para que te encuentren sin dar vueltas.
             </p>
 
@@ -103,7 +102,7 @@ export default async function Home() {
                 href="#promociones-activas"
                 className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-slate-300 bg-white px-6 py-4 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50 sm:text-base"
               >
-                Ver promociones y negocios
+                Ver campanas y negocios
                 <Search className="h-4 w-4" />
               </a>
             </div>
@@ -134,7 +133,7 @@ export default async function Home() {
                 <p className="mt-4 text-sm leading-7 text-slate-700">Activa tu perfil y haz que te encuentren sin vueltas.</p>
                 <div className="mt-6 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
                   <span className="rounded-full bg-white px-3 py-1">WhatsApp visible</span>
-                  <span className="rounded-full bg-white px-3 py-1">Promos activas</span>
+                  <span className="rounded-full bg-white px-3 py-1">Campanas activas</span>
                   <span className="rounded-full bg-white px-3 py-1">Ubicacion clara</span>
                 </div>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -149,7 +148,7 @@ export default async function Home() {
                     href="#promociones-activas"
                     className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
                   >
-                    Ver promociones
+                    Ver campanas
                     <ChevronRight className="h-4 w-4" />
                   </a>
                 </div>
@@ -165,11 +164,11 @@ export default async function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Promociones activas hoy</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Campanas activas hoy</p>
               <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                Promociones para pedir hoy.
+                Campanas para pedir hoy.
               </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Ofertas activas con salida directa a WhatsApp.</p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Promociones temporales con salida directa a WhatsApp.</p>
             </div>
             <Link href="/negocios" className="inline-flex items-center gap-2 text-sm font-semibold text-[#0f7a47]">
               Ver todos los negocios
@@ -192,9 +191,9 @@ export default async function Home() {
                       Espacio comercial
                     </p>
                     <h3 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
-                      Tu promocion puede aparecer aqui.
+                      Tu campana puede aparecer aqui.
                     </h3>
-                    <p className="mt-4 text-sm leading-6 text-slate-600">Sube una promo clara y deja el WhatsApp listo para recibir pedidos.</p>
+                    <p className="mt-4 text-sm leading-6 text-slate-600">Activa una campana clara y deja el WhatsApp listo para recibir pedidos.</p>
                   </div>
                   <div className="mt-8 flex flex-col gap-3">
                     <Link
@@ -208,7 +207,7 @@ export default async function Home() {
                       href="/para-negocios"
                       className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-[#d9c58f] bg-white px-5 py-3 text-sm font-semibold text-[#8f5b14] transition hover:bg-[#fff7ea]"
                     >
-                      Ver opciones para negocios
+                      Ver plan premium
                     </Link>
                   </div>
                 </div>
@@ -229,9 +228,9 @@ export default async function Home() {
                       Espacio comercial
                     </p>
                     <h3 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
-                      Tu promocion puede aparecer aqui.
+                      Tu campana puede aparecer aqui.
                     </h3>
-                    <p className="mt-4 text-sm leading-6 text-slate-600">Sube una promo clara y deja el WhatsApp listo para recibir pedidos.</p>
+                    <p className="mt-4 text-sm leading-6 text-slate-600">Activa una campana clara y deja el WhatsApp listo para recibir pedidos.</p>
                   </div>
                   <div className="mt-8 flex flex-col gap-3">
                     <Link
@@ -245,7 +244,7 @@ export default async function Home() {
                       href="/para-negocios"
                       className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-[#d9c58f] bg-white px-5 py-3 text-sm font-semibold text-[#8f5b14] transition hover:bg-[#fff7ea]"
                     >
-                      Ver opciones para negocios
+                      Ver plan premium
                     </Link>
                   </div>
                 </div>
@@ -265,7 +264,34 @@ export default async function Home() {
             <p className="max-w-xl text-sm leading-6 text-slate-600 sm:text-base">Comida, tiendas y servicios en pocos toques.</p>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className={`mt-8 md:hidden ${mobileScrollClasses}`}>
+            {homeData.popularCategories.map((category) => (
+              <Link
+                key={category.id}
+                href={category.href}
+                className="group min-w-[82%] snap-start rounded-[24px] border border-[#dbe6dd] bg-white p-4 shadow-sm transition"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef4ef] text-xl">
+                    {category.icon}
+                  </div>
+                  <span className="rounded-full bg-[#f4efe6] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8f5b14]">
+                    {category.count > 0 ? `${category.count} activos` : "Categoria lista"}
+                  </span>
+                </div>
+                <h3 className="mt-4 font-serif text-xl font-semibold tracking-tight text-slate-950">
+                  {category.name}
+                </h3>
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{category.description}</p>
+                <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#0f7a47]">
+                  Ver categoria
+                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-8 hidden gap-4 md:grid md:grid-cols-2 xl:grid-cols-3">
             {homeData.popularCategories.map((category) => (
               <Link
                 key={category.id}
@@ -379,64 +405,45 @@ export default async function Home() {
 
       <section className="px-4 py-10 sm:py-14">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Escaparates de visibilidad</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Visibilidad premium</p>
           <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                Negocios que ya destacan.
+                Negocios con mayor empuje visual.
               </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">Una muestra corta para explorar y seguir viendo mas opciones.</p>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">Una vitrina corta para mostrar como se ve un perfil premium dentro del producto.</p>
             </div>
             <Link href="/para-negocios" className="inline-flex items-center gap-2 text-sm font-semibold text-[#0f7a47]">
-              Ver opciones para negocios
+              Ver plan premium
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
           {homeData.hasBusinesses ? (
             <div className="mt-8 space-y-6">
-              {homeData.sponsorShowcase.length > 0 ? (
-                <div>
-                  <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#8f5b14]">
+              {homeData.premiumShowcase.length > 0 ? (
+                <>
+                  <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[#8f5b14]">
                     <Megaphone className="h-4 w-4" />
-                    Patrocinado
+                    Premium
                   </div>
                   <div className={`md:hidden ${mobileScrollClasses}`}>
-                    {homeData.sponsorShowcase.map((business) => (
-                      <div key={business.id} className="min-w-[88%] snap-start">
-                        <HomeBusinessCard business={business} variant="sponsor" />
+                    {homeData.premiumShowcase.map(({ business, variant }) => (
+                      <div
+                        key={business.id}
+                        className={`${variant === "sponsor" ? "min-w-[88%]" : "min-w-[78%]"} snap-start`}
+                      >
+                        <HomeBusinessCard business={business} variant={variant} />
                       </div>
                     ))}
                   </div>
-                  <div className="hidden gap-5 md:grid lg:grid-cols-2">
-                    {homeData.sponsorShowcase.map((business) => (
-                      <HomeBusinessCard key={business.id} business={business} variant="sponsor" />
+                  <div className="hidden gap-5 md:grid md:grid-cols-2 lg:grid-cols-3">
+                    {homeData.premiumShowcase.map(({ business, variant }) => (
+                      <HomeBusinessCard key={business.id} business={business} variant={variant} />
                     ))}
                   </div>
-                </div>
+                </>
               ) : null}
-
-              {homeData.featuredShowcase.length > 0 ? (
-                <div>
-                  <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                    <Sparkles className="h-4 w-4 text-[#8f5b14]" />
-                    Destacados
-                  </div>
-                  <div className={`md:hidden ${mobileScrollClasses}`}>
-                    {homeData.featuredShowcase.map((business) => (
-                      <div key={business.id} className="min-w-[78%] snap-start">
-                        <HomeBusinessCard business={business} variant="featured" />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="hidden gap-5 md:grid md:grid-cols-2">
-                    {homeData.featuredShowcase.map((business) => (
-                      <HomeBusinessCard key={business.id} business={business} variant="featured" />
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
               <div className="flex justify-center">
                 <Link
                   href="/negocios"
@@ -453,7 +460,7 @@ export default async function Home() {
                 La vitrina premium ya esta lista.
               </h3>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Cuando entren mas negocios destacados y patrocinados, esta seccion puede crecer sin inflar la portada.
+                Cuando entren mas negocios premium, esta seccion puede crecer sin inflar la portada.
               </p>
             </div>
           )}
@@ -485,7 +492,7 @@ export default async function Home() {
                 href="/para-negocios"
                 className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-white/18 bg-white/10 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/16 sm:text-base"
               >
-                Ver opciones para negocios
+                Ver plan premium
               </Link>
             </div>
           </div>
@@ -497,7 +504,7 @@ export default async function Home() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">YajaGon</p>
             <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
-              Escaparate local para clientes, promociones y contacto rapido.
+              Escaparate local para clientes, campanas y contacto rapido.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">
               Hecho para Yajalon, Chiapas. Mas claridad para descubrir rapido y mas caminos para que los negocios
@@ -515,10 +522,10 @@ export default async function Home() {
                 Registrar mi negocio
               </Link>
               <Link href="/promociones" className="transition hover:text-slate-950">
-                Ver promociones activas
+                Ver campanas activas
               </Link>
               <Link href="/para-negocios" className="transition hover:text-slate-950">
-                Ver propuesta para negocios
+                Ver plan premium
               </Link>
             </div>
           </div>

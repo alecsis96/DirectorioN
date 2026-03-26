@@ -1,27 +1,27 @@
-/**
- * NegociosListClient - Lista principal de negocios con filtros y búsqueda
+﻿/**
+ * NegociosListClient - Lista principal de negocios con filtros y bÃºsqueda
  * 
  * CARD RENDERING STRATEGY (Actualizado 2026-01-24):
  * ==================================================
- * DISEÑO DIFERENCIADO POR PLAN:
+ * DISEÃ‘O DIFERENCIADO POR PLAN:
  * - Premium (Patrocinado/Destacado): Usa PremiumBusinessCard con portada/cover grande
- * - Gratuito: Usa BusinessCard con diseño estándar
+ * - Gratuito: Usa BusinessCard con diseÃ±o estÃ¡ndar
  * 
  * CONSISTENCIA VISUAL:
- * - Los negocios premium SIEMPRE mantienen su diseño destacado (con cover)
- * - Aplica en: secciones especiales, resultados filtrados, búsqueda
- * - Sin filtros: Secciones superiores de "Negocios Patrocinados" y "Negocios Destacados"
+ * - Los negocios premium SIEMPRE mantienen su diseÃ±o premium (con cover)
+ * - Aplica en: secciones especiales, resultados filtrados, bÃºsqueda
+ * - Sin filtros: Secciones superiores de premium legacy combinadas
  * - Con filtros: Premium mantiene PremiumBusinessCard, Free usa BusinessCard
  * 
  * VISTA COMPACTA (TOGGLE OPCIONAL):
  * - El usuario puede activar "Vista Compacta" para simplificar la vista
  * - Cuando activa: TODOS los negocios usan BusinessCard (sin covers)
- * - Por defecto: Desactivada (premium muestra diseño destacado)
+ * - Por defecto: Desactivada (premium muestra diseÃ±o premium)
  * 
  * FUNCIONALIDADES:
- * - Rotación automática de negocios patrocinados en sección superior
- * - Paginación incremental para negocios gratuitos (10 por vez)
- * - Filtros: categoría, colonia, ordenamiento, búsqueda, envío
+ * - RotaciÃ³n automÃ¡tica de negocios PREMIUMs en secciÃ³n superior
+ * - PaginaciÃ³n incremental para negocios gratuitos (10 por vez)
+ * - Filtros: categorÃ­a, colonia, ordenamiento, bÃºsqueda, envÃ­o
  * - Vista mapa integrada con Google Maps
  * - Favoritos (localStorage + context)
  */
@@ -31,11 +31,11 @@
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import dynamic from 'next/dynamic';
 
-// Swiper para carrusel de destacados
+// Swiper para carrusel de PREMIUMs
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -113,7 +113,6 @@ export default function NegociosListClient({
 }: NegociosListClientProps) {
   const pathname = usePathname() || '/negocios';
   const searchParams = useSearchParams();
-  const router = useRouter();
   const geoQueryRef = useRef(geoQuery);
   const lastUrlQueryRef = useRef(initialFilters.query || '');
   const user = useCurrentUser();
@@ -126,7 +125,6 @@ export default function NegociosListClient({
   const [quickFilterDelivery, setQuickFilterDelivery] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessPreview | Business | null>(null);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
-  const [showCategoriesSection, setShowCategoriesSection] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [compactView, setCompactView] = useState(false); // Vista Compacta: fuerza BusinessCard para todos
   const [freeBusinessesLimit, setFreeBusinessesLimit] = useState(10);
@@ -160,7 +158,7 @@ export default function NegociosListClient({
     geoQueryRef.current = geoQuery;
   }, [geoQuery]);
 
-  // Escuchar cambios en la URL para búsqueda instantánea
+  // Escuchar cambios en la URL para bÃºsqueda instantÃ¡nea
   useEffect(() => {
     const urlQuery = searchParams?.get('q') || '';
     if (urlQuery !== lastUrlQueryRef.current) {
@@ -173,7 +171,7 @@ export default function NegociosListClient({
     }
   }, [searchParams]);
 
-  // Sincronizar filtros rápidos desde URL
+  // Sincronizar filtros rÃ¡pidos desde URL
   useEffect(() => {
     const quickFilter = searchParams?.get('quickFilter');
     setQuickFilterOpen(quickFilter === 'open');
@@ -263,7 +261,7 @@ export default function NegociosListClient({
     syncUrl(uiFilters);
   }, [uiFilters, syncUrl]);
 
-  // Resetear límite de negocios gratuitos cuando cambien filtros o búsqueda
+  // Resetear lÃ­mite de negocios gratuitos cuando cambien filtros o bÃºsqueda
   useEffect(() => {
     setFreeBusinessesLimit(10);
   }, [uiFilters.category, uiFilters.categoryId, uiFilters.categoryGroupId, uiFilters.colonia, uiFilters.order, uiFilters.query]);
@@ -330,7 +328,7 @@ export default function NegociosListClient({
         if (!haystack.includes(normalizedQuery)) return false;
       }
       
-      // Filtros rápidos
+      // Filtros rÃ¡pidos
       if (quickFilterOpen) {
         // Calcular estado en tiempo real usando el horario
         if (!biz.hours) return false;
@@ -354,13 +352,13 @@ export default function NegociosListClient({
     });
     
     // Separar por planes ANTES de ordenar
-    // Para patrocinados: aplicar rotación justa (máx 6 por sesión)
+    // Para patrocinados: aplicar rotacion justa (max 6 por sesion)
     const allPatrocinados = filtered.filter(b => b.plan === 'sponsor');
     const patrocinados = selectSponsoredRotation(allPatrocinados, 6);
     const destacados = filtered.filter(b => b.plan === 'featured');
     const gratis = filtered.filter(b => !b.plan || b.plan === 'free');
     
-    // Función para ordenar cada grupo
+    // FunciÃ³n para ordenar cada grupo
     const sortGroup = (group: BusinessPreview[]) => {
       const sorted = [...group];
       if (uiFilters.order === 'az') {
@@ -436,7 +434,7 @@ export default function NegociosListClient({
     if (uiFilters.category) segments.push(uiFilters.category);
     if (uiFilters.colonia) segments.push(`en ${selectedColoniaLabel}`);
     if (!segments.length) {
-      return 'Explora negocios, promociones y contactos rápidos por WhatsApp.';
+      return 'Explora negocios, promociones y contactos rapidos por WhatsApp.';
     }
     return `Resultados para ${segments.join(' ')}.`;
   }, [uiFilters.category, uiFilters.colonia, uiFilters.query, selectedColoniaLabel]);
@@ -457,12 +455,58 @@ export default function NegociosListClient({
     window.location.href = qs ? `${pathname}?${qs}` : pathname;
   }, [pathname]);
 
+  const toggleQuickFilter = useCallback((filter: 'open' | 'topRated' | 'delivery' | 'new') => {
+    setQuickFilterOpen((prev) => (filter === 'open' ? !prev : prev));
+    setQuickFilterTopRated((prev) => (filter === 'topRated' ? !prev : prev));
+    setQuickFilterDelivery((prev) => (filter === 'delivery' ? !prev : prev));
+    setQuickFilterNew((prev) => (filter === 'new' ? !prev : prev));
+  }, []);
+
+  const clearQuickFilters = useCallback(() => {
+    setQuickFilterOpen(false);
+    setQuickFilterTopRated(false);
+    setQuickFilterDelivery(false);
+    setQuickFilterNew(false);
+  }, []);
+
+  const clearAllFilters = useCallback(() => {
+    clearQuickFilters();
+    updateFilters(
+      {
+        category: '',
+        categoryId: '',
+        categoryName: '',
+        categoryGroupId: undefined,
+        colonia: '',
+        order: DEFAULT_ORDER,
+        query: '',
+      },
+      { resetPage: true },
+    );
+  }, [clearQuickFilters, updateFilters]);
+
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') return;
     console.info('home_render', { count: paginated.items.length, saveData: prefersDataSaver });
   }, [paginated.items.length, prefersDataSaver]);
 
   const showEmptyState = paginated.items.length === 0 && !isFetching;
+  const hasActiveFilters =
+    Boolean(uiFilters.category || uiFilters.colonia || uiFilters.query || uiFilters.order !== DEFAULT_ORDER) ||
+    quickFilterOpen ||
+    quickFilterTopRated ||
+    quickFilterDelivery ||
+    quickFilterNew;
+  const quickFilterButtonClass = (active: boolean) =>
+    `inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+      active
+        ? 'bg-emerald-600 text-white shadow-sm'
+        : 'border border-gray-200 bg-white text-gray-700 hover:border-emerald-300 hover:text-emerald-700'
+    }`;
+  const utilityControlClass =
+    'h-10 rounded-full border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100';
+  const activeFilterChipClass =
+    'inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800';
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800 font-sans">
@@ -506,53 +550,262 @@ export default function NegociosListClient({
           </nav>
         )}
 
-        <header className="mb-2">
-          {/* H1 semántico fijo para SEO */}
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Negocios y promociones en Yajalón
-          </h1>
+        <header className="mb-5">
+          {/* H1 semÃ¡ntico fijo para SEO */}
+          <div className="rounded-[24px] border border-gray-200 bg-white px-4 py-4 shadow-sm md:px-6 md:py-5">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700">Explora Yajalon</p>
+                  <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                    Negocios y promociones en Yajalon
+                  </h1>
+                  <p className="mt-1.5 max-w-2xl text-sm leading-6 text-gray-600 md:text-base">
+                    {headingDescription}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    {paginated.total} resultados
+                  </span>
+                  {hasGeoActive ? (
+                    <button
+                      type="button"
+                      onClick={clearGeoFilters}
+                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100"
+                    >
+                      Cerca de ti ({radiusKm} km)
+                    </button>
+                  ) : null}
+                </div>
+              </div>
           
-          {/* H2 dinámico según filtros/búsqueda */}
-          {(uiFilters.category || uiFilters.colonia || uiFilters.query) ? (
-            <h2 className="text-lg md:text-xl text-gray-600 mb-4">
-              {uiFilters.query && `Resultados para "${uiFilters.query}"`}
-              {uiFilters.query && (uiFilters.category || uiFilters.colonia) && ' en '}
-              {uiFilters.category && uiFilters.category}
-              {uiFilters.category && uiFilters.colonia && ', '}
-              {uiFilters.colonia && selectedColoniaLabel}
-            </h2>
-          ) : (
-            <p className="text-base md:text-lg text-gray-600 mb-4">
-              Encuentra negocios con contacto por WhatsApp, promociones activas y opciones visibles por zona
-            </p>
-          )}
+          {/* H2 dinÃ¡mico segÃºn filtros/bÃºsqueda */}
+              <div className="-mx-1 overflow-x-auto pb-1">
+                <div className="flex min-w-max gap-2 px-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoriesModal(true)}
+                    className="inline-flex h-10 items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 text-sm font-semibold text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                  >
+                    Categorias
+                  </button>
+
+                  <label className="inline-flex items-center">
+                    <span className="sr-only">Filtrar por colonia</span>
+                    <select value={uiFilters.colonia} onChange={handleColoniaChange} className={`${utilityControlClass} min-w-[148px]`}>
+                      <option value="">Todas las zonas</option>
+                      {colonias.map((colonia) => (
+                        <option key={colonia} value={normalizeColonia(colonia)}>
+                          {colonia}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="inline-flex items-center">
+                    <span className="sr-only">Ordenar negocios</span>
+                    <select value={uiFilters.order} onChange={handleOrderChange} className={`${utilityControlClass} min-w-[148px]`}>
+                      <option value={DEFAULT_ORDER}>Relevancia</option>
+                      <option value="rating">Mejor calificados</option>
+                      <option value="az">A-Z</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div className="-mx-1 overflow-x-auto pb-1">
+                <div className="flex min-w-max gap-2 px-1">
+                  <button type="button" onClick={() => toggleQuickFilter('open')} className={quickFilterButtonClass(quickFilterOpen)}>
+                    Abiertos ahora
+                  </button>
+                  <button type="button" onClick={() => toggleQuickFilter('delivery')} className={quickFilterButtonClass(quickFilterDelivery)}>
+                    Con envio
+                  </button>
+                  <button type="button" onClick={() => toggleQuickFilter('topRated')} className={quickFilterButtonClass(quickFilterTopRated)}>
+                    4.5+
+                  </button>
+                  <button type="button" onClick={() => toggleQuickFilter('new')} className={quickFilterButtonClass(quickFilterNew)}>
+                    Nuevos
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center justify-center gap-1 rounded-xl bg-gray-100 p-1 sm:justify-start">
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all ${
+                      viewMode === 'list'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    Lista
+                  </button>
+                  <button
+                    onClick={() => setViewMode('map')}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all ${
+                      viewMode === 'map'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    Mapa
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {viewMode === 'list' && uiFilters.query ? (
+                    <button
+                      onClick={() => setCompactView(!compactView)}
+                      className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+                        compactView
+                          ? 'border border-emerald-300 bg-emerald-50 text-emerald-700'
+                          : 'border border-gray-200 bg-white text-gray-700 hover:border-emerald-300 hover:text-emerald-700'
+                      }`}
+                    >
+                      Vista compacta
+                    </button>
+                  ) : null}
+
+                  {hasActiveFilters ? (
+                    <button
+                      type="button"
+                      onClick={clearAllFilters}
+                      className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 sm:text-sm"
+                    >
+                      Limpiar filtros
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {hasActiveFilters ? (
+                <div className="-mx-1 overflow-x-auto pb-1">
+                  <div className="flex min-w-max gap-2 px-1">
+                  {uiFilters.query ? (
+                    <button
+                      type="button"
+                      onClick={() => updateFilters({ query: '' }, { resetPage: true })}
+                      className={activeFilterChipClass}
+                    >
+                      "{uiFilters.query}"
+                      <span aria-hidden>x</span>
+                    </button>
+                  ) : null}
+                  {uiFilters.category ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateFilters(
+                          { category: '', categoryId: '', categoryName: '', categoryGroupId: undefined },
+                          { resetPage: true },
+                        )
+                      }
+                      className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                    >
+                      {uiFilters.category}
+                      <span aria-hidden>x</span>
+                    </button>
+                  ) : null}
+                  {uiFilters.colonia ? (
+                    <button
+                      type="button"
+                      onClick={() => updateFilters({ colonia: '' }, { resetPage: true })}
+                      className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
+                    >
+                      {selectedColoniaLabel}
+                      <span aria-hidden>x</span>
+                    </button>
+                  ) : null}
+                  {uiFilters.order !== DEFAULT_ORDER ? (
+                    <button
+                      type="button"
+                      onClick={() => updateFilters({ order: DEFAULT_ORDER }, { resetPage: true })}
+                      className="inline-flex items-center gap-2 rounded-full bg-purple-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-purple-700"
+                    >
+                      {uiFilters.order === 'rating' ? 'Mejor calificados' : 'A-Z'}
+                      <span aria-hidden>x</span>
+                    </button>
+                  ) : null}
+                  {quickFilterOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => setQuickFilterOpen(false)}
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      Abiertos ahora
+                      <span aria-hidden>x</span>
+                    </button>
+                  ) : null}
+                  {quickFilterDelivery ? (
+                    <button
+                      type="button"
+                      onClick={() => setQuickFilterDelivery(false)}
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      Con envio
+                      <span aria-hidden>x</span>
+                    </button>
+                  ) : null}
+                  {quickFilterTopRated ? (
+                    <button
+                      type="button"
+                      onClick={() => setQuickFilterTopRated(false)}
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      4.5+
+                      <span aria-hidden>x</span>
+                    </button>
+                  ) : null}
+                  {quickFilterNew ? (
+                    <button
+                      type="button"
+                      onClick={() => setQuickFilterNew(false)}
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      Nuevos
+                      <span aria-hidden>x</span>
+                    </button>
+                  ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </header>
 
-        {/* Banner de Negocios Patrocinados - Máxima visibilidad */}
+        {/* Banner de Negocios PREMIUMs - MÃ¡xima visibilidad */}
         {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
           <>
             {(() => {
-              // Aplicar rotación justa: máx 6 patrocinados por sesión, mostrar 6 en banner
+              // Aplicar rotaciÃ³n justa: mÃ¡x 6 PREMIUMs por sesiÃ³n, mostrar 6 en banner
               const allSponsored = businesses.filter(b => b.plan === 'sponsor');
               const rotatedSponsored = selectSponsoredRotation(allSponsored, 6);
-              const sponsored = rotatedSponsored.slice(0, 6); // Mostrar máximo 6 en banner
+              const sponsored = rotatedSponsored.slice(0, 6); // Mostrar mÃ¡ximo 6 en banner
               
               if (sponsored.length === 0) return null;
               
               return (
                 <div className="mb-8 -mx-1">
                   <div className="mb-4 px-6">
-                    <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                      <span className="text-3xl">👑</span>
-                      Negocios con visibilidad patrocinada
-                      <span className="text-lg font-semibold text-purple-600">({allSponsored.length})</span>
+                    <h2 className="text-2xl font-bold text-gray-800">
+                      Negocios premium <span className="text-lg font-semibold text-purple-600">({allSponsored.length})</span>
                     </h2>
                     <p className="text-sm text-gray-500 mt-1 ml-11">
                       Aparecen antes que el resto y funcionan como la vitrina premium para captar miradas rapido.
                     </p>
                   </div>
                   
-                  {/* Carrusel usando PremiumBusinessCard - Diseño premium con portada */}
+                  {/* Carrusel usando PremiumBusinessCard - DiseÃ±o premium con portada */}
                   <Swiper
                     modules={[Autoplay]}
                     spaceBetween={8}
@@ -581,19 +834,16 @@ export default function NegociosListClient({
           </>
         )}
 
-        {/* Negocios Destacados del Mes - Carrusel */}
+        {/* Negocios PREMIUMs del Mes - Carrusel */}
         {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
           <div className="mb-10">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <span className="text-3xl">⭐</span>
-                Negocios destacados
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-800">Mas negocios premium</h2>
             </div>
             {(() => {
-              // Filtrar negocios destacados (excluir patrocinados - ellos tienen su propia sección)
+              // Filtrar negocios PREMIUMs (excluir PREMIUMs - ellos tienen su propia secciÃ³n)
               const allFeatured = businesses.filter(b => {
-                // NO mostrar patrocinados aquí
+                // NO mostrar PREMIUMs aquÃ­
                 if (b.plan === 'sponsor') return false;
                 
                 // Criterio 1: Tiene featured marcado Y plan premium
@@ -603,13 +853,13 @@ export default function NegociosListClient({
                 // Criterio 2: Si no hay plan definido pero tiene featured, mostrar igual
                 const featuredWithoutPlan = isFeatured && !b.plan;
                 
-                // Criterio 3: Plan premium (featured) sin featured explícito
+                // Criterio 3: Plan premium (featured) sin featured explÃ­cito
                 const isPremiumOnly = hasPremiumPlan;
                 
                 return (isFeatured && hasPremiumPlan) || featuredWithoutPlan || isPremiumOnly;
               });
 
-              // Selección de máximo 3 negocios (orden por ID para consistencia servidor/cliente)
+              // SelecciÃ³n de mÃ¡ximo 3 negocios (orden por ID para consistencia servidor/cliente)
               const featured = [...allFeatured]
                 .sort((a, b) => (a.id || '').localeCompare(b.id || ''))
                 .slice(0, 3);
@@ -618,7 +868,7 @@ export default function NegociosListClient({
                 return (
                   <div className="text-center py-8 bg-yellow-50 rounded-xl border-2 border-dashed border-yellow-200">
                     <p className="text-gray-600 text-sm">
-                      🌟 Próximamente aquí aparecerán los negocios destacados del mes.
+                      Proximamente aqui apareceran mas negocios premium.
                     </p>
                   </div>
                 );
@@ -653,13 +903,10 @@ export default function NegociosListClient({
           </div>
         )}
 
-        {/* Categorías Destacadas - Diseño horizontal con emojis (igual que Home) */}
+        {/* CategorÃ­as Destacadas - DiseÃ±o horizontal con emojis (igual que Home) */}
         {!uiFilters.category && !uiFilters.query && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && categories.length > 0 && (
           <div className="mb-8" suppressHydrationWarning>
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <span className="text-2xl">🏷️</span>
-              <span>Explora por categorías</span>
-            </h2>
+            <h2 className="mb-4 text-xl font-bold text-gray-800">Explora por categorias</h2>
             <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
               {CATEGORY_GROUPS.map((group) => (
                 <button
@@ -676,76 +923,21 @@ export default function NegociosListClient({
                       : 'border-gray-200 bg-white text-gray-700 hover:border-emerald-400 hover:bg-emerald-50'
                   }`}
                 >
-                  <span>{group.icon}</span>
                   <span>{group.name}</span>
                 </button>
               ))}
             </div>
             
-            {/* Scroll horizontal con chips */}
             <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
               <div className="flex gap-2 min-w-max">
                 {categories.map((cat) => {
                   const count = businesses.filter(b => b.category === cat).length;
-                  const icon = (() => {
-                    const categoryIcons: Record<string, string> = {
-                      'Restaurante': '🍽️',
-                      'Comida Rápida': '🍔',
-                      'Cafetería': '☕',
-                      'Bar': '🍺',
-                      'Panadería': '🥖',
-                      'Supermercado': '🛒',
-                      'Tienda': '🏪',
-                      'Ropa': '👔',
-                      'Zapatos': '👞',
-                      'Joyería': '💍',
-                      'Electrónica': '📱',
-                      'Ferretería': '🔨',
-                      'Farmacia': '💊',
-                      'Hospital': '🏥',
-                      'Clínica': '⚕️',
-                      'Dentista': '🦷',
-                      'Gimnasio': '💪',
-                      'Spa': '💆',
-                      'Salón de Belleza': '💇',
-                      'Barbería': '💈',
-                      'Taller': '🔧',
-                      'Mecánico': '🚗',
-                      'Gasolinera': '⛽',
-                      'Hotel': '🏨',
-                      'Educación': '📚',
-                      'Escuela': '🎓',
-                      'Librería': '📖',
-                      'Papelería': '📝',
-                      'Floristería': '💐',
-                      'Mascotas': '🐾',
-                      'Veterinaria': '🐕',
-                      'Banco': '🏦',
-                      'Seguros': '🛡️',
-                      'Inmobiliaria': '🏠',
-                      'Construcción': '🏭',
-                      'Lavandería': '🧺',
-                      'Fotografía': '📷',
-                      'Imprenta': '🖨️',
-                      'Transporte': '🚚',
-                      'Turismo': '✈️',
-                      'Entretenimiento': '🎭',
-                      'Cine': '🎬',
-                      'Deportes': '⚽',
-                      'Música': '🎵',
-                      'Arte': '🎨',
-                      'Otro': '🏢'
-                    };
-                    return categoryIcons[cat] || '🏢';
-                  })();
-                  
                   return (
                     <button
                       key={cat}
                       onClick={() => handleCategoryChange(cat)}
                       className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all hover:shadow-md whitespace-nowrap flex-shrink-0"
                     >
-                      <span className="text-lg">{icon}</span>
                       <span className="font-semibold">{cat}</span>
                       <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">{count}</span>
                     </button>
@@ -757,59 +949,14 @@ export default function NegociosListClient({
         )}
 
         
-        {/* Toggle Vista Lista / Mapa */}
-        <div className="mb-6 flex items-center justify-center gap-1 bg-gray-100 p-1 rounded-lg w-fit mx-auto">
-          <button
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-              viewMode === 'list'
-                ? 'bg-white text-gray-900 shadow-md'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
-            Vista Lista
-          </button>
-          <button
-            onClick={() => setViewMode('map')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-              viewMode === 'map'
-                ? 'bg-white text-gray-900 shadow-md'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            Vista Mapa
-          </button>
-        </div>
+        
 
-        {/* Toggle Vista Compacta - Solo cuando hay búsqueda activa (es donde es útil) */}
-        {viewMode === 'list' && uiFilters.query && (
-          <div className="mb-4 flex items-center justify-center gap-2">
-            <button
-              onClick={() => setCompactView(!compactView)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all"
-            >
-              <input 
-                type="checkbox" 
-                checked={compactView} 
-                onChange={() => {}} 
-                className="w-4 h-4 text-emerald-600 rounded"
-                readOnly
-              />
-              <span className="text-gray-700">
-                Vista Compacta {compactView ? '(Todos iguales)' : '(Premium destacado)'}
-              </span>
-            </button>
-          </div>
-        )}
+
+        {/* Toggle Vista Compacta - Solo cuando hay bÃºsqueda activa (es donde es Ãºtil) */}
+
 
         {/* Filtros activos - Chips para mostrar filtros seleccionados */}
-        {(uiFilters.category || uiFilters.colonia || uiFilters.order !== DEFAULT_ORDER) && (
+        {false && (uiFilters.category || uiFilters.colonia || uiFilters.order !== DEFAULT_ORDER) && (
           <div className="mb-6 flex flex-wrap gap-2">
             {uiFilters.category && (
               <button
@@ -821,9 +968,8 @@ export default function NegociosListClient({
                 }
                 className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full text-sm font-semibold hover:bg-emerald-700 transition-all shadow-md ring-2 ring-emerald-300"
               >
-                <span className="font-bold">✓</span>
-                📂 {uiFilters.category}
-                <span className="text-white hover:scale-110 transition-transform">✕</span>
+                {uiFilters.category}
+                <span className="text-white hover:scale-110 transition-transform">x</span>
               </button>
             )}
             {uiFilters.colonia && (
@@ -831,9 +977,8 @@ export default function NegociosListClient({
                 onClick={() => updateFilters({ colonia: '' }, { resetPage: true })}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-semibold hover:bg-blue-700 transition-all shadow-md ring-2 ring-blue-300"
               >
-                <span className="font-bold">✓</span>
-                📍 {selectedColoniaLabel}
-                <span className="text-white hover:scale-110 transition-transform">✕</span>
+                {selectedColoniaLabel}
+                <span className="text-white hover:scale-110 transition-transform">x</span>
               </button>
             )}
             {uiFilters.order !== DEFAULT_ORDER && (
@@ -841,9 +986,8 @@ export default function NegociosListClient({
                 onClick={() => updateFilters({ order: DEFAULT_ORDER }, { resetPage: true })}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full text-sm font-semibold hover:bg-purple-700 transition-all shadow-md ring-2 ring-purple-300"
               >
-                <span className="font-bold">✓</span>
-                🔄 {uiFilters.order === 'rating' ? 'Mejor calificados' : 'A-Z'}
-                <span className="text-white hover:scale-110 transition-transform">✕</span>
+                {uiFilters.order === 'rating' ? 'Mejor calificados' : 'A-Z'}
+                <span className="text-white hover:scale-110 transition-transform">x</span>
               </button>
             )}
             <button
@@ -860,20 +1004,20 @@ export default function NegociosListClient({
           </div>
         )}
 
-        {/* Determinar si las secciones superiores (Sponsor/Featured) se están mostrando */}
+        {/* Determinar si las secciones superiores (Sponsor/Featured) se estÃ¡n mostrando */}
         {(() => {
           const showTopSections = !uiFilters.category && !uiFilters.query && !uiFilters.colonia && 
                                    !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew;
           
-          // Obtener los IDs de los negocios ya mostrados en las secciones Patrocinado y Destacado
-          // Sponsor: aplicar misma rotación justa que en banner (consistencia)
+          // Obtener los IDs de los negocios ya mostrados en las secciones PREMIUM y PREMIUM
+          // Sponsor: aplicar misma rotaciÃ³n justa que en banner (consistencia)
           const allSponsoredForTop = businesses.filter(b => b.plan === 'sponsor');
           const rotatedSponsoredForTop = selectSponsoredRotation(allSponsoredForTop, 6);
           const sponsoredTopIds = showTopSections 
             ? rotatedSponsoredForTop.slice(0, 6).map(b => b.id)
             : [];
           
-          // Featured top 3: (Excluyendo patrocinados que ya están arriba)
+          // Featured top 3: (Excluyendo PREMIUMs que ya estÃ¡n arriba)
           const featuredTopIds = showTopSections 
             ? businesses.filter(b => b.plan !== 'sponsor' && (b.featured === true || b.featured === 'true' || b.plan === 'featured'))
               .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
@@ -887,7 +1031,7 @@ export default function NegociosListClient({
           // Aplicar un filtro a la lista paginada para excluir los negocios ya mostrados en las secciones superiores
           // SOLO en vista lista, en vista mapa mostrar todos
           const businessesToDisplay = paginated.items.filter(biz => {
-            // Excluir negocios si su ID está en la lista de IDs excluidos, y solo si la sección superior de patrocinados/destacados está activa
+            // Excluir negocios si su ID estÃ¡ en la lista de IDs excluidos, y solo si la secciÃ³n superior de PREMIUMs/PREMIUMs estÃ¡ activa
             // PERO: en vista mapa, mostrar todos los negocios sin excluir
             if (viewMode === 'list' && showTopSections && excludedTopIds.includes(biz.id)) {
               return false;
@@ -902,7 +1046,7 @@ export default function NegociosListClient({
                 <div className="mb-6">
                   {showEmptyState ? (
                     <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-4 py-6 text-center">
-                      No encontramos negocios con los filtros seleccionados. Ajusta la búsqueda para ver más opciones.
+                      No encontramos negocios con los filtros seleccionados. Ajusta la busqueda para ver mas opciones.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -919,17 +1063,16 @@ export default function NegociosListClient({
                         {/* Leyenda debajo del mapa */}
                         <div className="bg-white rounded-lg shadow-md px-4 py-3 border border-gray-200">
                           <p className="font-bold text-gray-700 mb-2 text-sm flex items-center gap-2">
-                            <span>📌</span>
                             Leyenda de colores
                           </p>
                           <div className="flex flex-wrap gap-4">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                              <span className="text-sm text-gray-600">Patrocinado</span>
+                              <span className="text-sm text-gray-600">Premium</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                              <span className="text-sm text-gray-600">Destacado</span>
+                              <span className="text-sm text-gray-600">Premium</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 rounded-full bg-red-500"></div>
@@ -973,12 +1116,12 @@ export default function NegociosListClient({
                                         <span className="line-clamp-1">{business.name}</span>
                                         {business.plan === 'sponsor' && (
                                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 ml-1">
-                                            👑 PATROCINADO
+                                            PREMIUM
                                           </span>
                                         )}
                                         {business.plan === 'featured' && (
                                           <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-100 text-yellow-700 ml-1">
-                                            🔥 DESTACADO
+                                            PREMIUM
                                           </span>
                                         )}
                                       </p>
@@ -987,7 +1130,7 @@ export default function NegociosListClient({
                                     <div className="flex items-center gap-2">
                                       {business.category && (
                                         <span className="inline-block text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                                          📂 {business.category}
+                                          {business.category}
                                         </span>
                                       )}
                                       {business.rating && (
@@ -1020,7 +1163,7 @@ export default function NegociosListClient({
 
                   {!showEmptyState && (() => {
                     // Separar solo patrocinados (usan PremiumBusinessCard) del resto (usan BusinessCard)
-                    // Solo separamos para aplicar límite de paginación a negocios free
+                    // Solo separamos para aplicar lÃ­mite de paginaciÃ³n a negocios free
                     const sponsoredBusinesses = businessesToDisplay.filter(biz => 
                       biz.plan === 'sponsor' || biz.plan === 'patrocinado'
                     );
@@ -1028,7 +1171,7 @@ export default function NegociosListClient({
                       biz.plan !== 'sponsor' && biz.plan !== 'patrocinado'
                     );
                     
-                    // Aplicar límite solo a negocios gratuitos (no featured)
+                    // Aplicar lÃ­mite solo a negocios gratuitos (no featured)
                     const featuredBusinesses = otherBusinesses.filter(biz =>
                       biz.plan === 'featured' || biz.plan === 'destacado'
                     );
@@ -1039,18 +1182,18 @@ export default function NegociosListClient({
                     const hasMoreFreeBusinesses = freeBusinesses.length > displayedFreeBusinesses.length;
                     
                     /**
-                     * Función centralizada para renderizar tarjetas de negocio
+                     * FunciÃ³n centralizada para renderizar tarjetas de negocio
                      * - Patrocinados: Usan PremiumBusinessCard (con portada/cover grande)
                      * - Destacados: Usan BusinessCardVertical (coherencia con HOME)
-                     * - Gratuitos: Usan BusinessCard (diseño estándar)
+                     * - Gratuitos: Usan BusinessCard (diseÃ±o estÃ¡ndar)
                      * - Vista Compacta: Fuerza BusinessCard para TODOS cuando compactView = true
-                     * - Consistencia: Se mantiene en todas las vistas (búsqueda, filtros, normal)
+                     * - Consistencia: Se mantiene en todas las vistas (bÃºsqueda, filtros, normal)
                      */
                     const renderBusinessCard = (biz: BusinessPreview) => {
                       const isSponsor = biz.plan === 'sponsor' || biz.plan === 'patrocinado';
                       const isFeatured = biz.plan === 'featured' || biz.plan === 'destacado';
                       
-                      // Si Vista Compacta está activada, usar BusinessCard para todos
+                      // Si Vista Compacta estÃ¡ activada, usar BusinessCard para todos
                       if (compactView) {
                         return (
                           <div key={biz.id}>
@@ -1062,7 +1205,7 @@ export default function NegociosListClient({
                         );
                       }
                       
-                      // Patrocinados usan PremiumBusinessCard (con portada)
+                      // PREMIUMs usan PremiumBusinessCard (con portada)
                       if (isSponsor) {
                         return (
                           <div key={biz.id}>
@@ -1074,7 +1217,7 @@ export default function NegociosListClient({
                         );
                       }
                       
-                      // Destacados usan BusinessCardVertical (coherencia con HOME)
+                      // PREMIUMs usan BusinessCardVertical (coherencia con HOME)
                       if (isFeatured) {
                         return (
                           <div key={biz.id}>
@@ -1086,7 +1229,7 @@ export default function NegociosListClient({
                         );
                       }
                       
-                      // Gratuitos usan BusinessCard estándar
+                      // Gratuitos usan BusinessCard estÃ¡ndar
                       return (
                         <div key={biz.id}>
                           <BusinessCard 
@@ -1099,31 +1242,31 @@ export default function NegociosListClient({
                     
                     return (
                       <>
-                        {/* Renderizar negocios patrocinados (sin límite) - Usa PremiumBusinessCard con portada */}
+                        {/* Renderizar negocios PREMIUMs (sin lÃ­mite) - Usa PremiumBusinessCard con portada */}
                         {sponsoredBusinesses.map(renderBusinessCard)}
                         
-                        {/* Renderizar negocios destacados (sin límite) - Usa BusinessCard con badge */}
+                        {/* Renderizar negocios PREMIUMs (sin lÃ­mite) - Usa BusinessCard con badge */}
                         {featuredBusinesses.map(renderBusinessCard)}
                         
-                        {/* Renderizar negocios gratuitos (con límite) - Usa BusinessCard */}
+                        {/* Renderizar negocios gratuitos (con lÃ­mite) - Usa BusinessCard */}
                         {displayedFreeBusinesses.map(renderBusinessCard)}
                         
-                        {/* Botón "Cargar más" para negocios gratuitos */}
+                        {/* BotÃ³n "Cargar mÃ¡s" para negocios gratuitos */}
                         {hasMoreFreeBusinesses && (
                           <div className="flex flex-col items-center gap-3 mt-6 p-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border-2 border-emerald-200">
                             <div className="text-center">
                               <p className="text-sm font-semibold text-gray-700 mb-1">
-                                📊 Mostrando {displayedFreeBusinesses.length} de {freeBusinesses.length} negocios
+                                Mostrando {displayedFreeBusinesses.length} de {freeBusinesses.length} negocios
                               </p>
                               <p className="text-xs text-gray-600">
-                                {freeBusinesses.length - displayedFreeBusinesses.length} negocios más disponibles
+                                {freeBusinesses.length - displayedFreeBusinesses.length} negocios mas disponibles
                               </p>
                             </div>
                             <button
                               onClick={() => setFreeBusinessesLimit(prev => prev + 10)}
                               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
                             >
-                              <span>🔽 Cargar 10 más</span>
+                              <span>Cargar 10 mas</span>
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                               </svg>
@@ -1166,7 +1309,7 @@ export default function NegociosListClient({
         />
       )}
 
-      {/* Modal de categorías */}
+      {/* Modal de categorÃ­as */}
       {showCategoriesModal && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
@@ -1179,8 +1322,7 @@ export default function NegociosListClient({
             {/* Header */}
             <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">🏷️</span>
-                <h2 className="text-2xl font-bold text-white">Todas las Categorías</h2>
+                <h2 className="text-2xl font-bold text-white">Todas las categorias</h2>
               </div>
               <button
                 onClick={() => setShowCategoriesModal(false)}
@@ -1254,7 +1396,7 @@ export default function NegociosListClient({
                 })}
               </div>
 
-              {/* Botón para limpiar filtro de categoría */}
+              {/* BotÃ³n para limpiar filtro de categorÃ­a */}
               {uiFilters.category && (
                 <div className="mt-6 pt-6 border-t border-gray-200 flex justify-center">
                   <button
@@ -1267,7 +1409,7 @@ export default function NegociosListClient({
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    Limpiar categoría
+                    Limpiar categoria
                   </button>
                 </div>
               )}
@@ -1279,3 +1421,4 @@ export default function NegociosListClient({
     </main>
   );
 }
+
