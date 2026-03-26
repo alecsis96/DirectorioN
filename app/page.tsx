@@ -1,389 +1,551 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import Image from 'next/image';
-import type { Business, BusinessPreview } from '../types/business';
-import { pickBusinessPreview } from '../types/business';
-import { fetchBusinesses, toNumber } from '../lib/server/businessData';
-import HomeClient from '../components/HomeClient';
-import { CATEGORIES } from '../lib/categoriesCatalog';
+import type { Metadata } from "next";
+import Link from "next/link";
+import {
+  ArrowRight,
+  BadgeCheck,
+  ChevronRight,
+  MessageCircle,
+  Megaphone,
+  Search,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import HomeBusinessCard from "../components/home/HomeBusinessCard";
+import HomePromotionCard from "../components/home/HomePromotionCard";
+import HomePromoSpotlight from "../components/home/HomePromoSpotlight";
+import HomeSearchPanel from "../components/home/HomeSearchPanel";
+import { buildHomePageData } from "../lib/homePage";
+import { fetchBusinesses } from "../lib/server/businessData";
+
+const ASSISTED_WHATSAPP = "5219191565865";
+
+const QUICK_LINKS = [
+  { label: "Pollerias", href: "/negocios?c=polleria_rosticeria&g=food" },
+  { label: "Taquerias", href: "/negocios?c=taquerias&g=food" },
+  { label: "Tiendas", href: "/negocios?c=abarrotes&g=commerce" },
+  { label: "Farmacias", href: "/negocios?c=farmacias&g=health" },
+  { label: "Servicios", href: "/negocios?c=servicios_generales&g=services" },
+];
+
+const BUSINESS_BENEFITS = [
+  "Tu negocio aparece con perfil profesional, categoria clara y CTA directo a WhatsApp.",
+  "Las promociones ganan visibilidad arriba de los listados y empujan urgencia real.",
+  "Puedes empezar con registro directo y luego escalar a mayor visibilidad.",
+  "La alta asistida elimina la friccion para negocios con baja adopcion digital.",
+];
+
+const ASSISTED_STEPS = [
+  "Fotos de tu negocio",
+  "WhatsApp y direccion",
+  "Horario y categoria",
+];
 
 export const metadata: Metadata = {
-  title: 'Directorio de Negocios Yajalón - Tu Guía Local de Comercios',
+  title: "Consigue mas clientes en Yajalon | YajaGon",
   description:
-    'Descubre +50 negocios en Yajalón, Chiapas: Restaurantes, tiendas, servicios. Reseñas reales, horarios actualizados, ubicación en mapa. ¡Gratis y sin anuncios!',
+    "YajaGon ayuda a negocios locales a conseguir contactos por WhatsApp, mostrar promociones y registrarse con ayuda si hace falta.",
   robots: {
     index: true,
     follow: true,
   },
   openGraph: {
-    title: 'Directorio de Negocios Yajalón',
-    description: 'Tu guía completa de comercios locales en Yajalón.',
-    type: 'website',
+    title: "YajaGon | Mas clientes y promociones locales en Yajalon",
+    description:
+      "Explora negocios locales rapido o registra el tuyo para recibir contactos por WhatsApp y ganar visibilidad real.",
+    type: "website",
   },
 };
 
-export const dynamic = 'force-static';
-export const revalidate = 60; // Cache for 60 seconds
+export const dynamic = "force-static";
+export const revalidate = 60;
 
 export default async function Home() {
-  const { businesses: allBusinesses } = await fetchBusinesses(100);
-  const featuredCategories = CATEGORIES.slice(0, 14);
-
-  // Separar negocios patrocinados y destacados
-  const sponsorBusinesses: BusinessPreview[] = allBusinesses
-    .filter((biz: Business) => biz.plan === 'sponsor')
-    .slice(0, 6)
-    .map((biz: Business) => {
-      const preview = pickBusinessPreview(biz);
-      return {
-        ...preview,
-        rating: toNumber(preview.rating) ?? null,
-      };
-    });
-
-  const featuredBusinesses: BusinessPreview[] = allBusinesses
-    .filter((biz: Business) => biz.plan === 'featured' || biz.featured === true || biz.featured === 'true')
-    .slice(0, 6)
-    .map((biz: Business) => {
-      const preview = pickBusinessPreview(biz);
-      return {
-        ...preview,
-        rating: toNumber(preview.rating) ?? null,
-      };
-    });
-
-  // Negocios nuevos (últimos 6, ordenados por fecha de creación o id)
-  const recentBusinesses: BusinessPreview[] = allBusinesses
-    .slice(0, 6)
-    .map((biz: Business) => {
-      const preview = pickBusinessPreview(biz);
-      return {
-        ...preview,
-        rating: toNumber(preview.rating) ?? null,
-      };
-    });
+  const { businesses } = await fetchBusinesses(120);
+  const homeData = buildHomePageData(businesses);
+  const heroMetrics = homeData.metrics.slice(0, 3);
+  const featuredPromotion = homeData.promotions[0];
+  const secondaryPromotions = homeData.promotions.slice(1, 3);
+  const footerWhatsAppHref = `https://wa.me/${ASSISTED_WHATSAPP}?text=${encodeURIComponent(
+    "Hola, quiero ayuda para publicar mi negocio en YajaGon."
+  )}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Hero Section */}
-      <section
-        className="relative overflow-hidden py-16 px-4 text-white"
-        style={{
-          backgroundImage:
-            'linear-gradient(135deg, #10b981 0%, #059669 30%, #0ea5e9 100%), radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 35%), radial-gradient(circle at 80% 0%, rgba(199,249,204,0.35), transparent 25%)',
-          backgroundBlendMode: 'overlay',
-        }}
-      >
-        <div className="max-w-6xl mx-auto text-center relative">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold shadow-sm">
-            Yajalón · Negocios locales
-          </span>
-          <h1 className="text-4xl md:text-6xl font-bold mt-4 mb-4 text-white drop-shadow-sm">
-            Directorio de Negocios en Yajalón
-          </h1>
-          <p className="text-lg md:text-xl text-emerald-50 max-w-3xl mx-auto mb-4">
-            Tu guía completa de comercios locales
-          </p>
-          <p className="text-base md:text-lg text-emerald-50 max-w-3xl mx-auto mb-8">
-            Descubre, compara y conecta con restaurantes, tiendas, servicios profesionales y más. Todo en un solo
-            lugar, cerca de ti.
-          </p>
-          
-          {/* Buscador */}
-          <form action="/negocios" method="get" className="max-w-2xl mx-auto mb-8">
-            <div className="relative">
-              <input
-                type="search"
-                name="q"
-                placeholder="Buscar restaurantes, tiendas, servicios..."
-                className="w-full px-6 py-4 pr-14 rounded-full border-2 border-white/20 bg-white/10 backdrop-blur-sm text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white/20 transition-all"
-              />
-              <button
-                type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-white text-emerald-600 rounded-full hover:bg-emerald-50 transition-colors shadow-md"
-                aria-label="Buscar"
+    <main className="min-h-screen bg-[#f5f1e8] text-slate-950">
+      <section className="relative overflow-hidden px-4 pb-20 pt-10 sm:pt-14">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(15,122,71,0.18),transparent_34%),radial-gradient(circle_at_85%_8%,rgba(201,156,62,0.18),transparent_24%),linear-gradient(180deg,#f3eee2_0%,#f8f6f1_46%,#f5f1e8_100%)]" />
+        <div className="absolute left-[-120px] top-16 h-72 w-72 rounded-full bg-[#dfeadf] blur-3xl" />
+        <div className="absolute right-[-60px] top-20 h-64 w-64 rounded-full bg-[#f0dfb2] blur-3xl" />
+
+        <div className="relative mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#d8e4d8] bg-white/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#0f7a47] backdrop-blur">
+              <Megaphone className="h-3.5 w-3.5" />
+              Clientes + WhatsApp + alta facil
+            </div>
+            <h1 className="mt-6 max-w-4xl font-serif text-4xl font-semibold leading-[1.02] tracking-tight text-slate-950 sm:text-5xl lg:text-[4.3rem]">
+              Consigue mas clientes para tu negocio en Yajalon.
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-700 sm:text-lg">
+              Aparece en YajaGon y empieza a recibir mensajes por WhatsApp hoy mismo. Sin complicaciones. Nosotros
+              tambien podemos hacerlo por ti.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/registro-negocio?mode=new"
+                className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-[#0f7a47] px-6 py-4 text-sm font-semibold text-white transition hover:bg-[#0b6238] sm:text-base"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
+                Quiero aparecer en YajaGon
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <a
+                href="#promociones-activas"
+                className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-slate-300 bg-white px-6 py-4 text-sm font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-slate-50 sm:text-base"
+              >
+                Ver promociones y negocios
+                <Search className="h-4 w-4" />
+              </a>
             </div>
-          </form>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link
-              href="/negocios"
-              className="px-8 py-4 bg-white text-emerald-700 font-bold rounded-full hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              Ver Todos los Negocios
-            </Link>
-            <Link
-              href="/para-negocios"
-              className="px-8 py-4 bg-white/10 border-2 border-white text-white font-bold rounded-full hover:bg-white hover:text-emerald-700 transition-all"
-            >
-              Registra tu negocio
-            </Link>
+
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-slate-600">
+              <Link href="/alta-asistida" className="inline-flex items-center gap-2 font-semibold text-[#0f7a47]">
+                O mandanos WhatsApp y lo subimos por ti
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              {heroMetrics.map((metric) => (
+                <div key={metric.label} className="rounded-full border border-[#d8e4d8] bg-white/80 px-4 py-2 text-sm text-slate-700 shadow-sm">
+                  <span className="font-semibold text-slate-950">{metric.value}</span> {metric.label}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#132a1c] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#f8d88a]" />
+              Negocios locales con contacto rapido
+            </div>
           </div>
-          <div className="mt-6 text-sm text-emerald-50">
-            ¿Ya te registraste?{' '}
-            <Link 
-              href="/mis-solicitudes" 
-              className="underline font-semibold hover:text-white"
-            >
-              Verificar solicitud
-            </Link>
+
+          <div className="relative">
+            {featuredPromotion ? (
+              <HomePromoSpotlight promotion={featuredPromotion} />
+            ) : (
+              <div className="rounded-[32px] border border-[#d9c58f] bg-[linear-gradient(180deg,#fff8ea_0%,#ffffff_100%)] p-7 shadow-[0_28px_90px_rgba(108,74,17,0.14)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Alta asistida rapida</p>
+                <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+                  No sabes subir tu negocio o no tienes tiempo?
+                </h2>
+                <p className="mt-4 text-sm leading-7 text-slate-700">
+                  Mandanos fotos, WhatsApp, direccion y horario. Nosotros lo publicamos para que empieces a recibir
+                  contactos sin enredarte con formularios.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
+                  <span className="rounded-full bg-white px-3 py-1">Fotos</span>
+                  <span className="rounded-full bg-white px-3 py-1">WhatsApp</span>
+                  <span className="rounded-full bg-white px-3 py-1">Direccion</span>
+                  <span className="rounded-full bg-white px-3 py-1">Horario</span>
+                </div>
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/alta-asistida"
+                    className="inline-flex items-center justify-center gap-2 rounded-[18px] bg-[#0f7a47] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#0b6238]"
+                  >
+                    Solicitar ayuda
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <a
+                    href={footerWhatsAppHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-[18px] border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                  >
+                    Mandar WhatsApp
+                    <MessageCircle className="h-4 w-4" />
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Action Cards - Tarjetas clicables */}
-      <section className="py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Búsqueda fácil */}
-            <Link
-              href="/negocios"
-              className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-emerald-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
-            >
-              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🔍</div>
-              <h3 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-emerald-600">Búsqueda fácil</h3>
-              <p className="text-gray-600 mb-3">Encuentra negocios por categoría, ubicación o nombre de forma rápida.</p>
-              <span className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600">
-                Buscar ahora
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
+      <HomeSearchPanel quickLinks={QUICK_LINKS} />
 
-            {/* Cerca de ti */}
-            <Link
-              href="/negocios?view=map"
-              className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
-            >
-              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">📍</div>
-              <h3 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-blue-600">Cerca de ti</h3>
-              <p className="text-gray-600 mb-3">Descubre comercios locales en tu colonia y alrededor de Yajalón.</p>
-              <span className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600">
-                Ver en mapa
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-
-            {/* Reseñas reales */}
-            <Link
-              href="/negocios?o=rating"
-              className="group text-center p-6 bg-white rounded-2xl border-2 border-gray-200 shadow-sm hover:border-yellow-500 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1"
-            >
-              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">⭐</div>
-              <h3 className="text-xl font-bold mb-2 text-gray-900 group-hover:text-yellow-600">Reseñas reales</h3>
-              <p className="text-gray-600 mb-3">Lee opiniones de otros usuarios y toma decisiones informadas.</p>
-              <span className="inline-flex items-center gap-1 text-sm font-semibold text-yellow-600">
-                Mejor calificados
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
+      <section id="promociones-activas" className="px-4 py-10 sm:py-14">
+        <div className="mx-auto max-w-6xl">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Promociones activas hoy</p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                Menos scroll pasivo. Mas razones para escribir ya.
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+                Este bloque existe para empujar accion, no para decorar la home. Oferta clara, urgencia corta y CTA a WhatsApp.
+              </p>
+            </div>
+            <Link href="/negocios" className="inline-flex items-center gap-2 text-sm font-semibold text-[#0f7a47]">
+              Ver todos los negocios
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-        </div>
-      </section>
 
-      {/* Explora por Categorías */}
-      <section className="py-8 px-4 bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Explora por categorías</h2>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth pb-2">
-            {featuredCategories.map((cat) => {
-              const slug = cat.id;
-              return (
-                <Link
-                  key={cat.id}
-                  href={`/negocios?c=${slug}&g=${cat.groupId}`}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-white rounded-full border-2 border-gray-200 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer whitespace-nowrap font-medium text-gray-700 hover:text-blue-600"
-                >
-                  <span className="text-lg">{cat.icon}</span>
-                  <span className="text-sm">{cat.name}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            {secondaryPromotions.map((promotion) => (
+              <HomePromotionCard key={promotion.business.id} promotion={promotion} />
+            ))}
 
-      {/* Propuesta de Valor con Números */}
-      <section className="py-12 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="p-6 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-200">
-              <p className="text-4xl md:text-5xl font-bold text-emerald-600 mb-2">50+</p>
-              <p className="text-sm md:text-base text-gray-700 font-medium">Negocios activos</p>
-            </div>
-            <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200">
-              <p className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">100%</p>
-              <p className="text-sm md:text-base text-gray-700 font-medium">Gratis y sin anuncios</p>
-            </div>
-            <div className="p-6 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200">
-              <p className="text-4xl md:text-5xl font-bold text-purple-600 mb-2">24h</p>
-              <p className="text-sm md:text-base text-gray-700 font-medium">Tiempo de aprobación</p>
-            </div>
-            <div className="p-6 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200">
-              <p className="text-4xl md:text-5xl font-bold text-orange-600 mb-2">⭐</p>
-              <p className="text-sm md:text-base text-gray-700 font-medium">Reseñas verificadas</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Texto Semántico con Keywords para SEO */}
-      <section className="py-8 px-4 bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-gray-700 leading-relaxed">
-            <strong className="text-emerald-700">YajaGon</strong> es el{' '}
-            <strong>directorio más completo de negocios en Yajalón, Chiapas</strong>. 
-            Encuentra <strong>restaurantes, tiendas, servicios profesionales</strong> y más de{' '}
-            <strong>50 comercios locales</strong> verificados. Descubre negocios cerca de ti con{' '}
-            <strong>reseñas reales, horarios actualizados y ubicaciones en mapa</strong>.
-            Apoya a los <strong>emprendedores locales de Yajalón</strong> y encuentra todo lo que necesitas
-            en tu comunidad.
-          </p>
-        </div>
-      </section>
-
-      {/* Nuevos esta semana */}
-      <section className="py-8 px-4 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Nuevos esta semana</h2>
-            <Link 
-              href="/negocios" 
-              className="text-sm md:text-base font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-            >
-              Ver todos
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth pb-2">
-            {recentBusinesses.map((business) => {
-              // Verificar si tiene horarios configurados
-              const hasHours = business.horarios && Object.keys(business.horarios).length > 0;
-              
-              return (
-                <Link
-                  key={business.id}
-                  href={`/?negocio=${business.id}`}
-                  className="flex-shrink-0 w-[280px] bg-white rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all p-4 cursor-pointer"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
-                      {business.logoUrl ? (
-                        <Image 
-                          src={business.logoUrl} 
-                          alt={business.name}
-                          fill
-                          className="object-cover"
-                          sizes="64px"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl">
-                          🏪
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 truncate mb-1">{business.name}</h3>
-                      <p className="text-xs text-gray-500 truncate mb-2">{business.category}</p>
-                      {hasHours && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                          Abierto
-                        </span>
-                      )}
-                    </div>
+            {secondaryPromotions.length < 2 ? (
+              <article className="rounded-[28px] border border-dashed border-[#d8c27b] bg-[#fffaf0] p-6 shadow-sm">
+                <div className="flex h-full flex-col justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">
+                      Espacio comercial
+                    </p>
+                    <h3 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+                      Tu promocion puede aparecer aqui.
+                    </h3>
+                    <p className="mt-4 text-sm leading-6 text-slate-600">
+                      Si el negocio publica una oferta clara y tiene WhatsApp activo, esta zona empuja clics rapido sin
+                      convertir la home en otro listado largo.
+                    </p>
                   </div>
-                </Link>
-              );
-            })}
+                  <div className="mt-8 flex flex-col gap-3">
+                    <Link
+                      href="/registro-negocio?mode=new"
+                      className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-[#0f7a47] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0b6238]"
+                    >
+                      Registrar negocio
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      href="/alta-asistida"
+                      className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-[#d9c58f] bg-white px-5 py-3 text-sm font-semibold text-[#8f5b14] transition hover:bg-[#fff7ea]"
+                    >
+                      Solicitar alta asistida
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ) : null}
           </div>
         </div>
       </section>
 
-      {/* CTA Registro de Negocio */}
-      <section className="py-12 px-4 bg-gradient-to-br from-blue-600 to-indigo-700">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="text-5xl mb-4">🚀</div>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">¿Tienes un negocio?</h2>
-          <p className="text-lg md:text-xl text-blue-100 mb-6 max-w-2xl mx-auto">
-            Regístralo y aparece en nuestro directorio. Miles de personas buscan servicios como el tuyo cada día.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 text-sm text-blue-100 mb-6">
-            <span className="flex items-center gap-1">
-              ✅ Gratis para siempre
-            </span>
-            <span className="flex items-center gap-1">
-              ✅ Sin tarjeta de crédito
-            </span>
-            <span className="flex items-center gap-1">
-              ✅ Aprobación en 24h
-            </span>
+      <section className="px-4 py-10 sm:py-14">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Categorias populares</p>
+          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+              Explorar debe sentirse rapido y obvio.
+            </h2>
+            <p className="max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
+              Las categorias no son relleno: son atajos comerciales para entrar donde ya existe demanda.
+            </p>
           </div>
-          <Link
-            href="/para-negocios"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-full font-bold text-lg hover:bg-blue-50 hover:shadow-xl transition-all transform hover:scale-105"
-          >
-            Publicar mi negocio
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-          <div className="mt-4">
-            <Link 
-              href="/alta-asistida"
-              className="text-sm text-blue-100 hover:text-white underline transition-colors"
-            >
-              ¿Prefieres que lo registremos por ti? Solicitar alta
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {homeData.popularCategories.map((category) => (
+              <Link
+                key={category.id}
+                href={category.href}
+                className="group rounded-[26px] border border-[#dbe6dd] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef4ef] text-2xl">
+                    {category.icon}
+                  </div>
+                  <span className="rounded-full bg-[#f4efe6] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f5b14]">
+                    {category.count > 0 ? `${category.count} activos` : "Categoria lista"}
+                  </span>
+                </div>
+                <h3 className="mt-5 font-serif text-2xl font-semibold tracking-tight text-slate-950">
+                  {category.name}
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{category.description}</p>
+                <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#0f7a47]">
+                  Explorar categoria
+                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-10 sm:py-14">
+        <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-[32px] bg-[#132a1c] p-7 text-white shadow-[0_28px_90px_rgba(19,42,28,0.16)] sm:p-9">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#d7e5d9]">
+              Para negocios
+            </p>
+            <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+              Tu negocio no necesita un directorio. Necesita conversaciones y confianza.
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#d8e7da] sm:text-base">
+              El bloque comercial ya no vende "gratis para siempre". Vende visibilidad, contactos por WhatsApp,
+              promociones y una presencia que se vea seria desde la primera visita.
+            </p>
+
+            <div className="mt-7 space-y-3">
+              {BUSINESS_BENEFITS.map((benefit) => (
+                <div key={benefit} className="flex items-start gap-3 rounded-[22px] border border-white/10 bg-white/8 p-4">
+                  <BadgeCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#f8d88a]" />
+                  <p className="text-sm leading-6 text-[#eef6ef]">{benefit}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-5">
+            <article className="rounded-[30px] border border-[#dbe6dd] bg-white p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Registro directo</p>
+              <h3 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+                Si ya tienes la info lista, entra al alta en este momento.
+              </h3>
+              <p className="mt-4 text-sm leading-6 text-slate-600">
+                Ideal si ya cuentas con fotos, direccion, WhatsApp y horario. Vas directo al wizard y dejas el
+                negocio encaminado para publicarse.
+              </p>
+              <Link
+                href="/registro-negocio?mode=new"
+                className="mt-6 inline-flex items-center gap-2 rounded-[20px] bg-[#0f7a47] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0b6238]"
+              >
+                Crear perfil de negocio
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </article>
+
+            <article className="rounded-[30px] border border-[#d9c58f] bg-[#fff8ea] p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Alta asistida</p>
+              <h3 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+                Si no tienes tiempo, nosotros lo registramos por ti.
+              </h3>
+              <p className="mt-4 text-sm leading-6 text-slate-600">
+                Esta via debe verse central porque en mercado local vale mas ayudar a publicar que esperar a que el
+                negocio complete solo el proceso digital.
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/alta-asistida"
+                  className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-[#8f5b14] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#75480f]"
+                >
+                  Solicitar alta asistida
+                </Link>
+                <a
+                  href={footerWhatsAppHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-[#d4ba7a] bg-white px-5 py-3 text-sm font-semibold text-[#8f5b14] transition hover:bg-[#fff4d9]"
+                >
+                  Hablar por WhatsApp
+                </a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-10 sm:py-14">
+        <div className="mx-auto max-w-6xl overflow-hidden rounded-[36px] border border-[#d9c58f] bg-[linear-gradient(180deg,#fff8ea_0%,#f7f1e6_100%)] shadow-[0_28px_90px_rgba(108,74,17,0.12)]">
+          <div className="grid gap-6 p-7 lg:grid-cols-[1fr_auto] lg:items-center lg:p-10">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Alta asistida directa</p>
+              <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                No tienes tiempo o no sabes subir tu negocio? Nosotros lo hacemos por ti.
+              </h2>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-700 sm:text-base">
+                Solo mandanos WhatsApp con fotos, direccion, horario y tu numero de contacto. Lo publicamos contigo
+                para que empieces a recibir mensajes sin meterte a un proceso pesado.
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                {ASSISTED_STEPS.map((step) => (
+                  <span key={step} className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
+                    {step}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 lg:min-w-[280px]">
+              <Link
+                href="/alta-asistida"
+                className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-[#0f7a47] px-6 py-4 text-sm font-semibold text-white transition hover:bg-[#0b6238]"
+              >
+                Solicitar alta asistida
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <a
+                href={footerWhatsAppHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-slate-200 bg-white px-6 py-4 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+              >
+                Mandar WhatsApp ahora
+                <MessageCircle className="h-4 w-4" />
+              </a>
+              <p className="text-center text-xs font-medium uppercase tracking-[0.16em] text-[#8f5b14]">
+                Respuesta rapida para negocios de Yajalon
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-10 sm:py-14">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Escaparates de visibilidad</p>
+          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                Los niveles comerciales ahora se entienden en un vistazo.
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
+                Patrocinado domina, destacado gana presencia y organico sigue viendose digno. Eso corrige la igualdad
+                visual que hoy aplana la monetizacion y confunde el valor de cada plan.
+              </p>
+            </div>
+            <Link href="/para-negocios" className="inline-flex items-center gap-2 text-sm font-semibold text-[#0f7a47]">
+              Ver opciones para negocios
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
+
+          {homeData.hasBusinesses ? (
+            <div className="mt-8 space-y-8">
+              {homeData.sponsorShowcase.length > 0 ? (
+                <div>
+                  <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#8f5b14]">
+                    <Megaphone className="h-4 w-4" />
+                    Patrocinado
+                  </div>
+                  <div className="grid gap-5 lg:grid-cols-2">
+                    {homeData.sponsorShowcase.map((business) => (
+                      <HomeBusinessCard key={business.id} business={business} variant="sponsor" />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {homeData.featuredShowcase.length > 0 ? (
+                <div>
+                  <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <Sparkles className="h-4 w-4 text-[#8f5b14]" />
+                    Destacados
+                  </div>
+                  <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                    {homeData.featuredShowcase.map((business) => (
+                      <HomeBusinessCard key={business.id} business={business} variant="featured" />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex justify-center">
+                <Link
+                  href="/negocios"
+                  className="inline-flex items-center gap-2 rounded-[18px] border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                >
+                  Ver todos los negocios
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-8 rounded-[30px] border border-dashed border-[#d8c27b] bg-white p-8 text-center shadow-sm">
+              <h3 className="font-serif text-3xl font-semibold tracking-tight text-slate-950">
+                La vitrina premium ya esta lista.
+              </h3>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                Cuando entren mas negocios destacados y patrocinados, esta seccion puede crecer sin volver la home un catalogo.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Alta Asistida - Sección Destacada */}
-      <section className="py-12 px-4 bg-gradient-to-r from-teal-50 to-cyan-50 border-y-2 border-teal-200">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="text-5xl mb-4">🤝</div>
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-            ¿No tienes tiempo? Lo registramos nosotros
-          </h2>
-          <p className="text-lg text-gray-600 mb-6">
-            Envíanos los datos de tu negocio y nuestro equipo se encarga del resto. 
-            <strong>Gratis y en menos de 48 horas.</strong>
-          </p>
-          <Link
-            href="/alta-asistida"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-teal-600 text-white font-bold rounded-full hover:bg-teal-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            Solicitar alta asistida
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-          <p className="mt-4 text-sm text-gray-500">
-            📞 También puedes contactarnos por WhatsApp para ayuda personalizada
-          </p>
+      <section className="px-4 py-10 sm:py-14">
+        <div className="mx-auto max-w-6xl rounded-[36px] bg-[#132a1c] px-6 py-10 text-white shadow-[0_28px_90px_rgba(19,42,28,0.18)] sm:px-10 sm:py-12">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#d7e5d9]">Ultimo CTA</p>
+          <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <h2 className="font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+                Tu negocio puede empezar a recibir contactos hoy mismo.
+              </h2>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-[#d8e7da] sm:text-base">
+                Si ya tienes la informacion, entra al registro. Si no quieres lidiar con formularios, pide alta
+                asistida y lo dejamos visible contigo.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/registro-negocio?mode=new"
+                className="inline-flex items-center justify-center gap-2 rounded-[20px] bg-white px-6 py-4 text-sm font-semibold text-[#132a1c] transition hover:bg-[#eef6ef] sm:text-base"
+              >
+                Registrar negocio
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/alta-asistida"
+                className="inline-flex items-center justify-center gap-2 rounded-[20px] border border-white/18 bg-white/10 px-6 py-4 text-sm font-semibold text-white transition hover:bg-white/16 sm:text-base"
+              >
+                Solicitar alta asistida
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Carruseles de Negocios Premium */}
-      <div className="bg-gradient-to-b from-white to-gray-50">
-        <HomeClient 
-          sponsorBusinesses={sponsorBusinesses}
-          featuredBusinesses={featuredBusinesses}
-        />
-      </div>
-    </div>
+      <footer className="border-t border-[#ddd6c8] bg-[#f0eadf] px-4 py-10">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr_0.8fr]">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">YajaGon</p>
+            <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+              Escaparate local para clientes, promociones y altas asistidas.
+            </h2>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">
+              Hecho para Yajalon, Chiapas. Menos ruido de directorio, mas claridad para descubrir y mas caminos para
+              que los negocios reciban mensajes reales.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-950">Acciones clave</p>
+            <div className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
+              <Link href="/negocios" className="transition hover:text-slate-950">
+                Explorar negocios
+              </Link>
+              <Link href="/registro-negocio?mode=new" className="transition hover:text-slate-950">
+                Registrar mi negocio
+              </Link>
+              <Link href="/alta-asistida" className="transition hover:text-slate-950">
+                Solicitar alta asistida
+              </Link>
+              <Link href="/para-negocios" className="transition hover:text-slate-950">
+                Ver propuesta para negocios
+              </Link>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-slate-950">Confianza local</p>
+            <div className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
+              <span>Atencion local para negocios de Yajalon.</span>
+              <a href={footerWhatsAppHref} target="_blank" rel="noopener noreferrer" className="transition hover:text-slate-950">
+                Hablar por WhatsApp
+              </a>
+              <Link href="/mis-solicitudes" className="transition hover:text-slate-950">
+                Revisar una solicitud
+              </Link>
+              <Link href="/ayuda" className="transition hover:text-slate-950">
+                Ayuda y soporte
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
   );
 }

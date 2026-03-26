@@ -436,7 +436,7 @@ export default function NegociosListClient({
     if (uiFilters.category) segments.push(uiFilters.category);
     if (uiFilters.colonia) segments.push(`en ${selectedColoniaLabel}`);
     if (!segments.length) {
-      return 'Explora comercios locales sin consumir datos extra.';
+      return 'Explora negocios, promociones y contactos rápidos por WhatsApp.';
     }
     return `Resultados para ${segments.join(' ')}.`;
   }, [uiFilters.category, uiFilters.colonia, uiFilters.query, selectedColoniaLabel]);
@@ -509,7 +509,7 @@ export default function NegociosListClient({
         <header className="mb-2">
           {/* H1 semántico fijo para SEO */}
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Directorio de Negocios en Yajalón
+            Negocios y promociones en Yajalón
           </h1>
           
           {/* H2 dinámico según filtros/búsqueda */}
@@ -523,7 +523,7 @@ export default function NegociosListClient({
             </h2>
           ) : (
             <p className="text-base md:text-lg text-gray-600 mb-4">
-              Descubre +50 comercios locales con reseñas, ubicaciones y contactos verificados
+              Encuentra negocios con contacto por WhatsApp, promociones activas y opciones visibles por zona
             </p>
           )}
         </header>
@@ -544,11 +544,11 @@ export default function NegociosListClient({
                   <div className="mb-4 px-6">
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                       <span className="text-3xl">👑</span>
-                      Negocios Patrocinados
+                      Negocios con visibilidad patrocinada
                       <span className="text-lg font-semibold text-purple-600">({allSponsored.length})</span>
                     </h2>
                     <p className="text-sm text-gray-500 mt-1 ml-11">
-                      Los patrocinados aparecen primero y se rotan para dar visibilidad a todos.
+                      Aparecen antes que el resto y funcionan como la vitrina premium del listado.
                     </p>
                   </div>
                   
@@ -587,7 +587,7 @@ export default function NegociosListClient({
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <span className="text-3xl">⭐</span>
-                Negocios Destacados del Mes
+                Negocios destacados
               </h2>
             </div>
             {(() => {
@@ -609,9 +609,10 @@ export default function NegociosListClient({
                 return (isFeatured && hasPremiumPlan) || featuredWithoutPlan || isPremiumOnly;
               });
 
-              // Selección aleatoria de máximo 3 negocios
-              const shuffled = [...allFeatured].sort(() => Math.random() - 0.5);
-              const featured = shuffled.slice(0, 3);
+              // Selección de máximo 3 negocios (orden por ID para consistencia servidor/cliente)
+              const featured = [...allFeatured]
+                .sort((a, b) => (a.id || '').localeCompare(b.id || ''))
+                .slice(0, 3);
 
               if (featured.length === 0) {
                 return (

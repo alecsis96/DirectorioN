@@ -8,6 +8,7 @@ export type Business = {
   categoryName?: string;
   categoryGroupId?: CategoryGroupId;
   description?: string;
+  promocionesActivas?: string;
   colonia?: string;
   neighborhood?: string;
   address?: string;
@@ -135,6 +136,7 @@ export interface BusinessPreview {
   plan?: string;
   priceRange?: string;
   description?: string;
+  promocionesActivas?: string;
   image1?: string | null;
   image2?: string | null;
   image3?: string | null;
@@ -165,6 +167,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     isOpen: biz.isOpen === "no" ? "no" : "si",
     address: biz.address ?? "",
     description: biz.description,
+    promocionesActivas: biz.promocionesActivas,
     hours: biz.hours,
     hasEnvio: biz.hasEnvio === true,
     featured: biz.featured === true || biz.featured === 'true',

@@ -35,6 +35,7 @@ export function normalizeBusiness(data: any, id: string): Business {
     categoryName: data.categoryName || resolvedCategory.categoryName,
     categoryGroupId: data.categoryGroupId || resolvedCategory.groupId,
     description: asString(data.description ?? data.descripcion),
+    promocionesActivas: asString(data.promocionesActivas),
     address: asString(data.address ?? data.direccion),
     phone: asString(data.phone ?? data.telefono),
     WhatsApp: asString(data.WhatsApp ?? data.whatsapp),

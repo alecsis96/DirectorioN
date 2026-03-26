@@ -10,15 +10,16 @@ import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, type Filters, type SortMode } from
 import { resolveCategory, type CategoryGroupId } from '../../lib/categoriesCatalog';
 
 export const metadata: Metadata = {
-  title: 'Directorio de Negocios en Yajalón - Tu Guía Completa de Comercios Locales',
-  description: '+50 negocios en Yajalón: búsqueda avanzada, filtros por categoría y colonia, vista mapa, reseñas verificadas. Encuentra lo que buscas cerca de ti ¡Gratis!',
+  title: 'Negocios y promociones en Yajalon | YajaGon',
+  description:
+    'Explora negocios locales en Yajalon, encuentra promociones activas y contacta por WhatsApp desde una sola vista.',
   robots: {
     index: true,
     follow: true,
   },
   openGraph: {
-    title: 'Directorio de Negocios en Yajalón',
-    description: 'Tu guía completa de comercios locales en Yajalón. Encuentra lo que buscas cerca de ti.',
+    title: 'Negocios y promociones en Yajalon | YajaGon',
+    description: 'Explora negocios locales, promociones activas y contactos por WhatsApp en Yajalon.',
     type: 'website',
   },
 };
@@ -100,7 +101,6 @@ async function buildBusinessesResult(params: SearchParams) {
   }
   const categories = Array.from(categorySet).sort((a, b) => a.localeCompare(b, 'es'));
 
-  // Aplicar ordenamiento con patrocinados al inicio
   const sortedBusinesses = sortBusinessesWithSponsors(allBusinesses);
 
   const businesses: BusinessPreview[] = sortedBusinesses.map((biz) => {

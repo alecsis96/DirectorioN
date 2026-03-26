@@ -1,21 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from "react";
-import { Star, MapPin, Phone, Map } from "lucide-react";
+import { ArrowRight, Heart, MapPin, MessageCircle, Phone, Star } from "lucide-react";
 import { mapsLink, normalizeDigits, waLink } from "../lib/helpers/contact";
 import { trackCTA, trackBusinessInteraction } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
 import { getBusinessStatus } from "./BusinessHours";
 import { useFavorites } from "../context/FavoritesContext";
-import { resolveCategory } from "../lib/categoriesCatalog";
+import { CATEGORIES, resolveCategory } from "../lib/categoriesCatalog";
 import { generateBusinessPlaceholder } from "../lib/placeholderGenerator";
-import { 
-  getPlanTokens, 
-  getCoverHeight, 
-  getCardClasses, 
-  getBadgeClasses,
-  type BusinessPlan 
-} from "../lib/designTokens";
 
 type CardBusiness = BusinessPreview | Business;
 
@@ -24,109 +17,170 @@ type Props = {
   onViewDetails?: (business: CardBusiness) => void;
 };
 
+type PlanVariant = "free" | "featured" | "sponsor";
+
+type StatusChip =
+  | {
+      tone: "open" | "neutral";
+      label: string;
+    }
+  | null;
+
+const PLACEHOLDER_LOGO =
+  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f4f4f5" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E';
+
+const CARD_STYLES: Record<
+  PlanVariant,
+  {
+    wrapper: string;
+    content: string;
+    title: string;
+    badge: string;
+    badgeText: string;
+    cta: string;
+    showCover: boolean;
+  }
+> = {
+  free: {
+    wrapper:
+      "relative rounded-[28px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg",
+    content: "p-5",
+    title: "text-xl",
+    badge: "border border-slate-200 bg-white text-slate-600",
+    badgeText: "Perfil base",
+    cta: "border border-[#0f7a47] text-[#0f7a47] hover:bg-[#eef7f1]",
+    showCover: false,
+  },
+  featured: {
+    wrapper:
+      "relative overflow-hidden rounded-[30px] border border-[#d8c27b] bg-white shadow-[0_20px_60px_rgba(109,85,28,0.12)] transition hover:-translate-y-1 hover:shadow-xl",
+    content: "p-5",
+    title: "text-2xl",
+    badge: "bg-[#f3e2a7] text-[#6d551c]",
+    badgeText: "Destacado",
+    cta: "bg-[#1d2a3b] text-white hover:bg-[#121d2b]",
+    showCover: true,
+  },
+  sponsor: {
+    wrapper:
+      "relative overflow-hidden rounded-[32px] border border-[#d5b15a] bg-[linear-gradient(180deg,#fffaf0_0%,#ffffff_100%)] shadow-[0_28px_90px_rgba(108,74,17,0.18)] transition hover:-translate-y-1 hover:shadow-[0_34px_100px_rgba(108,74,17,0.22)]",
+    content: "p-6",
+    title: "text-[1.9rem]",
+    badge: "bg-[#8f5b14] text-white",
+    badgeText: "Patrocinado",
+    cta: "bg-[#0f7a47] text-white hover:bg-[#0b6238]",
+    showCover: true,
+  },
+};
+
+function normalizePlan(plan?: string): PlanVariant {
+  if (plan === "sponsor" || plan === "patrocinado") return "sponsor";
+  if (plan === "featured" || plan === "destacado") return "featured";
+  return "free";
+}
+
+function getBusinessImage(business: CardBusiness) {
+  return (
+    ("coverUrl" in business && business.coverUrl) ||
+    ("logoUrl" in business && business.logoUrl) ||
+    ("image1" in business && business.image1) ||
+    generateBusinessPlaceholder(business.name || "Negocio", business.category)
+  );
+}
+
+function getLogoImage(business: CardBusiness, isPremium: boolean) {
+  return (
+    ("logoUrl" in business && business.logoUrl) ||
+    ("image1" in business && business.image1) ||
+    (isPremium ? "/images/default-premium-logo.svg" : PLACEHOLDER_LOGO)
+  );
+}
+
+function getCategoryIcon(business: CardBusiness) {
+  const resolved = resolveCategory(
+    ("categoryId" in business && business.categoryId) || ("categoryName" in business && business.categoryName) || business.category
+  );
+  const category = CATEGORIES.find((item) => item.id === resolved.categoryId);
+
+  return category?.icon ?? "🏪";
+}
+
+function buildStatusChip(business: CardBusiness): StatusChip {
+  const hasStructuredHours = Boolean("horarios" in business && business.horarios && Object.keys(business.horarios).length > 0);
+  const hasHoursText = Boolean(business.hours && business.hours.trim().length > 0);
+
+  if (!hasStructuredHours && !hasHoursText) {
+    return null;
+  }
+
+  if (hasHoursText && business.hours) {
+    const status = getBusinessStatus(business.hours);
+
+    return status.isOpen
+      ? { tone: "open", label: `Abierto ahora - cierra ${status.closesAt}` }
+      : { tone: "neutral", label: `Horario visible${status.opensAt ? ` - ${status.opensAt}` : ""}` };
+  }
+
+  return {
+    tone: "neutral",
+    label: "Horario confirmado",
+  };
+}
+
 const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
-  // Type-safe extraction de propiedades - asegurar que business.id siempre esté disponible
   const businessId = business?.id || (business as any)?.businessId || undefined;
-  
+  const plan = normalizePlan("plan" in business ? business.plan : undefined);
+  const styles = CARD_STYLES[plan];
+  const isPremium = plan !== "free";
+  const imageSrc = getBusinessImage(business);
+  const logoSrc = getLogoImage(business, isPremium);
+  const categoryIcon = getCategoryIcon(business);
   const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
-  const [isOpen, setIsOpen] = useState(business.isOpen === "si");
-  const [hoursLabel, setHoursLabel] = useState<string>(() => business.hours ? "Actualizando horario..." : "Horario no disponible");
-  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
-  const addressText = business.address || "Sin direccion";
+  const addressText = business.address || "Ubicacion disponible en el perfil";
   const mapsHref = mapsLink(undefined, undefined, business.address || business.name);
   const callHref = business.phone ? `tel:${normalizeDigits(business.phone)}` : null;
   const whatsappHref = business.WhatsApp ? waLink(business.WhatsApp) : "";
+  const promoText =
+    "promocionesActivas" in business && typeof business.promocionesActivas === "string" && business.promocionesActivas.trim().length > 0
+      ? business.promocionesActivas.trim()
+      : "";
+  const statusChip = buildStatusChip(business);
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const isFavorite = businessId ? favorites.includes(businessId) : false;
-  
-  // Type-safe extraction con verificación de propiedad
-  const plan = ('plan' in business && typeof business.plan === 'string' ? business.plan : 'free') as BusinessPlan;
-  const isPremium = plan !== 'free';
-  
-  // 🎨 Design tokens para jerarquía visual
-  const tokens = getPlanTokens(plan);
-  
-  // Verificar si es negocio nuevo (< 30 días)
-  const isNew = (() => {
-    const created = (business as any).createdAt;
-    if (!created) return false;
-    const createdDate = created.toDate ? created.toDate() : new Date(created);
-    const daysDiff = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
-    return daysDiff <= 30;
-  })();
-  
-  // v2: Helper para obtener banner/cover
-  // ⚡ ACTUALIZACIÓN: Todos los planes usan portada (con placeholder si no existe)
-  const getBannerUrl = (biz: CardBusiness): string => {
-    const coverUrl = ('coverUrl' in biz && typeof biz.coverUrl === 'string' ? biz.coverUrl : null);
-    
-    // Si tiene coverUrl, usarla
-    if (coverUrl && coverUrl.trim().length > 0) {
-      return coverUrl;
-    }
-    
-    // Si NO tiene, generar placeholder elegante
-    return generateBusinessPlaceholder(
-      biz.name || 'Negocio',
-      biz.category
-    );
-  };
-  
-  const bannerUrl = getBannerUrl(business);
-  
-  // Imagen de logo/negocio - priorizar logoUrl sobre image1, usar placeholder premium si aplica
-  const logoUrl =
-    ('logoUrl' in business && typeof business.logoUrl === 'string' ? business.logoUrl : null) ||
-    ('image1' in business && typeof business.image1 === 'string' ? business.image1 : null) ||
-    (isPremium
-      ? '/images/default-premium-logo.svg'
-      : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E');
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [isOpenNow, setIsOpenNow] = useState(statusChip?.tone === "open");
 
   useEffect(() => {
-    const schedule = business.hours;
-    if (!schedule) {
-      setHoursLabel("Horario no disponible");
+    if (!business.hours) {
+      setIsOpenNow(false);
       return;
     }
+
     const updateStatus = () => {
-      const status = getBusinessStatus(schedule);
-      setIsOpen(status.isOpen);
-      if (status.isOpen && status.closesAt) {
-        setHoursLabel(`Cierra a las ${status.closesAt}`);
-      } else if (!status.isOpen && status.opensAt) {
-        setHoursLabel(`Abre ${status.opensAt}`);
-      } else {
-        setHoursLabel("Horario disponible");
-      }
+      const status = getBusinessStatus(business.hours as string);
+      setIsOpenNow(status.isOpen);
     };
+
     updateStatus();
     const timer = setInterval(updateStatus, 60_000);
     return () => clearInterval(timer);
   }, [business.hours]);
 
-  const handleClick = (e: React.MouseEvent) => {
-    // v2: Solo manejar click explícito en botón "Ver detalles", no en todo el card
-    if (onViewDetails) {
-      trackBusinessInteraction(
-        'business_card_clicked',
-        businessId || '',
-        business.name,
-        business.category
-      );
-      onViewDetails(business);
-    }
+  const handleViewDetails = () => {
+    if (!onViewDetails) return;
+
+    trackBusinessInteraction("business_card_clicked", businessId || "", business.name, business.category);
+    onViewDetails(business);
   };
 
-  const handleFavoriteToggle = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
+  const handleFavoriteToggle = async (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (!businessId || isTogglingFavorite) {
-      console.log('[BusinessCard] Favorite toggle blocked:', { businessId, isTogglingFavorite });
       return;
     }
 
-    console.log('[BusinessCard] Toggle favorite:', businessId, 'isFavorite:', isFavorite);
     setIsTogglingFavorite(true);
 
     try {
@@ -135,310 +189,159 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       } else {
         addFavorite(businessId);
       }
-      
-      // Pequeño delay para feedback visual
-      await new Promise(resolve => setTimeout(resolve, 100));
-    } catch (error) {
-      console.error('[BusinessCard] Error toggling favorite:', error);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
     } finally {
       setIsTogglingFavorite(false);
     }
   };
 
-  // Obtener ícono de categoría desde el catálogo oficial
-  const getCategoryIcon = (categoryName: string | undefined, categoryId: string | undefined): string => {
-    if (!categoryName && !categoryId) return '🏢';
-    
-    // Intentar resolver desde el catálogo usando categoryId o categoryName
-    const resolved = resolveCategory(categoryId || categoryName || '');
-    return resolved.categoryId !== 'otro' ? resolved.categoryName : '🏢';
-  };
-  
-  // Helper para obtener el ícono emoji de la categoría
-  const getCategoryEmoji = (): string => {
-    const categoryId = ('categoryId' in business && typeof business.categoryId === 'string' ? business.categoryId : null);
-    const categoryName = business.category;
-    
-    // Intentar resolver desde el catálogo
-    const resolved = resolveCategory(categoryId || categoryName || '');
-    
-    // El catálogo no tiene emojis directamente, usar mapeo manual como fallback
-    const emojiMap: Record<string, string> = {
-      'restaurantes': '🍽️',
-      'taquerias': '🌮',
-      'polleria_rosticeria': '🍗',
-      'pizzeria': '🍕',
-      'comida_rapida': '🍔',
-      'cafeteria': '☕',
-      'panaderia': '🥖',
-      'mariscos': '🦐',
-      'cocina_economica': '🍲',
-      'antojitos': '🥙',
-      'bar_cantina': '🍻',
-      'heladeria': '🍦',
-      'abarrotes': '🛒',
-      'supermercado': '🛍️',
-      'papeleria': '📄',
-      'tienda_ropa': '👗',
-      'calzado': '👟',
-      'regalos': '🎁',
-      'joyeria': '💍',
-      'electronica': '💻',
-      'celulares': '📱',
-      'muebles': '🛋️',
-      'deportes': '🏀',
-      'servicios_generales': '🛠️',
-      'servicios_profesionales': '💼',
-      'taller_mecanico': '🔧',
-      'mensajeria': '📦',
-      'imprenta': '🖨️',
-      'limpieza': '🧹',
-      'ciber_centro': '🖥️',
-      'reparacion_electronica': '🔌',
-      'farmacias': '💊',
-      'clinica': '🏥',
-      'dentista': '😁',
-      'estetica': '💇',
-      'barberia': '✂️',
-      'spa': '🧖',
-      'veterinarias': '🐾',
-      'ferreterias': '🔩',
-      'materiales_construccion': '🏗️',
-      'refaccionaria': '🚗',
-      'tlapaleria': '🧰',
-      'cerrajeria': '🔑',
-      'vidrieria': '🪟',
-      'salon_eventos': '🎉',
-      'fotografia_video': '📸',
-      'banquetes': '🍽️',
-      'sonido_iluminacion': '🎤',
-      'renta_mobiliario': '🪑',
-      'clases_particulares': '📚',
-      'guarderia': '🧸',
-      'idiomas': '🌐',
-      'otro': '🏢'
-    };
-    
-    return emojiMap[resolved.categoryId] || '🏢';
-  };
-
-// 🎨 Badge classes (si aplica)
-  const badgeClasses = getBadgeClasses(plan);
-  const badgeText = tokens.badge?.text;
-
   return (
-    <article 
-      className={getCardClasses(plan)}
-    >
-      {/* 🎨 PORTADA CON JERARQUÍA VISUAL - Solo para negocios premium */}
-      {plan !== 'free' && (
-        <div className={`relative ${getCoverHeight(plan, true)} w-full overflow-hidden ${tokens.colors.coverOverlay}`}>
-          <img 
-            src={bannerUrl} 
-            alt={`Portada de ${business.name}`} 
-            className={`w-full h-full object-cover object-center ${tokens.effects.transition}`}
-          />
-          
-          {/* 🏷️ BADGE PREMIUM (solo featured y sponsor) */}
-          {badgeClasses && badgeText && (
-            <div className="absolute top-3 left-3 z-10">
-              <span className={badgeClasses}>
-                {badgeText}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ❤️ BOTÓN FAVORITOS - posición ajustada: sin portada para free, con portada para premium */}
+    <article className={styles.wrapper}>
       <button
         type="button"
         onClick={handleFavoriteToggle}
         disabled={isTogglingFavorite}
-        className={`absolute right-3 w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-lg transition-all duration-200 cursor-pointer z-30 ${
-          plan === 'sponsor' ? 'top-[188px]' : plan === 'featured' ? 'top-[153px]' : 'top-3'
-        } ${
-          isTogglingFavorite ? 'scale-90 opacity-70' : 'hover:scale-110 active:scale-95'
+        className={`absolute right-4 top-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/95 shadow-lg transition ${
+          isTogglingFavorite ? "scale-95 opacity-70" : "hover:scale-105"
         }`}
-        aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+        aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
       >
-        <span 
-          className={`text-2xl transition-all duration-200 ${
-            isFavorite ? 'text-red-500 animate-pulse' : 'text-gray-400'
-          }`}
-        >
-          {isFavorite ? "♥" : "♡"}
-        </span>
+        <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-slate-400"}`} />
       </button>
 
-      {/* 📦 CONTENIDO DE LA CARD */}
-      <div 
-        onClick={plan === 'free' ? handleClick : undefined}
-        className={`relative bg-white rounded-b-xl ${tokens.layout.cardPadding} flex flex-col ${tokens.layout.cardGap} ${plan === 'free' ? 'cursor-pointer' : ''} ${tokens.effects.shimmer}`}
-      >
-          {/* ✨ Efecto shimmer para premium (solo hover) */}
-          
-          {/* 🏢 FILA SUPERIOR: Logo + Nombre + Info */}
-          <div className="flex items-start gap-3 relative z-10">
-            {/* Logo/Avatar - Premium usa logo pequeño, Free usa logo o ícono de categoría */}
-            {plan !== 'free' ? (
-              <div className="flex-shrink-0">
-                <img 
-                  src={logoUrl} 
-                  alt={`Logo de ${business.name}`}
-                  className="w-12 h-12 rounded-xl object-cover border-2 border-gray-200 shadow-sm"
-                />
-              </div>
-            ) : (
-              <div className="flex-shrink-0">
-                {logoUrl && logoUrl !== 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%23999"%3ELogo%3C/text%3E%3C/svg%3E' ? (
-                  <img 
-                    src={logoUrl} 
-                    alt={`Logo de ${business.name}`}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-gray-300 shadow-sm"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-300 shadow-sm flex items-center justify-center text-2xl">
-                    {getCategoryEmoji()}
-                  </div>
-                )}
-              </div>
-            )}            
-            
-            {/* Contenido al lado del icono */}
-            <div className="flex-1 min-w-0 flex flex-col gap-1">
-              {/* v2: Badge NUEVO (no duplicar badge de plan que ahora está en banner) */}
-              {/* 🆕 Badge NUEVO (transversal a todos los planes) */}
-              {isNew && (
-                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[9px] font-extrabold tracking-wide uppercase rounded-full shadow-md animate-pulse w-fit">
-                  🆕 NUEVO
+      {styles.showCover ? (
+        <div className={`relative overflow-hidden ${plan === "sponsor" ? "h-64" : "h-52"}`}>
+          <img src={imageSrc} alt={`Imagen de ${business.name}`} className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
+          <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${styles.badge}`}>
+              {styles.badgeText}
+            </span>
+            {promoText ? (
+              <span className="inline-flex rounded-full bg-white/92 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f5b14]">
+                Promo activa
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      <div className={styles.content}>
+        <div className="flex items-start gap-4">
+          {isPremium ? (
+            <img
+              src={logoSrc}
+              alt={`Logo de ${business.name}`}
+              className={`rounded-2xl border border-white/50 object-cover shadow-sm ${plan === "sponsor" ? "h-16 w-16" : "h-14 w-14"}`}
+            />
+          ) : (
+            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eef4ef] text-2xl">
+              {categoryIcon}
+            </div>
+          )}
+
+          <div className="min-w-0 flex-1">
+            {!isPremium ? (
+              <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${styles.badge}`}>
+                {styles.badgeText}
+              </span>
+            ) : null}
+
+            <h3 className={`mt-3 font-serif font-semibold tracking-tight text-slate-950 ${styles.title}`}>{business.name}</h3>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
+              {business.category ? <span className="rounded-full bg-[#eef4ef] px-3 py-1">{business.category}</span> : null}
+              {business.colonia ? <span className="rounded-full bg-slate-100 px-3 py-1">{business.colonia}</span> : null}
+              {ratingValue > 0 ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#fbf4e6] px-3 py-1 text-[#8f5b14]">
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                  {ratingValue.toFixed(1)}
                 </span>
-              )}
-              
-              {/* 🏷️ Nombre del negocio */}
-              <h3 className={`text-base font-bold ${tokens.colors.titleColor} hover:text-emerald-700 transition-colors line-clamp-1`}>
-                {business.name}
-              </h3>
-              
-              {/* 🏯 Categoría y Colonia */}
-              <div className="flex flex-wrap gap-1 text-xs">
-                {business.category && (
-                  <span className={`px-2 py-0.5 rounded-full font-medium ${
-                    plan === 'sponsor' ? 'bg-purple-100 text-purple-700' :
-                    plan === 'featured' ? 'bg-amber-100 text-amber-700' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
-                    {getCategoryEmoji()} {business.category}
-                  </span>
-                )}
-                {business.colonia && (
-                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                    {business.colonia}
-                  </span>
-                )}
-              </div>
-              
-              {/* v2: Rating y Estado en línea - Ocultar métricas vacías */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* v2: Solo mostrar rating si existe y es > 0 */}
-                {ratingValue > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
-                    <span className="text-sm font-bold text-yellow-600">
-                      {ratingValue.toFixed(1)}
-                    </span>
-                    {/* v2: Solo mostrar reviewCount si existe y es > 0 */}
-                    {'reviewCount' in business && typeof business.reviewCount === 'number' && business.reviewCount > 0 && (
-                      <span className="text-xs text-gray-500">
-                        ({business.reviewCount})
-                      </span>
-                    )}
-                  </div>
-                )}
-                
-                {/* v2: Estado siempre visible (información clave) */}
-                <div className="flex items-center gap-1.5">
-                  <span className={`px-2 py-0.5 rounded-full font-semibold text-xs ${isOpen ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                    {isOpen ? "🟢 Abierto" : "🔴 Cerrado"}
-                  </span>
-                  {hoursLabel !== "Horario no disponible" && (
-                    <span className="text-xs text-gray-500">
-                      {hoursLabel}
-                    </span>
-                  )}
-                </div>
-                
-                {/* v2: Delivery badge solo si está activo */}
-                {business.hasEnvio && (
-                  <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 text-xs">
-                    🚚 Envío
-                  </span>
-                )}
-              </div>
+              ) : null}
+              {promoText && !isPremium ? (
+                <span className="rounded-full bg-[#fff3e8] px-3 py-1 text-[#a84f0f]">Promo activa</span>
+              ) : null}
             </div>
           </div>
-          
-{/* 🟢 FILA INFERIOR: Dirección y Botones */}
-          <div className="flex flex-col gap-2 relative z-10">
-            {/* 📍 Ubicación */}
-            <p className="text-xs text-gray-700 flex items-center gap-1.5 line-clamp-1">
-              <MapPin className="w-3 h-3 text-gray-500 flex-shrink-0" />
-              <span className="truncate">{addressText}</span>
-            </p>
+        </div>
 
-            {/* 👁️ CTA Principal - Ver detalles (solo premium, free usa onClick en contenedor) */}
-            {plan !== 'free' && (
-              <button
-                onClick={handleClick}
-                className={`w-full py-3 text-white text-sm font-bold rounded-lg transition-all shadow-md hover:shadow-lg active:scale-98 ${
-                  plan === 'sponsor' 
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
-                    : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
-                }`}
+        {business.description ? (
+          <p className={`mt-4 text-sm leading-6 text-slate-600 ${isPremium ? "line-clamp-3" : "line-clamp-2"}`}>{business.description}</p>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
+          {statusChip ? (
+            <span className={`rounded-full px-3 py-1 ${statusChip.tone === "open" || isOpenNow ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-slate-100 text-slate-600"}`}>
+              {statusChip.label}
+            </span>
+          ) : null}
+          {business.WhatsApp ? <span className="rounded-full bg-[#eef7f1] px-3 py-1 text-[#0f7a47]">Contacto rapido por WhatsApp</span> : null}
+          {business.hasEnvio ? <span className="rounded-full bg-[#fff3e8] px-3 py-1 text-[#a84f0f]">Acepta pedidos o envio</span> : null}
+        </div>
+
+        <a
+          href={mapsHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900"
+        >
+          <MapPin className="h-4 w-4" />
+          <span className="line-clamp-1">{addressText}</span>
+        </a>
+
+        <div className={`mt-5 flex flex-col gap-3 ${plan === "sponsor" ? "sm:flex-row" : ""}`}>
+          {whatsappHref ? (
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${styles.cta}`}
+              aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                trackCTA("whatsapp", businessId || "", business.name);
+              }}
+            >
+              <MessageCircle className="h-4 w-4" />
+              {plan === "sponsor" ? "Abrir WhatsApp" : "Contactar por WhatsApp"}
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={handleViewDetails}
+              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${styles.cta}`}
+            >
+              Ver perfil
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleViewDetails}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              Ver detalles
+            </button>
+            {callHref ? (
+              <a
+                href={callHref}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                aria-label={`Llamar a ${business.name}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  trackCTA("call", businessId || "", business.name);
+                }}
               >
-                Ver detalles
-              </button>
-            )}
-
-            {/* v2: Botones de acción - Discretos para free, touch-friendly para premium */}
-            {/* UX: Solo WhatsApp y Llamar en card. "Cómo llegar" queda en BusinessDetailView */}
-            <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
-              {whatsappHref && (
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`inline-flex items-center justify-center gap-1 px-3 py-2.5 ${plan === 'free' ? 'min-h-[36px]' : 'min-h-[44px]'} rounded-lg ${plan === 'free' ? 'border border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50'} transition bg-transparent flex-1`}
-                  aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    trackCTA('whatsapp', businessId || '', business.name);
-                  }}
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                  </svg>
-                  <span>WhatsApp</span>
-                </a>
-              )}
-              {callHref && (
-                <a
-                  href={callHref}
-                  className={`inline-flex items-center justify-center gap-1 px-3 py-2.5 ${plan === 'free' ? 'min-h-[36px]' : 'min-h-[44px]'} rounded-lg ${plan === 'free' ? 'border border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-2 border-blue-500 text-blue-600 hover:bg-blue-50'} transition bg-transparent flex-1`}
-                  aria-label={`Llamar a ${business.name}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    trackCTA('call', businessId || '', business.name);
-                  }}
-                >
-                  <Phone className="w-4 h-4" />
-                  <span>Llamar</span>
-                </a>
-              )}
-            </div>
+                <Phone className="h-4 w-4" />
+              </a>
+            ) : null}
           </div>
+        </div>
       </div>
-      </article>
+    </article>
   );
 };
 
