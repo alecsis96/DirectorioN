@@ -449,6 +449,23 @@ export default function NegociosListClient({
     return found || uiFilters.colonia;
   }, [uiFilters.colonia, colonias]);
 
+  const categoryAvailability = useMemo(() => {
+    const countsByGroup = new Map<CategoryGroupId, number>();
+    const countsByCategory = new Map<string, number>();
+
+    for (const business of businesses) {
+      const resolved = resolveCategory((business as any).categoryId || (business as any).categoryName || business.category);
+      countsByGroup.set(resolved.groupId, (countsByGroup.get(resolved.groupId) || 0) + 1);
+      countsByCategory.set(resolved.categoryId, (countsByCategory.get(resolved.categoryId) || 0) + 1);
+    }
+
+    return {
+      countsByGroup,
+      countsByCategory,
+      availableShortcuts: CATEGORY_SHORTCUTS.filter((shortcut) => (countsByGroup.get(shortcut.id) || 0) > 0),
+    };
+  }, [businesses]);
+
   const selectedCategoryGroupLabel = useMemo(() => {
     if (!uiFilters.categoryGroupId) return '';
     return CATEGORY_GROUPS.find((group) => group.id === uiFilters.categoryGroupId)?.name || '';
@@ -671,7 +688,7 @@ export default function NegociosListClient({
 
                   <div className="-mx-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
                     <div className="flex w-max gap-3 sm:gap-4">
-                      {CATEGORY_SHORTCUTS.map((shortcut) => {
+                      {categoryAvailability.availableShortcuts.map((shortcut) => {
                         const active = uiFilters.categoryGroupId === shortcut.id;
                         return (
                           <button
@@ -1318,10 +1335,8 @@ export default function NegociosListClient({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {categories.sort((a, b) => a.localeCompare(b, 'es')).map((cat) => {
                   const resolved = resolveCategory(cat);
-                  const count = businesses.filter(b => {
-                    const resolvedBiz = resolveCategory((b as any).categoryId || (b as any).categoryName || b.category);
-                    return resolvedBiz.categoryId === resolved.categoryId;
-                  }).length;
+                  const count = categoryAvailability.countsByCategory.get(resolved.categoryId) || 0;
+                  const isAvailable = count > 0;
                   const isSelected = uiFilters.categoryId
                     ? uiFilters.categoryId === resolved.categoryId
                     : uiFilters.category === resolved.categoryName;
@@ -1329,7 +1344,9 @@ export default function NegociosListClient({
                   return (
                     <button
                       key={cat}
+                      type="button"
                       onClick={() => {
+                        if (!isAvailable) return;
                         updateFilters(
                           {
                             category: resolved.categoryName,
@@ -1341,19 +1358,22 @@ export default function NegociosListClient({
                         );
                         setShowCategoriesModal(false);
                       }}
-                      className={`group rounded-xl p-4 text-left transition-all hover:shadow-lg ${
+                      disabled={!isAvailable}
+                      className={`group rounded-xl p-4 text-left transition-all ${
                         isSelected 
                           ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border-2 border-emerald-600 shadow-md' 
-                          : 'bg-white border-2 border-gray-200 hover:border-emerald-300'
+                          : isAvailable
+                            ? 'bg-white border-2 border-gray-200 hover:border-emerald-300 hover:shadow-lg'
+                            : 'cursor-not-allowed bg-slate-50 border-2 border-slate-200 opacity-55'
                       }`}
                     >
                       <div className={`text-base font-bold mb-2 ${
-                        isSelected ? 'text-white' : 'text-gray-800 group-hover:text-emerald-600'
+                        isSelected ? 'text-white' : isAvailable ? 'text-gray-800 group-hover:text-emerald-600' : 'text-slate-400'
                       }`}>
                         {cat}
                       </div>
                       <div className={`text-sm flex items-center gap-2 ${
-                        isSelected ? 'text-emerald-50' : 'text-gray-600'
+                        isSelected ? 'text-emerald-50' : isAvailable ? 'text-gray-600' : 'text-slate-400'
                       }`}>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -1369,6 +1389,11 @@ export default function NegociosListClient({
                           Seleccionada
                         </div>
                       )}
+                      {!isAvailable ? (
+                        <div className="mt-2 text-xs font-semibold text-slate-400">
+                          Sin negocios aun
+                        </div>
+                      ) : null}
                     </button>
                   );
                 })}
