@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from "react";
-import { ArrowRight, Heart, MapPin, MessageCircle, Phone, Star } from "lucide-react";
-import { mapsLink, normalizeDigits, waLink } from "../lib/helpers/contact";
+import React, { useState } from "react";
+import { ArrowRight, Heart, MessageCircle, Phone, Star } from "lucide-react";
+import { normalizeDigits, waLink } from "../lib/helpers/contact";
 import { trackCTA, trackBusinessInteraction } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
 import { getBusinessStatus } from "./BusinessHours";
@@ -53,7 +53,7 @@ const CARD_STYLES: Record<
   },
   featured: {
     wrapper:
-      "relative overflow-hidden rounded-[30px] border border-[#d8c27b] bg-white shadow-[0_20px_60px_rgba(109,85,28,0.12)] transition hover:-translate-y-1 hover:shadow-xl",
+      "relative overflow-hidden rounded-[30px] border border-[#d8c27b] bg-[#fffdf8] shadow-[0_20px_60px_rgba(109,85,28,0.12)] transition hover:-translate-y-1 hover:shadow-xl",
     content: "p-4 sm:p-5",
     title: "text-xl sm:text-2xl",
     badge: "bg-[#f3e2a7] text-[#6d551c]",
@@ -63,7 +63,7 @@ const CARD_STYLES: Record<
   },
   sponsor: {
     wrapper:
-      "relative overflow-hidden rounded-[32px] border border-[#d5b15a] bg-[linear-gradient(180deg,#fffaf0_0%,#ffffff_100%)] shadow-[0_28px_90px_rgba(108,74,17,0.18)] transition hover:-translate-y-1 hover:shadow-[0_34px_100px_rgba(108,74,17,0.22)]",
+      "relative overflow-hidden rounded-[32px] border border-[#d5b15a] bg-[linear-gradient(180deg,#fffaf0_0%,#fff7e7_28%,#ffffff_100%)] shadow-[0_28px_90px_rgba(108,74,17,0.18)] transition hover:-translate-y-1 hover:shadow-[0_34px_100px_rgba(108,74,17,0.22)]",
     content: "p-4 sm:p-5 lg:p-6",
     title: "text-[1.35rem] sm:text-[1.6rem] lg:text-[1.9rem]",
     badge: "bg-[#8f5b14] text-white",
@@ -113,18 +113,13 @@ function buildStatusChip(business: CardBusiness): StatusChip {
     return null;
   }
 
-  if (hasHoursText && business.hours) {
-    const status = getBusinessStatus(business.hours);
-
-    return status.isOpen
-      ? { tone: "open", label: `Abierto ahora - cierra ${status.closesAt}` }
-      : { tone: "neutral", label: `Horario visible${status.opensAt ? ` - ${status.opensAt}` : ""}` };
+  if (!hasHoursText || !business.hours) {
+    return null;
   }
 
-  return {
-    tone: "neutral",
-    label: "Horario confirmado",
-  };
+  const status = getBusinessStatus(business.hours);
+
+  return status.isOpen ? { tone: "open", label: "Abierto ahora" } : { tone: "neutral", label: "Cerrado" };
 }
 
 const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
@@ -136,8 +131,6 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const logoSrc = getLogoImage(business, isPremium);
   const categoryIcon = getCategoryIcon(business);
   const ratingValue = Number.isFinite(Number(business.rating)) ? Number(business.rating) : 0;
-  const addressText = business.address || "Ubicacion disponible en el perfil";
-  const mapsHref = mapsLink(undefined, undefined, business.address || business.name);
   const callHref = business.phone ? `tel:${normalizeDigits(business.phone)}` : null;
   const whatsappHref = business.WhatsApp ? waLink(business.WhatsApp) : "";
   const promoText =
@@ -148,23 +141,6 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const { favorites, addFavorite, removeFavorite } = useFavorites();
   const isFavorite = businessId ? favorites.includes(businessId) : false;
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
-  const [isOpenNow, setIsOpenNow] = useState(statusChip?.tone === "open");
-
-  useEffect(() => {
-    if (!business.hours) {
-      setIsOpenNow(false);
-      return;
-    }
-
-    const updateStatus = () => {
-      const status = getBusinessStatus(business.hours as string);
-      setIsOpenNow(status.isOpen);
-    };
-
-    updateStatus();
-    const timer = setInterval(updateStatus, 60_000);
-    return () => clearInterval(timer);
-  }, [business.hours]);
 
   const handleViewDetails = () => {
     if (!onViewDetails) return;
@@ -211,7 +187,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       </button>
 
       {styles.showCover ? (
-        <div className={`relative overflow-hidden ${plan === "sponsor" ? "h-44 sm:h-56 lg:h-64" : "h-36 sm:h-44 lg:h-52"}`}>
+        <div className={`relative overflow-hidden ${plan === "sponsor" ? "h-40 sm:h-56 lg:h-64" : "h-32 sm:h-44 lg:h-52"}`}>
           <img src={imageSrc} alt={`Imagen de ${business.name}`} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
           <div className="absolute left-3 top-3 flex flex-wrap gap-2 sm:left-4 sm:top-4">
@@ -267,30 +243,19 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         </div>
 
         {business.description ? (
-          <p className={`mt-3 text-[13px] leading-5 text-slate-600 sm:mt-4 sm:text-sm sm:leading-6 ${isPremium ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-1 sm:line-clamp-2"}`}>
+          <p className={`mt-3 text-[13px] leading-5 text-slate-600 sm:mt-4 sm:text-sm sm:leading-6 ${isPremium ? "line-clamp-2" : "line-clamp-1 sm:line-clamp-2"}`}>
             {business.description}
           </p>
         ) : null}
 
         <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium sm:mt-4 sm:gap-2 sm:text-xs">
           {statusChip ? (
-            <span className={`rounded-full px-2.5 py-1 sm:px-3 ${statusChip.tone === "open" || isOpenNow ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-slate-100 text-slate-600"}`}>
+            <span className={`rounded-full px-2.5 py-1 sm:px-3 ${statusChip.tone === "open" ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-slate-100 text-slate-600"}`}>
               {statusChip.label}
             </span>
           ) : null}
-          {business.WhatsApp ? <span className="rounded-full bg-[#eef7f1] px-2.5 py-1 text-[#0f7a47] sm:px-3">WhatsApp rapido</span> : null}
           {business.hasEnvio ? <span className="rounded-full bg-[#fff3e8] px-2.5 py-1 text-[#a84f0f] sm:px-3">Pedidos o envio</span> : null}
         </div>
-
-        <a
-          href={mapsHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-2 text-[13px] text-slate-600 transition hover:text-slate-900 sm:mt-4 sm:text-sm"
-        >
-          <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="line-clamp-1">{addressText}</span>
-        </a>
 
         <div className={`mt-4 grid gap-2 ${callHref ? "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_44px]" : "grid-cols-2"} sm:mt-5 sm:gap-3 ${plan === "sponsor" ? "lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_48px]" : ""}`}>
           {whatsappHref ? (
@@ -306,7 +271,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
               }}
             >
               <MessageCircle className="h-4 w-4" />
-              {plan === "sponsor" ? "WhatsApp" : "Contactar"}
+              {plan === "sponsor" ? "WhatsApp" : "Enviar WhatsApp"}
             </a>
           ) : (
             <button

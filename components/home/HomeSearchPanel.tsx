@@ -22,11 +22,9 @@ export default function HomeSearchPanel({ quickLinks }: Props) {
                 Busqueda rapida
               </div>
               <h2 className="font-serif text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-                Busca negocio, categoria, comida o servicio desde arriba.
+                Busca negocio, comida o servicio.
               </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Escribe lo que necesitas y salta directo a negocios con WhatsApp, direccion y categorias claras.
-              </p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Escribe lo que necesitas y entra directo a opciones con WhatsApp.</p>
 
               <form action="/negocios" method="get" className="mt-6">
                 <label htmlFor="home-search" className="sr-only">
@@ -69,15 +67,12 @@ export default function HomeSearchPanel({ quickLinks }: Props) {
             <div className="border-t border-[#e6ece7] bg-[#f7f4ee] p-6 lg:border-l lg:border-t-0">
               <div className="rounded-[24px] bg-[#132a1c] p-5 text-white shadow-[0_18px_60px_rgba(19,42,28,0.22)]">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#d7e5d9]">
-                  Busqueda util
+                  Entrada rapida
                 </p>
                 <h3 className="mt-3 font-serif text-2xl font-semibold tracking-tight">
-                  Encuentra rapido y luego escribe.
+                  Encuentra y escribe.
                 </h3>
-                <div className="mt-5 space-y-3 text-sm leading-6 text-[#d8e7da]">
-                  <p>Busca comida, servicio o negocio sin navegar de mas.</p>
-                  <p>Entra por promo o categoria y contacta rapido por WhatsApp.</p>
-                </div>
+                <p className="mt-5 text-sm leading-6 text-[#d8e7da]">Busca por categoria o promo y contacta en segundos.</p>
               </div>
             </div>
           </div>
