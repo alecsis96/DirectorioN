@@ -743,9 +743,9 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-10 pointer-events-none" />
         )}
 
-        <div className="relative z-10 px-4 py-4 sm:px-5 sm:py-5">
+        <div className="px-4 py-5 relative z-10">
           {/* NUEVO HEADER MEJORADO */}
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start">
+          <div className="flex items-start gap-3 mb-4">
             {/* Logo circular pequeño a la izquierda */}
             <div className="flex-shrink-0">
               <img 
@@ -755,14 +755,14 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
                   'https://via.placeholder.com/64x64?text=Logo'
                 } 
                 alt={`Logo de ${business.name}`}
-                className="h-14 w-14 rounded-full border-2 border-white object-cover shadow-md ring-2 ring-gray-100 sm:h-16 sm:w-16"
+                className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white ring-2 ring-gray-100"
               />
             </div>
 
             {/* Nombre y Badge del plan */}
             <div className="flex-1 min-w-0">
-              <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <h1 className="min-w-0 break-words text-[1.75rem] font-bold leading-tight text-gray-900 sm:text-2xl">{business.name}</h1>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight break-words">{business.name}</h1>
                 {/* Badge del Plan usando design tokens */}
                 {detailTokens.badgeText && (
                   <span className={detailTokens.badgeStyle}>
@@ -774,7 +774,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
 
               {/* Categoría y Colonia */}
-              <div className="flex flex-wrap gap-2 text-xs text-gray-600 sm:text-sm">
+              <div className="flex flex-wrap gap-2 text-sm text-gray-600">
                 {business.category && (
                   <span className="bg-gray-100 px-2.5 py-1 rounded-full font-medium">{business.category}</span>
                 )}
@@ -822,14 +822,14 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
           {/* BOTONES CTA REORGANIZADOS */}
           {/* Primera fila: WhatsApp y Llamar */}
-          <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             {/* Botón WhatsApp - Primary */}
             {whatsappHref && whatsappHref !== '#' && (
               <a
                 href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-[#128C7E] hover:shadow-xl"
+                className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold text-white bg-[#25D366] hover:bg-[#128C7E] shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
                 aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
                 onClick={() => trackDetailCTA('whatsapp')}
               >
@@ -844,7 +844,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
             {callHref && callHref !== '' && (
               <a
                 href={callHref}
-                className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-lg"
+                className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
                 aria-label={`Llamar a ${business.name}`}
                 onClick={() => trackDetailCTA('call')}
               >
@@ -872,7 +872,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
           {/* CTA Secundario - Plan Premium */}
           {detailTokens.showSecondaryCTA && detailTokens.secondaryCTAText && (
-            <div className={`${detailTokens.secondaryCTAStyle} mb-3 text-center text-sm sm:text-base`}>
+            <div className={`${detailTokens.secondaryCTAStyle} mb-3 text-center`}>
               {detailTokens.secondaryCTAText}
             </div>
           )}

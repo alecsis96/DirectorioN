@@ -509,8 +509,8 @@ export default function NegociosListClient({
     'inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800';
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 text-gray-800 font-sans">
-      <section className="mx-auto max-w-6xl overflow-x-hidden px-4 py-2 pb-24 sm:px-6 md:pb-10">
+    <main className="min-h-screen overflow-x-clip bg-gradient-to-b from-white to-gray-50 font-sans text-gray-800">
+      <section className="mx-auto max-w-6xl px-4 py-2 pb-24 sm:px-6 md:pb-10">
         {/* Breadcrumbs con Schema.org - Solo cuando hay filtros activos (evita redundancia con nav inferior) */}
         {(uiFilters.category || uiFilters.colonia) && (
           <nav aria-label="Breadcrumb" className="mb-4">
@@ -582,8 +582,7 @@ export default function NegociosListClient({
               </div>
           
           {/* H2 dinÃ¡mico segÃºn filtros/bÃºsqueda */}
-              <div className="-mx-1 overflow-x-auto pb-1">
-                <div className="flex w-max gap-2 px-1">
+              <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => setShowCategoriesModal(true)}
@@ -594,7 +593,7 @@ export default function NegociosListClient({
 
                   <label className="inline-flex items-center">
                     <span className="sr-only">Filtrar por colonia</span>
-                    <select value={uiFilters.colonia} onChange={handleColoniaChange} className={`${utilityControlClass} min-w-[148px]`}>
+                    <select value={uiFilters.colonia} onChange={handleColoniaChange} className={`${utilityControlClass} min-w-[148px] sm:min-w-[148px]`}>
                       <option value="">Todas las zonas</option>
                       {colonias.map((colonia) => (
                         <option key={colonia} value={normalizeColonia(colonia)}>
@@ -606,17 +605,15 @@ export default function NegociosListClient({
 
                   <label className="inline-flex items-center">
                     <span className="sr-only">Ordenar negocios</span>
-                    <select value={uiFilters.order} onChange={handleOrderChange} className={`${utilityControlClass} min-w-[148px]`}>
+                    <select value={uiFilters.order} onChange={handleOrderChange} className={`${utilityControlClass} min-w-[148px] sm:min-w-[148px]`}>
                       <option value={DEFAULT_ORDER}>Relevancia</option>
                       <option value="rating">Mejor calificados</option>
                       <option value="az">A-Z</option>
                     </select>
                   </label>
-                </div>
               </div>
 
-              <div className="-mx-1 overflow-x-auto pb-1">
-                <div className="flex w-max gap-2 px-1">
+              <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => toggleQuickFilter('open')} className={quickFilterButtonClass(quickFilterOpen)}>
                     Abiertos ahora
                   </button>
@@ -629,7 +626,6 @@ export default function NegociosListClient({
                   <button type="button" onClick={() => toggleQuickFilter('new')} className={quickFilterButtonClass(quickFilterNew)}>
                     Nuevos
                   </button>
-                </div>
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -689,8 +685,7 @@ export default function NegociosListClient({
               </div>
 
               {hasActiveFilters ? (
-                <div className="-mx-1 overflow-x-auto pb-1">
-                  <div className="flex w-max gap-2 px-1">
+                <div className="flex flex-wrap gap-2">
                   {uiFilters.query ? (
                     <button
                       type="button"
@@ -776,7 +771,6 @@ export default function NegociosListClient({
                       <span aria-hidden>x</span>
                     </button>
                   ) : null}
-                  </div>
                 </div>
               ) : null}
             </div>
@@ -817,7 +811,7 @@ export default function NegociosListClient({
                       768: { slidesPerView: sponsored.length >= 2 ? 2 : 1 },
                       1024: { slidesPerView: sponsored.length >= 3 ? 3 : sponsored.length },
                     }}
-                    className="sponsored-carousel overflow-visible"
+                    className="sponsored-carousel"
                   >
                     {sponsored.map((business) => (
                       <SwiperSlide key={business.id}>
@@ -907,7 +901,7 @@ export default function NegociosListClient({
         {!uiFilters.category && !uiFilters.query && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && categories.length > 0 && (
           <div className="mb-8" suppressHydrationWarning>
             <h2 className="mb-4 text-xl font-bold text-gray-800">Explora por categorias</h2>
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
+            <div className="mb-2 flex flex-wrap gap-2 pb-1">
               {CATEGORY_GROUPS.map((group) => (
                 <button
                   key={group.id}
@@ -928,8 +922,8 @@ export default function NegociosListClient({
               ))}
             </div>
             
-            <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
-              <div className="flex w-max gap-2">
+            <div className="pb-2">
+              <div className="flex flex-wrap gap-2">
                 {categories.map((cat) => {
                   const count = businesses.filter(b => b.category === cat).length;
                   return (
