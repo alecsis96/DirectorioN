@@ -304,12 +304,12 @@ export const DETAIL_VIEW_TOKENS = {
     heroHeightPx: 192, // Mobile max
     
     // Badge destacado
-    badgeText: '⭐ Negocio destacado',
+    badgeText: 'Premium',
     badgeStyle: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white text-sm px-3.5 py-1.5 rounded-full font-semibold shadow-lg shadow-amber-300/50 ring-2 ring-amber-300',
     
     // CTA secundario opcional
     showSecondaryCTA: true,
-    secondaryCTAText: '📈 Uno de los negocios más vistos en esta zona',
+    secondaryCTAText: '📈 Negocio premium con mas visibilidad en esta zona',
     secondaryCTAStyle: 'bg-amber-50 text-amber-900 border border-amber-200 px-4 py-3 rounded-xl text-sm font-medium',
     
     // Sin bloqueo de galería
@@ -323,12 +323,12 @@ export const DETAIL_VIEW_TOKENS = {
     heroHeightPx: 256, // Desktop max
     
     // Badge premium
-    badgeText: '👑 Negocio patrocinado',
+    badgeText: 'Premium',
     badgeStyle: 'bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 text-white text-sm px-4 py-2 rounded-full font-bold shadow-2xl shadow-purple-400/60 ring-4 ring-purple-400 animate-pulse',
     
     // CTA secundario premium
     showSecondaryCTA: true,
-    secondaryCTAText: '🎯 Negocio verificado y destacado en toda la plataforma',
+    secondaryCTAText: '🎯 Negocio premium con mayor presencia en YajaGon',
     secondaryCTAStyle: 'bg-gradient-to-r from-purple-50 to-pink-50 text-purple-900 border-2 border-purple-300 px-4 py-3 rounded-xl text-sm font-semibold shadow-lg',
     
     // Sin bloqueo de galería

@@ -57,7 +57,7 @@ import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, PAGE_SIZE, type Filters, type Sort
 import { getBusinessStatus } from './BusinessHours';
 import { useFavorites } from '../context/FavoritesContext';
 import { selectSponsoredRotation } from '../lib/sponsoredRotation';
-import { resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
+import { CATEGORY_GROUPS, resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
 
 const BusinessModalWrapper = dynamic(() => import('./BusinessModalWrapper'), { ssr: false });
 
@@ -86,6 +86,28 @@ const SkeletonList = ({ count }: { count: number }) => (
     ))}
   </div>
 );
+
+const CATEGORY_SHORTCUTS = CATEGORY_GROUPS.map((group) => ({
+  id: group.id,
+  icon: group.icon,
+  label: group.name,
+  shortLabel:
+    group.id === 'food'
+      ? 'Comida'
+      : group.id === 'commerce'
+        ? 'Tiendas'
+        : group.id === 'services'
+          ? 'Servicios'
+          : group.id === 'health'
+            ? 'Salud'
+            : group.id === 'home'
+              ? 'Hogar'
+              : group.id === 'events'
+                ? 'Eventos'
+                : group.id === 'education'
+                  ? 'Cursos'
+                  : 'Otro',
+}));
 
 export type NegociosListClientProps = {
   businesses: BusinessPreview[];
@@ -427,16 +449,22 @@ export default function NegociosListClient({
     return found || uiFilters.colonia;
   }, [uiFilters.colonia, colonias]);
 
+  const selectedCategoryGroupLabel = useMemo(() => {
+    if (!uiFilters.categoryGroupId) return '';
+    return CATEGORY_GROUPS.find((group) => group.id === uiFilters.categoryGroupId)?.name || '';
+  }, [uiFilters.categoryGroupId]);
+
   const headingDescription = useMemo(() => {
     const segments: string[] = [];
     if (uiFilters.query) segments.push(`"${uiFilters.query}"`);
     if (uiFilters.category) segments.push(uiFilters.category);
+    else if (uiFilters.categoryGroupId && selectedCategoryGroupLabel) segments.push(selectedCategoryGroupLabel);
     if (uiFilters.colonia) segments.push(`en ${selectedColoniaLabel}`);
     if (!segments.length) {
       return 'Explora negocios, promociones y contactos rapidos por WhatsApp.';
     }
     return `Resultados para ${segments.join(' ')}.`;
-  }, [uiFilters.category, uiFilters.colonia, uiFilters.query, selectedColoniaLabel]);
+  }, [uiFilters.category, uiFilters.categoryGroupId, uiFilters.colonia, uiFilters.query, selectedCategoryGroupLabel, selectedColoniaLabel]);
 
   const activeGeo = geoQueryRef.current;
   const radiusValue = activeGeo?.radius ? Number.parseFloat(activeGeo.radius) : undefined;
@@ -491,13 +519,14 @@ export default function NegociosListClient({
 
   const showEmptyState = paginated.items.length === 0 && !isFetching;
   const hasActiveFilters =
-    Boolean(uiFilters.category || uiFilters.colonia || uiFilters.query || uiFilters.order !== DEFAULT_ORDER) ||
+    Boolean(uiFilters.category || uiFilters.categoryGroupId || uiFilters.colonia || uiFilters.query || uiFilters.order !== DEFAULT_ORDER) ||
     quickFilterOpen ||
     quickFilterTopRated ||
     quickFilterDelivery ||
     quickFilterNew;
   const activeFilterCount = [
     Boolean(uiFilters.category),
+    Boolean(uiFilters.categoryGroupId),
     Boolean(uiFilters.colonia),
     Boolean(uiFilters.query),
     uiFilters.order !== DEFAULT_ORDER,
@@ -640,6 +669,59 @@ export default function NegociosListClient({
                     </label>
                   </div>
 
+                  <div className="-mx-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
+                    <div className="flex w-max gap-3 sm:gap-4">
+                      {CATEGORY_SHORTCUTS.map((shortcut) => {
+                        const active = uiFilters.categoryGroupId === shortcut.id;
+                        return (
+                          <button
+                            key={shortcut.id}
+                            type="button"
+                            onClick={() =>
+                              updateFilters(
+                                {
+                                  category: '',
+                                  categoryId: '',
+                                  categoryName: '',
+                                  categoryGroupId: active ? undefined : shortcut.id,
+                                },
+                                { resetPage: true },
+                              )
+                            }
+                            className="snap-start text-center"
+                            aria-pressed={active}
+                          >
+                            <span
+                              className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full border bg-white text-2xl shadow-sm transition sm:h-16 sm:w-16 ${
+                                active
+                                  ? 'border-emerald-500 ring-2 ring-emerald-200'
+                                  : 'border-slate-200 hover:border-emerald-300'
+                              }`}
+                            >
+                              {shortcut.icon}
+                            </span>
+                            <span className={`mt-2 block text-xs font-medium leading-4 ${active ? 'text-emerald-700' : 'text-slate-600'}`}>
+                              {shortcut.shortLabel}
+                            </span>
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        type="button"
+                        onClick={() => setShowCategoriesModal(true)}
+                        className="snap-start text-center"
+                      >
+                        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-xl shadow-sm transition hover:border-emerald-300 sm:h-16 sm:w-16">
+                          +
+                        </span>
+                        <span className="mt-2 block text-xs font-medium leading-4 text-slate-600">
+                          Ver todas
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={() => toggleQuickFilter('open')} className={quickFilterButtonClass(quickFilterOpen)}>
                       Abiertos ahora
@@ -727,6 +809,21 @@ export default function NegociosListClient({
                       <span aria-hidden>x</span>
                     </button>
                   ) : null}
+                  {uiFilters.categoryGroupId && selectedCategoryGroupLabel ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateFilters(
+                          { category: '', categoryId: '', categoryName: '', categoryGroupId: undefined },
+                          { resetPage: true },
+                        )
+                      }
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      {selectedCategoryGroupLabel}
+                      <span aria-hidden>x</span>
+                    </button>
+                  ) : null}
                   {uiFilters.colonia ? (
                     <button
                       type="button"
@@ -793,45 +890,50 @@ export default function NegociosListClient({
           </div>
         </header>
 
-        {/* Banner de Negocios PREMIUMs - MÃ¡xima visibilidad */}
-        {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
+        {/* Vitrina Premium visible */}
+        {!uiFilters.category && !uiFilters.categoryGroupId && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
           <>
             {(() => {
-              // Aplicar rotaciÃ³n justa: mÃ¡x 6 PREMIUMs por sesiÃ³n, mostrar 6 en banner
-              const allSponsored = businesses.filter(b => b.plan === 'sponsor');
+              const allSponsored = businesses.filter((b) => b.plan === 'sponsor');
               const rotatedSponsored = selectSponsoredRotation(allSponsored, 6);
-              const sponsored = rotatedSponsored.slice(0, 6); // Mostrar mÃ¡ximo 6 en banner
-              
-              if (sponsored.length === 0) return null;
+              const premiumFeatured = businesses.filter(
+                (b) =>
+                  b.plan === 'featured' ||
+                  b.featured === true ||
+                  b.featured === 'true',
+              );
+              const premiumShowcase = [...rotatedSponsored, ...premiumFeatured]
+                .filter((business, index, array) => array.findIndex((item) => item.id === business.id) === index)
+                .slice(0, 6);
+
+              if (premiumShowcase.length === 0) return null;
               
               return (
-                <div className="mb-8 overflow-hidden">
+                <div className="mb-10 overflow-hidden">
                   <div className="mb-4 px-1 sm:px-2">
                     <h2 className="text-2xl font-bold text-gray-800">
-                      Negocios premium <span className="text-lg font-semibold text-purple-600">({allSponsored.length})</span>
+                      Negocios premium <span className="text-lg font-semibold text-purple-600">({premiumShowcase.length})</span>
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1 ml-11">
-                      Aparecen antes que el resto y funcionan como la vitrina premium para captar miradas rapido.
+                    <p className="mt-1 text-sm text-gray-500 sm:ml-11">
+                      Mas presencia, mejor vitrina y contacto rapido por WhatsApp.
                     </p>
                   </div>
                   
-                  {/* Carrusel usando PremiumBusinessCard - DiseÃ±o premium con portada */}
                   <Swiper
                     modules={[Autoplay]}
-                    spaceBetween={8}
+                    spaceBetween={12}
                     slidesPerView={1.1}
                     autoplay={{ delay: 4000, disableOnInteraction: false }}
-                    loop={sponsored.length > 1}
+                    loop={premiumShowcase.length > 1}
                     breakpoints={{
-                      640: { slidesPerView: 1 },
-                      768: { slidesPerView: sponsored.length >= 2 ? 2 : 1 },
-                      1024: { slidesPerView: sponsored.length >= 3 ? 3 : sponsored.length },
+                      640: { slidesPerView: premiumShowcase.length >= 2 ? 2 : 1 },
+                      1024: { slidesPerView: premiumShowcase.length >= 3 ? 3 : premiumShowcase.length },
                     }}
                     className="sponsored-carousel"
                   >
-                    {sponsored.map((business) => (
+                    {premiumShowcase.map((business) => (
                       <SwiperSlide key={business.id}>
-                        <PremiumBusinessCard
+                        <BusinessCard
                           business={business}
                           onViewDetails={(biz) => setSelectedBusiness(biz)}
                         />
@@ -842,75 +944,6 @@ export default function NegociosListClient({
               );
             })()}
           </>
-        )}
-
-        {/* Negocios PREMIUMs del Mes - Carrusel */}
-        {!uiFilters.category && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
-          <div className="mb-10 overflow-hidden">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">Mas negocios premium</h2>
-            </div>
-            {(() => {
-              // Filtrar negocios PREMIUMs (excluir PREMIUMs - ellos tienen su propia secciÃ³n)
-              const allFeatured = businesses.filter(b => {
-                // NO mostrar PREMIUMs aquÃ­
-                if (b.plan === 'sponsor') return false;
-                
-                // Criterio 1: Tiene featured marcado Y plan premium
-                const isFeatured = b.featured === true || b.featured === 'true';
-                const hasPremiumPlan = b.plan === 'featured';
-                
-                // Criterio 2: Si no hay plan definido pero tiene featured, mostrar igual
-                const featuredWithoutPlan = isFeatured && !b.plan;
-                
-                // Criterio 3: Plan premium (featured) sin featured explÃ­cito
-                const isPremiumOnly = hasPremiumPlan;
-                
-                return (isFeatured && hasPremiumPlan) || featuredWithoutPlan || isPremiumOnly;
-              });
-
-              // SelecciÃ³n de mÃ¡ximo 3 negocios (orden por ID para consistencia servidor/cliente)
-              const featured = [...allFeatured]
-                .sort((a, b) => (a.id || '').localeCompare(b.id || ''))
-                .slice(0, 3);
-
-              if (featured.length === 0) {
-                return (
-                  <div className="text-center py-8 bg-yellow-50 rounded-xl border-2 border-dashed border-yellow-200">
-                    <p className="text-gray-600 text-sm">
-                      Proximamente aqui apareceran mas negocios premium.
-                    </p>
-                  </div>
-                );
-              }
-
-              // Carrusel con Swiper
-              return (
-                <Swiper
-                  modules={[Autoplay]}
-                  spaceBetween={24}
-                  slidesPerView={1}
-                  autoplay={{ delay: 5000, disableOnInteraction: false }}
-                  loop={featured.length > 1}
-                  breakpoints={{
-                    640: { slidesPerView: 1 },
-                    768: { slidesPerView: featured.length >= 2 ? 2 : 1 },
-                    1024: { slidesPerView: featured.length >= 3 ? 3 : featured.length },
-                  }}
-                  className="featured-carousel"
-                >
-                  {featured.map((business) => (
-                    <SwiperSlide key={business.id}>
-                      <BusinessCardVertical
-                        business={business}
-                        onViewDetails={(biz) => setSelectedBusiness(biz)}
-                      />
-                    </SwiperSlide>
-                  ))}
-                </Swiper>
-              );
-            })()}
-          </div>
         )}
 
         {/* Filtros activos - Chips para mostrar filtros seleccionados */}
@@ -964,34 +997,25 @@ export default function NegociosListClient({
 
         {/* Determinar si las secciones superiores (Sponsor/Featured) se estÃ¡n mostrando */}
         {(() => {
-          const showTopSections = !uiFilters.category && !uiFilters.query && !uiFilters.colonia && 
+          const showTopSections = !uiFilters.category && !uiFilters.categoryGroupId && !uiFilters.query && !uiFilters.colonia && 
                                    !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew;
           
-          // Obtener los IDs de los negocios ya mostrados en las secciones PREMIUM y PREMIUM
-          // Sponsor: aplicar misma rotaciÃ³n justa que en banner (consistencia)
+          // Obtener los IDs de los negocios ya mostrados en la vitrina Premium superior
           const allSponsoredForTop = businesses.filter(b => b.plan === 'sponsor');
           const rotatedSponsoredForTop = selectSponsoredRotation(allSponsoredForTop, 6);
-          const sponsoredTopIds = showTopSections 
-            ? rotatedSponsoredForTop.slice(0, 6).map(b => b.id)
+          const premiumTopIds = showTopSections
+            ? [...rotatedSponsoredForTop, ...businesses.filter(b => b.plan === 'featured' || b.featured === true || b.featured === 'true')]
+                .filter((business, index, array) => array.findIndex((item) => item.id === business.id) === index)
+                .slice(0, 6)
+                .map((business) => business.id)
             : [];
-          
-          // Featured top 3: (Excluyendo PREMIUMs que ya estÃ¡n arriba)
-          const featuredTopIds = showTopSections 
-            ? businesses.filter(b => b.plan !== 'sponsor' && (b.featured === true || b.featured === 'true' || b.plan === 'featured'))
-              .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-              .slice(0, 3)
-              .map(b => b.id)
-            : [];
-          
-          // Combinar los IDs a excluir de la lista principal
-          const excludedTopIds = [...sponsoredTopIds, ...featuredTopIds];
           
           // Aplicar un filtro a la lista paginada para excluir los negocios ya mostrados en las secciones superiores
           // SOLO en vista lista, en vista mapa mostrar todos
           const businessesToDisplay = paginated.items.filter(biz => {
             // Excluir negocios si su ID estÃ¡ en la lista de IDs excluidos, y solo si la secciÃ³n superior de PREMIUMs/PREMIUMs estÃ¡ activa
             // PERO: en vista mapa, mostrar todos los negocios sin excluir
-            if (viewMode === 'list' && showTopSections && excludedTopIds.includes(biz.id)) {
+            if (viewMode === 'list' && showTopSections && premiumTopIds.includes(biz.id)) {
               return false;
             }
             return true;
@@ -1025,11 +1049,7 @@ export default function NegociosListClient({
                           </p>
                           <div className="flex flex-wrap gap-4">
                             <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                              <span className="text-sm text-gray-600">Premium</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                              <div className="h-3 w-3 rounded-full bg-gradient-to-r from-amber-500 to-purple-500"></div>
                               <span className="text-sm text-gray-600">Premium</span>
                             </div>
                             <div className="flex items-center gap-2">
