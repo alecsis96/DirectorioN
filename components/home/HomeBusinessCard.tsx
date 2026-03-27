@@ -1,15 +1,16 @@
-import Link from "next/link";
-import { ArrowRight, MessageCircle, Phone } from "lucide-react";
+import { ArrowRight, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { generateBusinessPlaceholder } from "../../lib/placeholderGenerator";
-import { normalizeDigits, waLink } from "../../lib/helpers/contact";
+import { waLink } from "../../lib/helpers/contact";
 import { CATEGORIES, resolveCategory } from "../../lib/categoriesCatalog";
 import { getVisibleTierBadgeLabel } from "../../lib/businessPlanVisibility";
 import type { BusinessPreview } from "../../types/business";
-import { resolveCardHighlight, resolveCardStatusChip } from "../businessCardContent";
+import { resolveCardStatusChip } from "../businessCardContent";
 
 type Props = {
   business: BusinessPreview;
   variant: "free" | "featured" | "sponsor";
+  onViewDetails?: (business: BusinessPreview) => void;
 };
 
 function getBusinessImage(business: BusinessPreview) {
@@ -55,45 +56,44 @@ const CARD_STYLES = {
   },
 } as const;
 
-export default function HomeBusinessCard({ business, variant }: Props) {
+export default function HomeBusinessCard({ business, variant, onViewDetails }: Props) {
+  const router = useRouter();
   const styles = CARD_STYLES[variant];
   const imageSrc = getBusinessImage(business);
   const detailHref = `/negocios/${business.id}`;
   const whatsappHref = business.WhatsApp ? waLink(business.WhatsApp) : null;
-  const callHref = business.phone ? `tel:${normalizeDigits(business.phone)}` : null;
   const statusChip = resolveCardStatusChip(business);
-  const highlight = resolveCardHighlight(business, variant);
-  const highlightClasses =
-    highlight.kind === "promo"
-      ? variant === "sponsor"
-        ? "border border-[#d5b15a] bg-[#fff1cc] text-[#6f4b10]"
-        : variant === "featured"
-          ? "border border-[#e4cf8d] bg-[#fff8e7] text-[#7b5a16]"
-          : "border border-[#f2d2b8] bg-[#fff3e8] text-[#a84f0f]"
-      : highlight.kind === "neutral"
-        ? variant === "sponsor"
-          ? "border border-[#e4c56f] bg-[#fff8e7] text-[#6f4b10]"
-          : "border border-slate-200 bg-slate-50 text-slate-700"
-        : highlight.kind === "status"
-          ? statusChip?.tone === "open"
-            ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-            : "border border-red-200 bg-red-50 text-red-700"
-          : "border border-slate-200 bg-white text-slate-700";
-  const showSecondaryDetails = Boolean(whatsappHref);
-  const actionGridClass = showSecondaryDetails
-    ? callHref
-      ? "grid-cols-[minmax(0,1fr)_44px_44px]"
-      : "grid-cols-[minmax(0,1fr)_44px]"
-    : callHref
-      ? "grid-cols-[minmax(0,1fr)_44px]"
-      : "grid-cols-1";
+  const isInteractive = true;
+
+  const handleOpenDetails = () => {
+    if (onViewDetails) {
+      onViewDetails(business);
+      return;
+    }
+
+    router.push(detailHref);
+  };
+
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleOpenDetails();
+    }
+  };
 
   return (
-    <article className={styles.wrapper}>
+    <article
+      className={`${styles.wrapper} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 active:scale-[0.995]`}
+      onClick={handleOpenDetails}
+      onKeyDown={handleCardKeyDown}
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      aria-label={`Abrir detalle de ${business.name}`}
+    >
       {styles.showCover ? (
-          <div className={`relative overflow-hidden ${variant === "sponsor" ? "h-36 sm:h-52" : "h-[7.5rem] sm:h-44"}`}>
+          <div className={`relative overflow-hidden ${variant === "sponsor" ? "h-32 sm:h-44" : "h-28 sm:h-36"}`}>
           <img src={imageSrc} alt={business.name} className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-transparent" />
             <div className="absolute left-3 top-3 sm:left-4 sm:top-4">
               <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${styles.badge}`}>
                 {getVisibleTierBadgeLabel(business)}
@@ -122,9 +122,14 @@ export default function HomeBusinessCard({ business, variant }: Props) {
                 Perfil base
               </span>
             ) : null}
-            <h3 className={`mt-1.5 font-serif font-semibold tracking-tight text-slate-950 ${styles.title}`}>
-              <span className="line-clamp-1">{business.name}</span>
-            </h3>
+            <div className="mt-1.5 flex items-start gap-2">
+              <h3 className={`min-w-0 flex-1 font-serif font-semibold tracking-tight text-slate-950 ${styles.title}`}>
+                <span className="line-clamp-1">{business.name}</span>
+              </h3>
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-slate-300">
+                <ArrowRight className="h-3.5 w-3.5" />
+              </span>
+            </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-600 sm:text-xs">
               <span className="rounded-full bg-[#eef4ef] px-2.5 py-1 sm:px-3">{business.category}</span>
               {business.colonia ? <span className="rounded-full bg-slate-100 px-2.5 py-1 sm:px-3">{business.colonia}</span> : null}
@@ -132,70 +137,32 @@ export default function HomeBusinessCard({ business, variant }: Props) {
           </div>
         </div>
 
-        {highlight.kind !== "none" ? (
-          <div className={`mt-2.5 rounded-[16px] px-2.5 py-2 ${highlightClasses}`}>
-            {highlight.label ? (
-              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] opacity-75">
-                {highlight.label}
-              </p>
-            ) : null}
-            {highlight.text ? (
-              <p className="mt-0.5 line-clamp-2 text-[12px] leading-4.5 sm:text-[13px] sm:leading-5">
-                {highlight.text}
-              </p>
-            ) : null}
+        {statusChip ? (
+          <div className="mt-2.5">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:px-3 ${
+                statusChip.tone === "open" ? "bg-[#e6f6ed] text-[#0f7a47] ring-1 ring-emerald-200" : "bg-red-50 text-red-700 ring-1 ring-red-200"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${statusChip.tone === "open" ? "bg-emerald-500" : "bg-red-500"}`} />
+              {statusChip.label}
+            </span>
           </div>
         ) : null}
 
-        <div className="mt-2.5 flex flex-wrap gap-1.5 text-[11px] font-medium sm:text-xs">
-          {statusChip && highlight.kind !== "status" ? (
-            <span
-              className={`rounded-full px-2.5 py-1 sm:px-3 ${
-                statusChip.tone === "open" ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-red-50 text-red-700 ring-1 ring-red-200"
-              }`}
-            >
-              {statusChip.label}
-            </span>
-          ) : null}
-        </div>
-
-        <div className={`mt-3 grid gap-2 ${actionGridClass}`}>
+        <div className="mt-3">
           {whatsappHref ? (
             <a
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex h-9 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-10 sm:px-4 sm:text-sm ${styles.primaryCta}`}
+              className={`inline-flex h-9 w-full items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-10 sm:px-4 sm:text-sm ${styles.primaryCta}`}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
             >
               <MessageCircle className="h-4 w-4" />
               WhatsApp
-            </a>
-          ) : (
-            <Link
-              href={detailHref}
-              className={`inline-flex h-9 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-10 sm:px-4 sm:text-sm ${styles.primaryCta}`}
-            >
-              Ver negocio
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-
-          {showSecondaryDetails ? (
-            <Link
-              href={detailHref}
-              className="inline-flex h-9 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-10 sm:w-11"
-              aria-label={`Ver perfil de ${business.name}`}
-            >
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          ) : null}
-          {callHref ? (
-            <a
-              href={callHref}
-              className="inline-flex h-9 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-10 sm:w-11"
-              aria-label={`Llamar a ${business.name}`}
-            >
-              <Phone className="h-4 w-4" />
             </a>
           ) : null}
         </div>
