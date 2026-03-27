@@ -80,14 +80,12 @@ export default async function AdminApplicationsPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
-        {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">Solicitudes Pendientes</h1>
-          <p className="text-sm sm:text-base text-gray-600">Revisa las aplicaciones que están en proceso de aprobación</p>
+          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Legacy</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">Solicitudes iniciales</h1>
+          <p className="text-sm sm:text-base text-gray-600">Vista heredada. Usa Inbox o Solicitudes para la operacion diaria.</p>
         </div>
 
-        {/* Content */}
         <AdminApplicationsList applications={applications} />
       </div>
     </main>

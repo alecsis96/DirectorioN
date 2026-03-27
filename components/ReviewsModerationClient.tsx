@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+
 import { auth } from '../firebaseConfig';
 
 type ReviewData = {
@@ -11,14 +12,22 @@ type ReviewData = {
   name: string;
   text: string;
   rating: number;
-  created: string; // ISO string
-  updated?: string; // ISO string
+  created: string;
+  updated?: string;
   approved?: boolean;
 };
 
 type ReviewsModerationClientProps = {
   initialReviews: ReviewData[];
 };
+
+function formatReviewDate(value: string) {
+  return new Date(value).toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
 export default function ReviewsModerationClient({ initialReviews }: ReviewsModerationClientProps) {
   const [reviews, setReviews] = useState<ReviewData[]>(initialReviews);
@@ -27,49 +36,35 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
   const [sortBy, setSortBy] = useState<'date' | 'rating' | 'business'>('date');
   const [loading, setLoading] = useState<string | null>(null);
 
-  // Filtrar y ordenar reseñas
   const filteredReviews = useMemo(() => {
-    let filtered = reviews.filter((review) => {
-      // Filtro por estado
-      if (filterStatus === 'approved' && review.approved !== true) return false;
-      if (filterStatus === 'pending' && review.approved !== false) return false;
+    const term = searchTerm.trim().toLowerCase();
 
-      // Búsqueda
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase();
+    return [...reviews]
+      .filter((review) => {
+        if (filterStatus === 'approved' && review.approved !== true) return false;
+        if (filterStatus === 'pending' && review.approved !== false) return false;
+
+        if (!term) return true;
+
         return (
           review.businessName.toLowerCase().includes(term) ||
           review.name.toLowerCase().includes(term) ||
           review.text.toLowerCase().includes(term)
         );
-      }
-
-      return true;
-    });
-
-    // Ordenar
-    filtered.sort((a, b) => {
-      if (sortBy === 'rating') {
-        return b.rating - a.rating;
-      } else if (sortBy === 'business') {
-        return a.businessName.localeCompare(b.businessName);
-      } else {
-        // Por fecha (default)
-        const dateA = new Date(a.created);
-        const dateB = new Date(b.created);
-        return dateB.getTime() - dateA.getTime();
-      }
-    });
-
-    return filtered;
-  }, [reviews, filterStatus, searchTerm, sortBy]);
+      })
+      .sort((left, right) => {
+        if (sortBy === 'rating') return right.rating - left.rating;
+        if (sortBy === 'business') return left.businessName.localeCompare(right.businessName);
+        return new Date(right.created).getTime() - new Date(left.created).getTime();
+      });
+  }, [filterStatus, reviews, searchTerm, sortBy]);
 
   const handleApprove = async (review: ReviewData) => {
     setLoading(review.id);
     try {
       const user = auth.currentUser;
       if (!user) {
-        alert('Debes iniciar sesión');
+        alert('Debes iniciar sesion');
         return;
       }
 
@@ -78,7 +73,7 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ approved: true }),
       });
@@ -87,14 +82,11 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
         const data = await response.json();
         throw new Error(data.error || 'Error al aprobar');
       }
-      
-      setReviews((prev) =>
-        prev.map((r) => (r.id === review.id ? { ...r, approved: true } : r))
-      );
-      alert('Reseña aprobada exitosamente');
+
+      setReviews((current) => current.map((item) => (item.id === review.id ? { ...item, approved: true } : item)));
     } catch (error) {
-      console.error('Error aprobando reseña:', error);
-      alert(error instanceof Error ? error.message : 'Error al aprobar la reseña');
+      console.error('Error aprobando resena:', error);
+      alert(error instanceof Error ? error.message : 'Error al aprobar la resena');
     } finally {
       setLoading(null);
     }
@@ -105,7 +97,7 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
     try {
       const user = auth.currentUser;
       if (!user) {
-        alert('Debes iniciar sesión');
+        alert('Debes iniciar sesion');
         return;
       }
 
@@ -114,7 +106,7 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ approved: false }),
       });
@@ -123,27 +115,24 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
         const data = await response.json();
         throw new Error(data.error || 'Error al rechazar');
       }
-      
-      setReviews((prev) =>
-        prev.map((r) => (r.id === review.id ? { ...r, approved: false } : r))
-      );
-      alert('Reseña rechazada');
+
+      setReviews((current) => current.map((item) => (item.id === review.id ? { ...item, approved: false } : item)));
     } catch (error) {
-      console.error('Error rechazando reseña:', error);
-      alert(error instanceof Error ? error.message : 'Error al rechazar la reseña');
+      console.error('Error rechazando resena:', error);
+      alert(error instanceof Error ? error.message : 'Error al rechazar la resena');
     } finally {
       setLoading(null);
     }
   };
 
   const handleDelete = async (review: ReviewData) => {
-    if (!confirm(`¿Estás seguro de eliminar esta reseña de ${review.name}?`)) return;
-    
+    if (!confirm(`Eliminar la resena de ${review.name}?`)) return;
+
     setLoading(review.id);
     try {
       const user = auth.currentUser;
       if (!user) {
-        alert('Debes iniciar sesión');
+        alert('Debes iniciar sesion');
         return;
       }
 
@@ -151,7 +140,7 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
       const response = await fetch(`/api/admin/reviews/${review.businessId}/${review.id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -159,174 +148,128 @@ export default function ReviewsModerationClient({ initialReviews }: ReviewsModer
         const data = await response.json();
         throw new Error(data.error || 'Error al eliminar');
       }
-      
-      setReviews((prev) => prev.filter((r) => r.id !== review.id));
-      alert('Reseña eliminada exitosamente');
+
+      setReviews((current) => current.filter((item) => item.id !== review.id));
     } catch (error) {
-      console.error('Error eliminando reseña:', error);
-      alert(error instanceof Error ? error.message : 'Error al eliminar la reseña');
+      console.error('Error eliminando resena:', error);
+      alert(error instanceof Error ? error.message : 'Error al eliminar la resena');
     } finally {
       setLoading(null);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Filtros y búsqueda */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Búsqueda */}
-          <div>
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-              Buscar
-            </label>
-            <input
-              id="search"
-              type="text"
-              placeholder="Buscar por negocio, autor o contenido..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
+    <div className="space-y-4">
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px]">
+          <input
+            type="text"
+            placeholder="Buscar por negocio, autor o texto"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+          />
 
-          {/* Filtro por estado */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-              Estado
-            </label>
-            <select
-              id="status"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            >
-              <option value="all">Todas</option>
-              <option value="approved">Aprobadas</option>
-              <option value="pending">Pendientes</option>
-            </select>
-          </div>
+          <select
+            value={filterStatus}
+            onChange={(event) => setFilterStatus(event.target.value as 'all' | 'approved' | 'pending')}
+            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+          >
+            <option value="all">Todas</option>
+            <option value="approved">Aprobadas</option>
+            <option value="pending">Pendientes</option>
+          </select>
 
-          {/* Ordenar por */}
-          <div>
-            <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-2">
-              Ordenar por
-            </label>
-            <select
-              id="sort"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            >
-              <option value="date">Fecha</option>
-              <option value="rating">Calificación</option>
-              <option value="business">Negocio</option>
-            </select>
-          </div>
+          <select
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as 'date' | 'rating' | 'business')}
+            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+          >
+            <option value="date">Mas recientes</option>
+            <option value="rating">Calificacion</option>
+            <option value="business">Negocio</option>
+          </select>
         </div>
-      </div>
+      </section>
 
-      {/* Lista de reseñas */}
-      <div className="space-y-4">
-        {filteredReviews.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-            No se encontraron reseñas con los filtros seleccionados
-          </div>
-        ) : (
-          filteredReviews.map((review) => {
-            const createdDate = new Date(review.created);
+      {filteredReviews.length === 0 ? (
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500 shadow-sm">
+          No se encontraron resenas con estos filtros.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredReviews.map((review) => {
             const isProcessing = loading === review.id;
+            const isApproved = review.approved !== false;
 
             return (
-              <div
-                key={review.id}
-                className={`bg-white rounded-lg shadow p-6 ${
-                  review.approved === false ? 'border-l-4 border-yellow-500' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    {/* Negocio */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-bold text-gray-900">{review.businessName}</h3>
+              <article key={review.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-semibold text-gray-900">{review.businessName}</h3>
                       <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          review.approved !== false
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          isApproved ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-800'
                         }`}
                       >
-                        {review.approved !== false ? 'Aprobada' : 'Pendiente'}
+                        {isApproved ? 'Aprobada' : 'Pendiente'}
+                      </span>
+                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                        {review.rating}/5
                       </span>
                     </div>
 
-                    {/* Autor y fecha */}
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700 font-bold uppercase">
-                          {review.name?.charAt(0) || '?'}
-                        </div>
-                        <span className="font-medium">{review.name}</span>
-                      </div>
-                      <span>•</span>
-                      <span>{createdDate.toLocaleDateString('es-MX')}</span>
-                      <span>•</span>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: review.rating }).map((_, i) => (
-                          <span key={i} className="text-yellow-500">★</span>
-                        ))}
-                        {Array.from({ length: 5 - review.rating }).map((_, i) => (
-                          <span key={i} className="text-gray-300">★</span>
-                        ))}
-                      </div>
+                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-gray-500">
+                      <span>{review.name}</span>
+                      <span>{formatReviewDate(review.created)}</span>
                     </div>
 
-                    {/* Texto de la reseña */}
-                    <p className="text-gray-700 whitespace-pre-line">{review.text}</p>
+                    <p className="mt-3 line-clamp-3 text-sm text-gray-700">{review.text}</p>
                   </div>
-                </div>
 
-                {/* Acciones */}
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-                  {review.approved !== true && (
-                    <button
-                      onClick={() => handleApprove(review)}
-                      disabled={isProcessing}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                    >
-                      {isProcessing ? 'Procesando...' : '✓ Aprobar'}
-                    </button>
-                  )}
-                  {review.approved !== false && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!isApproved ? (
+                      <button
+                        onClick={() => handleApprove(review)}
+                        disabled={isProcessing}
+                        className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        Aprobar
+                      </button>
+                    ) : null}
+
                     <button
                       onClick={() => handleReject(review)}
                       disabled={isProcessing}
-                      className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                      className="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm font-medium text-yellow-800 transition hover:bg-yellow-100 disabled:opacity-50"
                     >
-                      {isProcessing ? 'Procesando...' : '⚠ Rechazar'}
+                      Rechazar
                     </button>
-                  )}
-                  <button
-                    onClick={() => handleDelete(review)}
-                    disabled={isProcessing}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                  >
-                    {isProcessing ? 'Procesando...' : '🗑 Eliminar'}
-                  </button>
-                  <a
-                    href={`/negocios/${review.businessId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-auto px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
-                  >
-                    Ver negocio →
-                  </a>
+
+                    <button
+                      onClick={() => handleDelete(review)}
+                      disabled={isProcessing}
+                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+                    >
+                      Eliminar
+                    </button>
+
+                    <a
+                      href={`/negocios/${review.businessId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Ver negocio
+                    </a>
+                  </div>
                 </div>
-              </div>
+              </article>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 }

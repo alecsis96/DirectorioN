@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
+
 import { auth } from '../../../firebaseConfig';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
-import Link from 'next/link';
-import useSWR from 'swr';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 type AnalyticsData = {
   totalEvents: number;
@@ -41,14 +41,52 @@ type AnalyticsData = {
   };
 };
 
+function formatEventName(event: string): string {
+  const names: Record<string, string> = {
+    page_view: 'Vista de pagina',
+    search: 'Busqueda',
+    business_viewed: 'Negocio visto',
+    business_card_clicked: 'Card tocada',
+    cta_call: 'Llamada',
+    cta_whatsapp: 'WhatsApp',
+    cta_maps: 'Maps',
+    cta_facebook: 'Facebook',
+    favorite_added: 'Favorito',
+    review_submitted: 'Resena enviada',
+    register_completed: 'Registro completado',
+  };
+  return names[event] || event;
+}
+
+function formatCTAName(type: string): string {
+  const names: Record<string, string> = {
+    cta_call: 'Llamada',
+    cta_whatsapp: 'WhatsApp',
+    cta_maps: 'Maps',
+    cta_facebook: 'Facebook',
+    cta_instagram: 'Instagram',
+    cta_website: 'Sitio web',
+    cta_email: 'Email',
+  };
+  return names[type] || type;
+}
+
+function formatTrend(change?: string) {
+  if (!change || change === '0') return null;
+  const value = parseFloat(change);
+  if (Number.isNaN(value)) return null;
+  return {
+    text: `${value > 0 ? '+' : ''}${change}%`,
+    className: value > 0 ? 'text-emerald-700' : 'text-red-700',
+  };
+}
+
 export default function AnalyticsPage() {
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'today' | '7d' | '30d' | 'all'>('7d');
-  const [sortBy, setSortBy] = useState<'views' | 'name'>('views');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchTerm, setSearchTerm] = useState('');
   const [eventFilter, setEventFilter] = useState('');
   const [ctaFilter, setCtaFilter] = useState('');
@@ -73,97 +111,68 @@ export default function AnalyticsPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // Fetcher para SWR
   const fetcher = async (url: string) => {
     const user = auth.currentUser;
     if (!user) throw new Error('No authenticated');
-    
+
     const token = await user.getIdToken();
     const response = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}` },
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || `Error ${response.status}`);
     }
-    
+
     return response.json();
   };
 
-  // SWR con revalidación automática
-  const { data, error: swrError, mutate } = useSWR<AnalyticsData>(
+  const { data, error: swrError } = useSWR<AnalyticsData>(
     isAdmin ? `/api/admin/analytics?timeRange=${timeRange}` : null,
     fetcher,
     {
-      refreshInterval: 60000, // Actualizar cada 60s
+      refreshInterval: 60000,
       revalidateOnFocus: true,
-      dedupingInterval: 5000, // Cache 5s
+      dedupingInterval: 5000,
     }
   );
 
   useEffect(() => {
-    if (swrError) {
-      setError(swrError.message);
-    } else {
-      setError(null);
-    }
+    if (swrError) setError(swrError.message);
+    else setError(null);
   }, [swrError]);
 
   const exportToCSV = () => {
     if (!data) return;
-    
+
     const timestamp = new Date().toISOString().split('T')[0];
     const csvData: string[] = [];
-    
-    // Header
-    csvData.push('Directorio de Negocios - Analytics Report');
-    csvData.push(`Generado: ${new Date().toLocaleString()}`);
-    csvData.push(`Período: ${timeRange}`);
+    csvData.push('Analytics YajaGon');
+    csvData.push(`Generado,${new Date().toLocaleString()}`);
+    csvData.push(`Periodo,${timeRange}`);
     csvData.push('');
-    
-    // KPIs
-    csvData.push('=== RESUMEN GENERAL ===');
-    csvData.push(`Total Eventos,${data.totalEvents}`);
-    csvData.push(`Sesiones Únicas,${data.uniqueUsers}`);
-    csvData.push(`Usuarios Autenticados,${data.authenticatedUsers || 0}`);
-    csvData.push(`Tasa Anónimos,${data.anonymousRate}%`);
-    csvData.push(`Page Views,${data.pageViews}`);
+    csvData.push('Resumen');
+    csvData.push(`Eventos,${data.totalEvents}`);
+    csvData.push(`Usuarios unicos,${data.uniqueUsers}`);
+    csvData.push(`Page views,${data.pageViews}`);
+    csvData.push(`Busquedas,${data.userEngagement.searches}`);
     csvData.push('');
-    
-    // Engagement
-    csvData.push('=== ENGAGEMENT ===');
-    csvData.push(`Búsquedas,${data.userEngagement.searches}`);
-    csvData.push(`Favoritos,${data.userEngagement.favorites}`);
-    csvData.push(`Reviews,${data.userEngagement.reviews}`);
-    csvData.push(`Registros,${data.userEngagement.registrations}`);
-    csvData.push('');
-    
-    // Top Events
-    csvData.push('=== TOP EVENTOS ===');
+    csvData.push('Top eventos');
     csvData.push('Evento,Cantidad');
-    data.topEvents.forEach(e => {
-      csvData.push(`${formatEventName(e.event)},${e.count}`);
-    });
+    data.topEvents.forEach((item) => csvData.push(`${formatEventName(item.event)},${item.count}`));
     csvData.push('');
-    
-    // Top CTAs
-    csvData.push('=== TOP CTAs ===');
-    csvData.push('Tipo,Clicks');
-    data.topCTAs.forEach(c => {
-      csvData.push(`${formatCTAName(c.type)},${c.count}`);
-    });
+    csvData.push('Top CTAs');
+    csvData.push('CTA,Cantidad');
+    data.topCTAs.forEach((item) => csvData.push(`${formatCTAName(item.type)},${item.count}`));
     csvData.push('');
-    
-    // Top Businesses
-    csvData.push('=== NEGOCIOS MÁS VISTOS ===');
-    csvData.push('Posición,Nombre,Vistas');
-    data.topBusinesses.forEach((b, i) => {
-      csvData.push(`${i + 1},"${(b.businessName || b.businessId).replace(/"/g, '""')}",${b.views}`);
-    });
-    
-    // Crear y descargar
-    const csvContent = csvData.join('\\n');
+    csvData.push('Top negocios');
+    csvData.push('Negocio,Vistas');
+    data.topBusinesses.forEach((item) =>
+      csvData.push(`"${(item.businessName || item.businessId).replace(/"/g, '""')}",${item.views}`)
+    );
+
+    const csvContent = csvData.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -171,515 +180,257 @@ export default function AnalyticsPage() {
     link.click();
   };
 
+  const filteredTopBusinesses = useMemo(() => {
+    if (!data) return [];
+    const term = searchTerm.trim().toLowerCase();
+    return data.topBusinesses
+      .filter((business) =>
+        !term ? true : (business.businessName || business.businessId).toLowerCase().includes(term)
+      )
+      .slice(0, 12);
+  }, [data, searchTerm]);
+
+  const filteredTopEvents = useMemo(() => {
+    if (!data) return [];
+    const term = eventFilter.trim().toLowerCase();
+    return data.topEvents
+      .filter((item) => !term || formatEventName(item.event).toLowerCase().includes(term) || item.event.toLowerCase().includes(term))
+      .slice(0, 10);
+  }, [data, eventFilter]);
+
+  const filteredTopCTAs = useMemo(() => {
+    if (!data) return [];
+    const term = ctaFilter.trim().toLowerCase();
+    return data.topCTAs
+      .filter((item) => !term || formatCTAName(item.type).toLowerCase().includes(term) || item.type.toLowerCase().includes(term))
+      .slice(0, 10);
+  }, [data, ctaFilter]);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-green-600" />
           <p className="text-gray-600">Cargando analytics...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAdmin || !data) {
-    return null;
-  }
+  if (!isAdmin || !data) return null;
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
-        <div className="mb-6 sm:mb-8">
-          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">📊 Analytics</h1>
-              <p className="text-sm sm:text-base text-gray-600">Análisis de uso y métricas del directorio</p>
-            </div>
-            <button
-              onClick={() => exportToCSV()}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#38761D] text-white rounded-lg hover:bg-[#2d5a16] transition shadow-md text-sm font-medium"
-            >
-              <span>📥</span>
-              <span>Exportar CSV</span>
-            </button>
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">Secundario</p>
+            <h1 className="mb-2 text-2xl font-bold text-[#38761D] sm:text-3xl">Analytics</h1>
+            <p className="text-sm text-gray-600">Vista compacta de comportamiento, sin ruido de dashboard pesado.</p>
           </div>
+          <button
+            onClick={exportToCSV}
+            className="inline-flex items-center justify-center rounded-xl bg-[#38761D] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#2d5a16]"
+          >
+            Exportar CSV
+          </button>
         </div>
 
-        {/* Time Range Selector */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700">Período:</span>
-            <div className="flex gap-2">
-              {(['today', '7d', '30d', 'all'] as const).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    timeRange === range
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {range === 'today' && 'Hoy'}
-                  {range === '7d' && 'Últimos 7 días'}
-                  {range === '30d' && 'Últimos 30 días'}
-                  {range === 'all' && 'Todo el tiempo'}
-                </button>
-              ))}
-            </div>
+        {error ? (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        ) : null}
+
+        <section className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            {(['today', '7d', '30d', 'all'] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  timeRange === range ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {range === 'today' ? 'Hoy' : range === '7d' ? '7 dias' : range === '30d' ? '30 dias' : 'Todo'}
+              </button>
+            ))}
           </div>
-        </div>
+        </section>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Total Eventos"
-            value={data.totalEvents.toLocaleString()}
-            trend={data.comparison?.totalEventsChange}
-            icon="📈"
-            color="blue"
-          />
-          <StatCard
-            title="Sesiones Únicas"
-            value={data.uniqueUsers.toLocaleString()}
-            subtitle={data.authenticatedUsers ? `${data.authenticatedUsers} con cuenta • ${data.anonymousRate}% anónimos` : undefined}
-            trend={data.comparison?.sessionsChange}
-            icon="👥"
-            color="green"
-          />
-          <StatCard
-            title="Page Views"
-            value={data.pageViews.toLocaleString()}
-            trend={data.comparison?.pageViewsChange}
-            icon="👁️"
-            color="purple"
-          />
-          <StatCard
-            title="Búsquedas"
-            value={data.userEngagement.searches.toLocaleString()}
-            icon="🔍"
-            color="orange"
-          />
-        </div>
+        <section className="mb-6 grid gap-3 md:grid-cols-4">
+          <SummaryCard title="Eventos" value={data.totalEvents.toLocaleString()} trend={formatTrend(data.comparison?.totalEventsChange)} />
+          <SummaryCard title="Usuarios unicos" value={data.uniqueUsers.toLocaleString()} trend={formatTrend(data.comparison?.sessionsChange)} />
+          <SummaryCard title="Page views" value={data.pageViews.toLocaleString()} trend={formatTrend(data.comparison?.pageViewsChange)} />
+          <SummaryCard title="Busquedas" value={data.userEngagement.searches.toLocaleString()} />
+        </section>
 
-        {/* Time Range Stats */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">📅 Actividad por Período</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">
-                {data.timeRangeStats.today.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600 mt-1">Hoy</div>
+        <section className="mb-6 grid gap-6 xl:grid-cols-3">
+          <Panel title="Actividad rapida">
+            <div className="grid grid-cols-2 gap-3">
+              <MiniMetric label="Hoy" value={data.timeRangeStats.today} />
+              <MiniMetric label="Ayer" value={data.timeRangeStats.yesterday} />
+              <MiniMetric label="Ultimos 7 dias" value={data.timeRangeStats.last7Days} />
+              <MiniMetric label="Ultimos 30 dias" value={data.timeRangeStats.last30Days} />
             </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">
-                {data.timeRangeStats.yesterday.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600 mt-1">Ayer</div>
-            </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">
-                {data.timeRangeStats.last7Days.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600 mt-1">Últimos 7 días</div>
-            </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-900">
-                {data.timeRangeStats.last30Days.toLocaleString()}
-              </div>
-              <div className="text-sm text-gray-600 mt-1">Últimos 30 días</div>
-            </div>
-          </div>
-        </div>
+          </Panel>
 
-        {/* User Engagement */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">💡 Engagement de Usuarios</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <EngagementMetric
-              label="Búsquedas"
-              value={data.userEngagement.searches}
-              icon="🔍"
-            />
-            <EngagementMetric
-              label="Favoritos"
-              value={data.userEngagement.favorites}
-              icon="⭐"
-            />
-            <EngagementMetric
-              label="Reviews"
-              value={data.userEngagement.reviews}
-              icon="✍️"
-            />
-            <EngagementMetric
-              label="Registros"
-              value={data.userEngagement.registrations}
-              icon="📝"
-            />
-          </div>
-        </div>
-
-        {/* Visual Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Actividad por Período Chart */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 Actividad en el Tiempo</h2>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={[
-                { name: 'Hoy', eventos: data.timeRangeStats.today },
-                { name: 'Ayer', eventos: data.timeRangeStats.yesterday },
-                { name: 'Últimos 7d', eventos: data.timeRangeStats.last7Days },
-                { name: 'Últimos 30d', eventos: data.timeRangeStats.last30Days },
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="eventos" fill="#38761D" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Engagement Distribution */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">🎯 Distribución de Engagement</h2>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Búsquedas', value: data.userEngagement.searches },
-                    { name: 'Favoritos', value: data.userEngagement.favorites },
-                    { name: 'Reviews', value: data.userEngagement.reviews },
-                    { name: 'Registros', value: data.userEngagement.registrations },
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(entry) => `${entry.name}: ${entry.value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  <Cell fill="#F59E0B" />
-                  <Cell fill="#EAB308" />
-                  <Cell fill="#38761D" />
-                  <Cell fill="#059669" />
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Top Events */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">🔥 Eventos Principales</h2>
-              <input
-                type="text"
-                placeholder="Buscar evento..."
-                value={eventFilter}
-                onChange={(e) => setEventFilter(e.target.value)}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
+          <Panel title="Engagement">
+            <div className="space-y-3 text-sm text-gray-700">
+              <MetricRow label="Favoritos" value={data.userEngagement.favorites} />
+              <MetricRow label="Resenas" value={data.userEngagement.reviews} />
+              <MetricRow label="Registros" value={data.userEngagement.registrations} />
+              <MetricRow label="Anonimos" value={`${data.anonymousRate || '0'}%`} />
             </div>
-            {data.topEvents.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p className="text-4xl mb-2">📊</p>
-                <p className="text-sm">No hay eventos registrados en este período</p>
-              </div>
+          </Panel>
+
+          <Panel title="Errores recientes">
+            {data.recentErrors.length === 0 ? (
+              <p className="text-sm text-gray-500">Sin errores recientes.</p>
             ) : (
               <div className="space-y-3">
-                {data.topEvents
-                  .filter(item => 
-                    eventFilter === '' || 
-                    formatEventName(item.event).toLowerCase().includes(eventFilter.toLowerCase()) ||
-                    item.event.toLowerCase().includes(eventFilter.toLowerCase())
-                  )
-                  .slice(0, 10)
-                  .map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{formatEventName(item.event)}</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {item.count.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Top CTAs */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">📞 CTAs Más Usados</h2>
-              <input
-                type="text"
-                placeholder="Buscar CTA..."
-                value={ctaFilter}
-                onChange={(e) => setCtaFilter(e.target.value)}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
-            {data.topCTAs.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p className="text-4xl mb-2">📞</p>
-                <p className="text-sm">No hay clicks en CTAs en este período</p>
-                <p className="text-xs text-gray-400 mt-2">
-                  Los usuarios deben hacer click en WhatsApp, Llamar, Cómo llegar, etc.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {data.topCTAs
-                  .filter(item => 
-                    ctaFilter === '' ||
-                    formatCTAName(item.type).toLowerCase().includes(ctaFilter.toLowerCase()) ||
-                    item.type.toLowerCase().includes(ctaFilter.toLowerCase())
-                  )
-                  .map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{formatCTAName(item.type)}</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {item.count.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Top Businesses */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">🏆 Negocios Más Vistos</h2>
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                placeholder="Buscar negocio..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    if (sortBy === 'views') {
-                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                    } else {
-                      setSortBy('views');
-                      setSortOrder('desc');
-                    }
-                  }}
-                  className={`px-3 py-1 text-xs rounded-lg transition ${
-                    sortBy === 'views'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Vistas {sortBy === 'views' && (sortOrder === 'desc' ? '↓' : '↑')}
-                </button>
-                <button
-                  onClick={() => {
-                    if (sortBy === 'name') {
-                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                    } else {
-                      setSortBy('name');
-                      setSortOrder('asc');
-                    }
-                  }}
-                  className={`px-3 py-1 text-xs rounded-lg transition ${
-                    sortBy === 'name'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Nombre {sortBy === 'name' && (sortOrder === 'desc' ? '↓' : '↑')}
-                </button>
-              </div>
-            </div>
-          </div>
-          {data.topBusinesses.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-4xl mb-2">🏪</p>
-              <p className="text-sm">No hay negocios con vistas en este período</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      #
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Negocio
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      Vistas
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {[...data.topBusinesses]
-                    .filter(business => 
-                      searchTerm === '' ||
-                      (business.businessName || business.businessId).toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .sort((a, b) => {
-                      if (sortBy === 'views') {
-                        return sortOrder === 'desc' ? b.views - a.views : a.views - b.views;
-                      } else {
-                        const nameA = (a.businessName || a.businessId).toLowerCase();
-                        const nameB = (b.businessName || b.businessId).toLowerCase();
-                        return sortOrder === 'asc' 
-                          ? nameA.localeCompare(nameB)
-                          : nameB.localeCompare(nameA);
-                      }
-                    })
-                    .slice(0, 15)
-                    .map((business, idx) => (
-                    <tr key={business.businessId} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        <Link 
-                          href={`/negocios?id=${business.businessId}`}
-                          className="text-green-600 hover:text-green-700 hover:underline"
-                        >
-                          {business.businessName || business.businessId}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                        {business.views.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Recent Errors */}
-        {data.recentErrors.length > 0 && (
-          <div className="bg-red-50 rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-red-900 mb-4">⚠️ Errores Recientes</h2>
-            <div className="space-y-3">
-              {data.recentErrors.slice(0, 10).map((error, idx) => (
-                <div key={idx} className="flex items-start justify-between p-3 bg-white rounded border border-red-200">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-red-900">{error.message}</p>
-                    <p className="text-xs text-red-600 mt-1">
-                      Última ocurrencia: {new Date(error.lastOccurred).toLocaleString()}
+                {data.recentErrors.slice(0, 5).map((item, index) => (
+                  <div key={`${item.message}-${index}`} className="rounded-xl border border-red-100 bg-red-50 p-3">
+                    <p className="text-sm font-medium text-red-900">{item.message}</p>
+                    <p className="mt-1 text-xs text-red-700">
+                      {item.count} veces / {new Date(item.lastOccurred).toLocaleString('es-MX')}
                     </p>
                   </div>
-                  <span className="ml-4 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">
-                    {error.count}x
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+                ))}
+              </div>
+            )}
+          </Panel>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-3">
+          <Panel title="Top eventos">
+            <input
+              type="text"
+              value={eventFilter}
+              onChange={(event) => setEventFilter(event.target.value)}
+              placeholder="Filtrar evento"
+              className="mb-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+            />
+            <ListRows
+              items={filteredTopEvents.map((item) => ({
+                label: formatEventName(item.event),
+                value: item.count.toLocaleString(),
+              }))}
+              empty="Sin eventos para este filtro."
+            />
+          </Panel>
+
+          <Panel title="Top CTAs">
+            <input
+              type="text"
+              value={ctaFilter}
+              onChange={(event) => setCtaFilter(event.target.value)}
+              placeholder="Filtrar CTA"
+              className="mb-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+            />
+            <ListRows
+              items={filteredTopCTAs.map((item) => ({
+                label: formatCTAName(item.type),
+                value: item.count.toLocaleString(),
+              }))}
+              empty="Sin CTAs para este filtro."
+            />
+          </Panel>
+
+          <Panel title="Top negocios">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Filtrar negocio"
+              className="mb-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+            />
+            {filteredTopBusinesses.length === 0 ? (
+              <p className="text-sm text-gray-500">Sin negocios para este filtro.</p>
+            ) : (
+              <div className="space-y-3">
+                {filteredTopBusinesses.map((business) => (
+                  <div key={business.businessId} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 px-3 py-2">
+                    <Link
+                      href={`/negocios?id=${business.businessId}`}
+                      className="min-w-0 truncate text-sm font-medium text-green-700 hover:text-green-800 hover:underline"
+                    >
+                      {business.businessName || business.businessId}
+                    </Link>
+                    <span className="text-sm font-semibold text-gray-900">{business.views.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
+        </section>
       </div>
     </main>
   );
 }
 
-function StatCard({ title, value, icon, color, subtitle, trend }: { 
-  title: string; 
-  value: string; 
-  icon: string; 
-  color: 'blue' | 'green' | 'purple' | 'orange';
-  subtitle?: string;
-  trend?: string;
+function SummaryCard({
+  title,
+  value,
+  trend,
+}: {
+  title: string;
+  value: string;
+  trend?: { text: string; className: string } | null;
 }) {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-700',
-    green: 'bg-green-50 text-green-700',
-    purple: 'bg-purple-50 text-purple-700',
-    orange: 'bg-orange-50 text-orange-700',
-  };
-
-  const trendData = formatTrend(trend);
-
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-sm text-gray-600">{title}</p>
-          <div className="flex items-baseline gap-2 mt-1">
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            {trend && (
-              <span className={`text-sm font-semibold ${trendData.color}`}>
-                {trendData.icon} {trendData.text}
-              </span>
-            )}
-          </div>
-          {subtitle && (
-            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
-          )}
-        </div>
-        <div className={`text-3xl p-3 rounded-lg ${colorClasses[color]}`}>
-          {icon}
-        </div>
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <p className="text-sm text-gray-500">{title}</p>
+      <div className="mt-2 flex items-end justify-between gap-3">
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        {trend ? <span className={`text-sm font-semibold ${trend.className}`}>{trend.text}</span> : null}
       </div>
     </div>
   );
 }
 
-function EngagementMetric({ label, value, icon }: { label: string; value: number; icon: string }) {
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="text-center p-4 bg-gray-50 rounded-lg">
-      <div className="text-2xl mb-2">{icon}</div>
-      <div className="text-xl font-bold text-gray-900">{value.toLocaleString()}</div>
-      <div className="text-xs text-gray-600 mt-1">{label}</div>
+    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-3 text-base font-semibold text-gray-900">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl bg-gray-50 px-3 py-3">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-gray-900">{value.toLocaleString()}</p>
     </div>
   );
 }
 
-function formatEventName(event: string): string {
-  const names: Record<string, string> = {
-    page_view: 'Vista de Página',
-    search: 'Búsqueda',
-    business_viewed: 'Negocio Visto',
-    business_card_clicked: 'Tarjeta Clickeada',
-    cta_call: 'Llamada',
-    cta_whatsapp: 'WhatsApp',
-    cta_maps: 'Google Maps',
-    cta_facebook: 'Facebook',
-    favorite_added: 'Favorito Agregado',
-    review_submitted: 'Review Enviada',
-    register_completed: 'Registro Completado',
-  };
-  return names[event] || event;
+function MetricRow({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2">
+      <span>{label}</span>
+      <span className="font-semibold text-gray-900">{typeof value === 'number' ? value.toLocaleString() : value}</span>
+    </div>
+  );
 }
 
-function formatCTAName(type: string): string {
-  const names: Record<string, string> = {
-    cta_call: '📞 Llamada',
-    cta_whatsapp: '💬 WhatsApp',
-    cta_maps: '🗺️ Google Maps',
-    cta_facebook: '📘 Facebook',
-    cta_instagram: '📷 Instagram',
-    cta_website: '🌐 Sitio Web',
-    cta_email: '📧 Email',
-  };
-  return names[type] || type;
-}
+function ListRows({
+  items,
+  empty,
+}: {
+  items: Array<{ label: string; value: string }>;
+  empty: string;
+}) {
+  if (items.length === 0) return <p className="text-sm text-gray-500">{empty}</p>;
 
-function formatTrend(change: string | undefined): { text: string; color: string; icon: string } {
-  if (!change || change === '0') {
-    return { text: '0%', color: 'text-gray-500', icon: '=' };
-  }
-  const num = parseFloat(change);
-  if (num > 0) {
-    return { text: `+${change}%`, color: 'text-green-600', icon: '↑' };
-  } else {
-    return { text: `${change}%`, color: 'text-red-600', icon: '↓' };
-  }
+  return (
+    <div className="space-y-2">
+      {items.map((item) => (
+        <div key={`${item.label}-${item.value}`} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 px-3 py-2">
+          <span className="min-w-0 flex-1 truncate text-sm text-gray-700">{item.label}</span>
+          <span className="text-sm font-semibold text-gray-900">{item.value}</span>
+        </div>
+      ))}
+    </div>
+  );
 }

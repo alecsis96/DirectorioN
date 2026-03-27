@@ -93,10 +93,10 @@ export default async function PendingBusinessesPage() {
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
         <div className="mb-6 sm:mb-8">
-          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">Negocios en revisión</h1>
+          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Legacy</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">Negocios en revision</h1>
           <p className="text-sm sm:text-base text-gray-600">
-            Revisa los negocios que han sido editados y enviados a revisión para publicación.
+            Vista heredada. La revision operativa vive ahora en Inbox y Solicitudes.
           </p>
         </div>
         <PendingBusinessesList businesses={businesses} />

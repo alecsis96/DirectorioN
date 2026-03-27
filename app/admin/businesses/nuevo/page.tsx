@@ -1,9 +1,9 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getAdminAuth } from '../../../../lib/server/firebaseAdmin';
-import { hasAdminOverride } from '../../../../lib/adminOverrides';
-import AdminNavigation from '../../../../components/AdminNavigation';
+
 import AdminBusinessCreator from '../../../../components/AdminBusinessCreator';
+import { hasAdminOverride } from '../../../../lib/adminOverrides';
+import { getAdminAuth } from '../../../../lib/server/firebaseAdmin';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,22 +40,14 @@ export default async function AdminCreateBusinessPage() {
   await requireAdmin();
 
   return (
-    <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="mb-6 pl-14 lg:pl-0">
-        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Panel de control</p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#38761D]">Crear Nuevo Negocio</h1>
-        <p className="text-sm text-gray-600">
-          Registra un negocio manualmente en nombre de un usuario.
-        </p>
+        <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Operacion</p>
+        <h1 className="mt-2 text-2xl font-bold text-[#38761D] sm:text-3xl">Crear negocio</h1>
+        <p className="text-sm text-gray-600">Alta manual para un negocio nuevo, sin duplicar navegacion dentro del admin.</p>
       </div>
 
-      <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-        <AdminNavigation variant="sidebar" />
-        
-        <div className="lg:col-start-2">
-          <AdminBusinessCreator />
-        </div>
-      </div>
+      <AdminBusinessCreator />
     </main>
   );
 }
