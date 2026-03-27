@@ -15,7 +15,6 @@ import CampaignForm from './CampaignForm';
 import CampaignPreview from './CampaignPreview';
 import CampaignStatusBadge from './CampaignStatusBadge';
 import EmptyState from '../shared/EmptyState';
-import AdminPageHeader from '../shared/AdminPageHeader';
 
 type Props = {
   initialCampaigns: CampaignRecord[];
@@ -272,21 +271,44 @@ export default function CampaignsAdminClient({ initialCampaigns, businesses }: P
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader
-        title="Campaigns"
-        description="Crea, pausa y programa campanas reales para hero y ofertas."
-        icon={BsMegaphone}
-        iconColor="orange"
-        badges={[
-          { label: 'Activas', value: stats.active, variant: 'success' },
-          { label: 'Programadas', value: stats.scheduled, variant: 'info' },
-        ]}
-      />
+      <section className="rounded-[28px] border border-gray-200 bg-white px-4 py-5 shadow-sm sm:px-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Operacion</p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+                <BsMegaphone className="text-lg" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Campaigns</h1>
+                <p className="text-sm text-gray-600">Crea, pausa y programa hero y ofertas sin tocar el sitio manualmente.</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={resetToCreate}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(5,150,105,0.16)] transition hover:bg-emerald-700"
+          >
+            <BsPlus className="text-lg" />
+            Nueva campana
+          </button>
+        </div>
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
         <div className="space-y-4">
           <section className="rounded-[28px] border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700">Total {stats.total}</span>
+              <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">Activas {stats.active}</span>
+              <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">Programadas {stats.scheduled}</span>
+              <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">Vencidas {stats.expired}</span>
+              <span className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700">Pausadas {stats.paused}</span>
+            </div>
+
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
               <div className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1.4fr)_220px_220px]">
                 <label className="grid gap-2 text-sm font-medium text-gray-700">
                   Buscar
@@ -330,21 +352,12 @@ export default function CampaignsAdminClient({ initialCampaigns, businesses }: P
                   </select>
                 </label>
               </div>
-
-              <button
-                type="button"
-                onClick={resetToCreate}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(5,150,105,0.16)] transition hover:bg-emerald-700"
-              >
-                <BsPlus className="text-lg" />
-                Nueva campana
-              </button>
             </div>
           </section>
 
           {filteredCampaigns.length === 0 ? (
             <EmptyState
-              icon="📣"
+              icon="C"
               title="No hay campanas con esos filtros"
               description="Crea una campana nueva o ajusta placement, estado y busqueda."
             />
@@ -364,7 +377,7 @@ export default function CampaignsAdminClient({ initialCampaigns, businesses }: P
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{campaign.title}</h3>
+                          <h3 className="text-base font-semibold text-gray-900 sm:text-lg">{campaign.title}</h3>
                           <CampaignStatusBadge status={status} />
                           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
                             {campaign.placement === 'hero_banner' ? 'Hero banner' : 'Offers carousel'}
@@ -384,27 +397,23 @@ export default function CampaignsAdminClient({ initialCampaigns, businesses }: P
                           <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-600">Prioridad {campaign.priority}</span>
                         </div>
 
-                        <div className="mt-3 grid gap-2 text-sm text-gray-500 sm:grid-cols-2">
-                          <div>
-                            <p className="font-medium text-gray-700">Vigencia</p>
-                            <p>
-                              {campaign.startsAt ? new Date(campaign.startsAt).toLocaleString('es-MX') : 'Sin inicio'}
-                              {' / '}
-                              {campaign.endsAt ? new Date(campaign.endsAt).toLocaleString('es-MX') : 'Sin fin'}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-700">Configuracion</p>
-                            <p>
-                              {campaign.audience === 'all' ? 'Todos' : campaign.audience}
-                              {' / '}
-                              {campaign.ctaType}
-                            </p>
-                          </div>
+                        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-500 sm:text-sm">
+                          <span>
+                            <strong className="font-semibold text-gray-700">Vigencia:</strong>{' '}
+                            {campaign.startsAt ? new Date(campaign.startsAt).toLocaleString('es-MX') : 'Sin inicio'}
+                            {' / '}
+                            {campaign.endsAt ? new Date(campaign.endsAt).toLocaleString('es-MX') : 'Sin fin'}
+                          </span>
+                          <span>
+                            <strong className="font-semibold text-gray-700">Config:</strong>{' '}
+                            {campaign.audience === 'all' ? 'Todos' : campaign.audience}
+                            {' / '}
+                            {campaign.ctaType}
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 sm:justify-end">
+                      <div className="flex flex-wrap gap-2 sm:max-w-[240px] sm:justify-end">
                         <button
                           type="button"
                           onClick={() => openEdit(campaign)}

@@ -119,9 +119,7 @@ export default function CampaignForm({
           <h2 className="mt-1 text-xl font-semibold text-gray-900">
             {mode === 'create' ? 'Configura una campana real' : currentCampaign?.title || 'Campana activa'}
           </h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Define placement, vigencia, CTA y prioridad sin tocar el hero manualmente.
-          </p>
+          <p className="mt-1 text-sm text-gray-600">Placement, vigencia, CTA y prioridad en un solo flujo.</p>
         </div>
         <button
           type="button"
@@ -231,7 +229,7 @@ export default function CampaignForm({
               <option value="">{disabledBusinessSelector ? 'Sin negocio asociado' : 'Selecciona un negocio'}</option>
               {filteredBusinesses.map((business) => (
                 <option key={business.id} value={business.id}>
-                  {business.name} · {business.category || 'Sin categoria'}{business.colonia ? ` · ${business.colonia}` : ''}
+                  {business.name} - {business.category || 'Sin categoria'}{business.colonia ? ` - ${business.colonia}` : ''}
                 </option>
               ))}
             </select>

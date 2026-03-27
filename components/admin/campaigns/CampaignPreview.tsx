@@ -102,7 +102,7 @@ export default function CampaignPreview({ draft, business }: Props) {
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Preview</p>
-          <h3 className="text-lg font-semibold text-gray-900">Como se veria la campana</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Vista previa</h3>
         </div>
         <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
           {draft.placement === 'hero_banner' ? 'Hero banner' : 'Offers carousel'}
