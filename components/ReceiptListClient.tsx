@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+
 import ReceiptActionsClient from './ReceiptActionsClient';
 
 type TransferReceipt = {
@@ -12,8 +13,8 @@ type TransferReceipt = {
   plan: string;
   fileName: string;
   fileType: string;
-  fileData?: string; // Legacy - base64
-  fileUrl?: string;  // Nueva - URL de Storage
+  fileData?: string;
+  fileUrl?: string;
   status: string;
   createdAt?: string;
 };
@@ -22,39 +23,48 @@ interface ReceiptListClientProps {
   initialReceipts: TransferReceipt[];
 }
 
+function formatReceiptDate(value?: string) {
+  if (!value) return 'Sin fecha';
+  return new Date(value).toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function ReceiptListClient({ initialReceipts }: ReceiptListClientProps) {
   const router = useRouter();
   const [receipts] = useState(initialReceipts);
 
   const handleActionComplete = () => {
-    // Recargar la página para obtener datos actualizados
     router.refresh();
   };
 
   return (
-    <section className="mt-10 bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg md:text-xl font-bold text-gray-900">📄 Comprobantes de transferencia</h2>
-          <p className="text-xs md:text-sm text-gray-600 mt-1">Últimos envíos de dueños para validar pago.</p>
+          <h2 className="text-lg font-semibold text-gray-900">Comprobantes de transferencia</h2>
+          <p className="mt-1 text-sm text-gray-600">Validacion rapida de pagos enviados por negocios.</p>
         </div>
-        <span className="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-3 py-1 rounded-full font-semibold">
+        <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700">
           {receipts.length} pendientes
         </span>
       </div>
+
       {receipts.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-sm text-gray-500">✅ No hay comprobantes pendientes de validación.</p>
+        <div className="py-8 text-center">
+          <p className="text-sm text-gray-500">No hay comprobantes pendientes.</p>
         </div>
       ) : (
         <>
-          {/* Vista de tabla para desktop (oculta en móvil) */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left font-semibold text-gray-700">Negocio</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-700">Propietario</th>
+                  <th className="px-4 py-2 text-left font-semibold text-gray-700">Contacto</th>
                   <th className="px-4 py-2 text-left font-semibold text-gray-700">Plan</th>
                   <th className="px-4 py-2 text-left font-semibold text-gray-700">Archivo</th>
                   <th className="px-4 py-2 text-left font-semibold text-gray-700">Fecha</th>
@@ -62,18 +72,18 @@ export default function ReceiptListClient({ initialReceipts }: ReceiptListClient
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {receipts.map((r) => {
-                  const fileLink = r.fileUrl || (r.fileData ? `data:${r.fileType};base64,${r.fileData}` : null);
+                {receipts.map((receipt) => {
+                  const fileLink = receipt.fileUrl || (receipt.fileData ? `data:${receipt.fileType};base64,${receipt.fileData}` : null);
                   return (
-                    <tr key={r.id} className="hover:bg-gray-50">
+                    <tr key={receipt.id} className="hover:bg-gray-50">
                       <td className="px-4 py-2">
-                        <div className="font-semibold text-gray-900">{r.businessName}</div>
-                        <div className="text-xs text-gray-500">{r.businessId}</div>
+                        <div className="font-semibold text-gray-900">{receipt.businessName}</div>
+                        <div className="text-xs text-gray-500">{receipt.businessId}</div>
                       </td>
-                      <td className="px-4 py-2 text-gray-700">{r.ownerEmail || 'Sin correo'}</td>
+                      <td className="px-4 py-2 text-gray-700">{receipt.ownerEmail || 'Sin correo'}</td>
                       <td className="px-4 py-2">
-                        <span className="capitalize px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                          {r.plan}
+                        <span className="rounded-full bg-purple-100 px-2 py-1 text-xs font-medium capitalize text-purple-700">
+                          {receipt.plan}
                         </span>
                       </td>
                       <td className="px-4 py-2">
@@ -82,11 +92,11 @@ export default function ReceiptListClient({ initialReceipts }: ReceiptListClient
                             href={fileLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            download={r.fileName}
-                            className="text-emerald-700 font-semibold hover:underline inline-flex items-center gap-1"
+                            download={receipt.fileName}
+                            className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:underline"
                           >
-                            <span>{r.fileName}</span>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <span>{receipt.fileName}</span>
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                           </a>
@@ -94,18 +104,11 @@ export default function ReceiptListClient({ initialReceipts }: ReceiptListClient
                           <span className="text-gray-500">N/A</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-gray-600 text-xs">
-                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString('es-MX', { 
-                          day: '2-digit', 
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'N/A'}
-                      </td>
+                      <td className="px-4 py-2 text-xs text-gray-600">{formatReceiptDate(receipt.createdAt)}</td>
                       <td className="px-4 py-2">
-                        <ReceiptActionsClient 
-                          receiptId={r.id}
-                          businessName={r.businessName}
+                        <ReceiptActionsClient
+                          receiptId={receipt.id}
+                          businessName={receipt.businessName}
                           onActionComplete={handleActionComplete}
                         />
                       </td>
@@ -116,65 +119,42 @@ export default function ReceiptListClient({ initialReceipts }: ReceiptListClient
             </table>
           </div>
 
-          {/* Vista de cards para móvil (oculta en desktop) - Compacta mobile-first */}
-          <div className="md:hidden space-y-2">
-            {receipts.map((r) => {
-              const fileLink = r.fileUrl || (r.fileData ? `data:${r.fileType};base64,${r.fileData}` : null);
+          <div className="space-y-2 md:hidden">
+            {receipts.map((receipt) => {
+              const fileLink = receipt.fileUrl || (receipt.fileData ? `data:${receipt.fileType};base64,${receipt.fileData}` : null);
               return (
-                <div key={r.id} className="border border-gray-200 rounded-lg p-3 bg-white">
-                  {/* Header compacto */}
-                  <div className="flex items-start justify-between mb-2 gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm text-gray-900 truncate">{r.businessName}</h3>
-                      <p className="text-[11px] text-gray-500 mt-0.5 truncate">{r.ownerEmail || 'Sin correo'}</p>
+                <div key={receipt.id} className="rounded-xl border border-gray-200 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-semibold text-gray-900">{receipt.businessName}</h3>
+                      <p className="mt-0.5 truncate text-[11px] text-gray-500">{receipt.ownerEmail || 'Sin correo'}</p>
                     </div>
-                    <span className="capitalize px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium flex-shrink-0">
-                      {r.plan}
+                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium capitalize text-purple-700">
+                      {receipt.plan}
                     </span>
                   </div>
 
-                  {/* Info compacta */}
-                  <div className="space-y-1 text-[11px] text-gray-600 mb-2">
-                    <div className="flex items-center gap-1">
-                      📅
-                      <span className="truncate">
-                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString('es-MX', { 
-                          day: '2-digit', 
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'N/A'}
-                      </span>
-                    </div>
-                    
-                    {r.fileName && (
-                      <div className="flex items-center gap-1">
-                        📄
-                        <span className="truncate">{r.fileName}</span>
-                      </div>
-                    )}
+                  <div className="mt-2 space-y-1 text-[11px] text-gray-600">
+                    <p>{formatReceiptDate(receipt.createdAt)}</p>
+                    {receipt.fileName ? <p className="truncate">{receipt.fileName}</p> : null}
                   </div>
 
-                  {/* Acciones en grid 2 columnas */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-                    {fileLink && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+                    {fileLink ? (
                       <a
                         href={fileLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        download={r.fileName}
-                        className="h-9 px-3 text-xs bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center justify-center gap-1.5 font-medium"
+                        download={receipt.fileName}
+                        className="flex h-9 items-center justify-center rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700"
                       >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13l-3 3m0 0l-3-3m3 3V8" />
-                        </svg>
-                        <span>Ver</span>
+                        Ver archivo
                       </a>
-                    )}
+                    ) : null}
                     <div className={fileLink ? '' : 'col-span-2'}>
-                      <ReceiptActionsClient 
-                        receiptId={r.id}
-                        businessName={r.businessName}
+                      <ReceiptActionsClient
+                        receiptId={receipt.id}
+                        businessName={receipt.businessName}
                         onActionComplete={handleActionComplete}
                       />
                     </div>

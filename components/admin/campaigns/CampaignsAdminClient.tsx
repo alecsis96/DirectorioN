@@ -274,14 +274,12 @@ export default function CampaignsAdminClient({ initialCampaigns, businesses }: P
     <div className="space-y-6">
       <AdminPageHeader
         title="Campaigns"
-        description="Crea, pausa y programa campanas reales para el hero y futuras vitrinas comerciales."
+        description="Crea, pausa y programa campanas reales para hero y ofertas."
         icon={BsMegaphone}
         iconColor="orange"
         badges={[
-          { label: 'Total', value: stats.total, variant: 'default' },
           { label: 'Activas', value: stats.active, variant: 'success' },
           { label: 'Programadas', value: stats.scheduled, variant: 'info' },
-          { label: 'Pausadas', value: stats.paused, variant: 'warning' },
         ]}
       />
 
