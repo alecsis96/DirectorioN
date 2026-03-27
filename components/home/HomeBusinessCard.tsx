@@ -125,7 +125,7 @@ export default function HomeBusinessCard({ business, variant, onViewDetails }: P
               </span>
             ) : null}
             <div className="mt-1.5 flex items-start gap-2">
-              <h3 className={`min-w-0 flex-1 font-serif font-semibold tracking-tight text-slate-950 ${styles.title}`}>
+              <h3 className={`min-w-0 flex-1 font-bold tracking-tight text-gray-900 ${styles.title}`}>
                 <span className="line-clamp-1">{business.name}</span>
               </h3>
               <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-slate-300">

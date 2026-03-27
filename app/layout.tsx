@@ -1,10 +1,16 @@
 ﻿import type { ReactNode } from 'react';
 import '../styles/globals.css';
+import { Inter } from 'next/font/google';
 import Providers from '../components/Providers';
 import Navigation from '../components/Navigation';
 import PWAInstaller from '../components/PWAInstaller';
 import PWAUpdater from '../components/PWAUpdater';
 import PushNotifications from '../components/PushNotifications';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata = {
   title: 'Directorio Yajalón - Conecta con negocios locales',
@@ -31,7 +37,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" className={inter.className}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#38761D" />
@@ -59,7 +65,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="msapplication-TileColor" content="#38761D" />
         <meta name="msapplication-TileImage" content="/images/icon-144.png" />
       </head>
-      <body className="min-h-screen bg-white text-gray-900 pb-20 md:pb-0" suppressHydrationWarning>
+      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased pb-20 md:pb-0" suppressHydrationWarning>
         <Providers>
           <Navigation />
           {children}

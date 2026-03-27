@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from "react";
-import { ArrowRight, Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageCircle } from "lucide-react";
 import { waLink } from "../lib/helpers/contact";
 import { trackCTA, trackBusinessInteraction } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
@@ -103,6 +103,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
   const isFavorite = businessId ? favorites.includes(businessId) : false;
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const isInteractive = Boolean(onViewDetails);
+  const isClosed = statusChip?.tone === "closed";
 
   const handleViewDetails = () => {
     if (!onViewDetails) return;
@@ -171,25 +172,32 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
       </button>
 
       <div className={`flex items-start gap-3 ${styles.content}`}>
-        <div className={`relative shrink-0 overflow-hidden rounded-[18px] ${styles.media} ${styles.mediaSize}`}>
-          <img src={imageSrc} alt={`Imagen de ${business.name}`} className="h-full w-full object-cover object-center" />
-          {isPremium ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-white/5" /> : null}
+        <div className={`relative shrink-0 ${isPremium ? "pt-6" : ""}`}>
+          {isPremium ? (
+            <span
+              className={`absolute left-0 top-0 z-10 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${styles.badge}`}
+            >
+              {styles.badgeText}
+            </span>
+          ) : null}
+
+          <div className={`relative overflow-hidden rounded-[18px] ${styles.media} ${styles.mediaSize} ${isPremium ? "mt-1" : ""}`}>
+            <img src={imageSrc} alt={`Imagen de ${business.name}`} className="h-full w-full object-cover object-center" />
+            {isPremium ? <div className="absolute inset-0 bg-gradient-to-t from-slate-950/10 via-transparent to-white/5" /> : null}
+          </div>
         </div>
 
         <div className="min-w-0 flex-1">
-          <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${styles.badge}`}>
-            {isPremium ? styles.badgeText : getVisibleTierBadgeLabel(planInput)}
-          </span>
+          {!isPremium ? (
+            <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${styles.badge}`}>
+              {getVisibleTierBadgeLabel(planInput)}
+            </span>
+          ) : null}
 
-          <div className="mt-1.5 flex items-start gap-2">
-            <h3 className={`min-w-0 flex-1 font-serif font-semibold tracking-tight text-slate-950 ${styles.title}`}>
+          <div className={`${isPremium ? "mt-0.5" : "mt-1.5"} flex items-start`}>
+            <h3 className={`min-w-0 flex-1 font-bold tracking-tight text-gray-900 ${styles.title}`}>
               <span className="line-clamp-2">{business.name}</span>
             </h3>
-            {isInteractive ? (
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-slate-300">
-                <ArrowRight className="h-3.5 w-3.5" />
-              </span>
-            ) : null}
           </div>
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-600">
@@ -212,13 +220,13 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             </div>
           ) : null}
 
-          <div className="mt-2.5">
-            {whatsappHref ? (
+          <div className="mt-4">
+            {whatsappHref && !isClosed ? (
               <a
                 href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`inline-flex h-9 w-full items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-10 sm:text-sm ${styles.cta}`}
+                className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-10 sm:text-sm ${styles.cta}`}
                 aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -228,6 +236,17 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
                 <MessageCircle className="h-4 w-4" />
                 WhatsApp
               </a>
+            ) : whatsappHref && isClosed ? (
+              <button
+                type="button"
+                disabled
+                className="inline-flex h-10 w-full cursor-default items-center justify-center gap-2 rounded-2xl bg-gray-200 px-3 text-[13px] font-semibold text-gray-500 sm:h-10 sm:text-sm"
+                aria-label={`Negocio cerrado: ${business.name}`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Enviar mensaje (Cerrado)
+              </button>
             ) : null}
           </div>
         </div>

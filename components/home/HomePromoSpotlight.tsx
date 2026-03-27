@@ -33,7 +33,7 @@ export default function HomePromoSpotlight({ promotion }: Props) {
         </div>
         <div className="absolute bottom-5 left-5 right-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f8e7b5]">{promotion.urgencyLabel}</p>
-          <h3 className="mt-3 font-serif text-[1.7rem] font-semibold tracking-tight text-white sm:text-3xl">{promotion.business.name}</h3>
+          <h3 className="mt-3 text-[1.7rem] font-bold tracking-tight text-white sm:text-3xl">{promotion.business.name}</h3>
           <p className="mt-3 max-w-xl text-[13px] leading-5 text-white/85 sm:text-sm sm:leading-6">{promotion.message}</p>
         </div>
       </div>

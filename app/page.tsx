@@ -82,7 +82,7 @@ export default async function Home() {
               <Megaphone className="h-3.5 w-3.5" />
               Clientes + WhatsApp + campanas activas
             </div>
-            <h1 className="mt-6 max-w-4xl font-serif text-4xl font-semibold leading-[1.02] tracking-tight text-slate-950 sm:text-5xl lg:text-[4.3rem]">
+            <h1 className="mt-6 max-w-4xl text-4xl font-bold leading-[1.02] tracking-tight text-slate-950 sm:text-5xl lg:text-[4.3rem]">
               Consigue mas clientes para tu negocio en Yajalon.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-slate-700 sm:text-lg">
@@ -127,7 +127,7 @@ export default async function Home() {
             ) : (
               <div className="rounded-[32px] border border-[#d9c58f] bg-[linear-gradient(180deg,#fff8ea_0%,#ffffff_100%)] p-7 shadow-[0_28px_90px_rgba(108,74,17,0.14)]">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Visibilidad que mueve clics</p>
-                <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+                <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-950">
                   Una promo clara y un WhatsApp visible valen mas que pasar desapercibido.
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-slate-700">Activa tu perfil y haz que te encuentren sin vueltas.</p>
@@ -165,7 +165,7 @@ export default async function Home() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Campanas activas hoy</p>
-              <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
                 Campanas para pedir hoy.
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Promociones temporales con salida directa a WhatsApp.</p>
@@ -190,7 +190,7 @@ export default async function Home() {
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">
                       Espacio comercial
                     </p>
-                    <h3 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+                    <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
                       Tu campana puede aparecer aqui.
                     </h3>
                     <p className="mt-4 text-sm leading-6 text-slate-600">Activa una campana clara y deja el WhatsApp listo para recibir pedidos.</p>
@@ -227,7 +227,7 @@ export default async function Home() {
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">
                       Espacio comercial
                     </p>
-                    <h3 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+                    <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
                       Tu campana puede aparecer aqui.
                     </h3>
                     <p className="mt-4 text-sm leading-6 text-slate-600">Activa una campana clara y deja el WhatsApp listo para recibir pedidos.</p>
@@ -258,7 +258,7 @@ export default async function Home() {
         <div className="mx-auto max-w-6xl">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Categorias populares</p>
           <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <h2 className="font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
               Encuentra rapido lo que necesitas.
             </h2>
             <p className="max-w-xl text-sm leading-6 text-slate-600 sm:text-base">Comida, tiendas y servicios en pocos toques.</p>
@@ -279,7 +279,7 @@ export default async function Home() {
                     {category.count > 0 ? `${category.count} activos` : "Categoria lista"}
                   </span>
                 </div>
-                <h3 className="mt-4 font-serif text-xl font-semibold tracking-tight text-slate-950">
+                <h3 className="mt-4 text-xl font-bold tracking-tight text-slate-950">
                   {category.name}
                 </h3>
                 <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{category.description}</p>
@@ -306,7 +306,7 @@ export default async function Home() {
                     {category.count > 0 ? `${category.count} activos` : "Categoria lista"}
                   </span>
                 </div>
-                <h3 className="mt-5 font-serif text-2xl font-semibold tracking-tight text-slate-950">
+                <h3 className="mt-5 text-2xl font-bold tracking-tight text-slate-950">
                   {category.name}
                 </h3>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{category.description}</p>
@@ -326,7 +326,7 @@ export default async function Home() {
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#d7e5d9]">
               Para negocios
             </p>
-            <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
               Tu negocio necesita verse claro y recibir mensajes.
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-[#d8e7da] sm:text-base">Perfil claro, promos activas y contacto directo a WhatsApp.</p>
@@ -344,7 +344,7 @@ export default async function Home() {
           <div className="grid gap-5">
             <article className="rounded-[30px] border border-[#dbe6dd] bg-white p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Registro directo</p>
-              <h3 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+              <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
                 Si ya tienes la info lista, entra al alta en este momento.
               </h3>
               <p className="mt-4 text-sm leading-6 text-slate-600">
@@ -369,7 +369,7 @@ export default async function Home() {
           <div className="grid gap-6 p-7 lg:grid-cols-[1fr_auto] lg:items-center lg:p-10">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Alta asistida directa</p>
-              <h2 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+              <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
                 No tienes tiempo o no sabes subir tu negocio?
               </h2>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-700 sm:text-base">
@@ -408,7 +408,7 @@ export default async function Home() {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">Visibilidad premium</p>
           <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="font-serif text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
                 Negocios con mayor empuje visual.
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">Una vitrina corta para mostrar como se ve un perfil premium dentro del producto.</p>
@@ -456,7 +456,7 @@ export default async function Home() {
             </div>
           ) : (
             <div className="mt-8 rounded-[30px] border border-dashed border-[#d8c27b] bg-white p-8 text-center shadow-sm">
-              <h3 className="font-serif text-3xl font-semibold tracking-tight text-slate-950">
+              <h3 className="text-3xl font-bold tracking-tight text-slate-950">
                 La vitrina premium ya esta lista.
               </h3>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
@@ -472,7 +472,7 @@ export default async function Home() {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#d7e5d9]">Ultimo CTA</p>
           <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
-              <h2 className="font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 Tu negocio puede empezar a recibir contactos hoy mismo.
               </h2>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-[#d8e7da] sm:text-base">
@@ -503,7 +503,7 @@ export default async function Home() {
         <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr_0.8fr]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8f5b14]">YajaGon</p>
-            <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-slate-950">
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
               Escaparate local para clientes, campanas y contacto rapido.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">

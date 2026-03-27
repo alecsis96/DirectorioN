@@ -73,7 +73,7 @@ export default function CampaignHeroBanner({ campaign, onOpenBusiness, className
               {badgeLabel}
             </div>
 
-            <h2 className="mt-3 text-[1.35rem] font-serif font-semibold leading-tight text-slate-950 sm:text-[1.65rem]">
+            <h2 className="mt-3 text-[1.35rem] font-bold leading-tight tracking-tight text-gray-900 sm:text-[1.65rem]">
               <span className="line-clamp-2">{campaign.title}</span>
             </h2>
 

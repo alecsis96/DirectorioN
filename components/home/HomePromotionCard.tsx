@@ -41,7 +41,7 @@ export default function HomePromotionCard({ promotion }: Props) {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f8e7b5]">
             {promotion.urgencyLabel}
           </p>
-          <h3 className="mt-2 font-serif text-xl font-semibold tracking-tight text-white sm:text-2xl">
+          <h3 className="mt-2 text-xl font-bold tracking-tight text-white sm:text-2xl">
             {promotion.business.name}
           </h3>
           <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-white/85 sm:text-sm sm:leading-6">{promotion.message}</p>
