@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, MessageCircle, Phone, Star } from "lucide-react";
+import { ArrowRight, MessageCircle, Phone } from "lucide-react";
 import { generateBusinessPlaceholder } from "../../lib/placeholderGenerator";
 import { normalizeDigits, waLink } from "../../lib/helpers/contact";
 import { CATEGORIES, resolveCategory } from "../../lib/categoriesCatalog";
@@ -30,27 +30,27 @@ function getCategoryIcon(business: BusinessPreview) {
 
 const CARD_STYLES = {
   free: {
-    wrapper: "rounded-[26px] border border-slate-200 bg-slate-50/70 shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
-    content: "p-4 sm:p-5",
+    wrapper: "rounded-[24px] border border-slate-200 bg-slate-50/65 shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:shadow-[0_8px_18px_rgba(15,23,42,0.06)]",
+    content: "p-3.5 sm:p-4",
     title: "text-base sm:text-lg",
     badge: "border border-slate-200 bg-slate-50 text-slate-500",
-    primaryCta: "border border-slate-300 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-100",
+    primaryCta: "border border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white",
     showCover: false,
   },
   featured: {
-    wrapper: "overflow-hidden rounded-[28px] border border-[#d8c27b] bg-[#fffdf8] shadow-[0_20px_60px_rgba(109,85,28,0.12)] transition hover:-translate-y-1 hover:shadow-xl",
-    content: "p-4 sm:p-5",
-    title: "text-xl sm:text-2xl",
-    badge: "bg-[#f3e2a7] text-[#6d551c]",
-    primaryCta: "bg-[#1d2a3b] text-white hover:bg-[#121d2b]",
+    wrapper: "overflow-hidden rounded-[28px] border border-[#d8c27b] bg-[#fffdf8] shadow-[0_18px_44px_rgba(109,85,28,0.14)] ring-1 ring-[#f6e6b1]/70 transition hover:-translate-y-1 hover:shadow-[0_22px_52px_rgba(109,85,28,0.18)]",
+    content: "p-3.5 sm:p-4",
+    title: "text-lg sm:text-xl",
+    badge: "bg-[#f3e2a7] text-[#6d551c] shadow-[0_6px_16px_rgba(109,85,28,0.16)]",
+    primaryCta: "bg-[#162235] text-white shadow-[0_10px_22px_rgba(22,34,53,0.16)] hover:bg-[#0f1928]",
     showCover: true,
   },
   sponsor: {
-    wrapper: "overflow-hidden rounded-[32px] border border-[#c79425] bg-[linear-gradient(180deg,#fffaf0_0%,#fff3d8_30%,#ffffff_100%)] shadow-[0_30px_100px_rgba(108,74,17,0.22)] ring-1 ring-[#f4dd98]/80 transition hover:-translate-y-1 hover:shadow-[0_38px_110px_rgba(108,74,17,0.28)]",
-    content: "p-4 sm:p-5 lg:p-6",
-    title: "text-[1.35rem] sm:text-[1.6rem] lg:text-[1.9rem]",
-    badge: "bg-[#7a4b00] text-white shadow-[0_8px_20px_rgba(122,75,0,0.24)]",
-    primaryCta: "bg-[#0f7a47] text-white shadow-[0_12px_26px_rgba(15,122,71,0.24)] hover:bg-[#0b6238]",
+    wrapper: "overflow-hidden rounded-[32px] border border-[#c79425] bg-[linear-gradient(180deg,#fffaf0_0%,#fff3d8_24%,#ffffff_100%)] shadow-[0_24px_70px_rgba(108,74,17,0.22)] ring-1 ring-[#f4dd98] transition hover:-translate-y-1 hover:shadow-[0_32px_84px_rgba(108,74,17,0.28)]",
+    content: "p-3.5 sm:p-4 lg:p-5",
+    title: "text-[1.12rem] sm:text-[1.3rem] lg:text-[1.5rem]",
+    badge: "bg-[#7a4b00] text-white shadow-[0_10px_22px_rgba(122,75,0,0.26)]",
+    primaryCta: "bg-[#0f7a47] text-white shadow-[0_14px_28px_rgba(15,122,71,0.26)] hover:bg-[#0b6238]",
     showCover: true,
   },
 } as const;
@@ -61,7 +61,6 @@ export default function HomeBusinessCard({ business, variant }: Props) {
   const detailHref = `/negocios/${business.id}`;
   const whatsappHref = business.WhatsApp ? waLink(business.WhatsApp) : null;
   const callHref = business.phone ? `tel:${normalizeDigits(business.phone)}` : null;
-  const ratingValue = typeof business.rating === "number" && Number.isFinite(business.rating) ? business.rating : 0;
   const statusChip = resolveCardStatusChip(business);
   const highlight = resolveCardHighlight(business, variant);
   const highlightClasses =
@@ -92,24 +91,19 @@ export default function HomeBusinessCard({ business, variant }: Props) {
   return (
     <article className={styles.wrapper}>
       {styles.showCover ? (
-        <div className={`relative overflow-hidden ${variant === "sponsor" ? "h-44 sm:h-64" : "h-36 sm:h-52"}`}>
+          <div className={`relative overflow-hidden ${variant === "sponsor" ? "h-36 sm:h-52" : "h-[7.5rem] sm:h-44"}`}>
           <img src={imageSrc} alt={business.name} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
-          <div className="absolute left-4 top-4">
-            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${styles.badge}`}>
-              {getVisibleTierBadgeLabel(business)}
-            </span>
-          </div>
-          {highlight.isPromo ? (
-            <div className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-[#8f5b14]">
-              Promo activa
+            <div className="absolute left-3 top-3 sm:left-4 sm:top-4">
+              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${styles.badge}`}>
+                {getVisibleTierBadgeLabel(business)}
+              </span>
             </div>
-          ) : null}
         </div>
       ) : null}
 
       <div className={styles.content}>
-        <div className="flex items-start gap-3 sm:gap-4">
+        <div className="flex items-start gap-3">
           {variant === "free" ? (
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eef4ef] text-lg sm:h-14 sm:w-14 sm:text-2xl">
               {getCategoryIcon(business)}
@@ -128,38 +122,32 @@ export default function HomeBusinessCard({ business, variant }: Props) {
                 Perfil base
               </span>
             ) : null}
-            <h3 className={`mt-2 font-serif font-semibold tracking-tight text-slate-950 sm:mt-3 ${styles.title}`}>
-              {business.name}
+            <h3 className={`mt-1.5 font-serif font-semibold tracking-tight text-slate-950 ${styles.title}`}>
+              <span className="line-clamp-1">{business.name}</span>
             </h3>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-600 sm:mt-3 sm:gap-2 sm:text-xs">
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-600 sm:text-xs">
               <span className="rounded-full bg-[#eef4ef] px-2.5 py-1 sm:px-3">{business.category}</span>
               {business.colonia ? <span className="rounded-full bg-slate-100 px-2.5 py-1 sm:px-3">{business.colonia}</span> : null}
-              {ratingValue > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#fbf4e6] px-2.5 py-1 text-[#8f5b14] sm:px-3">
-                  <Star className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" />
-                  {ratingValue.toFixed(1)}
-                </span>
-              ) : null}
             </div>
           </div>
         </div>
 
         {highlight.kind !== "none" ? (
-          <div className={`mt-3 rounded-[20px] px-3 py-2.5 sm:mt-4 ${highlightClasses}`}>
+          <div className={`mt-2.5 rounded-[16px] px-2.5 py-2 ${highlightClasses}`}>
             {highlight.label ? (
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] opacity-75">
                 {highlight.label}
               </p>
             ) : null}
             {highlight.text ? (
-              <p className="mt-1 line-clamp-2 text-[13px] leading-5 sm:text-sm">
+              <p className="mt-0.5 line-clamp-2 text-[12px] leading-4.5 sm:text-[13px] sm:leading-5">
                 {highlight.text}
               </p>
             ) : null}
           </div>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium sm:mt-4 sm:gap-2 sm:text-xs">
+        <div className="mt-2.5 flex flex-wrap gap-1.5 text-[11px] font-medium sm:text-xs">
           {statusChip && highlight.kind !== "status" ? (
             <span
               className={`rounded-full px-2.5 py-1 sm:px-3 ${
@@ -169,16 +157,15 @@ export default function HomeBusinessCard({ business, variant }: Props) {
               {statusChip.label}
             </span>
           ) : null}
-          {business.hasEnvio ? <span className="rounded-full bg-[#fff3e8] px-2.5 py-1 text-[#a84f0f] sm:px-3">Pedidos o envio</span> : null}
         </div>
 
-        <div className={`mt-4 grid gap-2 sm:mt-5 sm:gap-3 ${actionGridClass}`}>
+        <div className={`mt-3 grid gap-2 ${actionGridClass}`}>
           {whatsappHref ? (
             <a
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-11 sm:px-4 sm:text-sm ${styles.primaryCta}`}
+              className={`inline-flex h-9 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-10 sm:px-4 sm:text-sm ${styles.primaryCta}`}
             >
               <MessageCircle className="h-4 w-4" />
               WhatsApp
@@ -186,7 +173,7 @@ export default function HomeBusinessCard({ business, variant }: Props) {
           ) : (
             <Link
               href={detailHref}
-              className={`inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-11 sm:px-4 sm:text-sm ${styles.primaryCta}`}
+              className={`inline-flex h-9 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-10 sm:px-4 sm:text-sm ${styles.primaryCta}`}
             >
               Ver negocio
               <ArrowRight className="h-4 w-4" />
@@ -196,7 +183,7 @@ export default function HomeBusinessCard({ business, variant }: Props) {
           {showSecondaryDetails ? (
             <Link
               href={detailHref}
-              className="inline-flex h-10 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
+              className="inline-flex h-9 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-10 sm:w-11"
               aria-label={`Ver perfil de ${business.name}`}
             >
               <ArrowRight className="h-4 w-4" />
@@ -205,7 +192,7 @@ export default function HomeBusinessCard({ business, variant }: Props) {
           {callHref ? (
             <a
               href={callHref}
-              className="inline-flex h-10 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
+              className="inline-flex h-9 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-10 sm:w-11"
               aria-label={`Llamar a ${business.name}`}
             >
               <Phone className="h-4 w-4" />

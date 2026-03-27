@@ -757,7 +757,7 @@ export default function NegociosListClient({
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center justify-center gap-1 rounded-xl bg-gray-100 p-1 sm:justify-start">
+                <div className="hidden items-center justify-center gap-1 rounded-xl bg-gray-100 p-1 sm:flex sm:justify-start">
                   <button
                     onClick={() => setViewMode('list')}
                     className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all ${
