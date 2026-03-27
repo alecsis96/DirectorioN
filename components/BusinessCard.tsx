@@ -41,7 +41,7 @@ const CARD_STYLES: Record<
     content: "p-3",
     title: "text-[0.98rem] sm:text-base",
     badge: "border border-slate-200 bg-slate-50 text-slate-500",
-    badgeText: "Perfil base",
+    badgeText: "Perfil basico",
     cta: "border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50",
     media: "border border-slate-200 bg-slate-50",
     mediaSize: "h-[80px] w-[80px] sm:h-[88px] sm:w-[88px]",

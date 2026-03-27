@@ -9,11 +9,14 @@ const DEFAULT_LIMIT = 6;
 /**
  * Obtiene o crea un seed estable para la sesión actual
  * El seed se mantiene en sessionStorage para consistencia durante toda la sesión
+ * 🔧 FIX: Usar seed basado en el día actual para consistencia SSR/Client
  */
 function getSessionSeed(): number {
   if (typeof window === 'undefined') {
-    // En SSR, usar un valor por defecto
-    return 0;
+    // En SSR, usar un seed basado en el día actual para consistencia
+    const now = new Date();
+    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    return dayOfYear;
   }
 
   try {
@@ -22,14 +25,16 @@ function getSessionSeed(): number {
       return parseInt(stored, 10);
     }
 
-    // Crear nuevo seed basado en timestamp
-    const newSeed = Date.now();
-    sessionStorage.setItem(SEED_KEY, newSeed.toString());
-    return newSeed;
+    // Crear nuevo seed basado en día del año para rotación diaria consistente
+    const now = new Date();
+    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    sessionStorage.setItem(SEED_KEY, dayOfYear.toString());
+    return dayOfYear;
   } catch (error) {
-    // Fallback si sessionStorage no está disponible
-    console.warn('sessionStorage no disponible, usando seed por defecto');
-    return Date.now();
+    // Fallback: día del año
+    const now = new Date();
+    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    return dayOfYear;
   }
 }
 

@@ -18,6 +18,7 @@ import "react-image-gallery/styles/css/image-gallery.css";
 
 import BusinessHours from "./BusinessHours";
 import RestaurantOrderExperience from "./RestaurantOrderExperience";
+import ShareButton from "./ShareButton";
 import type { Business } from "../types/business";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { optionalPublicEnv } from "../lib/env";
@@ -856,19 +857,23 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
             )}
           </div>
 
-          {/* Segunda fila: Facebook */}
-          {facebookHref && (
-            <a
-              href={facebookHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1877F2] text-white font-semibold hover:bg-[#166FE5] transition-all mb-3"
-              aria-label={`Abrir Facebook de ${business.name}`}
-              onClick={() => trackDetailCTA('facebook')}
-            >
-              <FacebookIcon className="w-5 h-5" /> Facebook
-            </a>
-          )}
+          {/* Segunda fila: Compartir y Facebook */}
+          <div className={`mb-3 grid gap-3 ${facebookHref ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <ShareButton business={business} source="detail" />
+
+            {facebookHref && (
+              <a
+                href={facebookHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#1877F2] px-4 py-2.5 font-semibold text-white transition-all hover:bg-[#166FE5]"
+                aria-label={`Abrir Facebook de ${business.name}`}
+                onClick={() => trackDetailCTA('facebook')}
+              >
+                <FacebookIcon className="w-5 h-5" /> Facebook
+              </a>
+            )}
+          </div>
 
           {/* CTA Secundario - Plan Premium */}
           {detailTokens.showSecondaryCTA && detailTokens.secondaryCTAText && (

@@ -2,6 +2,7 @@
 
 export type Business = {
   id?: string;
+  slug?: string;
   name: string;
   category?: string;
   categoryId?: string;
@@ -118,6 +119,7 @@ export interface Review {
 
 export interface BusinessPreview {
   id: string;
+  slug?: string;
   name: string;
   category: string;
   categoryId?: string;
@@ -159,6 +161,7 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
 
   return {
     id: biz.id ?? "",
+    slug: biz.slug,
     name: biz.name,
     category: categoryName ?? biz.category ?? "",
     categoryId: biz.categoryId ?? resolved.categoryId,

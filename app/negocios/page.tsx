@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 
 import NegociosListClient from '../../components/NegociosListClient';
-import { getActiveHeroCampaign, getLegacyHeroCampaignFallback } from '../../lib/server/campaignsData';
+import {
+  getActiveHeroCampaign,
+  getActiveOffersCampaigns,
+  getLegacyHeroCampaignFallback,
+} from '../../lib/server/campaignsData';
 import type { Business, BusinessPreview } from '../../types/business';
 import { pickBusinessPreview } from '../../types/business';
 import { fetchBusinesses, toNumber, sortBusinessesWithSponsors } from '../../lib/server/businessData';
@@ -106,6 +110,7 @@ async function buildBusinessesResult(params: SearchParams) {
   const heroCampaign =
     (await getActiveHeroCampaign(allBusinesses)) ??
     getLegacyHeroCampaignFallback(allBusinesses);
+  const offersCampaigns = (await getActiveOffersCampaigns(allBusinesses)).slice(0, 8);
 
   const businesses: BusinessPreview[] = sortedBusinesses.map((biz) => {
     const preview = pickBusinessPreview(biz as Business);
@@ -149,12 +154,14 @@ async function buildBusinessesResult(params: SearchParams) {
     error,
     geoQuery,
     heroCampaign,
+    offersCampaigns,
   };
 }
 
 export default async function NegociosPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const resolvedParams = (await searchParams) ?? {};
-  const { businesses, categories, colonias, filters, error, geoQuery, heroCampaign } = await buildBusinessesResult(resolvedParams);
+  const { businesses, categories, colonias, filters, error, geoQuery, heroCampaign, offersCampaigns } =
+    await buildBusinessesResult(resolvedParams);
 
   return (
     <NegociosListClient
@@ -165,6 +172,7 @@ export default async function NegociosPage({ searchParams }: { searchParams: Pro
       initialError={error}
       geoQuery={geoQuery}
       heroCampaign={heroCampaign ?? undefined}
+      offersCampaigns={offersCampaigns}
     />
   );
 }

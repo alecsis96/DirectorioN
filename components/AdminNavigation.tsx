@@ -117,16 +117,6 @@ export default function AdminNavigation({ variant = 'horizontal' }: AdminNavigat
             })}
           </ul>
 
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <Link
-              href="/"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 hover:text-[#38761D] transition-colors rounded-lg hover:bg-gray-50"
-            >
-              <BsHouseDoor className="flex-shrink-0" />
-              <span>Volver al sitio</span>
-            </Link>
-          </div>
         </nav>
       </>
     );

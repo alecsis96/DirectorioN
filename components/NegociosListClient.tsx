@@ -44,6 +44,7 @@ import 'swiper/css/pagination';
 import BusinessCard from './BusinessCard';
 import BusinessCardVertical from './BusinessCardVertical';
 import CampaignHeroBanner from './CampaignHeroBanner';
+import CampaignOffersCarousel from './CampaignOffersCarousel';
 import PremiumBusinessCard from './PremiumBusinessCard';
 // REMOVED: FreeBusinessCardCompact - Ya no se usa, unificamos a BusinessCard para todos los planes
 // import FreeBusinessCardCompact from './FreeBusinessCardCompact';
@@ -116,6 +117,7 @@ export type NegociosListClientProps = {
   categories: string[];
   colonias: string[];
   heroCampaign?: CampaignHero;
+  offersCampaigns?: CampaignHero[];
   initialFilters?: Filters;
   initialError?: string | null;
   geoQuery?: {
@@ -132,6 +134,7 @@ export default function NegociosListClient({
   categories = [],
   colonias = [],
   heroCampaign,
+  offersCampaigns = [],
   initialFilters = FALLBACK_FILTERS,
   initialError = null,
   geoQuery = null,
@@ -794,6 +797,13 @@ export default function NegociosListClient({
         {heroCampaign ? (
           <CampaignHeroBanner
             campaign={heroCampaign}
+            onOpenBusiness={(business) => setSelectedBusiness(business)}
+          />
+        ) : null}
+
+        {offersCampaigns.length ? (
+          <CampaignOffersCarousel
+            campaigns={offersCampaigns}
             onOpenBusiness={(business) => setSelectedBusiness(business)}
           />
         ) : null}

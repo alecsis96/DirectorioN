@@ -34,9 +34,31 @@ export async function connectToMongo() {
     globalCache.promise = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
       maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
     });
   }
 
   globalCache.conn = await globalCache.promise;
   return globalCache.conn;
+}
+
+export function getMongoConnectionMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+
+  if (message.includes("MONGODB_URI")) {
+    return "Configura MONGODB_URI en produccion para habilitar el catalogo de productos.";
+  }
+
+  if (
+    message.includes("Server selection timed out") ||
+    message.includes("ECONNREFUSED") ||
+    message.includes("ENOTFOUND") ||
+    message.includes("Authentication failed") ||
+    message.includes("bad auth") ||
+    message.toLowerCase().includes("whitelist")
+  ) {
+    return "No se pudo conectar a MongoDB. Revisa MONGODB_URI, usuario, password y acceso de red del cluster.";
+  }
+
+  return "No pudimos conectar con el catalogo de productos.";
 }

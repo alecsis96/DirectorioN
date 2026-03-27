@@ -211,13 +211,9 @@ export default function AdminSidebar() {
           ) : null}
         </ul>
 
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-gray-50 p-4">
-          <Link href="/" className="flex items-center gap-2 text-sm text-gray-600 transition hover:text-gray-900">
-            <span aria-hidden="true">←</span>
-            <span>Volver al sitio</span>
-          </Link>
-        </div>
+
       </nav>
+      
     </>
   );
 }
