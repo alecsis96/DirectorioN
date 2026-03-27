@@ -37,8 +37,8 @@ const CARD_STYLES: Record<
 > = {
   free: {
     wrapper:
-      "relative rounded-[26px] border border-slate-200 bg-slate-50/70 shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
-    content: "p-4 sm:p-5",
+      "relative overflow-hidden rounded-[26px] border border-slate-200 bg-slate-50/70 shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
+    content: "p-3.5 sm:p-4",
     title: "text-base sm:text-lg",
     badge: "border border-slate-200 bg-slate-50 text-slate-500",
     badgeText: "Perfil base",
@@ -48,8 +48,8 @@ const CARD_STYLES: Record<
   featured: {
     wrapper:
       "relative overflow-hidden rounded-[30px] border border-[#d8c27b] bg-[#fffdf8] shadow-[0_20px_60px_rgba(109,85,28,0.12)] transition hover:-translate-y-1 hover:shadow-xl",
-    content: "p-4 sm:p-5",
-    title: "text-xl sm:text-2xl",
+    content: "p-3.5 sm:p-4",
+    title: "text-lg sm:text-xl",
     badge: "bg-[#f3e2a7] text-[#6d551c]",
     badgeText: "Premium",
     cta: "bg-[#1d2a3b] text-white hover:bg-[#121d2b]",
@@ -58,8 +58,8 @@ const CARD_STYLES: Record<
   sponsor: {
     wrapper:
       "relative overflow-hidden rounded-[32px] border border-[#c79425] bg-[linear-gradient(180deg,#fffaf0_0%,#fff3d8_26%,#ffffff_100%)] shadow-[0_30px_100px_rgba(108,74,17,0.22)] ring-1 ring-[#f4dd98]/80 transition hover:-translate-y-1 hover:shadow-[0_38px_110px_rgba(108,74,17,0.28)]",
-    content: "p-4 sm:p-5 lg:p-6",
-    title: "text-[1.35rem] sm:text-[1.6rem] lg:text-[1.9rem]",
+    content: "p-3.5 sm:p-4 lg:p-5",
+    title: "text-[1.05rem] sm:text-[1.2rem] lg:text-[1.35rem]",
     badge: "bg-[#7a4b00] text-white shadow-[0_8px_20px_rgba(122,75,0,0.24)]",
     badgeText: "Premium",
     cta: "bg-[#0f7a47] text-white shadow-[0_12px_26px_rgba(15,122,71,0.24)] hover:bg-[#0b6238]",
@@ -131,6 +131,18 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
             : "border border-red-200 bg-red-50 text-red-700"
           : "border border-slate-200 bg-white text-slate-700";
   const showSecondaryDetails = Boolean(whatsappHref);
+  const mediaWidthClass =
+    plan === "sponsor"
+      ? "w-[118px] sm:w-[148px] lg:w-[180px]"
+      : plan === "featured"
+        ? "w-[104px] sm:w-[136px] lg:w-[164px]"
+        : "w-[88px] sm:w-[112px]";
+  const mediaHeightClass =
+    plan === "sponsor"
+      ? "min-h-[172px] sm:min-h-[188px]"
+      : plan === "featured"
+        ? "min-h-[164px] sm:min-h-[180px]"
+        : "min-h-[156px] sm:min-h-[168px]";
   const actionGridClass = showSecondaryDetails
     ? callHref
       ? "grid-cols-[minmax(0,1fr)_44px_44px]"
@@ -183,136 +195,136 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
         <Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${isFavorite ? "fill-red-500 text-red-500" : "text-slate-400"}`} />
       </button>
 
-      {styles.showCover ? (
-        <div className={`relative overflow-hidden ${plan === "sponsor" ? "h-40 sm:h-56 lg:h-64" : "h-32 sm:h-44 lg:h-52"}`}>
+      <div className={`flex ${mediaHeightClass}`}>
+        <div className={`relative shrink-0 overflow-hidden border-r border-black/5 ${mediaWidthClass}`}>
           <img src={imageSrc} alt={`Imagen de ${business.name}`} className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent" />
-          <div className="absolute left-3 top-3 flex flex-wrap gap-2 sm:left-4 sm:top-4">
-            <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] sm:px-3 sm:text-xs ${styles.badge}`}>
-              {styles.badgeText}
+          {isPremium ? (
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/15 to-transparent" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/15 via-transparent to-white/15" />
+          )}
+
+          <div className="absolute left-2 top-2 right-2 flex flex-wrap gap-1.5">
+            <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${styles.badge}`}>
+              {isPremium ? styles.badgeText : getVisibleTierBadgeLabel(planInput)}
             </span>
             {highlight.isPromo ? (
-              <span className="inline-flex rounded-full bg-white/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8f5b14] sm:px-3 sm:text-xs">
-                Promo activa
+              <span className="inline-flex rounded-full bg-white/92 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8f5b14]">
+                Promo
               </span>
             ) : null}
           </div>
         </div>
-      ) : null}
 
-      <div className={styles.content}>
-        <div className="flex items-start gap-3 sm:gap-4">
-          {isPremium ? (
-            <img
-              src={logoSrc}
-              alt={`Logo de ${business.name}`}
-              className={`rounded-2xl border border-white/50 object-cover shadow-sm ${plan === "sponsor" ? "h-12 w-12 sm:h-16 sm:w-16" : "h-11 w-11 sm:h-14 sm:w-14"}`}
-            />
-          ) : (
-            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eef4ef] text-xl sm:h-14 sm:w-14 sm:text-2xl">
-              {categoryIcon}
+        <div className={`flex min-w-0 flex-1 flex-col ${styles.content}`}>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex items-start gap-3">
+              {isPremium ? (
+                <img
+                  src={logoSrc}
+                  alt={`Logo de ${business.name}`}
+                  className={`rounded-2xl border border-white/50 object-cover shadow-sm ${plan === "sponsor" ? "h-10 w-10 sm:h-12 sm:w-12" : "h-9 w-9 sm:h-11 sm:w-11"}`}
+                />
+              ) : (
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eef4ef] text-base sm:h-10 sm:w-10 sm:text-lg">
+                  {categoryIcon}
+                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <h3 className={`font-serif font-semibold tracking-tight text-slate-950 ${styles.title}`}>
+                  <span className="line-clamp-2">{business.name}</span>
+                </h3>
+
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-600 sm:gap-2 sm:text-xs">
+                  {business.category ? <span className="rounded-full bg-[#eef4ef] px-2.5 py-1 sm:px-3">{business.category}</span> : null}
+                  {business.colonia ? <span className="rounded-full bg-slate-100 px-2.5 py-1 sm:px-3">{business.colonia}</span> : null}
+                  {ratingValue > 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#fbf4e6] px-2.5 py-1 text-[#8f5b14] sm:px-3">
+                      <Star className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" />
+                      {ratingValue.toFixed(1)}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </div>
-          )}
 
-          <div className="min-w-0 flex-1">
-            {!isPremium ? (
-              <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] sm:px-3 sm:text-[11px] ${styles.badge}`}>
-                {getVisibleTierBadgeLabel(planInput)}
-              </span>
+            {highlight.kind !== "none" ? (
+              <div className={`mt-3 rounded-[18px] px-3 py-2.5 ${highlightClasses}`}>
+                {highlight.label ? (
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-80">
+                    {highlight.label}
+                  </p>
+                ) : null}
+                {highlight.text ? (
+                  <p className="mt-1 line-clamp-2 text-[13px] leading-5 sm:text-sm">
+                    {highlight.text}
+                  </p>
+                ) : null}
+              </div>
             ) : null}
 
-            <h3 className={`mt-2 font-serif font-semibold tracking-tight text-slate-950 sm:mt-3 ${styles.title}`}>{business.name}</h3>
-
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-600 sm:mt-3 sm:gap-2 sm:text-xs">
-              {business.category ? <span className="rounded-full bg-[#eef4ef] px-2.5 py-1 sm:px-3">{business.category}</span> : null}
-              {business.colonia ? <span className="rounded-full bg-slate-100 px-2.5 py-1 sm:px-3">{business.colonia}</span> : null}
-              {ratingValue > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#fbf4e6] px-2.5 py-1 text-[#8f5b14] sm:px-3">
-                  <Star className="h-3 w-3 fill-current sm:h-3.5 sm:w-3.5" />
-                  {ratingValue.toFixed(1)}
+            <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium sm:gap-2 sm:text-xs">
+              {statusChip && highlight.kind !== "status" ? (
+                <span className={`rounded-full px-2.5 py-1 sm:px-3 ${statusChip.tone === "open" ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-red-50 text-red-700 ring-1 ring-red-200"}`}>
+                  {statusChip.label}
                 </span>
               ) : null}
-              {highlight.isPromo && !isPremium ? (
-                <span className="rounded-full bg-[#fff3e8] px-2.5 py-1 text-[#a84f0f] sm:px-3">Promo activa</span>
-              ) : null}
+              {business.hasEnvio ? <span className="rounded-full bg-[#fff3e8] px-2.5 py-1 text-[#a84f0f] sm:px-3">Pedidos o envio</span> : null}
             </div>
           </div>
-        </div>
 
-        {highlight.kind !== "none" ? (
-          <div className={`mt-3 rounded-[20px] px-3 py-2.5 sm:mt-4 ${highlightClasses}`}>
-            {highlight.label ? (
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">
-                {highlight.label}
-              </p>
+          <div className={`mt-4 grid gap-2 ${actionGridClass}`}>
+            {whatsappHref ? (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-11 sm:px-4 sm:text-sm ${styles.cta}`}
+                aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  trackCTA("whatsapp", businessId || "", business.name);
+                }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={handleViewDetails}
+                className={`inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-11 sm:px-4 sm:text-sm ${styles.cta}`}
+              >
+                Ver perfil
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+
+            {showSecondaryDetails ? (
+              <button
+                type="button"
+                onClick={handleViewDetails}
+                className="inline-flex h-10 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
+                aria-label={`Ver perfil de ${business.name}`}
+              >
+                <ArrowRight className="h-4 w-4" />
+              </button>
             ) : null}
-            {highlight.text ? (
-              <p className="mt-1 line-clamp-2 text-[13px] leading-5 sm:text-sm">
-                {highlight.text}
-              </p>
+            {callHref ? (
+              <a
+                href={callHref}
+                className="inline-flex h-10 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
+                aria-label={`Llamar a ${business.name}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  trackCTA("call", businessId || "", business.name);
+                }}
+              >
+                <Phone className="h-4 w-4" />
+              </a>
             ) : null}
           </div>
-        ) : null}
-
-        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium sm:mt-4 sm:gap-2 sm:text-xs">
-          {statusChip && highlight.kind !== "status" ? (
-            <span className={`rounded-full px-2.5 py-1 sm:px-3 ${statusChip.tone === "open" ? "bg-[#e6f6ed] text-[#0f7a47]" : "bg-red-50 text-red-700 ring-1 ring-red-200"}`}>
-              {statusChip.label}
-            </span>
-          ) : null}
-          {business.hasEnvio ? <span className="rounded-full bg-[#fff3e8] px-2.5 py-1 text-[#a84f0f] sm:px-3">Pedidos o envio</span> : null}
-        </div>
-
-        <div className={`mt-4 grid gap-2 sm:mt-5 sm:gap-3 ${actionGridClass}`}>
-          {whatsappHref ? (
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-11 sm:px-4 sm:text-sm ${styles.cta}`}
-              aria-label={`Enviar mensaje por WhatsApp a ${business.name}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                trackCTA("whatsapp", businessId || "", business.name);
-              }}
-            >
-              <MessageCircle className="h-4 w-4" />
-              WhatsApp
-            </a>
-          ) : (
-            <button
-              type="button"
-              onClick={handleViewDetails}
-              className={`inline-flex h-10 items-center justify-center gap-2 rounded-2xl px-3 text-[13px] font-semibold transition sm:h-11 sm:px-4 sm:text-sm ${styles.cta}`}
-            >
-              Ver perfil
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          )}
-
-          {showSecondaryDetails ? (
-            <button
-              type="button"
-              onClick={handleViewDetails}
-              className="inline-flex h-10 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
-              aria-label={`Ver perfil de ${business.name}`}
-            >
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          ) : null}
-          {callHref ? (
-            <a
-              href={callHref}
-              className="inline-flex h-10 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:h-11"
-              aria-label={`Llamar a ${business.name}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                trackCTA("call", businessId || "", business.name);
-              }}
-            >
-              <Phone className="h-4 w-4" />
-            </a>
-          ) : null}
         </div>
       </div>
     </article>
