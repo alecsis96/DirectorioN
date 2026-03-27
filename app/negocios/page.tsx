@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import NegociosListClient from '../../components/NegociosListClient';
+import { getActiveHeroCampaign, getLegacyHeroCampaignFallback } from '../../lib/server/campaignsData';
 import type { Business, BusinessPreview } from '../../types/business';
 import { pickBusinessPreview } from '../../types/business';
 import { fetchBusinesses, toNumber, sortBusinessesWithSponsors } from '../../lib/server/businessData';
@@ -102,6 +103,9 @@ async function buildBusinessesResult(params: SearchParams) {
   const categories = Array.from(categorySet).sort((a, b) => a.localeCompare(b, 'es'));
 
   const sortedBusinesses = sortBusinessesWithSponsors(allBusinesses);
+  const heroCampaign =
+    (await getActiveHeroCampaign(allBusinesses)) ??
+    getLegacyHeroCampaignFallback(allBusinesses);
 
   const businesses: BusinessPreview[] = sortedBusinesses.map((biz) => {
     const preview = pickBusinessPreview(biz as Business);
@@ -144,12 +148,13 @@ async function buildBusinessesResult(params: SearchParams) {
     filters,
     error,
     geoQuery,
+    heroCampaign,
   };
 }
 
 export default async function NegociosPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const resolvedParams = (await searchParams) ?? {};
-  const { businesses, categories, colonias, filters, error, geoQuery } = await buildBusinessesResult(resolvedParams);
+  const { businesses, categories, colonias, filters, error, geoQuery, heroCampaign } = await buildBusinessesResult(resolvedParams);
 
   return (
     <NegociosListClient
@@ -159,6 +164,7 @@ export default async function NegociosPage({ searchParams }: { searchParams: Pro
       initialFilters={filters ?? DEFAULT_FILTER_STATE}
       initialError={error}
       geoQuery={geoQuery}
+      heroCampaign={heroCampaign ?? undefined}
     />
   );
 }

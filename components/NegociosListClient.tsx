@@ -43,6 +43,7 @@ import 'swiper/css/pagination';
 
 import BusinessCard from './BusinessCard';
 import BusinessCardVertical from './BusinessCardVertical';
+import CampaignHeroBanner from './CampaignHeroBanner';
 import PremiumBusinessCard from './PremiumBusinessCard';
 // REMOVED: FreeBusinessCardCompact - Ya no se usa, unificamos a BusinessCard para todos los planes
 // import FreeBusinessCardCompact from './FreeBusinessCardCompact';
@@ -58,6 +59,7 @@ import { getBusinessStatus } from './BusinessHours';
 import { useFavorites } from '../context/FavoritesContext';
 import { selectSponsoredRotation } from '../lib/sponsoredRotation';
 import { CATEGORY_GROUPS, resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
+import type { CampaignHero } from '../types/campaign';
 
 const BusinessModalWrapper = dynamic(() => import('./BusinessModalWrapper'), { ssr: false });
 
@@ -113,6 +115,7 @@ export type NegociosListClientProps = {
   businesses: BusinessPreview[];
   categories: string[];
   colonias: string[];
+  heroCampaign?: CampaignHero;
   initialFilters?: Filters;
   initialError?: string | null;
   geoQuery?: {
@@ -128,6 +131,7 @@ export default function NegociosListClient({
   businesses = [],
   categories = [],
   colonias = [],
+  heroCampaign,
   initialFilters = FALLBACK_FILTERS,
   initialError = null,
   geoQuery = null,
@@ -634,127 +638,7 @@ export default function NegociosListClient({
                     </button>
                   ) : null}
                 </div>
-              </div>
-          
-          {/* H2 dinÃ¡mico segÃºn filtros/bÃºsqueda */}
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        Refinar resultados
-                      </p>
-                      <p className="mt-1 text-sm text-slate-600">
-                        Categoria, zona y prioridad para encontrar mas rapido.
-                      </p>
-                    </div>
-                    {hasActiveFilters ? (
-                      <span className="inline-flex items-center self-start rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-                        {activeFilterCount} activos
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowCategoriesModal(true)}
-                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
-                    >
-                      Categorias
-                    </button>
-
-                    <label className="block">
-                      <span className="sr-only">Filtrar por colonia</span>
-                      <select value={uiFilters.colonia} onChange={handleColoniaChange} className={utilityControlClass}>
-                        <option value="">Todas las zonas</option>
-                        {colonias.map((colonia) => (
-                          <option key={colonia} value={normalizeColonia(colonia)}>
-                            {colonia}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="block">
-                      <span className="sr-only">Ordenar negocios</span>
-                      <select value={uiFilters.order} onChange={handleOrderChange} className={utilityControlClass}>
-                        <option value={DEFAULT_ORDER}>Relevancia</option>
-                        <option value="rating">Mejor calificados</option>
-                        <option value="az">A-Z</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <div className="-mx-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
-                    <div className="flex w-max gap-3 sm:gap-4">
-                      {categoryAvailability.availableShortcuts.map((shortcut) => {
-                        const active = uiFilters.categoryGroupId === shortcut.id;
-                        return (
-                          <button
-                            key={shortcut.id}
-                            type="button"
-                            onClick={() =>
-                              updateFilters(
-                                {
-                                  category: '',
-                                  categoryId: '',
-                                  categoryName: '',
-                                  categoryGroupId: active ? undefined : shortcut.id,
-                                },
-                                { resetPage: true },
-                              )
-                            }
-                            className="snap-start text-center"
-                            aria-pressed={active}
-                          >
-                            <span
-                              className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full border bg-white text-2xl shadow-sm transition sm:h-16 sm:w-16 ${
-                                active
-                                  ? 'border-emerald-500 ring-2 ring-emerald-200'
-                                  : 'border-slate-200 hover:border-emerald-300'
-                              }`}
-                            >
-                              {shortcut.icon}
-                            </span>
-                            <span className={`mt-2 block text-xs font-medium leading-4 ${active ? 'text-emerald-700' : 'text-slate-600'}`}>
-                              {shortcut.shortLabel}
-                            </span>
-                          </button>
-                        );
-                      })}
-
-                      <button
-                        type="button"
-                        onClick={() => setShowCategoriesModal(true)}
-                        className="snap-start text-center"
-                      >
-                        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-xl shadow-sm transition hover:border-emerald-300 sm:h-16 sm:w-16">
-                          +
-                        </span>
-                        <span className="mt-2 block text-xs font-medium leading-4 text-slate-600">
-                          Ver todas
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => toggleQuickFilter('open')} className={quickFilterButtonClass(quickFilterOpen)}>
-                      Abiertos ahora
-                    </button>
-                    <button type="button" onClick={() => toggleQuickFilter('delivery')} className={quickFilterButtonClass(quickFilterDelivery)}>
-                      Con envio
-                    </button>
-                    <button type="button" onClick={() => toggleQuickFilter('topRated')} className={quickFilterButtonClass(quickFilterTopRated)}>
-                      4.5+
-                    </button>
-                    <button type="button" onClick={() => toggleQuickFilter('new')} className={quickFilterButtonClass(quickFilterNew)}>
-                      Nuevos
-                    </button>
-                  </div>
-                </div>
-              </div>
+              </div>                
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="hidden items-center justify-center gap-1 rounded-xl bg-gray-100 p-1 sm:flex sm:justify-start">
@@ -906,6 +790,13 @@ export default function NegociosListClient({
             </div>
           </div>
         </header>
+
+        {heroCampaign ? (
+          <CampaignHeroBanner
+            campaign={heroCampaign}
+            onOpenBusiness={(business) => setSelectedBusiness(business)}
+          />
+        ) : null}
 
         {/* Vitrina Premium visible */}
         {!uiFilters.category && !uiFilters.categoryGroupId && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (

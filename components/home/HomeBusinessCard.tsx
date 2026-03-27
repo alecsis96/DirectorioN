@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowRight, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { generateBusinessPlaceholder } from "../../lib/placeholderGenerator";

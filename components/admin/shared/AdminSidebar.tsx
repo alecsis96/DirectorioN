@@ -21,6 +21,7 @@ import {
   BsBoxSeam,
   BsShieldCheck,
   BsBug,
+  BsMegaphone,
 } from 'react-icons/bs';
 
 export default function AdminSidebar() {
@@ -63,6 +64,12 @@ export default function AdminSidebar() {
       label: 'Negocios', 
       icon: BsShop,
       description: 'Todos publicados'
+    },
+    {
+      href: '/admin/campaigns',
+      label: 'Campaigns',
+      icon: BsMegaphone,
+      description: 'Hero y ofertas'
     },
     
     // ========== MODERATION (Moderación de contenido) ==========
