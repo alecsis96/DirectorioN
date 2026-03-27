@@ -1,12 +1,12 @@
-﻿'use client';
+'use client';
 
-import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { FaBan, FaCheckCircle, FaTrash, FaEye, FaEdit, FaChevronDown, FaChevronUp, FaSearch, FaArrowUp, FaArrowDown, FaDownload, FaChartBar, FaCheckSquare, FaSquare, FaExclamationTriangle, FaUtensils } from 'react-icons/fa';
+import { FaBan, FaCheckCircle, FaChevronDown, FaEdit, FaEye, FaSearch, FaTrash } from 'react-icons/fa';
+
 import { auth } from '../firebaseConfig';
-import { MENU_FEATURE_ENABLED } from '../lib/featureFlags';
-import { getLegacyPlanPriority, resolveVisibleTier } from '../lib/businessPlanVisibility';
+import { resolveVisibleTier } from '../lib/businessPlanVisibility';
 
 interface BusinessData {
   id: string;
@@ -30,11 +30,8 @@ interface BusinessData {
 }
 
 interface Props {
-  businesses: BusinessData[]; // Initial SSR data
+  businesses: BusinessData[];
 }
-
-type SortField = 'businessName' | 'viewCount' | 'reviewCount' | 'avgRating' | 'createdAt' | 'plan';
-type SortDirection = 'asc' | 'desc';
 
 const fetcher = async (url: string) => {
   const user = auth.currentUser;
@@ -47,360 +44,81 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-function getPlanBadge(plan: string, _subscriptionStatus?: string) {
+function getPlanBadge(plan: string) {
   if (resolveVisibleTier(plan) === 'premium') {
-    return <span className="px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded">Premium</span>;
+    return <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">Premium</span>;
   }
-  return <span className="px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded">Free</span>;
+
+  return <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">Perfil base</span>;
 }
 
-function getSubscriptionStatusBadge(status?: string) {
-  if (!status) return null;
-  
-  const statusConfig: Record<string, { label: string; color: string }> = {
-    active: { label: 'âœ“ Activa', color: 'bg-green-100 text-green-800' },
-    payment_failed: { label: 'âš ï¸ Pago fallido', color: 'bg-red-100 text-red-800' },
-    canceled: { label: 'âœ• Cancelada', color: 'bg-gray-100 text-gray-600' },
-    past_due: { label: 'â° Vencida', color: 'bg-yellow-100 text-yellow-800' },
-  };
+function getStatusBadge(business: BusinessData) {
+  if (business.isActive === false) {
+    return <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">Pausado</span>;
+  }
 
-  const config = statusConfig[status] || { label: status, color: 'bg-gray-100 text-gray-600' };
-  
-  return (
-    <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded ${config.color}`}>
-      {config.label}
-    </span>
-  );
+  if (
+    resolveVisibleTier(business.plan) === 'premium' &&
+    (business.stripeSubscriptionStatus === 'payment_failed' || business.stripeSubscriptionStatus === 'past_due')
+  ) {
+    return <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800">Pago pendiente</span>;
+  }
+
+  return <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Activo</span>;
 }
 
 export default function AdminBusinessList({ businesses }: Props) {
-  // SWR para datos en tiempo real
-  const { data, error, isLoading, mutate } = useSWR<{ businesses: BusinessData[]; stats: any }>(
+  const { data, error, isLoading, mutate } = useSWR<{ businesses: BusinessData[] }>(
     '/api/admin/businesses-data',
     fetcher,
     {
-      fallbackData: { businesses, stats: null },
-      refreshInterval: 30000, // 30 segundos
+      fallbackData: { businesses },
+      refreshInterval: 30000,
       revalidateOnFocus: true,
     }
   );
 
   const items = data?.businesses || businesses;
 
-  const [loading, setLoading] = useState<string | null>(null);
-  const [planLoading, setPlanLoading] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  
-  // Estados de bÃºsqueda y filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState<'all' | 'free' | 'premium'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled' | 'payment_issue'>('all');
-  
-  // Estados de sorting
-  const [sortField, setSortField] = useState<SortField>('createdAt');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  
-  // Estados de bulk actions
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkLoading, setBulkLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'payment_issue'>('all');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [planLoading, setPlanLoading] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
 
-  // Filtrado, bÃºsqueda y sorting en tiempo real
   const filteredItems = useMemo(() => {
-    let filtered = items.filter(business => {
-      // Filtro de bÃºsqueda
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
-        !searchTerm || 
+    const searchLower = searchTerm.trim().toLowerCase();
+
+    return items.filter((business) => {
+      const matchesSearch =
+        !searchLower ||
         business.businessName.toLowerCase().includes(searchLower) ||
         business.ownerName?.toLowerCase().includes(searchLower) ||
         business.ownerEmail?.toLowerCase().includes(searchLower);
 
-      // Filtro de plan
-      const matchesPlan = planFilter === 'all' || resolveVisibleTier(business.plan) === planFilter;
+      const visibleTier = resolveVisibleTier(business.plan);
+      const matchesPlan = planFilter === 'all' || visibleTier === planFilter;
 
-      // Filtro de estado
       let matchesStatus = true;
-      if (statusFilter === 'active') {
-        matchesStatus = business.isActive !== false;
-      } else if (statusFilter === 'disabled') {
-        matchesStatus = business.isActive === false;
-      } else if (statusFilter === 'payment_issue') {
-        matchesStatus = resolveVisibleTier(business.plan) !== 'free' && 
-          (business.stripeSubscriptionStatus === 'payment_failed' || 
-           business.stripeSubscriptionStatus === 'past_due');
+      if (statusFilter === 'active') matchesStatus = business.isActive !== false;
+      if (statusFilter === 'paused') matchesStatus = business.isActive === false;
+      if (statusFilter === 'payment_issue') {
+        matchesStatus =
+          visibleTier === 'premium' &&
+          (business.stripeSubscriptionStatus === 'payment_failed' || business.stripeSubscriptionStatus === 'past_due');
       }
 
       return matchesSearch && matchesPlan && matchesStatus;
     });
+  }, [items, planFilter, searchTerm, statusFilter]);
 
-    // Sorting
-    filtered.sort((a, b) => {
-      let aVal: any = a[sortField];
-      let bVal: any = b[sortField];
-
-      // Handle null/undefined
-      if (aVal === null || aVal === undefined) return 1;
-      if (bVal === null || bVal === undefined) return -1;
-
-      // Convert dates to timestamps
-      if (sortField === 'createdAt') {
-        aVal = aVal ? new Date(aVal).getTime() : 0;
-        bVal = bVal ? new Date(bVal).getTime() : 0;
-      }
-
-      // Plan ordering: sponsor > featured > free
-      if (sortField === 'plan') {
-        aVal = getLegacyPlanPriority(aVal);
-        bVal = getLegacyPlanPriority(bVal);
-      }
-
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [items, searchTerm, planFilter, statusFilter, sortField, sortDirection]);
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc');
-    }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return null;
-    return sortDirection === 'asc' ? <FaArrowUp className="inline ml-1 text-xs" /> : <FaArrowDown className="inline ml-1 text-xs" />;
-  };
-
-  // Export CSV
-  const exportToCSV = () => {
-    const headers = [
-      'ID',
-      'Nombre Negocio',
-      'Propietario',
-      'Email',
-      'CategorÃ­a',
-      'Plan',
-      'Estado SuscripciÃ³n',
-      'Estado',
-      'Vistas',
-      'ReseÃ±as',
-      'Rating Promedio',
-      'Fecha CreaciÃ³n',
-      'Fecha AprobaciÃ³n',
-      'PrÃ³ximo Pago',
-      'Ãšltimo Pago',
-      'Expira',
-    ];
-
-    const rows = filteredItems.map((b) => [
-      b.id,
-      b.businessName,
-      b.ownerName || '',
-      b.ownerEmail || '',
-      b.category || '',
-      b.plan,
-      b.stripeSubscriptionStatus || '',
-      b.isActive === false ? 'Deshabilitado' : 'Activo',
-      b.viewCount || 0,
-      b.reviewCount || 0,
-      b.avgRating?.toFixed(1) || '0.0',
-      b.createdAt ? new Date(b.createdAt).toLocaleDateString('es-MX') : '',
-      b.approvedAt ? new Date(b.approvedAt).toLocaleDateString('es-MX') : '',
-      b.nextPaymentDate ? new Date(b.nextPaymentDate).toLocaleDateString('es-MX') : '',
-      b.lastPaymentDate ? new Date(b.lastPaymentDate).toLocaleDateString('es-MX') : '',
-      b.planExpiresAt ? new Date(b.planExpiresAt).toLocaleDateString('es-MX') : '',
-    ]);
-
-    const csv = [
-      headers.join(','),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-      ),
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `negocios_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
-
-  // Alertas predictivas
-  const predictiveAlerts = useMemo(() => {
-    const alerts: Array<{ type: 'warning' | 'danger' | 'info'; message: string; count: number }> = [];
-
-    // Negocios con planes prÃ³ximos a vencer (dentro de 7 dÃ­as)
-    const sevenDaysFromNow = new Date();
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-    const expiringSoon = filteredItems.filter(b => 
-      resolveVisibleTier(b.plan) !== 'free' && 
-      b.planExpiresAt && 
-      new Date(b.planExpiresAt) <= sevenDaysFromNow
-    );
-    if (expiringSoon.length > 0) {
-      alerts.push({ type: 'warning', message: 'Negocios con plan prÃ³ximo a vencer', count: expiringSoon.length });
-    }
-
-    // Negocios sin actividad reciente (0 vistas)
-    const noActivity = filteredItems.filter(b => (b.viewCount || 0) === 0);
-    if (noActivity.length > 0) {
-      alerts.push({ type: 'info', message: 'Negocios sin vistas', count: noActivity.length });
-    }
-
-    // Negocios con problemas de pago
-    const paymentIssues = filteredItems.filter(b => 
-      resolveVisibleTier(b.plan) !== 'free' && 
-      (b.stripeSubscriptionStatus === 'payment_failed' || b.stripeSubscriptionStatus === 'past_due')
-    );
-    if (paymentIssues.length > 0) {
-      alerts.push({ type: 'danger', message: 'Negocios con problemas de pago', count: paymentIssues.length });
-    }
-
-    // Negocios deshabilitados
-    const disabled = filteredItems.filter(b => b.isActive === false);
-    if (disabled.length > 0) {
-      alerts.push({ type: 'warning', message: 'Negocios deshabilitados', count: disabled.length });
-    }
-
-    return alerts;
-  }, [filteredItems]);
-
-  // Bulk selection
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredItems.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredItems.map(b => b.id)));
-    }
-  };
-
-  const toggleSelectOne = (id: string) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setSelectedIds(newSet);
-  };
-
-  // Bulk actions
-  const handleBulkPlanChange = async (plan: string) => {
-    if (selectedIds.size === 0) {
-      alert('Selecciona al menos un negocio');
-      return;
-    }
-
-    const visiblePlan = plan === 'sponsor' ? 'premium' : plan;
-    if (!confirm(`Â¿Cambiar ${selectedIds.size} negocios al plan ${visiblePlan}?`)) return;
-
-    setBulkLoading(true);
-    try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('No autenticado');
-      const token = await user.getIdToken();
-
-      const promises = Array.from(selectedIds).map(businessId =>
-        fetch('/api/admin/update-plan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ businessId, plan }),
-        })
-      );
-
-      await Promise.all(promises);
-
-      // Revalidar datos
-      await mutate();
-      setSelectedIds(new Set());
-      alert(`âœ… ${selectedIds.size} negocios actualizados`);
-    } catch (error: any) {
-      alert('âŒ Error: ' + error.message);
-    } finally {
-      setBulkLoading(false);
-    }
-  };
-
-  const handleBulkDisable = async () => {
-    if (selectedIds.size === 0) {
-      alert('Selecciona al menos un negocio');
-      return;
-    }
-
-    const reason = prompt('Motivo de deshabilitaciÃ³n masiva:', 'AcciÃ³n administrativa');
-    if (!reason) return;
-
-    if (!confirm(`Â¿Deshabilitar ${selectedIds.size} negocios?`)) return;
-
-    setBulkLoading(true);
-    try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('No autenticado');
-      const token = await user.getIdToken();
-
-      const promises = Array.from(selectedIds).map(businessId =>
-        fetch('/api/admin/disable-business', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ businessId, reason }),
-        })
-      );
-
-      await Promise.all(promises);
-
-      // Revalidar datos
-      await mutate();
-      setSelectedIds(new Set());
-      alert(`âœ… ${selectedIds.size} negocios deshabilitados`);
-    } catch (error: any) {
-      alert('âŒ Error: ' + error.message);
-    } finally {
-      setBulkLoading(false);
-    }
-  };
-
-  const handleBulkEnable = async () => {
-    if (selectedIds.size === 0) {
-      alert('Selecciona al menos un negocio');
-      return;
-    }
-
-    if (!confirm(`Â¿Habilitar ${selectedIds.size} negocios?`)) return;
-
-    setBulkLoading(true);
-    try {
-      const promises = Array.from(selectedIds).map(businessId =>
-        fetch('/api/admin/enable-business', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ businessId }),
-        })
-      );
-
-      await Promise.all(promises);
-
-      // Revalidar datos
-      await mutate();
-      setSelectedIds(new Set());
-      alert(`âœ… ${selectedIds.size} negocios habilitados`);
-    } catch (error: any) {
-      alert('âŒ Error: ' + error.message);
-    } finally {
-      setBulkLoading(false);
-    }
-  };
-
-  const handlePlanChange = async (businessId: string, plan: string) => {
-    if (!plan) return;
+  const handlePlanChange = async (businessId: string, nextPlan: string) => {
+    if (!nextPlan) return;
 
     const user = auth.currentUser;
     if (!user) {
-      alert('Debes iniciar sesiï¿½ï¿½n como administrador');
+      alert('Debes iniciar sesion como administrador');
       return;
     }
 
@@ -409,703 +127,261 @@ export default function AdminBusinessList({ businesses }: Props) {
       const token = await user.getIdToken();
       const res = await fetch('/api/admin/update-plan', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ businessId, plan }),
+        body: JSON.stringify({ businessId, plan: nextPlan }),
       });
 
-      const data = await res.json();
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Error al actualizar plan');
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al actualizar plan');
-      }
-
-      // MutaciÃ³n optimista
-      mutate(
-        (current) => {
-          if (!current) return current;
-          return {
-            ...current,
-            businesses: current.businesses.map((biz) =>
-              biz.id === businessId
-                ? {
-                    ...biz,
-                    plan,
-                    planExpiresAt: data.planExpiresAt ?? biz.planExpiresAt ?? null,
-                    nextPaymentDate: data.nextPaymentDate ?? biz.nextPaymentDate ?? null,
-                    paymentStatus: plan === 'free' ? null : biz.paymentStatus ?? 'active',
-                    stripeSubscriptionStatus: plan === 'free' ? undefined : biz.stripeSubscriptionStatus,
-                  }
-                : biz
-            ),
-          };
-        },
-        { revalidate: true }
-      );
-
-      alert('Plan actualizado');
-    } catch (error: any) {
-      alert('Error: ' + error.message);
+      await mutate();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Error al actualizar plan');
     } finally {
       setPlanLoading(null);
     }
   };
 
-  const handleDisable = async (businessId: string) => {
-    const reason = prompt('Motivo de deshabilitaciÃ³n:', 'ViolaciÃ³n de tÃ©rminos de servicio');
-    if (!reason) return;
-
-    if (!confirm('Â¿EstÃ¡s seguro de que deseas deshabilitar este negocio?')) return;
-
-    setLoading(businessId);
+  const handleToggleActive = async (business: BusinessData) => {
+    setActionLoading(business.id);
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        alert('âŒ Debes iniciar sesiÃ³n');
-        return;
+      if (business.isActive === false) {
+        const res = await fetch('/api/admin/enable-business', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ businessId: business.id }),
+        });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || 'Error al activar negocio');
+      } else {
+        const reason = prompt('Motivo para pausar el negocio', 'Revision administrativa');
+        if (!reason) {
+          setActionLoading(null);
+          return;
+        }
+
+        const user = auth.currentUser;
+        if (!user) throw new Error('Debes iniciar sesion');
+        const token = await user.getIdToken();
+
+        const res = await fetch('/api/admin/disable-business', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ businessId: business.id, reason }),
+        });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || 'Error al pausar negocio');
       }
-      
-      const token = await user.getIdToken();
-      const res = await fetch('/api/admin/disable-business', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ businessId, reason }),
-      });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al deshabilitar negocio');
-      }
-
-      // MutaciÃ³n optimista
-      mutate(
-        (current) => {
-          if (!current) return current;
-          return {
-            ...current,
-            businesses: current.businesses.map((biz) =>
-              biz.id === businessId ? { ...biz, isActive: false } : biz
-            ),
-          };
-        },
-        { revalidate: true }
-      );
-
-      alert('âœ… Negocio deshabilitado exitosamente');
-    } catch (error: any) {
-      alert('âŒ Error: ' + error.message);
+      await mutate();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Error al cambiar estado');
     } finally {
-      setLoading(null);
+      setActionLoading(null);
     }
   };
 
-  const handleEnable = async (businessId: string) => {
-    if (!confirm('Â¿EstÃ¡s seguro de que deseas habilitar este negocio?')) return;
+  const handleDelete = async (businessId: string, businessName: string) => {
+    const confirmText = prompt(`Para eliminar "${businessName}" escribe ELIMINAR`);
+    if (confirmText !== 'ELIMINAR') return;
 
-    setLoading(businessId);
-    try {
-      const res = await fetch('/api/admin/enable-business', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessId }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al habilitar negocio');
-      }
-
-      // MutaciÃ³n optimista
-      mutate(
-        (current) => {
-          if (!current) return current;
-          return {
-            ...current,
-            businesses: current.businesses.map((biz) =>
-              biz.id === businessId ? { ...biz, isActive: true } : biz
-            ),
-          };
-        },
-        { revalidate: true }
-      );
-
-      alert('âœ… Negocio habilitado exitosamente');
-    } catch (error: any) {
-      alert('âŒ Error: ' + error.message);
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleDelete = async (businessId: string) => {
-    const confirmText = prompt(
-      'âš ï¸ ADVERTENCIA: Esta acciÃ³n es IRREVERSIBLE.\n\n' +
-      'Se eliminarÃ¡:\n' +
-      '- El negocio\n' +
-      '- Todas sus reseÃ±as\n' +
-      '- El usuario dueÃ±o\n\n' +
-      'Escribe "ELIMINAR" para confirmar:'
-    );
-
-    if (confirmText !== 'ELIMINAR') {
-      alert('EliminaciÃ³n cancelada');
-      return;
-    }
-
-    setLoading(businessId);
+    setActionLoading(businessId);
     try {
       const user = auth.currentUser;
-      if (!user) {
-        alert('âŒ Debes iniciar sesiÃ³n');
-        setLoading(null);
-        return;
-      }
-      
+      if (!user) throw new Error('Debes iniciar sesion');
       const token = await user.getIdToken();
-      
+
       const res = await fetch('/api/admin/delete-business', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ businessId }),
       });
-      const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al eliminar negocio');
-      }
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Error al eliminar negocio');
 
-      // MutaciÃ³n optimista - eliminar del array
-      mutate(
-        (current) => {
-          if (!current) return current;
-          return {
-            ...current,
-            businesses: current.businesses.filter((biz) => biz.id !== businessId),
-          };
-        },
-        { revalidate: true }
-      );
-
-      alert('âœ… Negocio eliminado permanentemente');
-    } catch (error: any) {
-      console.error('Delete error:', error);
-      alert('âŒ Error: ' + error.message);
+      await mutate();
+      setMenuId(null);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Error al eliminar negocio');
     } finally {
-      setLoading(null);
+      setActionLoading(null);
     }
   };
 
-  // Estados de error y loading
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-        <p className="text-red-600 font-medium mb-2">Error al cargar negocios</p>
-        <p className="text-sm text-red-500 mb-4">{error.message}</p>
-        <button
-          onClick={() => mutate()}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-        >
-          Reintentar
-        </button>
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+        <p className="font-medium text-red-700">No se pudieron cargar los negocios.</p>
+        <p className="mt-1 text-sm text-red-600">{error.message}</p>
       </div>
     );
   }
 
+  if (isLoading && !data) {
+    return <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-500">Cargando negocios...</div>;
+  }
+
   return (
     <div className="space-y-4">
-      {/* Indicador de loading */}
-      {isLoading && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-          <p className="text-blue-600 text-sm">ðŸ”„ Actualizando datos...</p>
-        </div>
-      )}
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
+          <label className="relative block">
+            <FaSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Buscar negocio o contacto"
+              className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-4 text-sm text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+          </label>
 
-      {/* Alertas predictivas */}
-      {predictiveAlerts.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <FaExclamationTriangle className="text-yellow-600" />
-            <h3 className="font-semibold text-gray-900">Alertas del Sistema</h3>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            {predictiveAlerts.map((alert, idx) => (
-              <div
-                key={idx}
-                className={`p-3 rounded-lg border ${
-                  alert.type === 'danger'
-                    ? 'bg-red-50 border-red-200'
-                    : alert.type === 'warning'
-                    ? 'bg-yellow-50 border-yellow-200'
-                    : 'bg-blue-50 border-blue-200'
-                }`}
-              >
-                <p className="text-xs font-medium text-gray-700 mb-1">{alert.message}</p>
-                <p className="text-2xl font-bold text-gray-900">{alert.count}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {/* Panel de bulk actions */}
-      {selectedIds.size > 0 && (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg shadow-lg p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-gray-900 flex items-center gap-2">
-                <FaCheckSquare className="text-blue-600" />
-                {selectedIds.size} negocio{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
-              </p>
-              <p className="text-xs text-gray-600 mt-1">Selecciona acciones para aplicar masivamente</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <select
-                onChange={(e) => {
-                  if (e.target.value) handleBulkPlanChange(e.target.value === 'premium' ? 'sponsor' : e.target.value);
-                  e.target.value = '';
-                }}
-                disabled={bulkLoading}
-                className="px-3 py-2 text-sm border-2 border-blue-300 rounded-lg bg-white font-medium hover:border-blue-400 transition-colors disabled:opacity-50"
-              >
-                <option value="">Cambiar plan...</option>
-                <option value="free">Free</option>
-                <option value="sponsor">Premium</option>
-              </select>
-              <button
-                onClick={handleBulkEnable}
-                disabled={bulkLoading}
-                className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
-              >
-                <FaCheckCircle />
-                Habilitar
-              </button>
-              <button
-                onClick={handleBulkDisable}
-                disabled={bulkLoading}
-                className="px-3 py-2 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 flex items-center gap-1"
-              >
-                <FaBan />
-                Deshabilitar
-              </button>
-              <button
-                onClick={() => setSelectedIds(new Set())}
-                className="px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          <select
+            value={planFilter}
+            onChange={(event) => setPlanFilter(event.target.value as typeof planFilter)}
+            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+          >
+            <option value="all">Todos los planes</option>
+            <option value="free">Perfil base</option>
+            <option value="premium">Premium</option>
+          </select>
 
-      {/* Barra de sorting */}
-      <div className="bg-white rounded-lg shadow-md p-3 overflow-x-auto">
-        <div className="flex items-center gap-2 min-w-max">
-          {/* Checkbox select all */}
-          <button
-            onClick={toggleSelectAll}
-            className="p-2 hover:bg-gray-100 rounded transition-colors"
-            title={selectedIds.size === filteredItems.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
           >
-            {selectedIds.size === filteredItems.length ? (
-              <FaCheckSquare className="text-blue-600 text-lg" />
-            ) : (
-              <FaSquare className="text-gray-400 text-lg" />
-            )}
-          </button>
-          <div className="w-px h-6 bg-gray-300"></div>
-          <span className="text-sm font-medium text-gray-700 mr-2">Ordenar por:</span>
-          <button
-            onClick={() => handleSort('businessName')}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-              sortField === 'businessName'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Nombre <SortIcon field="businessName" />
-          </button>
-          <button
-            onClick={() => handleSort('viewCount')}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-              sortField === 'viewCount'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Vistas <SortIcon field="viewCount" />
-          </button>
-          <button
-            onClick={() => handleSort('reviewCount')}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-              sortField === 'reviewCount'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            ReseÃ±as <SortIcon field="reviewCount" />
-          </button>
-          <button
-            onClick={() => handleSort('avgRating')}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-              sortField === 'avgRating'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Rating <SortIcon field="avgRating" />
-          </button>
-          <button
-            onClick={() => handleSort('plan')}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-              sortField === 'plan'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Plan <SortIcon field="plan" />
-          </button>
-          <button
-            onClick={() => handleSort('createdAt')}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-              sortField === 'createdAt'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Fecha <SortIcon field="createdAt" />
-          </button>
-        </div>
-      </div>
-
-      {/* Barra de bÃºsqueda y filtros */}
-      <div className="bg-white rounded-lg shadow-md p-4 space-y-4">
-        {/* BÃºsqueda */}
-        <div className="relative">
-          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar negocio, propietario o correo..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              âœ•
-            </button>
-          )}
+            <option value="all">Todos los estados</option>
+            <option value="active">Activos</option>
+            <option value="paused">Pausados</option>
+            <option value="payment_issue">Pago pendiente</option>
+          </select>
         </div>
 
-        {/* Filtros */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Filtro de plan */}
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Plan
-            </label>
-            <select
-              value={planFilter}
-              onChange={(e) => setPlanFilter(e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            >
-              <option value="all">Todos los planes</option>
-              <option value="free">Free</option>
-              <option value="premium">Premium</option>
-            </select>
-          </div>
-
-          {/* Filtro de estado */}
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Estado
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            >
-              <option value="all">Todos</option>
-              <option value="active">âœ“ Activos</option>
-              <option value="disabled">ðŸš« Deshabilitados</option>
-              <option value="payment_issue">âš ï¸ Problemas de pago</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Contador de resultados y acciones */}
-        <div className="flex items-center justify-between text-sm text-gray-600 pt-2 border-t border-gray-200">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-sm text-gray-500">
           <span>
-            Mostrando <strong>{filteredItems.length}</strong> de <strong>{items.length}</strong> negocios
+            {filteredItems.length} de {items.length} negocios listos para gestionar
           </span>
-          <div className="flex items-center gap-2">
-            {(searchTerm || planFilter !== 'all' || statusFilter !== 'all') && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setPlanFilter('all');
-                  setStatusFilter('all');
-                }}
-                className="text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Limpiar filtros
-              </button>
-            )}
+          {searchTerm || planFilter !== 'all' || statusFilter !== 'all' ? (
             <button
-              onClick={exportToCSV}
-              disabled={filteredItems.length === 0}
-              className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setPlanFilter('all');
+                setStatusFilter('all');
+              }}
+              className="font-medium text-emerald-700 transition hover:text-emerald-900"
             >
-              <FaDownload className="text-xs" />
-              <span className="font-medium">Export CSV</span>
+              Limpiar filtros
             </button>
-          </div>
+          ) : null}
         </div>
-      </div>
+      </section>
 
-      {/* Lista de negocios */}
       {filteredItems.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <FaSearch className="mx-auto text-gray-400 text-4xl mb-3" />
-          <p className="text-gray-600 text-lg">No se encontraron negocios</p>
-          <p className="text-gray-500 text-sm mt-1">Intenta con otros criterios de bÃºsqueda</p>
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <p className="font-semibold text-gray-700">No hay negocios para esta vista.</p>
+          <p className="mt-1 text-sm text-gray-500">Prueba con otros filtros o busca por nombre.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filteredItems.map((business) => (
-            <div key={business.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-              {/* Vista compacta (siempre visible) */}
-              <div className="p-4">
-                <div className="flex items-start gap-4">
-                  {/* Checkbox */}
-                  <button
-                    onClick={() => toggleSelectOne(business.id)}
-                    className="mt-1 p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
-                  >
-                    {selectedIds.has(business.id) ? (
-                      <FaCheckSquare className="text-blue-600 text-xl" />
-                    ) : (
-                      <FaSquare className="text-gray-300 text-xl" />
-                    )}
-                  </button>
-                  
-                  {/* InformaciÃ³n principal */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="text-base font-semibold text-gray-900 truncate">
-                            {business.businessName}
-                          </h3>
-                          {getPlanBadge(business.plan, business.stripeSubscriptionStatus)}
-                          {business.isActive === false && (
-                            <span className="px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded">
-                              ðŸš« Deshabilitado
-                            </span>
-                          )}
-                          {resolveVisibleTier(business.plan) !== 'free' && getSubscriptionStatusBadge(business.stripeSubscriptionStatus)}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">{business.ownerName || 'Sin nombre'}</span>
-                          {' â€¢ '}
-                          <span className="text-gray-500">{business.ownerEmail}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* MÃ©tricas clave */}
-                    <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <span>ðŸ‘ï¸</span>
-                        <span>{business.viewCount || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span>ðŸ’¬</span>
-                        <span>{business.reviewCount || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span>â­</span>
-                        <span>{business.avgRating?.toFixed(1) || '0.0'}</span>
-                      </div>
-                      {business.category && (
-                        <div className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded">
-                          {business.category}
-                        </div>
-                      )}
-                    </div>
+            <article key={business.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base font-semibold text-gray-900">{business.businessName}</h3>
+                    {getPlanBadge(business.plan)}
+                    {getStatusBadge(business)}
                   </div>
+                </div>
 
-                  {/* Acciones principales */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Link
-                      href={`/negocios/${business.id}`}
-                      target="_blank"
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Ver negocio"
-                    >
-                      <FaEye />
-                    </Link>
-                    <Link
-                      href={`/dashboard/${business.id}`}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="Editar"
-                    >
-                      <FaEdit />
-                    </Link>
-                    {MENU_FEATURE_ENABLED ? (
-                      <Link
-                        href={`/admin/businesses/${business.id}/menu`}
-                        className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                        title="Gestionar menu"
-                      >
-                        <FaUtensils />
-                      </Link>
-                    ) : null}
-                    <Link
-                      href={`/admin/analytics?businessId=${business.id}`}
-                      className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                      title="Ver analytics"
-                    >
-                      <FaChartBar />
-                    </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={resolveVisibleTier(business.plan) === 'premium' ? 'sponsor' : 'free'}
+                    onChange={(event) => handlePlanChange(business.id, event.target.value)}
+                    disabled={planLoading === business.id}
+                    className="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="free">Perfil base</option>
+                    <option value="sponsor">Premium</option>
+                  </select>
+
+                  <Link
+                    href={`/dashboard/${business.id}`}
+                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <FaEdit className="text-xs" />
+                    Dashboard
+                  </Link>
+
+                  <Link
+                    href={`/negocios/${business.id}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <FaEye className="text-xs" />
+                    Ver
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(business)}
+                    disabled={actionLoading === business.id}
+                    className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      business.isActive === false ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'
+                    }`}
+                  >
+                    {business.isActive === false ? <FaCheckCircle className="text-xs" /> : <FaBan className="text-xs" />}
+                    {business.isActive === false ? 'Activar' : 'Pausar'}
+                  </button>
+
+                  <div className="relative">
                     <button
-                      onClick={() => setExpandedId(expandedId === business.id ? null : business.id)}
-                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      title={expandedId === business.id ? "Contraer" : "Ver mÃ¡s opciones"}
+                      type="button"
+                      onClick={() => setMenuId((current) => (current === business.id ? null : business.id))}
+                      className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                     >
-                      {expandedId === business.id ? <FaChevronUp /> : <FaChevronDown />}
+                      <FaChevronDown className="text-xs" />
                     </button>
+
+                    {menuId === business.id ? (
+                      <>
+                        <button
+                          type="button"
+                          aria-label="Cerrar menu"
+                          className="fixed inset-0 z-10 cursor-default"
+                          onClick={() => setMenuId(null)}
+                        />
+                        <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(business.id, business.businessName)}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-700 transition hover:bg-red-50"
+                          >
+                            <FaTrash className="text-xs" />
+                            Eliminar
+                          </button>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
                 </div>
               </div>
-
-              {/* Vista expandida (solo cuando se hace clic) */}
-              {expandedId === business.id && (
-                <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-4">
-                  {/* Cambio de plan */}
-                  <div>
-                    <p className="text-xs font-medium text-gray-700 uppercase mb-2">
-                      Cambiar Plan (Pago manual)
-                    </p>
-                    <select
-                      value={resolveVisibleTier(business.plan) === 'premium' ? 'sponsor' : 'free'}
-                      onChange={(e) => handlePlanChange(business.id, e.target.value)}
-                      disabled={planLoading === business.id}
-                      className="w-full sm:w-64 text-sm border-2 border-blue-300 rounded-lg px-3 py-2 bg-white font-medium hover:border-blue-400 transition-colors disabled:opacity-50"
-                    >
-                      <option value="free">Free</option>
-                      <option value="sponsor">Premium</option>
-                    </select>
-                    {planLoading === business.id && (
-                      <p className="text-xs text-blue-600 mt-1">Actualizando...</p>
-                    )}
-                  </div>
-
-                  {/* InformaciÃ³n de pagos */}
-                  {resolveVisibleTier(business.plan) !== 'free' && (
-                    <div>
-                      <p className="text-xs font-medium text-gray-700 uppercase mb-2">
-                        InformaciÃ³n de Pago
-                      </p>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        {business.nextPaymentDate ? (
-                          <div>
-                            <span className="font-medium">PrÃ³ximo pago:</span>{' '}
-                            {new Date(business.nextPaymentDate).toLocaleDateString('es-MX')}
-                          </div>
-                        ) : (
-                          <div className="text-yellow-600">âš ï¸ Sin fecha de pago</div>
-                        )}
-                        {business.lastPaymentDate && (
-                          <div className="text-xs text-gray-500">
-                            Ãšltimo pago: {new Date(business.lastPaymentDate).toLocaleDateString('es-MX')}
-                          </div>
-                        )}
-                        {business.planExpiresAt && (
-                          <div className="text-xs text-gray-500">
-                            Expira: {new Date(business.planExpiresAt).toLocaleDateString('es-MX')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Fechas */}
-                  <div>
-                    <p className="text-xs font-medium text-gray-700 uppercase mb-2">
-                      Fechas
-                    </p>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      {business.createdAt && (
-                        <div>
-                          <span className="font-medium">Creado:</span>{' '}
-                          {new Date(business.createdAt).toLocaleDateString('es-MX')}
-                        </div>
-                      )}
-                      {business.approvedAt && (
-                        <div>
-                          <span className="font-medium">Aprobado:</span>{' '}
-                          {new Date(business.approvedAt).toLocaleDateString('es-MX')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Acciones avanzadas */}
-                  <div className="pt-3 border-t border-gray-300">
-                    <p className="text-xs font-medium text-gray-700 uppercase mb-2">
-                      Acciones Administrativas
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      {business.isActive !== false ? (
-                        <button
-                          onClick={() => handleDisable(business.id)}
-                          disabled={loading === business.id}
-                          className="px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
-                          <FaBan />
-                          Deshabilitar
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleEnable(business.id)}
-                          disabled={loading === business.id}
-                          className="px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
-                          <FaCheckCircle />
-                          Habilitar
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(business.id)}
-                        disabled={loading === business.id}
-                        className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-                      >
-                        <FaTrash />
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            </article>
           ))}
         </div>
       )}
     </div>
   );
 }
-
-

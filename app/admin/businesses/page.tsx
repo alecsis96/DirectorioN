@@ -1,10 +1,10 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
+
+import AdminBusinessList from '../../../components/AdminBusinessList';
+import { hasAdminOverride } from '../../../lib/adminOverrides';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { downgradeExpiredPremiumPlans } from '../../../lib/server/premiumPlanExpiry';
-import { hasAdminOverride } from '../../../lib/adminOverrides';
-import AdminBusinessList from '../../../components/AdminBusinessList';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,121 +59,63 @@ interface BusinessData {
 
 async function fetchAllBusinesses(): Promise<BusinessData[]> {
   const db = getAdminFirestore();
-  
-  const snapshot = await db
-    .collection('businesses')
-    .where('businessStatus', '==', 'published')
-    .get();
+  const snapshot = await db.collection('businesses').where('businessStatus', '==', 'published').get();
 
   if (snapshot.empty) return [];
 
-  const businesses = snapshot.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      businessName: data.businessName || data.name || 'Sin nombre',
-      ownerName: data.ownerName,
-      ownerEmail: data.ownerEmail,
-      category: data.category,
-      status: data.status,
-      plan: data.plan || 'free',
-      planExpiresAt: data.planExpiresAt?.toDate?.()?.toISOString() || null,
-      createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
-      approvedAt: data.approvedAt?.toDate?.()?.toISOString() || null,
-      viewCount: data.viewCount || 0,
-      reviewCount: data.reviewCount || 0,
-      avgRating: data.avgRating || 0,
-      stripeSubscriptionStatus: data.stripeSubscriptionStatus,
-      nextPaymentDate: data.nextPaymentDate?.toDate?.()?.toISOString() || null,
-      lastPaymentDate: data.lastPaymentDate?.toDate?.()?.toISOString() || null,
-      isActive: data.isActive,
-    };
-  });
-
-  return businesses.sort((a, b) => {
-    if (!a.createdAt) return 1;
-    if (!b.createdAt) return -1;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-}
-
-async function getBusinessStats() {
-  const db = getAdminFirestore();
-  
-  const [totalSnapshot, freeSnapshot, featuredSnapshot, sponsorSnapshot] = await Promise.all([
-    db.collection('businesses').where('businessStatus', '==', 'published').count().get(),
-    db.collection('businesses').where('businessStatus', '==', 'published').where('plan', '==', 'free').count().get(),
-    db.collection('businesses').where('businessStatus', '==', 'published').where('plan', '==', 'featured').count().get(),
-    db.collection('businesses').where('businessStatus', '==', 'published').where('plan', '==', 'sponsor').count().get(),
-  ]);
-
-  return {
-    total: totalSnapshot.data().count,
-    free: freeSnapshot.data().count,
-    featured: featuredSnapshot.data().count,
-    sponsor: sponsorSnapshot.data().count,
-  };
+  return snapshot.docs
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        businessName: data.businessName || data.name || 'Sin nombre',
+        ownerName: data.ownerName,
+        ownerEmail: data.ownerEmail,
+        category: data.category,
+        status: data.status,
+        plan: data.plan || 'free',
+        planExpiresAt: data.planExpiresAt?.toDate?.()?.toISOString() || null,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+        approvedAt: data.approvedAt?.toDate?.()?.toISOString() || null,
+        viewCount: data.viewCount || 0,
+        reviewCount: data.reviewCount || 0,
+        avgRating: data.avgRating || 0,
+        stripeSubscriptionStatus: data.stripeSubscriptionStatus,
+        nextPaymentDate: data.nextPaymentDate?.toDate?.()?.toISOString() || null,
+        lastPaymentDate: data.lastPaymentDate?.toDate?.()?.toISOString() || null,
+        isActive: data.isActive,
+      };
+    })
+    .sort((a, b) => {
+      if (!a.createdAt) return 1;
+      if (!b.createdAt) return -1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 }
 
 export default async function AdminBusinessesPage() {
   await requireAdmin();
   await downgradeExpiredPremiumPlans({ force: true });
-  const [businesses, stats] = await Promise.all([
-    fetchAllBusinesses(),
-    getBusinessStats(),
-  ]);
+  const businesses = await fetchAllBusinesses();
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Panel de control</p>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">Negocios Publicados</h1>
-            <p className="text-sm sm:text-base text-gray-600">Gestiona todos los negocios activos en el directorio</p>
-          </div>
-          <Link
-            href="/admin/businesses/nuevo"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#38761D] text-white font-semibold rounded-lg hover:bg-[#2d5a16] transition-colors shadow-md whitespace-nowrap"
-          >
-            <span className="text-xl">+</span>
-            <span>Crear Negocio</span>
-          </Link>
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-6">
+          <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">Operacion</p>
+          <h1 className="mb-2 text-2xl font-bold text-[#38761D] sm:text-3xl">Negocios</h1>
+          <p className="text-sm text-gray-600">Lista corta para cambiar plan, editar o pausar sin ruido extra.</p>
         </div>
 
-        {/* Estadísticas rápidas */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 rounded-lg border border-blue-200">
-            <p className="text-xs sm:text-sm text-blue-600 font-medium">Total Negocios</p>
-            <p className="text-2xl sm:text-3xl font-bold text-blue-900 mt-1">{stats.total}</p>
-          </div>
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 sm:p-4 rounded-lg border border-gray-200">
-            <p className="text-xs sm:text-sm text-gray-600 font-medium">Plan Gratuito</p>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.free}</p>
-          </div>
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 rounded-lg border border-blue-200">
-            <p className="text-xs sm:text-sm text-blue-600 font-medium">Plan Destacado</p>
-            <p className="text-2xl sm:text-3xl font-bold text-blue-900 mt-1">{stats.featured}</p>
-          </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 sm:p-4 rounded-lg border border-purple-200">
-            <p className="text-xs sm:text-sm text-purple-600 font-medium">Plan Patrocinado</p>
-            <p className="text-2xl sm:text-3xl font-bold text-purple-900 mt-1">{stats.sponsor}</p>
-          </div>
-        </div>
-
-        {/* Lista de negocios */}
         {businesses.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="text-gray-400 text-4xl sm:text-5xl mb-4">💭</div>
-            <p className="text-gray-500">No hay negocios publicados aún.</p>
+          <div className="rounded-xl border border-gray-200 bg-white py-12 text-center shadow-sm">
+            <div className="mb-4 text-4xl text-gray-400 sm:text-5xl">•</div>
+            <p className="text-gray-500">No hay negocios publicados aun.</p>
           </div>
         ) : (
           <>
             <AdminBusinessList businesses={businesses} />
-            <div className="text-sm text-gray-500 text-center mt-6">
-              Mostrando {businesses.length} negocios publicados
-            </div>
+            <div className="mt-6 text-center text-sm text-gray-500">Mostrando {businesses.length} negocios publicados</div>
           </>
         )}
       </div>

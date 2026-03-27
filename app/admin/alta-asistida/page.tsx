@@ -1,23 +1,21 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
+
 import AltaAsistidaForm from '@/components/admin/AltaAsistidaForm';
 
 export const metadata: Metadata = {
   title: 'Alta Asistida | Admin Panel',
-  description: 'Crear nuevo negocio con asistencia del equipo admin',
+  description: 'Crear nuevo negocio con un flujo guiado desde el panel admin',
 };
 
 export default function AdminAltaAsistidaPage() {
   return (
-    <div className="max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Alta Asistida</h1>
-        <p className="text-gray-600">
-          Crea un nuevo negocio desde el panel admin. El negocio se enviará a "Listas para publicar" para revisión final.
-        </p>
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-6">
+        <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">Operacion</p>
+        <h1 className="mb-2 text-3xl font-bold text-gray-900">Alta asistida</h1>
+        <p className="text-sm text-gray-600">Flujo guiado para crear un negocio sin cargar todo el formulario desde el inicio.</p>
       </div>
 
-      {/* Formulario */}
       <AltaAsistidaForm />
     </div>
   );

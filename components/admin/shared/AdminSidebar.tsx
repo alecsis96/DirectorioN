@@ -2,342 +2,218 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
 import {
-  BsInbox,
-  BsFileText,
-  BsShop,
-  BsCreditCard,
-  BsStar,
   BsBarChart,
-  BsList,
-  BsX,
-  BsExclamationTriangle,
-  BsGraphUp,
-  BsSearch,
+  BsBoxSeam,
+  BsBug,
   BsChevronDown,
   BsChevronRight,
-  BsPencilSquare,
-  BsBoxSeam,
-  BsShieldCheck,
-  BsBug,
+  BsExclamationTriangle,
+  BsFileText,
+  BsGraphUp,
+  BsInbox,
+  BsList,
   BsMegaphone,
+  BsPencilSquare,
+  BsSearch,
+  BsShop,
+  BsStar,
+  BsX,
 } from 'react-icons/bs';
+
+type NavItem =
+  | {
+      section: true;
+      label: string;
+    }
+  | {
+      href: string;
+      label: string;
+      icon: ComponentType<{ className?: string }>;
+      description: string;
+    };
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [legacyExpanded, setLegacyExpanded] = useState(false);
-  
-  // Feature flags
+
   const showLegacy = process.env.NEXT_PUBLIC_SHOW_LEGACY_ADMIN === 'true';
   const showDebug = process.env.NODE_ENV === 'development';
 
-  const navItems = [
-    // ========== OPERATIONS (Operaciones principales) ==========
-    { 
-      section: true,
-      label: 'OPERACIONES',
-      icon: BsBoxSeam,
-    },
-    { 
-      href: '/admin/solicitudes', 
-      label: 'Solicitudes', 
-      icon: BsInbox,
-      description: 'Nuevas aplicaciones'
-    },
-    { 
-      href: '/admin/alta-asistida', 
-      label: 'Alta Asistida', 
-      icon: BsPencilSquare,
-      description: 'Crear manual'
-    },
-    
-    // ========== INVENTORY (Gestión de inventario) ==========
-    { 
-      section: true,
-      label: 'INVENTARIO',
-      icon: BsShop,
-    },
-    { 
-      href: '/admin/businesses', 
-      label: 'Negocios', 
-      icon: BsShop,
-      description: 'Todos publicados'
-    },
-    {
-      href: '/admin/campaigns',
-      label: 'Campaigns',
-      icon: BsMegaphone,
-      description: 'Hero y ofertas'
-    },
-    
-    // ========== MODERATION (Moderación de contenido) ==========
-    { 
-      section: true,
-      label: 'MODERACIÓN',
-      icon: BsShieldCheck,
-    },
-    { 
-      href: '/admin/reviews', 
-      label: 'Reseñas', 
-      icon: BsStar,
-      description: 'Moderación'
-    },
-    { 
-      href: '/admin/reports', 
-      label: 'Reportes', 
-      icon: BsExclamationTriangle,
-      description: 'Denuncias'
-    },
-    
-    // ========== FINANCE (Finanzas) ==========
-    { 
-      section: true,
-      label: 'FINANZAS',
-      icon: BsCreditCard,
-    },
-    { 
-      href: '/admin/payments', 
-      label: 'Pagos', 
-      icon: BsCreditCard,
-      description: 'Vencimientos'
-    },
-    
-    // ========== INSIGHTS (Datos y análisis) ==========
-    { 
-      section: true,
-      label: 'ANÁLISIS',
-      icon: BsGraphUp,
-    },
-    { 
-      href: '/admin/analytics', 
-      label: 'Analytics', 
-      icon: BsBarChart,
-      description: 'Métricas'
-    },
-    { 
-      href: '/admin/stats', 
-      label: 'Estadísticas', 
-      icon: BsGraphUp,
-      description: 'Dashboard'
-    },
+  const navItems: NavItem[] = [
+    { section: true, label: 'Principal' },
+    { href: '/admin', label: 'Inbox', icon: BsInbox, description: 'Pendientes y urgencias' },
+    { href: '/admin/solicitudes', label: 'Solicitudes', icon: BsFileText, description: 'Revision y decisiones' },
+    { href: '/admin/campaigns', label: 'Campaigns', icon: BsMegaphone, description: 'Hero y ofertas activas' },
+    { href: '/admin/businesses', label: 'Negocios', icon: BsShop, description: 'Lista y acciones clave' },
+    { href: '/admin/alta-asistida', label: 'Alta asistida', icon: BsPencilSquare, description: 'Alta guiada' },
+    { section: true, label: 'Secundario' },
+    { href: '/admin/payments', label: 'Pagos', icon: BsBoxSeam, description: 'Cobros y vencimientos' },
+    { href: '/admin/reports', label: 'Reportes', icon: BsExclamationTriangle, description: 'Incidencias y denuncias' },
+    { href: '/admin/analytics', label: 'Analytics', icon: BsBarChart, description: 'Uso y comportamiento' },
+    { href: '/admin/stats', label: 'Stats', icon: BsGraphUp, description: 'Metricas globales' },
+    { href: '/admin/reviews', label: 'Resenas', icon: BsStar, description: 'Moderacion' },
   ];
-  
-  // Rutas legacy (ocultas por defecto)
+
   const legacyItems = [
-    { 
-      href: '/admin/applications', 
-      label: 'Applications', 
-      icon: BsFileText,
-      description: 'Sistema antiguo'
-    },
-    { 
-      href: '/admin/pending-businesses', 
-      label: 'En Revisión', 
-      icon: BsSearch,
-      description: 'Pendientes old'
-    },
+    { href: '/admin/applications', label: 'Applications', icon: BsFileText, description: 'Sistema antiguo' },
+    { href: '/admin/pending-businesses', label: 'Pendientes legacy', icon: BsSearch, description: 'Revision vieja' },
   ];
-  
-  // Rutas debug (solo desarrollo)
-  const debugItems = showDebug ? [
-    { 
-      href: '/admin/debug', 
-      label: 'Debug', 
-      icon: BsBug,
-      description: 'Herramientas dev'
-    },
-  ] : [];
+
+  const debugItems = showDebug
+    ? [{ href: '/admin/debug', label: 'Debug', icon: BsBug, description: 'Herramientas dev' }]
+    : [];
 
   return (
     <>
-      {/* Mobile: Hamburger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 lg:hidden bg-emerald-600 text-white rounded-lg p-2.5 shadow-lg hover:bg-emerald-700 transition-colors"
-        aria-label="Toggle menu"
+        className="fixed left-4 top-4 z-50 rounded-lg bg-emerald-600 p-2.5 text-white shadow-lg transition-colors hover:bg-emerald-700 lg:hidden"
+        aria-label="Abrir menu admin"
       >
-        {isOpen ? <BsX className="w-6 h-6" /> : <BsList className="w-6 h-6" />}
+        {isOpen ? <BsX className="h-6 w-6" /> : <BsList className="h-6 w-6" />}
       </button>
 
-      {/* Mobile: Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen ? <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setIsOpen(false)} /> : null}
 
-      {/* Sidebar */}
       <nav
-        className={`
-          fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-40
-          transition-transform duration-300 ease-in-out overflow-y-auto
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
+        className={`fixed left-0 top-0 z-40 h-full w-64 overflow-y-auto border-r border-gray-200 bg-white transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
       >
-        {/* Header */}
-        <div className="p-5 border-b border-gray-200">
+        <div className="border-b border-gray-200 p-5">
           <h2 className="text-lg font-bold text-gray-900">Admin Panel</h2>
-          <p className="text-xs text-gray-500 mt-1">Panel de operaciones</p>
+          <p className="mt-1 text-xs text-gray-500">Operacion diaria</p>
         </div>
 
-        {/* Navigation */}
-        <ul className="p-3 space-y-1">
+        <ul className="space-y-1 p-3 pb-24">
           {navItems.map((item, index) => {
-            if (item.section) {
+            if ('section' in item) {
               return (
-                <li key={`section-${index}`} className="pt-4 pb-2 px-3">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {item.label}
-                  </span>
+                <li key={`section-${index}`} className="px-3 pb-2 pt-4">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">{item.label}</span>
                 </li>
               );
             }
 
-            const Icon = item.icon!;
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+            const navItem = item;
+            const Icon = navItem.icon;
+            const isActive = pathname === navItem.href || pathname?.startsWith(navItem.href + '/');
 
             return (
-              <li key={item.href}>
+              <li key={navItem.href}>
                 <Link
-                  href={item.href!}
+                  href={navItem.href}
                   onClick={() => setIsOpen(false)}
-                  className={`
-                    flex items-start gap-3 px-3 py-2.5 rounded-lg transition-all group
-                    ${isActive 
-                      ? 'bg-emerald-600 text-white shadow-sm' 
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-emerald-600'
-                    }
-                  `}
+                  className={`group flex items-start gap-3 rounded-lg px-3 py-2.5 transition-all ${
+                    isActive ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-700 hover:bg-gray-50 hover:text-emerald-600'
+                  }`}
                 >
-                  <Icon 
-                    className={`
-                      flex-shrink-0 mt-0.5 text-lg
-                      ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-emerald-600'}
-                    `} 
+                  <Icon
+                    className={`mt-0.5 flex-shrink-0 text-lg ${
+                      isActive ? 'text-white' : 'text-gray-400 group-hover:text-emerald-600'
+                    }`}
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-semibold ${isActive ? 'text-white' : 'text-gray-900'}`}>
-                      {item.label}
-                    </div>
-                    <div className={`text-xs ${isActive ? 'text-emerald-100' : 'text-gray-500'}`}>
-                      {item.description}
-                    </div>
+                  <div className="min-w-0 flex-1">
+                    <div className={`text-sm font-semibold ${isActive ? 'text-white' : 'text-gray-900'}`}>{navItem.label}</div>
+                    <div className={`text-xs ${isActive ? 'text-emerald-100' : 'text-gray-500'}`}>{navItem.description}</div>
                   </div>
                 </Link>
               </li>
             );
           })}
-          
-          {/* Legacy Section (Collapsible) */}
-          {showLegacy && (
+
+          {showLegacy ? (
             <>
-              <li className="pt-4 pb-2 px-3">
+              <li className="px-3 pb-2 pt-4">
                 <button
                   onClick={() => setLegacyExpanded(!legacyExpanded)}
-                  className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors w-full"
+                  className="flex w-full items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-600"
                 >
                   {legacyExpanded ? <BsChevronDown className="text-sm" /> : <BsChevronRight className="text-sm" />}
                   <span>Legacy</span>
                 </button>
               </li>
-              
-              {legacyExpanded && legacyItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-                
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className={`
-                        flex items-start gap-3 px-3 py-2.5 rounded-lg transition-all group
-                        ${isActive 
-                          ? 'bg-gray-200 text-gray-900' 
-                          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                        }
-                      `}
-                    >
-                      <Icon 
-                        className={`
-                          flex-shrink-0 mt-0.5 text-lg
-                          ${isActive ? 'text-gray-600' : 'text-gray-400 group-hover:text-gray-600'}
-                        `} 
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
-                          {item.label}
-                        </div>
-                        <div className={`text-xs ${isActive ? 'text-gray-600' : 'text-gray-400'}`}>
-                          {item.description}
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
+
+              {legacyExpanded
+                ? legacyItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          onClick={() => setIsOpen(false)}
+                          className={`group flex items-start gap-3 rounded-lg px-3 py-2.5 transition-all ${
+                            isActive ? 'bg-gray-200 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                          }`}
+                        >
+                          <Icon
+                            className={`mt-0.5 flex-shrink-0 text-lg ${
+                              isActive ? 'text-gray-600' : 'text-gray-400 group-hover:text-gray-600'
+                            }`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className={`text-sm font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
+                              {item.label}
+                            </div>
+                            <div className={`text-xs ${isActive ? 'text-gray-600' : 'text-gray-400'}`}>{item.description}</div>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })
+                : null}
             </>
-          )}
-          
-          {/* Debug Section (Solo desarrollo) */}
-          {showDebug && debugItems.length > 0 && (
+          ) : null}
+
+          {showDebug && debugItems.length > 0 ? (
             <>
-              <li className="pt-4 pb-2 px-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-orange-500 uppercase tracking-wider">
+              <li className="px-3 pb-2 pt-4">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-500">
                   <BsBug className="text-sm" />
-                  <span>DEBUG</span>
+                  <span>Debug</span>
                 </div>
               </li>
-              
+
               {debugItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-                
+
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
                       onClick={() => setIsOpen(false)}
-                      className={`
-                        flex items-start gap-3 px-3 py-2.5 rounded-lg transition-all group
-                        ${isActive 
-                          ? 'bg-orange-100 text-orange-900 border-l-2 border-orange-500' 
-                          : 'text-orange-600 hover:bg-orange-50'
-                        }
-                      `}
+                      className={`group flex items-start gap-3 rounded-lg px-3 py-2.5 transition-all ${
+                        isActive ? 'border-l-2 border-orange-500 bg-orange-100 text-orange-900' : 'text-orange-600 hover:bg-orange-50'
+                      }`}
                     >
-                      <Icon 
-                        className={`
-                          flex-shrink-0 mt-0.5 text-lg
-                          ${isActive ? 'text-orange-600' : 'text-orange-400 group-hover:text-orange-600'}
-                        `} 
+                      <Icon
+                        className={`mt-0.5 flex-shrink-0 text-lg ${
+                          isActive ? 'text-orange-600' : 'text-orange-400 group-hover:text-orange-600'
+                        }`}
                       />
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className={`text-sm font-semibold ${isActive ? 'text-orange-900' : 'text-orange-700'}`}>
                           {item.label}
                         </div>
-                        <div className={`text-xs ${isActive ? 'text-orange-700' : 'text-orange-500'}`}>
-                          {item.description}
-                        </div>
+                        <div className={`text-xs ${isActive ? 'text-orange-700' : 'text-orange-500'}`}>{item.description}</div>
                       </div>
                     </Link>
                   </li>
                 );
               })}
             </>
-          )}
+          ) : null}
         </ul>
 
-        {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-          >
-            <span>←</span>
+        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-gray-50 p-4">
+          <Link href="/" className="flex items-center gap-2 text-sm text-gray-600 transition hover:text-gray-900">
+            <span aria-hidden="true">←</span>
             <span>Volver al sitio</span>
           </Link>
         </div>

@@ -1,31 +1,28 @@
 'use client';
-/**
- * Panel de Admin para gestionar solicitudes de negocios
- * Sistema de estados dual: businessStatus + applicationStatus
- */
-import React, { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
-import { useAuth } from '../hooks/useAuth';
+
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getEffectivePlan, getPlanDisplayName, getPlanBadgeClasses } from '../lib/businessHelpers';
-import { 
-  getNewSubmissions, 
-  getPendingBusinesses, 
-  getReadyForReview,
-  getPublishedBusinesses,
-  getRejectedBusinesses,
-  getAllBusinesses,
+
+import {
+  adminArchiveBusiness,
+  adminDeleteBusiness,
+  adminMarkDuplicate,
   approveBusiness,
+  getAllBusinesses,
+  getNewSubmissions,
+  getPendingBusinesses,
+  getPublishedBusinesses,
+  getReadyForReview,
+  getRejectedBusinesses,
   rejectBusiness,
   requestMoreInfo,
-  adminArchiveBusiness,
-  adminUnarchiveBusiness,
-  adminMarkDuplicate,
-  adminDeleteBusiness
 } from '../app/actions/adminBusinessActions';
+import { useAuth } from '../hooks/useAuth';
+import { getEffectivePlan, getPlanBadgeClasses, getPlanDisplayName } from '../lib/businessHelpers';
 import type { Business } from '../types/business';
 
 type TabType = 'nuevas' | 'pendientes' | 'listas' | 'publicados' | 'rechazados' | 'todos';
+type CardVariant = 'review' | 'published' | 'incomplete';
 
 type BusinessWithCompletion = Business & {
   completionPercent?: number;
@@ -37,16 +34,76 @@ type BusinessWithCompletion = Business & {
   rejectionReason?: string;
 };
 
+const TAB_CONFIG: Array<{ id: TabType; label: string }> = [
+  { id: 'nuevas', label: 'Nuevas' },
+  { id: 'pendientes', label: 'Pendientes' },
+  { id: 'listas', label: 'Listas' },
+  { id: 'publicados', label: 'Publicados' },
+  { id: 'rechazados', label: 'Rechazados' },
+  { id: 'todos', label: 'Todos' },
+];
+
+function resolvePrimaryStatus(business: BusinessWithCompletion) {
+  if (business.applicationStatus === 'ready_for_review') {
+    return { label: 'Listo para revisar', className: 'bg-blue-100 text-blue-700' };
+  }
+  if (business.applicationStatus === 'needs_info') {
+    return { label: 'Necesita info', className: 'bg-orange-100 text-orange-700' };
+  }
+  if (business.applicationStatus === 'approved' || business.businessStatus === 'published') {
+    return { label: 'Publicado', className: 'bg-emerald-100 text-emerald-700' };
+  }
+  if (business.applicationStatus === 'rejected') {
+    return { label: 'Rechazado', className: 'bg-red-100 text-red-700' };
+  }
+  if (business.businessStatus === 'in_review') {
+    return { label: 'En revision', className: 'bg-sky-100 text-sky-700' };
+  }
+  return { label: 'Borrador', className: 'bg-gray-100 text-gray-700' };
+}
+
+function resolveCardVariant(tab: TabType, business: BusinessWithCompletion): CardVariant {
+  if (tab === 'publicados' || business.businessStatus === 'published' || business.applicationStatus === 'approved') {
+    return 'published';
+  }
+
+  if (
+    tab === 'rechazados' ||
+    business.applicationStatus === 'needs_info' ||
+    business.applicationStatus === 'rejected' ||
+    ((business.missingFields?.length ?? 0) > 0 && !business.isPublishReady)
+  ) {
+    return 'incomplete';
+  }
+
+  return 'review';
+}
+
+function resolveContextLine(business: BusinessWithCompletion, variant: CardVariant) {
+  if (variant === 'published') {
+    return business.category || 'Negocio publicado';
+  }
+
+  if (variant === 'incomplete') {
+    if (business.rejectionReason) return business.rejectionReason;
+    if (business.missingFields?.length) return `Faltan ${business.missingFields.length} campos para publicarlo`;
+    if (business.adminNotes) return business.adminNotes;
+    return 'Hace falta ajustar informacion antes de seguir';
+  }
+
+  if (business.isPublishReady) return 'Listo para decision';
+  if (business.category) return business.category;
+  return `${business.completionPercent || 0}% completo`;
+}
+
 export default function AdminBusinessPanel() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>('nuevas');
   const [businesses, setBusinesses] = useState<BusinessWithCompletion[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  
-  // Estados para modal de rechazo/solicitud de info
   const [modalState, setModalState] = useState<{
     type: 'reject' | 'info' | null;
     businessId: string | null;
@@ -58,14 +115,13 @@ export default function AdminBusinessPanel() {
   });
   const [modalInput, setModalInput] = useState('');
 
-  // Cargar datos según tab activo
   const loadBusinesses = useCallback(async () => {
     if (!isAdmin) return;
-    
+
     setLoading(true);
     try {
       let data: BusinessWithCompletion[] = [];
-      
+
       switch (activeTab) {
         case 'nuevas':
           data = await getNewSubmissions();
@@ -86,7 +142,7 @@ export default function AdminBusinessPanel() {
           data = await getAllBusinesses();
           break;
       }
-      
+
       setBusinesses(data);
     } catch (error) {
       console.error('Error al cargar negocios:', error);
@@ -100,50 +156,48 @@ export default function AdminBusinessPanel() {
       router.push('/');
       return;
     }
-    
+
     if (isAdmin) {
       loadBusinesses();
     }
-  }, [authLoading, isAdmin, router, loadBusinesses]);
+  }, [authLoading, isAdmin, loadBusinesses, router]);
 
-  // Handlers de acciones
+  const summary = useMemo(() => {
+    const total = businesses.length;
+    const ready = businesses.filter((business) => business.isPublishReady).length;
+    return { total, ready };
+  }, [businesses]);
+
   const handleApprove = async (businessId: string, businessName: string) => {
-    if (!confirm(`¿Aprobar y publicar "${businessName}"?`)) return;
-    
+    if (!confirm(`Aprobar y publicar "${businessName}"?`)) return;
+
     setActionLoading(businessId);
     try {
       await approveBusiness(businessId);
-      alert(`✅ ${businessName} ha sido aprobado y publicado`);
       await loadBusinesses();
     } catch (error) {
       console.error('Error al aprobar:', error);
-      alert('Error al aprobar el negocio');
+      alert('No se pudo aprobar el negocio');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleReject = async () => {
-    if (!modalState.businessId || !modalInput.trim()) {
-      alert('Por favor, escribe el motivo del rechazo');
+    if (!modalState.businessId || modalInput.trim().length < 10) {
+      alert('Escribe un motivo claro de al menos 10 caracteres.');
       return;
     }
-    
-    if (modalInput.trim().length < 10) {
-      alert('El motivo del rechazo debe tener al menos 10 caracteres');
-      return;
-    }
-    
+
     setActionLoading(modalState.businessId);
     try {
       await rejectBusiness(modalState.businessId, modalInput.trim());
-      alert(`❌ ${modalState.businessName} ha sido rechazado`);
       setModalState({ type: null, businessId: null, businessName: '' });
       setModalInput('');
       await loadBusinesses();
     } catch (error) {
-      console.error('error al rechazar negocio', error);
-      alert(error instanceof Error ? error.message : 'Error al rechazar el negocio');
+      console.error('Error al rechazar:', error);
+      alert(error instanceof Error ? error.message : 'No se pudo rechazar');
     } finally {
       setActionLoading(null);
     }
@@ -151,675 +205,475 @@ export default function AdminBusinessPanel() {
 
   const handleRequestInfo = async () => {
     if (!modalState.businessId || !modalInput.trim()) {
-      alert('Por favor, escribe las notas para el usuario');
+      alert('Escribe la nota para el negocio.');
       return;
     }
-    
+
     setActionLoading(modalState.businessId);
     try {
       await requestMoreInfo(modalState.businessId, modalInput.trim());
-      alert(`📝 Se solicitó más información a ${modalState.businessName}`);
       setModalState({ type: null, businessId: null, businessName: '' });
       setModalInput('');
       await loadBusinesses();
     } catch (error) {
       console.error('Error al solicitar info:', error);
-      alert('Error al solicitar información');
+      alert('No se pudo solicitar informacion');
     } finally {
       setActionLoading(null);
     }
   };
 
-  // NUEVOS HANDLERS: Archivar, Duplicado, Eliminar
   const handleArchive = async (businessId: string, businessName: string) => {
-    const reason = prompt(`¿Motivo para archivar "${businessName}"? (opcional)`);
-    if (reason === null) return; // Usuario canceló
-    
-    if (!confirm(`¿Archivar "${businessName}"?\n\nEsto ocultará el negocio del directorio pero será reversible.`)) return;
-    
+    const reason = prompt(`Motivo para archivar "${businessName}"`, 'Accion administrativa');
+    if (reason === null) return;
+
     setActionLoading(businessId);
     try {
       if (!user) throw new Error('No hay usuario autenticado');
       const token = await user.getIdToken();
       const result = await adminArchiveBusiness(businessId, token, reason || undefined);
-      
-      if (result.success) {
-        alert(`📦 ${businessName} ha sido archivado`);
-        await loadBusinesses();
-      } else {
-        alert(result.error || 'Error al archivar');
-      }
+      if (!result.success) throw new Error(result.error || 'No se pudo archivar');
+      await loadBusinesses();
     } catch (error) {
       console.error('Error al archivar:', error);
-      alert('Error al archivar el negocio');
+      alert(error instanceof Error ? error.message : 'No se pudo archivar');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleMarkDuplicate = async (businessId: string, businessName: string) => {
-    // Modal para seleccionar negocio canonical
-    // Por ahora usamos prompt, pero podrías hacer un modal con búsqueda
-    const canonicalId = prompt(
-      `Marcar "${businessName}" como DUPLICADO\n\n` +
-      `Ingresa el ID del negocio ORIGINAL (canonical):\n\n` +
-      `Ejemplo: abc123xyz`
-    );
-    
-    if (!canonicalId || canonicalId.trim().length === 0) return;
-    
-    if (!confirm(
-      `¿Confirmar que "${businessName}" es un duplicado?\n\n` +
-      `Se archivará automáticamente y se marcará como duplicado del negocio: ${canonicalId}`
-    )) return;
-    
+    const canonicalId = prompt(`ID del negocio original para marcar "${businessName}" como duplicado`);
+    if (!canonicalId?.trim()) return;
+
     setActionLoading(businessId);
     try {
       if (!user) throw new Error('No hay usuario autenticado');
       const token = await user.getIdToken();
       const result = await adminMarkDuplicate(businessId, canonicalId.trim(), token);
-      
-      if (result.success) {
-        alert(`🔗 ${businessName} marcado como duplicado`);
-        await loadBusinesses();
-      } else {
-        alert(result.error || 'Error al marcar duplicado');
-      }
+      if (!result.success) throw new Error(result.error || 'No se pudo marcar duplicado');
+      await loadBusinesses();
     } catch (error) {
       console.error('Error al marcar duplicado:', error);
-      alert('Error al marcar como duplicado');
+      alert(error instanceof Error ? error.message : 'No se pudo marcar duplicado');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleDelete = async (businessId: string, businessName: string) => {
-    // Confirmación fuerte para eliminar
-    const confirmText = prompt(
-      `⚠️ ELIMINAR DEFINITIVAMENTE "${businessName}"\n\n` +
-      `Esta acción NO se puede deshacer.\n\n` +
-      `Para confirmar, escribe: ELIMINAR`
-    );
-    
-    if (confirmText !== 'ELIMINAR') {
-      if (confirmText !== null) {
-        alert('Eliminación cancelada. Debes escribir exactamente: ELIMINAR');
-      }
-      return;
-    }
-    
-    if (!confirm(
-      `⚠️ ÚLTIMA CONFIRMACIÓN\n\n` +
-      `¿Eliminar definitivamente "${businessName}"?\n\n` +
-      `• Todos los datos se perderán\n` +
-      `• Esta acción NO se puede deshacer\n` +
-      `• Considera usar "Archivar" en su lugar`
-    )) return;
-    
+    const confirmText = prompt(`Para eliminar "${businessName}" escribe ELIMINAR`);
+    if (confirmText !== 'ELIMINAR') return;
+
     setActionLoading(businessId);
     try {
       if (!user) throw new Error('No hay usuario autenticado');
       const token = await user.getIdToken();
-      const reason = 'Eliminado por admin desde panel';
-      const result = await adminDeleteBusiness(businessId, token, reason);
-      
-      if (result.success) {
-        alert(`❌ ${businessName} ha sido eliminado definitivamente`);
-        await loadBusinesses();
-      } else {
-        alert(result.error || 'Error al eliminar');
-      }
+      const result = await adminDeleteBusiness(businessId, token, 'Eliminado por admin desde solicitudes');
+      if (!result.success) throw new Error(result.error || 'No se pudo eliminar');
+      await loadBusinesses();
     } catch (error) {
       console.error('Error al eliminar:', error);
-      alert('Error al eliminar el negocio');
+      alert(error instanceof Error ? error.message : 'No se pudo eliminar');
     } finally {
       setActionLoading(null);
     }
   };
 
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Cargando...</div>
-      </div>
-    );
+    return <div className="flex min-h-screen items-center justify-center text-gray-500">Cargando...</div>;
   }
 
   if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-600">Acceso denegado</div>
-      </div>
-    );
+    return <div className="flex min-h-screen items-center justify-center text-red-600">Acceso denegado</div>;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Panel de Administración</h1>
-              <p className="text-sm sm:text-base text-gray-600">Gestiona las solicitudes y publicaciones de negocios</p>
-            </div>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        <div className="mb-6">
+          <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">Operacion</p>
+          <h1 className="mb-2 text-2xl font-bold text-gray-900 sm:text-3xl">Solicitudes</h1>
+          <p className="text-sm text-gray-600">Revisa, corrige o publica en menos pasos. Cada tarjeta ya muestra solo la accion que toca.</p>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            {TAB_CONFIG.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === tab.id ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="text-sm text-gray-500">
+            {summary.total} elementos
+            {activeTab !== 'publicados' ? ` / ${summary.ready} listos para aprobar` : ''}
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
-          <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-thin scrollbar-thumb-gray-300">
-            <button
-              onClick={() => setActiveTab('nuevas')}
-              className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                activeTab === 'nuevas'
-                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span>📥 Nuevas Solicitudes</span>
-                {businesses.length > 0 && activeTab === 'nuevas' && (
-                  <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full">
-                    {businesses.length}
-                  </span>
-                )}
-              </div>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('pendientes')}
-              className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                activeTab === 'pendientes'
-                  ? 'bg-orange-50 text-orange-700 border-b-2 border-orange-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span>⏳ Pendientes</span>
-                {businesses.length > 0 && activeTab === 'pendientes' && (
-                  <span className="px-2 py-0.5 bg-orange-600 text-white text-xs rounded-full">
-                    {businesses.length}
-                  </span>
-                )}
-              </div>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('listas')}
-              className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                activeTab === 'listas'
-                  ? 'bg-green-50 text-green-700 border-b-2 border-green-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span>✅ Listas para Publicar</span>
-                {businesses.length > 0 && activeTab === 'listas' && (
-                  <span className="px-2 py-0.5 bg-green-600 text-white text-xs rounded-full">
-                    {businesses.length}
-                  </span>
-                )}
-              </div>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('publicados')}
-              className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                activeTab === 'publicados'
-                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span>🏪 Publicados</span>
-                {businesses.length > 0 && activeTab === 'publicados' && (
-                  <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full">
-                    {businesses.length}
-                  </span>
-                )}
-              </div>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('rechazados')}
-              className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                activeTab === 'rechazados'
-                  ? 'bg-red-50 text-red-700 border-b-2 border-red-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span>❌ Rechazados</span>
-                {businesses.length > 0 && activeTab === 'rechazados' && (
-                  <span className="px-2 py-0.5 bg-red-600 text-white text-xs rounded-full">
-                    {businesses.length}
-                  </span>
-                )}
-              </div>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('todos')}
-              className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                activeTab === 'todos'
-                  ? 'bg-gray-50 text-gray-700 border-b-2 border-gray-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span>📊 Todos</span>
-                {businesses.length > 0 && activeTab === 'todos' && (
-                  <span className="px-2 py-0.5 bg-gray-600 text-white text-xs rounded-full">
-                    {businesses.length}
-                  </span>
-                )}
-              </div>
-            </button>
+        {loading ? (
+          <div className="py-12 text-center text-gray-500">Cargando solicitudes...</div>
+        ) : businesses.length === 0 ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+            <p className="text-base font-semibold text-gray-700">No hay elementos en esta bandeja.</p>
           </div>
-        </div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {businesses.map((business) => {
+              const variant = resolveCardVariant(activeTab, business);
+              const commonProps = {
+                business,
+                status: resolvePrimaryStatus(business),
+                planClassName: getPlanBadgeClasses(getEffectivePlan(business)),
+                planLabel: getPlanDisplayName(getEffectivePlan(business)),
+                contextLine: resolveContextLine(business, variant),
+                loading: actionLoading === business.id,
+                onOpenDashboard: () => window.open(`/dashboard/${business.id}`, '_blank'),
+                onApprove: () => handleApprove(business.id!, business.name || 'Negocio'),
+                onReject: () => setModalState({ type: 'reject', businessId: business.id!, businessName: business.name || 'Negocio' }),
+                onRequestInfo: () =>
+                  setModalState({ type: 'info', businessId: business.id!, businessName: business.name || 'Negocio' }),
+                onArchive: () => handleArchive(business.id!, business.name || 'Negocio'),
+                onDuplicate: () => handleMarkDuplicate(business.id!, business.name || 'Negocio'),
+                onDelete: () => handleDelete(business.id!, business.name || 'Negocio'),
+              };
 
-        {/* Content */}
-        <div>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-gray-500">Cargando negocios...</div>
-            </div>
-          ) : businesses.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 text-center">
-              <div className="text-gray-400 text-4xl sm:text-5xl mb-4">📭</div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">
-                {activeTab === 'nuevas' && 'No hay nuevas solicitudes'}
-                {activeTab === 'pendientes' && 'No hay solicitudes pendientes'}
-                {activeTab === 'listas' && 'No hay negocios listos para publicar'}
-                {activeTab === 'publicados' && 'No hay negocios publicados aún'}
-                {activeTab === 'rechazados' && 'No hay negocios rechazados'}
-                {activeTab === 'todos' && 'No hay negocios en el sistema'}
-              </h3>
-              <p className="text-sm sm:text-base text-gray-500 mb-4">
-                Cuando haya solicitudes, aparecerán aquí
-              </p>
-              
-              {/* Mensaje de ayuda si no hay datos en "todos" */}
-              {activeTab === 'todos' && (
-                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-left max-w-2xl mx-auto">
-                  <h4 className="text-sm font-semibold text-blue-900 mb-2">💡 ¿No ves negocios existentes?</h4>
-                  <p className="text-xs sm:text-sm text-blue-800 mb-3">
-                    Si tienes negocios en el sistema antiguo, necesitas ejecutar la migración:
-                  </p>
-                  <code className="block bg-blue-900 text-blue-100 px-3 py-2 rounded text-xs overflow-x-auto">
-                    npm run migrate:business-states
-                  </code>
-                  <p className="text-xs text-blue-700 mt-2">
-                    Esto actualizará tus negocios existentes al nuevo sistema de estados.
-                  </p>
-                </div>
-              )}
-              
-              {/* Mensaje para otras pestañas */}
-              {activeTab !== 'todos' && activeTab !== 'nuevas' && (
-                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-left max-w-2xl mx-auto">
-                  <p className="text-xs sm:text-sm text-yellow-800">
-                    <strong>Nota:</strong> Los negocios aparecen aquí según su estado de completitud y aprobación. 
-                    {activeTab === 'listas' && ' Un negocio necesita estar completo al 50%+ para aparecer como "Listo para publicar".'}
-                    {activeTab === 'publicados' && ' Solo aparecen negocios que han sido aprobados por admin.'}
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {businesses.map((business) => (
-                <BusinessCard
-                  key={business.id}
-                  business={business}
-                  onApprove={handleApprove}
-                  onReject={(id, name) => {
-                    setModalState({ type: 'reject', businessId: id, businessName: name });
-                    setModalInput('');
-                  }}
-                  onRequestInfo={(id, name) => {
-                    setModalState({ type: 'info', businessId: id, businessName: name });
-                    setModalInput('');
-                  }}
-                  onArchive={handleArchive}
-                  onMarkDuplicate={handleMarkDuplicate}
-                  onDelete={handleDelete}
-                  isLoading={actionLoading === business.id}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+              if (variant === 'published') {
+                return <PublishedCard key={business.id} {...commonProps} />;
+              }
+
+              if (variant === 'incomplete') {
+                return <IncompleteCard key={business.id} {...commonProps} activeTab={activeTab} />;
+              }
+
+              return <ReviewCard key={business.id} {...commonProps} />;
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Modal para Rechazo / Solicitud de Info */}
-      {modalState.type && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              {modalState.type === 'reject' ? '❌ Rechazar Negocio' : '📝 Solicitar Más Información'}
+      {modalState.type ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900">
+              {modalState.type === 'reject' ? 'Rechazar negocio' : 'Solicitar mas informacion'}
             </h3>
-            <p className="text-gray-600 mb-4">
-              {modalState.businessName}
-            </p>
-            
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {modalState.type === 'reject' ? 'Motivo del rechazo:' : 'Notas para el usuario:'}
-              {modalState.type === 'reject' && (
-                <span className="text-xs text-gray-500 ml-2">
-                  (mínimo 10 caracteres)
-                </span>
-              )}
-            </label>
+            <p className="mt-1 text-sm text-gray-600">{modalState.businessName}</p>
+
             <textarea
               value={modalInput}
-              onChange={(e) => setModalInput(e.target.value)}
-              placeholder={
-                modalState.type === 'reject'
-                  ? 'Ej: La información de contacto no es válida'
-                  : 'Ej: Por favor agrega imágenes de mejor calidad'
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              onChange={(event) => setModalInput(event.target.value)}
               rows={4}
+              className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              placeholder={modalState.type === 'reject' ? 'Motivo del rechazo' : 'Que necesita corregir o completar'}
             />
-            {modalState.type === 'reject' && (
-              <p className={`text-xs mt-1 ${
-                modalInput.trim().length >= 10
-                  ? 'text-green-600'
-                  : modalInput.trim().length > 0
-                  ? 'text-orange-600'
-                  : 'text-gray-500'
-              }`}>
-                {modalInput.trim().length}/10 caracteres mínimos
-              </p>
-            )}
-            
-            <div className="flex gap-3 mt-6">
+
+            <div className="mt-4 flex gap-3">
               <button
+                type="button"
                 onClick={() => {
                   setModalState({ type: null, businessId: null, businessName: '' });
                   setModalInput('');
                 }}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                className="flex-1 rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={modalState.type === 'reject' ? handleReject : handleRequestInfo}
-                disabled={
-                  !modalInput.trim() ||
-                  (modalState.type === 'reject' && modalInput.trim().length < 10) ||
-                  actionLoading === modalState.businessId
-                }
-                className={`flex-1 px-4 py-2 rounded-lg transition font-medium ${
-                  modalState.type === 'reject'
-                    ? 'bg-red-600 text-white hover:bg-red-700'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                disabled={!modalInput.trim() || (modalState.type === 'reject' && modalInput.trim().length < 10)}
+                className={`flex-1 rounded-xl px-4 py-2 text-sm font-medium text-white ${
+                  modalState.type === 'reject' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+                } disabled:cursor-not-allowed disabled:opacity-50`}
               >
-                {actionLoading === modalState.businessId ? 'Enviando...' : 'Confirmar'}
+                Confirmar
               </button>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
-// Componente de tarjeta de negocio
-function BusinessCard({
-  business,
-  onApprove,
-  onReject,
-  onRequestInfo,
-  onArchive,
-  onMarkDuplicate,
-  onDelete,
-  isLoading,
-}: {
+type CardCommonProps = {
   business: BusinessWithCompletion;
-  onApprove: (id: string, name: string) => void;
-  onReject: (id: string, name: string) => void;
-  onRequestInfo: (id: string, name: string) => void;
-  onArchive: (id: string, name: string) => void;
-  onMarkDuplicate: (id: string, name: string) => void;
-  onDelete: (id: string, name: string) => void;
-  isLoading: boolean;
+  status: { label: string; className: string };
+  planClassName: string;
+  planLabel: string;
+  contextLine: string;
+  loading: boolean;
+  onOpenDashboard: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+  onRequestInfo: () => void;
+  onArchive: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+};
+
+function CardFrame({
+  business,
+  status,
+  planClassName,
+  planLabel,
+  contextLine,
+  tone,
+  children,
+  menu,
+  note,
+  dashboardLabel = 'Dashboard',
+  onOpenDashboard,
+}: CardCommonProps & {
+  tone: 'review' | 'published' | 'incomplete';
+  children: React.ReactNode;
+  menu: React.ReactNode;
+  note?: React.ReactNode;
+  dashboardLabel?: string;
 }) {
-  const [showMenu, setShowMenu] = React.useState(false);
-  const completion = business.completionPercent || 0;
-  const isReady = business.isPublishReady || false;
-  const adminStatus = (business as any).adminStatus || 'active';
-  const duplicateOf = (business as any).duplicateOf;
-  
+  const toneClass =
+    tone === 'published'
+      ? 'border-emerald-200 bg-emerald-50/30'
+      : tone === 'incomplete'
+        ? 'border-orange-200 bg-orange-50/30'
+        : 'border-gray-200 bg-white';
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition relative">
-      {/* Menú de acciones (⋯) */}
-      <div className="absolute top-2 left-2 z-10">
-        <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-white transition"
-            title="Acciones"
-          >
-            <span className="text-gray-700 font-bold text-lg">⋯</span>
-          </button>
-          
-          {showMenu && (
-            <>
-              {/* Overlay para cerrar */}
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={() => setShowMenu(false)}
-              />
-              
-              {/* Dropdown menu */}
-              <div className="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-20">
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    window.open(`/dashboard/${business.id}`, '_blank');
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition flex items-center gap-2"
-                >
-                  <span>👁️</span>
-                  <span>Ver dashboard</span>
-                </button>
-                
-                <div className="border-t border-gray-100 my-1"></div>
-                
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    onMarkDuplicate(business.id!, business.name!);
-                  }}
-                  disabled={isLoading}
-                  className="w-full px-4 py-2 text-left text-sm text-blue-700 hover:bg-blue-50 transition flex items-center gap-2 disabled:opacity-50"
-                >
-                  <span>🔗</span>
-                  <span>Marcar como duplicado</span>
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    onArchive(business.id!, business.name!);
-                  }}
-                  disabled={isLoading || adminStatus === 'archived'}
-                  className="w-full px-4 py-2 text-left text-sm text-orange-700 hover:bg-orange-50 transition flex items-center gap-2 disabled:opacity-50"
-                >
-                  <span>📦</span>
-                  <span>{adminStatus === 'archived' ? 'Ya archivado' : 'Archivar'}</span>
-                </button>
-                
-                <div className="border-t border-gray-100 my-1"></div>
-                
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    onDelete(business.id!, business.name!);
-                  }}
-                  disabled={isLoading}
-                  className="w-full px-4 py-2 text-left text-sm text-red-700 hover:bg-red-50 transition flex items-center gap-2 disabled:opacity-50"
-                >
-                  <span>🗑️</span>
-                  <span>Eliminar definitivo</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-      
-      {/* Header con imagen/logo */}
-      <div className="relative h-32 bg-gradient-to-br from-blue-500 to-purple-600">
-        {business.coverUrl || business.logoUrl ? (
-          <img
-            src={(business.coverUrl || business.logoUrl) || ''}
-            alt={business.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold">
-            {business.name?.charAt(0)?.toUpperCase() || '?'}
+    <article className={`rounded-2xl border p-4 shadow-sm ${toneClass}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-semibold text-gray-900">{business.name || 'Sin nombre'}</h3>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}>{status.label}</span>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${planClassName}`}>{planLabel}</span>
           </div>
-        )}
-        
-        {/* Badge de completitud */}
-        <div className="absolute top-2 right-2">
-          <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-            completion >= 75 ? 'bg-green-500' :
-            completion >= 50 ? 'bg-yellow-500' :
-            'bg-red-500'
-          } text-white shadow-lg`}>
-            {completion}%
-          </div>
-        </div>
-        
-        {/* Badge de adminStatus si está archived/duplicado */}
-        {(adminStatus === 'archived' || duplicateOf) && (
-          <div className="absolute bottom-2 left-2">
-            <div className="px-2 py-1 rounded text-xs font-bold bg-gray-800/80 text-white">
-              {duplicateOf ? '🔗 Duplicado' : '📦 Archivado'}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Contenido */}
-      <div className="p-4">
-        <h3 className="font-bold text-gray-900 mb-1 truncate">{business.name}</h3>
-        <p className="text-sm text-gray-600 mb-2">{business.category || 'Sin categoría'}</p>
-        
-        {/* Estados - Mostrar solo el estado relevante */}
-        <div className="flex gap-2 mb-3 flex-wrap">
-          {/* Si tiene applicationStatus en proceso de revisión, mostrar solo ese */}
-          {business.applicationStatus && business.applicationStatus !== 'submitted' ? (
-            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-              business.applicationStatus === 'approved' ? 'bg-green-100 text-green-700' :
-              business.applicationStatus === 'ready_for_review' ? 'bg-blue-100 text-blue-700' :
-              business.applicationStatus === 'needs_info' ? 'bg-orange-100 text-orange-700' :
-              business.applicationStatus === 'rejected' ? 'bg-red-100 text-red-700' :
-              'bg-gray-100 text-gray-700'
-            }`}>
-              {business.applicationStatus === 'ready_for_review' ? '🔍 Listo para revisar' :
-               business.applicationStatus === 'needs_info' ? '📝 Necesita info' :
-               business.applicationStatus === 'approved' ? '✅ Aprobado' :
-               business.applicationStatus === 'rejected' ? '❌ Rechazado' :
-               business.applicationStatus}
-            </span>
-          ) : (
-            /* Si no hay applicationStatus en revisión, mostrar businessStatus */
-            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-              business.businessStatus === 'published' ? 'bg-green-100 text-green-700' :
-              business.businessStatus === 'in_review' ? 'bg-blue-100 text-blue-700' :
-              'bg-gray-100 text-gray-700'
-            }`}>
-              {business.businessStatus === 'published' ? '🏪 Publicado' :
-               business.businessStatus === 'in_review' ? '🔍 En revisión' :
-               '📝 Borrador'}
-            </span>
-          )}
-          
-          {/* Badge del plan - Normalizado con helper */}
-          <span className={`px-2 py-1 rounded text-xs font-semibold ${
-            getPlanBadgeClasses(getEffectivePlan(business))
-          }`}>
-            {getPlanDisplayName(getEffectivePlan(business))}
-          </span>
+          <p className="mt-2 text-sm text-gray-600">{contextLine}</p>
+          {note ? <div className="mt-3">{note}</div> : null}
         </div>
 
-        {/* Campos faltantes */}
-        {business.missingFields && business.missingFields.length > 0 && (
-          <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded">
-            <p className="text-xs font-semibold text-orange-700 mb-1">Campos faltantes:</p>
-            <div className="flex flex-wrap gap-1">
-              {business.missingFields.slice(0, 3).map((field) => (
-                <span key={field} className="text-xs bg-white px-2 py-0.5 rounded text-orange-600">
-                  {field}
-                </span>
-              ))}
-              {business.missingFields.length > 3 && (
-                <span className="text-xs text-orange-600">
-                  +{business.missingFields.length - 3} más
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Info adicional */}
-        <div className="text-xs text-gray-500 mb-3 space-y-1">
-          <div className="flex items-center gap-1">
-            <span>📧</span>
-            <span className="truncate">{business.ownerEmail || 'Sin email'}</span>
-          </div>
-          {business.phone && (
-            <div className="flex items-center gap-1">
-              <span>📞</span>
-              <span>{business.phone}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Botones de acción */}
         <div className="flex flex-col gap-2">
           <button
-            onClick={() => window.open(`/dashboard/${business.id}`, '_blank')}
-            className="w-full px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
+            type="button"
+            onClick={onOpenDashboard}
+            className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
           >
-            👁️ Ver Dashboard
+            {dashboardLabel}
           </button>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={() => onApprove(business.id!, business.name!)}
-              disabled={isLoading || !isReady}
-              className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              title={!isReady ? 'El negocio no cumple los requisitos mínimos' : 'Aprobar y publicar'}
-            >
-              ✅ Aprobar
-            </button>
-            <button
-              onClick={() => onReject(business.id!, business.name!)}
-              disabled={isLoading}
-              className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium disabled:opacity-50"
-            >
-              ❌ Rechazar
-            </button>
-          </div>
-          
-          <button
-            onClick={() => onRequestInfo(business.id!, business.name!)}
-            disabled={isLoading}
-            className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50"
-          >
-            📝 Solicitar Info
-          </button>
+          {menu}
         </div>
       </div>
+
+      <div className="mt-4">{children}</div>
+    </article>
+  );
+}
+
+function ReviewCard(props: CardCommonProps) {
+  return (
+    <CardFrame
+      {...props}
+      tone="review"
+      note={
+        props.business.isPublishReady ? (
+          <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Listo para publicar</span>
+        ) : (
+          <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+            {props.business.completionPercent || 0}% completo
+          </span>
+        )
+      }
+      menu={<RequestMenu disabled={props.loading} onArchive={props.onArchive} onDuplicate={props.onDuplicate} onDelete={props.onDelete} />}
+    >
+      <div className="grid gap-2 sm:grid-cols-3">
+        <button
+          type="button"
+          onClick={props.onApprove}
+          disabled={props.loading || !props.business.isPublishReady}
+          className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Aprobar
+        </button>
+        <button
+          type="button"
+          onClick={props.onRequestInfo}
+          disabled={props.loading}
+          className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
+        >
+          Pedir info
+        </button>
+        <button
+          type="button"
+          onClick={props.onReject}
+          disabled={props.loading}
+          className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+        >
+          Rechazar
+        </button>
+      </div>
+    </CardFrame>
+  );
+}
+
+function PublishedCard(props: CardCommonProps) {
+  return (
+    <CardFrame
+      {...props}
+      tone="published"
+      note={<span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Ya visible en la app</span>}
+      dashboardLabel="Editar"
+      menu={<RequestMenu disabled={props.loading} onArchive={props.onArchive} onDuplicate={props.onDuplicate} onDelete={props.onDelete} />}
+    >
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={props.onOpenDashboard}
+          disabled={props.loading}
+          className="rounded-xl bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
+        >
+          Abrir dashboard
+        </button>
+        <button
+          type="button"
+          onClick={() => window.open(`/negocios/${props.business.id}`, '_blank')}
+          className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          Ver publico
+        </button>
+      </div>
+    </CardFrame>
+  );
+}
+
+function IncompleteCard(props: CardCommonProps & { activeTab: TabType }) {
+  const missingFields = props.business.missingFields || [];
+  const note =
+    missingFields.length > 0 ? (
+      <div className="flex flex-wrap gap-2">
+        {missingFields.slice(0, 3).map((field) => (
+          <span key={field} className="rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-700">
+            {field}
+          </span>
+        ))}
+        {missingFields.length > 3 ? (
+          <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-600">+{missingFields.length - 3} mas</span>
+        ) : null}
+      </div>
+    ) : (
+      <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-700">
+        Requiere seguimiento
+      </span>
+    );
+
+  return (
+    <CardFrame
+      {...props}
+      tone="incomplete"
+      note={note}
+      menu={<RequestMenu disabled={props.loading} onArchive={props.onArchive} onDuplicate={props.onDuplicate} onDelete={props.onDelete} />}
+    >
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={props.onRequestInfo}
+          disabled={props.loading}
+          className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+        >
+          Pedir info
+        </button>
+        {props.activeTab === 'rechazados' ? (
+          <button
+            type="button"
+            onClick={props.onArchive}
+            disabled={props.loading}
+            className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+          >
+            Archivar
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={props.onReject}
+            disabled={props.loading}
+            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+          >
+            Rechazar
+          </button>
+        )}
+      </div>
+    </CardFrame>
+  );
+}
+
+function RequestMenu({
+  disabled,
+  onArchive,
+  onDuplicate,
+  onDelete,
+}: {
+  disabled: boolean;
+  onArchive: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+      >
+        Mas
+      </button>
+
+      {open ? (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onDuplicate();
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-blue-700 hover:bg-blue-50"
+            >
+              Marcar duplicado
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onArchive();
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-orange-700 hover:bg-orange-50"
+            >
+              Archivar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onDelete();
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+            >
+              Eliminar
+            </button>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

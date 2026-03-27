@@ -1,8 +1,9 @@
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getAdminAuth, getAdminFirestore } from '@/lib/server/firebaseAdmin';
-import { hasAdminOverride } from '@/lib/adminOverrides';
+
 import InboxVirtual from '@/components/admin/operations/InboxVirtual';
+import { hasAdminOverride } from '@/lib/adminOverrides';
+import { getAdminAuth, getAdminFirestore } from '@/lib/server/firebaseAdmin';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
@@ -36,7 +37,6 @@ async function requireAdmin() {
   redirect('/?auth=forbidden');
 }
 
-// Inbox item type
 interface InboxItem {
   id: string;
   type: string;
@@ -48,21 +48,13 @@ interface InboxItem {
   actions: string[];
 }
 
-// Aggregate inbox items from existing collections
 async function fetchInboxItems() {
   const db = getAdminFirestore();
   const now = new Date();
-
   const items: InboxItem[] = [];
 
   try {
-    // 1. Applications pendientes (sin orderBy para evitar index requirement)
-    const applicationsSnap = await db
-      .collection('applications')
-      .where('status', 'in', ['pending', 'solicitud'])
-      .limit(20)
-      .get();
-
+    const applicationsSnap = await db.collection('applications').where('status', 'in', ['pending', 'solicitud']).limit(20).get();
     applicationsSnap.docs.forEach((doc) => {
       const data = doc.data();
       items.push({
@@ -81,13 +73,7 @@ async function fetchInboxItems() {
       });
     });
 
-    // 2. Businesses en revisión (sin orderBy para evitar index requirement)
-    const inReviewSnap = await db
-      .collection('businesses')
-      .where('businessStatus', '==', 'in_review')
-      .limit(20)
-      .get();
-
+    const inReviewSnap = await db.collection('businesses').where('businessStatus', '==', 'in_review').limit(20).get();
     inReviewSnap.docs.forEach((doc) => {
       const data = doc.data();
       items.push({
@@ -106,12 +92,7 @@ async function fetchInboxItems() {
       });
     });
 
-    // 3. Pagos vencidos/próximos a vencer
-    const paymentsSnap = await db
-      .collection('businesses')
-      .where('plan', 'in', ['featured', 'sponsor'])
-      .get();
-
+    const paymentsSnap = await db.collection('businesses').where('plan', 'in', ['featured', 'sponsor']).get();
     paymentsSnap.docs.forEach((doc) => {
       const data = doc.data();
       if (!data.planExpiresAt) return;
@@ -120,7 +101,6 @@ async function fetchInboxItems() {
       const daysUntil = Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
       if (daysUntil < 0) {
-        // Vencido (critical)
         items.push({
           id: `payment-${doc.id}`,
           type: 'payment',
@@ -131,12 +111,10 @@ async function fetchInboxItems() {
           metadata: {
             plan: data.plan,
             daysOverdue: Math.abs(daysUntil),
-            amount: data.plan === 'sponsor' ? 299 : 99,
           },
           actions: ['remind', 'suspend', 'extend'],
         });
       } else if (daysUntil <= 7) {
-        // Próximo a vencer (warning)
         items.push({
           id: `payment-${doc.id}`,
           type: 'expiration',
@@ -153,7 +131,6 @@ async function fetchInboxItems() {
       }
     });
 
-    // Sort by priority score (critical first)
     items.sort((a, b) => a.priorityScore - b.priorityScore);
   } catch (error) {
     console.error('[inbox] Error fetching items:', error);
@@ -169,10 +146,9 @@ export default async function AdminInboxPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Operations Inbox</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Tareas que requieren tu atención ({items.length})
-        </p>
+        <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">Core</p>
+        <h1 className="text-2xl font-bold text-gray-900">Inbox</h1>
+        <p className="mt-1 text-sm text-gray-600">Una bandeja para ver qué requiere acción hoy y resolverlo rápido.</p>
       </div>
 
       <InboxVirtual items={items} />
