@@ -62,7 +62,7 @@ const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void })
         {user.photoURL ? (
           <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full object-cover" />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-[#38761D] text-white flex items-center justify-center text-sm font-bold">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
             {user.email?.[0].toUpperCase() || 'U'}
           </div>
         )}
@@ -91,7 +91,7 @@ const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void })
                 className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
               >
                 <div className="p-2 bg-gray-100 rounded-md group-hover:bg-white group-hover:shadow-sm transition-all">
-                  <item.icon className="w-4 h-4 text-gray-600 group-hover:text-[#38761D]" />
+                  <item.icon className="h-4 w-4 text-gray-500 group-hover:text-orange-500" />
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
@@ -110,7 +110,7 @@ const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void })
                 setIsOpen(false);
                 onSignOut();
               }}
-              className="flex items-center gap-2 w-full p-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="flex w-full items-center gap-2 rounded-lg p-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-orange-500"
             >
               <LogOut className="w-4 h-4" />
               Cerrar Sesión
@@ -296,10 +296,10 @@ function NavigationContent() {
               />
             </div>
             <div className="hidden sm:block">
-              <div className="text-lg font-bold text-gray-900 leading-tight">
+              <div className="text-lg font-bold leading-tight text-orange-500">
                 YajaGon
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-500">
                 Directorio de Negocios
               </div>
             </div>
@@ -400,7 +400,7 @@ function NavigationContent() {
               <BsFilter />
               <span className="hidden lg:inline">Filtros</span>
               {activeFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white shadow-lg">
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-lg">
                   {activeFiltersCount}
                 </span>
               )}
@@ -413,8 +413,8 @@ function NavigationContent() {
               href="/"
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 pathname === '/'
-                  ? 'bg-[#38761D] text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-orange-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-orange-500'
               }`}
             >
               <BsHouseDoor className="inline mr-2" />
@@ -424,8 +424,8 @@ function NavigationContent() {
               href="/negocios"
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 pathname === '/negocios'
-                  ? 'bg-[#38761D] text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-orange-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-orange-500'
               }`}
             >
               <BsShop className="inline mr-2" />
@@ -435,8 +435,8 @@ function NavigationContent() {
               href="/favoritos"
               className={`hidden md:flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 pathname === '/favoritos'
-                  ? 'bg-[#38761D] text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-orange-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-orange-500'
               }`}
             >
               <BsHeart className="inline mr-2" />
@@ -446,7 +446,7 @@ function NavigationContent() {
             {/* CTA Registrar Negocio - Solo Desktop */}
             <Link
               href="/registro-negocio"
-              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full border-2 border-[#38761D] text-[#38761D] text-sm font-semibold hover:bg-[#38761D] hover:text-white transition-all"
+              className="hidden md:flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-all hover:border-orange-500 hover:text-orange-500"
             >
               <BsShop className="w-4 h-4" />
               Registrar Negocio
@@ -458,7 +458,7 @@ function NavigationContent() {
             ) : (
               <button
                 onClick={handleSignIn}
-                className="ml-2 flex items-center gap-2 px-4 py-2 rounded-lg bg-[#38761D] text-white text-sm font-semibold hover:bg-[#2f5a1a] transition shadow-md hover:shadow-lg"
+                className="ml-2 flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 hover:shadow-md"
               >
                 <LogIn className="w-4 h-4" />
                 <span className="hidden sm:inline">Iniciar Sesión</span>
@@ -545,7 +545,7 @@ function NavigationContent() {
 
         {/* Mobile Search Bar con filtros */}
         {showSearch && (
-          <div className="md:hidden pb-3 pt-2 px-4">
+          <div className={`px-4 pt-2 md:hidden ${pathname?.startsWith('/negocios') ? 'pb-3' : 'pb-0'}`}>
             
             {/* Filtros rápidos tipo chips - Solo en /negocios */}
             {pathname?.startsWith('/negocios') && (
@@ -555,14 +555,14 @@ function NavigationContent() {
                   onClick={() => setShowFiltersModal(true)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border flex-shrink-0 transition-all ${
                     activeFiltersCount > 0
-                      ? 'bg-[#38761D] text-white border-[#38761D]'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                      ? 'border-orange-500 bg-orange-500 text-white'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-orange-500 hover:text-orange-500'
                   }`}
                 >
                   <BsFilter className="text-sm" />
                   Filtros
                   {activeFiltersCount > 0 && (
-                    <span className="bg-white text-[#38761D] rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                    <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-orange-500">
                       {activeFiltersCount}
                     </span>
                   )}
@@ -585,8 +585,8 @@ function NavigationContent() {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                     params?.get('quickFilter') === 'open'
-                      ? 'bg-emerald-600 text-white border-3 border-emerald-700 shadow-md ring-2 ring-emerald-300'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
+                      ? 'border-orange-500 bg-orange-500 text-white shadow-md ring-2 ring-orange-200'
+                      : 'border border-gray-300 bg-white text-gray-700 hover:border-orange-500 hover:text-orange-500'
                   }`}
                 >
                   {params?.get('quickFilter') === 'open' && <span className="text-white font-bold">✓</span>}
@@ -610,8 +610,8 @@ function NavigationContent() {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                     params?.get('quickFilter') === 'topRated'
-                      ? 'bg-emerald-600 text-white border-3 border-emerald-700 shadow-md ring-2 ring-emerald-300'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
+                      ? 'border-orange-500 bg-orange-500 text-white shadow-md ring-2 ring-orange-200'
+                      : 'border border-gray-300 bg-white text-gray-700 hover:border-orange-500 hover:text-orange-500'
                   }`}
                 >
                   {params?.get('quickFilter') === 'topRated' && <span className="text-white font-bold">✓</span>}
@@ -635,8 +635,8 @@ function NavigationContent() {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                     params?.get('quickFilter') === 'delivery'
-                      ? 'bg-emerald-600 text-white border-3 border-emerald-700 shadow-md ring-2 ring-emerald-300'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
+                      ? 'border-orange-500 bg-orange-500 text-white shadow-md ring-2 ring-orange-200'
+                      : 'border border-gray-300 bg-white text-gray-700 hover:border-orange-500 hover:text-orange-500'
                   }`}
                 >
                   {params?.get('quickFilter') === 'delivery' && <span className="text-white font-bold">✓</span>}
@@ -660,8 +660,8 @@ function NavigationContent() {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                     params?.get('quickFilter') === 'new'
-                      ? 'bg-emerald-600 text-white border-3 border-emerald-700 shadow-md ring-2 ring-emerald-300'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
+                      ? 'border-orange-500 bg-orange-500 text-white shadow-md ring-2 ring-orange-200'
+                      : 'border border-gray-300 bg-white text-gray-700 hover:border-orange-500 hover:text-orange-500'
                   }`}
                 >
                   {params?.get('quickFilter') === 'new' && <span className="text-white font-bold">✓</span>}
@@ -696,8 +696,8 @@ function NavigationContent() {
             href="/"
             className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
               pathname === '/'
-                ? 'bg-[#38761D] text-white'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-orange-500 text-white'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-orange-500'
             }`}
           >
             <BsHouseDoor className="text-xl" />
@@ -707,8 +707,8 @@ function NavigationContent() {
             href="/negocios"
             className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
               pathname === '/negocios'
-                ? 'bg-[#38761D] text-white'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-orange-500 text-white'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-orange-500'
             }`}
           >
             <BsShop className="text-xl" />
@@ -718,8 +718,8 @@ function NavigationContent() {
             href="/favoritos"
             className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
               pathname === '/favoritos'
-                ? 'bg-[#38761D] text-white'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-orange-500 text-white'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-orange-500'
             }`}
           >
             <BsHeart className="text-xl" />
@@ -732,8 +732,8 @@ function NavigationContent() {
               onClick={() => setShowProfileModal(true)}
               className={`flex flex-col items-center gap-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
                 showProfileModal
-                  ? 'bg-[#38761D] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-orange-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-orange-500'
               }`}
             >
               <BsPerson className="text-xl" />
@@ -779,7 +779,7 @@ function NavigationContent() {
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="User" className="w-14 h-14 rounded-full object-cover border-2 border-gray-100" />
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-[#38761D] text-white flex items-center justify-center text-xl font-bold">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 text-xl font-bold text-white">
                     {user.email?.[0].toUpperCase() || 'U'}
                   </div>
                 )}
@@ -797,8 +797,8 @@ function NavigationContent() {
                 onClick={() => setShowProfileModal(false)}
                 className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
-                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
-                  <LayoutDashboard className="w-6 h-6 text-emerald-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50">
+                  <LayoutDashboard className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1">
                   <p className="text-base font-semibold text-gray-900">Mis Negocios</p>
@@ -811,8 +811,8 @@ function NavigationContent() {
                 onClick={() => setShowProfileModal(false)}
                 className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
-                <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
-                  <Heart className="w-6 h-6 text-red-500" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                  <Heart className="h-6 w-6 text-gray-500" />
                 </div>
                 <div className="flex-1">
                   <p className="text-base font-semibold text-gray-900">Favoritos</p>
@@ -825,8 +825,8 @@ function NavigationContent() {
                 onClick={() => setShowProfileModal(false)}
                 className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
-                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                  <History className="w-6 h-6 text-blue-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                  <History className="h-6 w-6 text-gray-500" />
                 </div>
                 <div className="flex-1">
                   <p className="text-base font-semibold text-gray-900">Historial</p>
@@ -839,8 +839,8 @@ function NavigationContent() {
                 onClick={() => setShowProfileModal(false)}
                 className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
-                <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
-                  <Bell className="w-6 h-6 text-purple-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                  <Bell className="h-6 w-6 text-gray-500" />
                 </div>
                 <div className="flex-1">
                   <p className="text-base font-semibold text-gray-900">Notificaciones</p>
@@ -853,8 +853,8 @@ function NavigationContent() {
                 onClick={() => setShowProfileModal(false)}
                 className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
-                <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center">
-                  <BarChart2 className="w-6 h-6 text-orange-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50">
+                  <BarChart2 className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1">
                   <p className="text-base font-semibold text-gray-900">Métricas</p>
@@ -867,8 +867,8 @@ function NavigationContent() {
                 onClick={() => setShowProfileModal(false)}
                 className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
               >
-                <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center">
-                  <Store className="w-6 h-6 text-teal-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50">
+                  <Store className="h-6 w-6 text-orange-500" />
                 </div>
                 <div className="flex-1">
                   <p className="text-base font-semibold text-gray-900">Registrar Negocio</p>
@@ -897,14 +897,14 @@ function NavigationContent() {
                     setShowProfileModal(false);
                     handleSignOut();
                   }}
-                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors w-full"
+                  className="flex w-full items-center gap-4 rounded-xl p-4 transition-colors hover:bg-gray-50 active:bg-gray-100"
                 >
-                  <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
-                    <LogOut className="w-6 h-6 text-red-600" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                    <LogOut className="h-6 w-6 text-gray-500" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="text-base font-semibold text-red-600">Cerrar Sesión</p>
-                    <p className="text-xs text-red-400">Salir de tu cuenta</p>
+                    <p className="text-base font-semibold text-gray-900">Cerrar Sesión</p>
+                    <p className="text-xs text-gray-500">Salir de tu cuenta</p>
                   </div>
                 </button>
               </div>
@@ -944,7 +944,7 @@ function NavigationContent() {
                     nextParams.delete('p');
                     router.push(`${pathname}?${nextParams.toString()}`);
                   }}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">Todas las categorías</option>
                   {categories.map((cat) => (
@@ -971,7 +971,7 @@ function NavigationContent() {
                     nextParams.delete('p');
                     router.push(`${pathname}?${nextParams.toString()}`);
                   }}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">Todas las colonias</option>
                   {colonias.map((col) => (
@@ -998,7 +998,7 @@ function NavigationContent() {
                     nextParams.delete('p');
                     router.push(`${pathname}?${nextParams.toString()}`);
                   }}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="destacado">Destacados</option>
                   <option value="rating">Mejor valorados</option>
@@ -1021,7 +1021,7 @@ function NavigationContent() {
                 <button
                   type="button"
                   onClick={() => setShowFiltersModal(false)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition"
+                  className="flex-1 rounded-lg bg-orange-500 px-4 py-2 font-semibold text-white transition hover:bg-orange-600"
                 >
                   Aplicar
                 </button>

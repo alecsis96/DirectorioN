@@ -829,8 +829,8 @@ export default function NegociosListClient({
               return (
                 <div className="mb-10 overflow-hidden">
                   <div className="mb-4 px-1 sm:px-2">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                      Negocios premium <span className="text-lg font-semibold text-purple-600">({premiumShowcase.length})</span>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      Negocios premium <span className="text-lg font-semibold text-orange-500">({premiumShowcase.length})</span>
                     </h2>
                     <p className="mt-1 text-sm text-gray-500 sm:ml-11">
                       Mas presencia, mejor vitrina y contacto rapido por WhatsApp.
@@ -967,7 +967,7 @@ export default function NegociosListClient({
                           </p>
                           <div className="flex flex-wrap gap-4">
                             <div className="flex items-center gap-2">
-                              <div className="h-3 w-3 rounded-full bg-gradient-to-r from-amber-500 to-purple-500"></div>
+                              <div className="h-3 w-3 rounded-full bg-orange-500"></div>
                               <span className="text-sm text-gray-600">Premium</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -1011,12 +1011,12 @@ export default function NegociosListClient({
                                       <p className="text-sm font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
                                         <span className="line-clamp-1">{business.name}</span>
                                         {business.plan === 'sponsor' && (
-                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 ml-1">
+                                          <span className="ml-1 inline-flex items-center rounded bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700">
                                             PREMIUM
                                           </span>
                                         )}
                                         {business.plan === 'featured' && (
-                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-100 text-yellow-700 ml-1">
+                                          <span className="ml-1 inline-flex items-center rounded bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700">
                                             PREMIUM
                                           </span>
                                         )}

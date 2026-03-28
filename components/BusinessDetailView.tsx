@@ -9,6 +9,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { FaMotorcycle } from "react-icons/fa";
 
 import dynamic from "next/dynamic";
 
@@ -789,7 +790,10 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
                   </span>
                 )}
                 {business.hasEnvio && (
-                  <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-medium text-xs">🚚 Envío</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-600">
+                    <FaMotorcycle className="h-3 w-3" />
+                    Envio
+                  </span>
                 )}
               </div>
             </div>
