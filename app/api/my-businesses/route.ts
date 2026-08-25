@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { appRateLimit } from '../../../lib/appRateLimit';
+import {
+  AuthorizationError,
+  extractBearerToken,
+  verifyIdTokenOrThrow,
+} from '../../../lib/server/authorization';
 
 const limiter = appRateLimit({ interval: 60000, uniqueTokenPerInterval: 20 });
 
@@ -22,29 +27,17 @@ export async function GET(req: Request) {
       );
     }
 
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    if (!token) {
-      return NextResponse.json({ error: 'Missing token' }, { status: 401 });
-    }
-
-    const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = await verifyIdTokenOrThrow(extractBearerToken(req.headers));
     const uid = decoded.uid;
     const email = (decoded.email || '').toLowerCase();
 
     const db = getAdminFirestore();
 
-    // Businesses by ownerId
+    // La lectura privada de negocios depende exclusivamente de ownerId.
     const byIdSnap = await db.collection('businesses').where('ownerId', '==', uid).get();
-    // Businesses by ownerEmail
-    const byEmailSnap = email
-      ? await db.collection('businesses').where('ownerEmail', '==', email).get()
-      : null;
 
     const bizMap = new Map<string, Record<string, unknown>>();
     byIdSnap.forEach((doc) => bizMap.set(doc.id, { id: doc.id, ...doc.data() }));
-    byEmailSnap?.forEach((doc) => bizMap.set(doc.id, { id: doc.id, ...doc.data() }));
 
     // Applications (pending) by uid or email
     const appQueries = [
@@ -71,6 +64,9 @@ export async function GET(req: Request) {
       applications,
     });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('[my-businesses] error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

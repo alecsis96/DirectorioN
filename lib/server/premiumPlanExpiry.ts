@@ -1,6 +1,7 @@
 import { Timestamp, type QueryDocumentSnapshot, type DocumentData } from 'firebase-admin/firestore';
 
 import { getAdminFirestore } from './firebaseAdmin';
+import { MONETIZATION_FEATURE_ENABLED } from '../featureFlags';
 
 type PremiumPlan = 'featured' | 'sponsor';
 
@@ -111,6 +112,10 @@ async function performDowngrade(now: Date): Promise<ExpiryRunResult> {
 export async function downgradeExpiredPremiumPlans(options?: {
   force?: boolean;
 }): Promise<ExpiryRunResult> {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return { checked: 0, downgraded: 0, skipped: true };
+  }
+
   const now = Date.now();
 
   if (!options?.force && now - lastAutoRunAt < AUTO_RUN_INTERVAL_MS) {

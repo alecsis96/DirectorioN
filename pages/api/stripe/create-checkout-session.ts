@@ -2,12 +2,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 import { rateLimit } from '../../../lib/rateLimit';
 import { csrfProtection } from '../../../lib/csrfProtection';
+import { MONETIZATION_FEATURE_ENABLED } from '../../../lib/featureFlags';
 
 const limiter = rateLimit({ interval: 60000, uniqueTokenPerInterval: 5 });
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-10-29.clover',
-});
 
 const PLAN_PRICES = {
   featured: 9900, // $99 MXN in cents
@@ -27,6 +24,13 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return res.status(503).json({
+      error: 'Monetization is temporarily disabled',
+      code: 'MONETIZATION_DISABLED',
+    });
+  }
+
   // CSRF Protection
   if (!csrfProtection(req, res)) return;
 
@@ -34,6 +38,9 @@ export default async function handler(
   if (!limiter.check(req, res, 5)) return;
 
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2025-10-29.clover',
+    });
     const { businessId, businessName, plan } = req.body;
 
     if (!businessId || !businessName || !plan) {

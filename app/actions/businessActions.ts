@@ -19,6 +19,7 @@ import {
   type BusinessStatus 
 } from '../../lib/businessStates';
 import { resolveCategory } from '../../lib/categoriesCatalog';
+import { pickOwnerEditableBusinessUpdates } from '../../lib/ownerBusinessUpdates';
 import { getResourceLimit } from '../../lib/planPermissions';
 
 const createBusinessSchema = z.object({
@@ -327,24 +328,31 @@ export async function updateBusinessWithState(
       throw new Error('No puedes editar un negocio publicado. Contacta al administrador.');
     }
     
-    // Merge updates
-    if (updates.category || (updates as any).categoryId || (updates as any).categoryName) {
-      const resolved = resolveCategory(
-        asString((updates as any).categoryId ?? (updates as any).categoryName ?? updates.category ?? '', 120)
-      );
-      updates.category = resolved.categoryName;
-      (updates as any).categoryId = resolved.categoryId;
-      (updates as any).categoryName = resolved.categoryName;
-      (updates as any).categoryGroupId = resolved.groupId;
+    // Esta action usa Admin SDK: aplica la misma frontera que las Rules y nunca
+    // acepta ownership, estados, moderacion ni monetizacion enviados por el owner.
+    const ownerUpdates = pickOwnerEditableBusinessUpdates(updates);
+    if (!Object.keys(ownerUpdates).length) {
+      throw new Error('No hay campos editables validos para actualizar');
     }
-    const updatedData = { ...currentData, ...updates };
+
+    // Merge updates
+    if (ownerUpdates.category || (ownerUpdates as any).categoryId || (ownerUpdates as any).categoryName) {
+      const resolved = resolveCategory(
+        asString((ownerUpdates as any).categoryId ?? (ownerUpdates as any).categoryName ?? ownerUpdates.category ?? '', 120)
+      );
+      ownerUpdates.category = resolved.categoryName;
+      (ownerUpdates as any).categoryId = resolved.categoryId;
+      (ownerUpdates as any).categoryName = resolved.categoryName;
+      (ownerUpdates as any).categoryGroupId = resolved.groupId;
+    }
+    const updatedData = { ...currentData, ...ownerUpdates };
     
     // Recalcular estado
     const stateUpdate = updateBusinessState(updatedData);
     
     // Guardar
     await businessRef.update({
-      ...updates,
+      ...ownerUpdates,
       completionPercent: stateUpdate.completionPercent,
       isPublishReady: stateUpdate.isPublishReady,
       missingFields: stateUpdate.missingFields,

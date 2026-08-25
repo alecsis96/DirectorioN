@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
-import { BsEye, BsPhone, BsWhatsapp, BsGeoAlt, BsHeart, BsStar, BsArrowRight, BsPencilSquare, BsGraphUp } from 'react-icons/bs';
+import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { BsEye, BsPhone, BsWhatsapp, BsStar, BsArrowRight, BsPencilSquare, BsGraphUp } from 'react-icons/bs';
 import { auth, db } from '../firebaseConfig';
 import type { OwnerMetrics, BusinessWithMetrics } from '../lib/server/ownerMetrics';
 
@@ -30,7 +30,7 @@ export default function DashboardBusinessList({
   const [items, setItems] = useState<BusinessWithMetrics[]>(initialBusinesses);
   const [appStatus, setAppStatus] = useState<DashboardApplicationStatus>(initialStatus);
   const [busy, setBusy] = useState(false);
-  const [metrics, setMetrics] = useState<OwnerMetrics>(aggregatedMetrics);
+  const metrics = aggregatedMetrics;
   const displayEmail = user?.email ?? ownerEmail ?? '';
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function DashboardBusinessList({
     let cancelled = false;
     (async () => {
       try {
-        const q = query(collection(db, 'businesses'), where('ownerId', '==', user.uid));
+        const q = query(collection(db, 'businesses'), where('ownerId', '==', user.uid), limit(100));
         const snap = await getDocs(q);
         if (!cancelled) {
           setItems(snap.docs.map((doc) => ({ 
@@ -83,6 +83,7 @@ export default function DashboardBusinessList({
 
       await setDoc(ref, {
         name: 'Nuevo negocio',
+        businessName: 'Nuevo negocio',
         category: '',
         address: '',
         description: '',
@@ -92,9 +93,8 @@ export default function DashboardBusinessList({
         hours: '',
         price: '',
         ownerId: activeUid,
-        ownerEmail: (user?.email ?? ownerEmail ?? null)?.toLowerCase() ?? null,
-        status: 'pending',
-        featured: false,
+        ...(user?.email ? { ownerEmail: user.email } : {}),
+        businessStatus: 'draft',
         images: [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -105,7 +105,7 @@ export default function DashboardBusinessList({
     } finally {
       setBusy(false);
     }
-  }, [user?.uid, user?.email, ownerId, ownerEmail, needsApproval]);
+  }, [user?.uid, user?.email, ownerId, needsApproval]);
 
   const handleSignOut = useCallback(() => {
     signOut(auth).catch((error) => {

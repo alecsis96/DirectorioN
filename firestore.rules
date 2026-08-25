@@ -16,13 +16,34 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.admin == true;
     }
 
-    // Verifica que el negocio pertenece al usuario actual (por ownerId o ownerEmail)
+    // Un negocio solo tiene propietario autenticado cuando ownerId existe y coincide.
+    // Los negocios de alta asistida pueden no tener ownerId y siguen siendo administrables por admin.
     function isOwner(businessId) {
       let biz = get(/databases/$(database)/documents/businesses/$(businessId)).data;
-      return isSignedIn() && (
-        biz.ownerId == request.auth.uid ||
-        (biz.ownerEmail != null && biz.ownerEmail == request.auth.token.email)
-      );
+      return isSignedIn()
+        && ('ownerId' in biz)
+        && biz.ownerId is string
+        && biz.ownerId.size() > 0
+        && biz.ownerId == request.auth.uid;
+    }
+
+    function isOwnerResource() {
+      return isSignedIn()
+        && ('ownerId' in resource.data)
+        && resource.data.ownerId is string
+        && resource.data.ownerId.size() > 0
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    function isPublicBusiness() {
+      let adminStatus = resource.data.get('adminStatus', 'active');
+      let visibility = resource.data.get('visibility', 'published');
+      let active = resource.data.get('isActive', true);
+      return ('businessStatus' in resource.data)
+        && resource.data.businessStatus == 'published'
+        && adminStatus == 'active'
+        && visibility == 'published'
+        && active == true;
     }
 
     function validString(val, min, max) {
@@ -121,19 +142,13 @@ service cloud.firestore {
 
     // ============== BUSINESSES ==============
     match /businesses/{businessId} {
-      // Lectura individual: pública para published, restringida para otros
-      // NUEVO: soporta tanto status como businessStatus
-      allow get: if (resource.data.status == 'published' || resource.data.businessStatus == 'published') || 
-                    isOwner(businessId) || 
-                    isAdmin();
+      // Lectura individual: publica solo con el predicado canonico; privada para ownerId o admin.
+      allow get: if isPublicBusiness() || isOwner(businessId) || isAdmin();
       
-      // Queries: públicas para published; admin o cualquier usuario autenticado pueden listar
-      // NUEVO: soporta consultas con businessStatus
+      // Las reglas no filtran: el cliente debe consultar solo documentos demostrablemente
+      // publicos o limitar la consulta a su ownerId. Un admin puede listar sin limite.
       allow list: if isAdmin() ||
-                    isSignedIn() ||
-                    (request.query.limit <= 100 &&
-                     (('status' in request.query && request.query.status == 'published') ||
-                      ('businessStatus' in request.query && request.query.businessStatus == 'published')));
+                    (request.query.limit <= 100 && (isPublicBusiness() || isOwnerResource()));
 
       // Creación: admin puede crear (para el flujo de aprobación)
       // O usuario puede crear draft con su ownerId
@@ -150,116 +165,149 @@ service cloud.firestore {
       // ---- create por admin (desde approve endpoint)
       function validBusinessAdminCreate() {
         return
-          validString(request.resource.data.businessName, 1, 140) &&
-          validString(request.resource.data.ownerEmail, 5, 200) &&
-          optionalString(request.resource.data.ownerName, 140) &&
-          optionalString(request.resource.data.ownerId, 128) &&
-          optionalString(request.resource.data.category, 80) &&
-          optionalString(request.resource.data.phone, 30) &&
-          optionalString(request.resource.data.whatsapp, 30) &&
+          ((('businessName' in request.resource.data) && validString(request.resource.data.businessName, 1, 140)) ||
+           (('name' in request.resource.data) && validString(request.resource.data.name, 1, 140))) &&
+          (!('ownerEmail' in request.resource.data) || validString(request.resource.data.ownerEmail, 5, 200)) &&
+          (!('ownerName' in request.resource.data) || optionalString(request.resource.data.ownerName, 140)) &&
+          (!('ownerId' in request.resource.data) || validString(request.resource.data.ownerId, 1, 128)) &&
+          (!('category' in request.resource.data) || optionalString(request.resource.data.category, 80)) &&
+          (!('phone' in request.resource.data) || optionalString(request.resource.data.phone, 30)) &&
+          (!('whatsapp' in request.resource.data) || optionalString(request.resource.data.whatsapp, 30)) &&
           (!('status' in request.resource.data) || validStatus(request.resource.data.status)) &&
+          (!('businessStatus' in request.resource.data) || validBusinessStatus(request.resource.data.businessStatus)) &&
           (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp) &&
           (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
       }
 
       // ---- create por usuario (si decide crear directo o desde wizard con nuevo sistema)
       function validBusinessUserCreate() {
-        return
-          // Compatibilidad: acepta status='draft' o businessStatus='draft'
-          ((!('status' in request.resource.data) || request.resource.data.status == 'draft') &&
-           (!('businessStatus' in request.resource.data) || request.resource.data.businessStatus == 'draft')) &&
-          isVerifiedEmail() &&
-          (request.resource.data.ownerId == request.auth.uid) &&
+        let allowedFields = request.resource.data.keys().hasOnly([
+          'name', 'businessName',
+          'category', 'categoryId', 'categoryName', 'categoryGroupId',
+          'address', 'colonia', 'neighborhood', 'description',
+          'phone', 'whatsapp', 'WhatsApp',
+          'facebookPage', 'Facebook', 'instagramUser', 'emailContact', 'website',
+          'hours', 'horarios', 'images', 'logoUrl', 'coverPhoto', 'image1',
+          'hasEnvio', 'envioCost', 'envioInfo',
+          'lat', 'lng', 'location', 'price',
+          'ownerId', 'ownerEmail', 'ownerName', 'ownerPhone',
+          'businessStatus', 'createdAt', 'updatedAt'
+        ]);
+        return isVerifiedEmail() &&
+          allowedFields &&
+          request.resource.data.ownerId == request.auth.uid &&
+          request.auth.token.email is string &&
+          (!('ownerEmail' in request.resource.data) ||
+            (validString(request.resource.data.ownerEmail, 5, 200) &&
+             request.resource.data.ownerEmail == request.auth.token.email)) &&
+          request.resource.data.businessStatus == 'draft' &&
           validString(request.resource.data.businessName, 1, 140) &&
-          !(request.resource.data.featured is bool && request.resource.data.featured == true) &&
-          // NUEVO: acepta campos de estado
-          (!('applicationStatus' in request.resource.data) || validApplicationStatus(request.resource.data.applicationStatus)) &&
-          (!('completionPercent' in request.resource.data) || (request.resource.data.completionPercent is number && request.resource.data.completionPercent >= 0 && request.resource.data.completionPercent <= 100)) &&
-          (!('isPublishReady' in request.resource.data) || request.resource.data.isPublishReady is bool) &&
+          (!('name' in request.resource.data) || validString(request.resource.data.name, 1, 140)) &&
+          (!('ownerName' in request.resource.data) || validString(request.resource.data.ownerName, 0, 140)) &&
+          (!('ownerPhone' in request.resource.data) || validString(request.resource.data.ownerPhone, 0, 30)) &&
+          (!('category' in request.resource.data) || validString(request.resource.data.category, 0, 120)) &&
+          (!('categoryId' in request.resource.data) || validString(request.resource.data.categoryId, 0, 120)) &&
+          (!('categoryName' in request.resource.data) || validString(request.resource.data.categoryName, 0, 120)) &&
+          (!('categoryGroupId' in request.resource.data) || validString(request.resource.data.categoryGroupId, 0, 80)) &&
+          (!('address' in request.resource.data) || validString(request.resource.data.address, 0, 400)) &&
+          (!('colonia' in request.resource.data) || validString(request.resource.data.colonia, 0, 140)) &&
+          (!('neighborhood' in request.resource.data) || validString(request.resource.data.neighborhood, 0, 140)) &&
+          (!('description' in request.resource.data) || validString(request.resource.data.description, 0, 2000)) &&
+          (!('phone' in request.resource.data) || validString(request.resource.data.phone, 0, 30)) &&
+          (!('whatsapp' in request.resource.data) || validString(request.resource.data.whatsapp, 0, 30)) &&
+          (!('WhatsApp' in request.resource.data) || validString(request.resource.data.WhatsApp, 0, 30)) &&
+          (!('facebookPage' in request.resource.data) || validString(request.resource.data.facebookPage, 0, 300)) &&
+          (!('Facebook' in request.resource.data) || validString(request.resource.data.Facebook, 0, 300)) &&
+          (!('instagramUser' in request.resource.data) || validString(request.resource.data.instagramUser, 0, 200)) &&
+          (!('emailContact' in request.resource.data) || validString(request.resource.data.emailContact, 0, 200)) &&
+          (!('website' in request.resource.data) || validString(request.resource.data.website, 0, 300)) &&
+          (!('hours' in request.resource.data) || validString(request.resource.data.hours, 0, 500)) &&
+          (!('horarios' in request.resource.data) || request.resource.data.horarios is map) &&
+          (!('images' in request.resource.data) || request.resource.data.images is list) &&
+          (!('logoUrl' in request.resource.data) || validString(request.resource.data.logoUrl, 0, 500)) &&
+          (!('coverPhoto' in request.resource.data) || validString(request.resource.data.coverPhoto, 0, 500)) &&
+          (!('image1' in request.resource.data) || validString(request.resource.data.image1, 0, 500)) &&
+          (!('hasEnvio' in request.resource.data) || request.resource.data.hasEnvio is bool) &&
+          (!('envioCost' in request.resource.data) || validString(request.resource.data.envioCost, 0, 40)) &&
+          (!('envioInfo' in request.resource.data) || validString(request.resource.data.envioInfo, 0, 500)) &&
+          (!('lat' in request.resource.data) || request.resource.data.lat is number) &&
+          (!('lng' in request.resource.data) || request.resource.data.lng is number) &&
+          (!('location' in request.resource.data) || request.resource.data.location is map) &&
+          (!('price' in request.resource.data) ||
+            request.resource.data.price is number || request.resource.data.price is string) &&
           (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp) &&
           (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
       }
 
-      // ---- update por dueño: transiciones y validaciones con nuevo sistema de estados
+      // ---- update por dueño: solo perfil/contacto, nunca estados ni ownership
       function validBusinessOwnerUpdate() {
-        // Mismo ownerId y ownerEmail
+        let changedFields = request.resource.data.diff(resource.data).affectedKeys();
         let sameOwner = request.resource.data.ownerId == resource.data.ownerId &&
-                       request.resource.data.ownerEmail == resource.data.ownerEmail;
+          ((!('ownerEmail' in resource.data) && !('ownerEmail' in request.resource.data)) ||
+           (('ownerEmail' in resource.data) && ('ownerEmail' in request.resource.data) &&
+            request.resource.data.ownerEmail == resource.data.ownerEmail));
 
-        // No puede activar featured por sí solo
-        let tryingToEnableFeatured =
-          ('featured' in request.resource.data) &&
-          (request.resource.data.featured == true) &&
-          !(resource.data.featured == true);
-
-        // NUEVO: Sistema de estados con businessStatus y applicationStatus
-        let oldBusinessStatus = ('businessStatus' in resource.data) ? resource.data.businessStatus : 'draft';
-        let newBusinessStatus = ('businessStatus' in request.resource.data) ? request.resource.data.businessStatus : oldBusinessStatus;
-        
-        // Transiciones permitidas para businessStatus:
-        // draft -> draft o draft -> in_review (solicitar publicación)
-        // in_review -> in_review (puede seguir editando)
-        // published -> published (NO puede despublicar, solo editar)
-        let businessStatusAllowed =
-          (oldBusinessStatus == 'draft' && (newBusinessStatus in ['draft','in_review'])) ||
-          (oldBusinessStatus == 'in_review' && newBusinessStatus == 'in_review') ||
-          (oldBusinessStatus == 'published' && newBusinessStatus == 'published') ||
-          !('businessStatus' in resource.data); // Si no existe, permitir cualquiera
-
-        // Compatibilidad con status antiguo
-        let oldStatus = ('status' in resource.data) ? resource.data.status : 'draft';
-        let newStatus = ('status' in request.resource.data) ? request.resource.data.status : oldStatus;
-        let statusAllowed =
-          (oldStatus == 'draft' && (newStatus in ['draft','review'])) ||
-          (oldStatus == 'review' && newStatus == 'review') ||
-          (oldStatus == 'published' && newStatus == 'published') ||
-          (oldStatus == 'rejected' && (newStatus in ['rejected','review'])) ||
-          !('status' in resource.data);
-
-        // NUEVO: Owner NO puede cambiar applicationStatus directamente (lo hace el sistema automáticamente)
-        let appStatusNotChanged = !('applicationStatus' in request.resource.data) || 
-                                  !('applicationStatus' in resource.data) ||
-                                  request.resource.data.applicationStatus == resource.data.applicationStatus;
-
-        let baseChecks =
+        return changedFields.hasOnly([
+          'name', 'businessName',
+          'category', 'categoryId', 'categoryName', 'categoryGroupId',
+          'address', 'colonia', 'neighborhood', 'description',
+          'phone', 'whatsapp', 'WhatsApp',
+          'facebookPage', 'Facebook', 'instagramUser', 'emailContact', 'website',
+          'hours', 'horarios', 'images', 'logoUrl', 'coverPhoto', 'image1',
+          'hasEnvio', 'envioCost', 'envioInfo',
+          'lat', 'lng', 'location', 'price',
+          'updatedAt'
+        ]) &&
           sameOwner &&
-          !tryingToEnableFeatured &&
-          businessStatusAllowed &&
-          statusAllowed &&
-          appStatusNotChanged &&
-          (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
-
-        // Validación de campos - más flexible para permitir updates parciales
-        let fieldsOk =
-          (!('businessName' in request.resource.data) || optionalString(request.resource.data.businessName, 140)) &&
-          (!('category' in request.resource.data) || optionalString(request.resource.data.category, 80)) &&
-          (!('address' in request.resource.data) || optionalString(request.resource.data.address, 300)) &&
-          (!('description' in request.resource.data) || optionalString(request.resource.data.description, 2000)) &&
-          (!('phone' in request.resource.data) || optionalString(request.resource.data.phone, 30)) &&
-          (!('whatsapp' in request.resource.data) || optionalString(request.resource.data.whatsapp, 30)) &&
-          (!('facebookPage' in request.resource.data) || optionalString(request.resource.data.facebookPage, 300)) &&
-          (!('instagramUser' in request.resource.data) || optionalString(request.resource.data.instagramUser, 200)) &&
-          (!('emailContact' in request.resource.data) || optionalString(request.resource.data.emailContact, 200)) &&
-          (!('website' in request.resource.data) || optionalString(request.resource.data.website, 300)) &&
-          (!('hours' in request.resource.data) || optionalString(request.resource.data.hours, 500)) &&
-          // NUEVO: validar campos computados
-          (!('completionPercent' in request.resource.data) || (request.resource.data.completionPercent is number && request.resource.data.completionPercent >= 0 && request.resource.data.completionPercent <= 100)) &&
-          (!('isPublishReady' in request.resource.data) || request.resource.data.isPublishReady is bool);
-
-        return baseChecks && fieldsOk;
+          (!changedFields.hasAny(['name']) || validString(request.resource.data.name, 1, 140)) &&
+          (!changedFields.hasAny(['businessName']) || validString(request.resource.data.businessName, 1, 140)) &&
+          (!changedFields.hasAny(['category']) || validString(request.resource.data.category, 0, 120)) &&
+          (!changedFields.hasAny(['categoryId']) || validString(request.resource.data.categoryId, 0, 120)) &&
+          (!changedFields.hasAny(['categoryName']) || validString(request.resource.data.categoryName, 0, 120)) &&
+          (!changedFields.hasAny(['categoryGroupId']) || validString(request.resource.data.categoryGroupId, 0, 80)) &&
+          (!changedFields.hasAny(['address']) || validString(request.resource.data.address, 0, 400)) &&
+          (!changedFields.hasAny(['colonia']) || validString(request.resource.data.colonia, 0, 140)) &&
+          (!changedFields.hasAny(['neighborhood']) || validString(request.resource.data.neighborhood, 0, 140)) &&
+          (!changedFields.hasAny(['description']) || validString(request.resource.data.description, 0, 2000)) &&
+          (!changedFields.hasAny(['phone', 'whatsapp', 'WhatsApp']) ||
+            ((!changedFields.hasAny(['phone']) || validString(request.resource.data.phone, 0, 30)) &&
+             (!changedFields.hasAny(['whatsapp']) || validString(request.resource.data.whatsapp, 0, 30)) &&
+             (!changedFields.hasAny(['WhatsApp']) || validString(request.resource.data.WhatsApp, 0, 30)))) &&
+          (!changedFields.hasAny(['facebookPage']) || validString(request.resource.data.facebookPage, 0, 300)) &&
+          (!changedFields.hasAny(['Facebook']) || validString(request.resource.data.Facebook, 0, 300)) &&
+          (!changedFields.hasAny(['instagramUser']) || validString(request.resource.data.instagramUser, 0, 200)) &&
+          (!changedFields.hasAny(['emailContact']) || validString(request.resource.data.emailContact, 0, 200)) &&
+          (!changedFields.hasAny(['website']) || validString(request.resource.data.website, 0, 300)) &&
+          (!changedFields.hasAny(['hours']) || validString(request.resource.data.hours, 0, 500)) &&
+          (!changedFields.hasAny(['horarios']) || request.resource.data.horarios is map) &&
+          (!changedFields.hasAny(['images']) || request.resource.data.images is list) &&
+          (!changedFields.hasAny(['logoUrl']) || validString(request.resource.data.logoUrl, 0, 500)) &&
+          (!changedFields.hasAny(['coverPhoto']) || validString(request.resource.data.coverPhoto, 0, 500)) &&
+          (!changedFields.hasAny(['image1']) || validString(request.resource.data.image1, 0, 500)) &&
+          (!changedFields.hasAny(['hasEnvio']) || request.resource.data.hasEnvio is bool) &&
+          (!changedFields.hasAny(['envioCost']) || validString(request.resource.data.envioCost, 0, 40)) &&
+          (!changedFields.hasAny(['envioInfo']) || validString(request.resource.data.envioInfo, 0, 500)) &&
+          (!changedFields.hasAny(['lat']) || request.resource.data.lat is number) &&
+          (!changedFields.hasAny(['lng']) || request.resource.data.lng is number) &&
+          (!changedFields.hasAny(['location']) || request.resource.data.location is map) &&
+          (!changedFields.hasAny(['price']) ||
+            request.resource.data.price is number || request.resource.data.price is string) &&
+          (!changedFields.hasAny(['updatedAt']) || request.resource.data.updatedAt is timestamp);
       }
 
       // ---- update por admin (puede cambiar cualquier cosa incluyendo estados)
       function validBusinessAdminUpdate() {
         return
-          optionalString(request.resource.data.businessName, 140) &&
-          optionalString(request.resource.data.ownerName, 140) &&
-          optionalString(request.resource.data.ownerEmail, 200) &&
-          optionalString(request.resource.data.category, 80) &&
-          optionalString(request.resource.data.address, 300) &&
-          optionalString(request.resource.data.description, 2000) &&
-          optionalString(request.resource.data.phone, 30) &&
-          optionalString(request.resource.data.whatsapp, 30) &&
+          (!('businessName' in request.resource.data) || optionalString(request.resource.data.businessName, 140)) &&
+          (!('name' in request.resource.data) || optionalString(request.resource.data.name, 140)) &&
+          (!('ownerName' in request.resource.data) || optionalString(request.resource.data.ownerName, 140)) &&
+          (!('ownerEmail' in request.resource.data) || optionalString(request.resource.data.ownerEmail, 200)) &&
+          (!('ownerId' in request.resource.data) || validString(request.resource.data.ownerId, 1, 128)) &&
+          (!('category' in request.resource.data) || optionalString(request.resource.data.category, 80)) &&
+          (!('address' in request.resource.data) || optionalString(request.resource.data.address, 300)) &&
+          (!('description' in request.resource.data) || optionalString(request.resource.data.description, 2000)) &&
+          (!('phone' in request.resource.data) || optionalString(request.resource.data.phone, 30)) &&
+          (!('whatsapp' in request.resource.data) || optionalString(request.resource.data.whatsapp, 30)) &&
           (!('featured' in request.resource.data) || request.resource.data.featured is bool) &&
           // Compatibilidad: mantener validación status antiguo
           (!('status' in request.resource.data) || validStatus(request.resource.data.status)) &&
@@ -395,10 +443,8 @@ service cloud.firestore {
         isOwner(resource.data.businessId) || isAdmin()
       );
       
-      // Creación: usuario autenticado que es dueño del negocio
-      allow create: if isSignedIn()
-        && isOwner(request.resource.data.businessId)
-        && validWaitlistCreate();
+      // Monetización desactivada: ningún cliente puede activar la lista de espera.
+      allow create: if false;
       
       // Actualización: solo Cloud Functions o admin
       allow update: if isAdmin();
@@ -423,10 +469,8 @@ service cloud.firestore {
         isOwner(resource.data.businessId) || isAdmin()
       );
       
-      // Creación: usuario autenticado
-      allow create: if isSignedIn()
-        && isOwner(request.resource.data.businessId)
-        && validPurchaseCreate();
+      // Monetización desactivada: ningún cliente puede registrar compras.
+      allow create: if false;
       
       // Actualización: solo admin o sistema
       allow update: if isAdmin();

@@ -1,4 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { MONETIZATION_FEATURE_ENABLED } from '../../lib/featureFlags';
+import {
+  assertAdminToken,
+  AuthorizationError,
+} from '../../lib/server/authorization';
 
 /**
  * API para enviar notificaciones por WhatsApp usando Twilio
@@ -16,6 +21,25 @@ interface WhatsAppRequest {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const requestedType = req.body?.type;
+  if (!MONETIZATION_FEATURE_ENABLED && requestedType === 'payment_received') {
+    return res.status(503).json({
+      error: 'Monetization is temporarily disabled',
+      code: 'MONETIZATION_DISABLED',
+    });
+  }
+
+  const authorization = req.headers.authorization || '';
+  const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  try {
+    await assertAdminToken(token);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    return res.status(401).json({ error: 'Autenticacion requerida.' });
   }
 
   // Verificar que Twilio esté configurado

@@ -89,6 +89,13 @@ export async function listProductsByBusiness(businessId: string, includeUnavaila
   return sortProducts(items);
 }
 
+export async function getProductById(productId: string) {
+  const db = getAdminFirestore();
+  const snapshot = await db.collection(PRODUCTS_COLLECTION).doc(productId).get();
+  if (!snapshot.exists) return null;
+  return toProductResponse(snapshot.id, snapshot.data() as ProductRecord);
+}
+
 export async function createProduct(payload: ProductPayload) {
   const db = getAdminFirestore();
   const now = Timestamp.now();

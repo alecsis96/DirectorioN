@@ -223,21 +223,11 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
 
 
-  // Normaliza correos
-
-  const ownerEmail = (business.ownerEmail || "").trim().toLowerCase();
-
-  const userEmail = (user?.email || "").trim().toLowerCase();
-
-
-
-  // Dueno por uid o por correo; o admin
+  // Dueno autenticado exclusivamente por uid; ownerEmail es informativo.
 
   const isOwnerByUid = Boolean(user?.uid && business.ownerId && user.uid === business.ownerId);
 
-  const isOwnerByEmail = Boolean(userEmail && ownerEmail && userEmail === ownerEmail);
-
-  const canManage = (isOwnerByUid || isOwnerByEmail || isAdmin) && !!business.id;
+  const canManage = (isOwnerByUid || isAdmin) && !!business.id;
 
   const dashboardHref = business.id ? `/dashboard/${business.id}` : "/dashboard";
 
@@ -399,7 +389,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
     if (!user) return setErrorMsg("Debes iniciar sesion para dejar una resena.");
 
-    if (isOwnerByUid || isOwnerByEmail) return setErrorMsg("No puedes dejar resena en tu propio negocio.");
+    if (isOwnerByUid) return setErrorMsg("No puedes dejar resena en tu propio negocio.");
 
 
 
@@ -531,7 +521,6 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
       ? `https://www.google.com/maps/embed/v1/view?key=${googleKey}&center=${lat},${lng}&zoom=16`
       : `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
   }
-  const planValue = String((business as any)?.plan ?? "").toLowerCase();
   const hasGallery = galleryItems.length > 0;
 
   // Helper para tracking de eventos en esta vista

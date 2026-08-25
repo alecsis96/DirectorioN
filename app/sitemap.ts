@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { isVisible } from '../lib/businessHelpers';
 import { getAdminFirestore } from '../lib/server/firebaseAdmin';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://directorio-yajalon.com';
@@ -21,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const db = getAdminFirestore();
     const snapshot = await db.collection('businesses').where('businessStatus', '==', 'published').limit(500).get();
-    dynamicEntries = snapshot.docs.map((doc) => {
+    dynamicEntries = snapshot.docs.filter((doc) => isVisible(doc.data())).map((doc) => {
       const data = doc.data() as { updatedAt?: any; slug?: string };
       const updatedRaw = data?.updatedAt;
       let lastModified: Date;

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
+import { useAuth } from '../hooks/useAuth';
 import type { Product, ProductsApiResponse } from '../types/product';
 
 type MenuManagerProps = {
@@ -69,6 +70,7 @@ async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit, time
 }
 
 export default function MenuManager({ businessId }: MenuManagerProps) {
+  const { user, loading: authLoading } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -113,6 +115,16 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
   useEffect(() => {
     let isActive = true;
 
+    if (authLoading) return;
+
+    if (!user) {
+      setProducts([]);
+      setIsLoading(false);
+      setError('Debes iniciar sesion para administrar este menu.');
+      return;
+    }
+    const authenticatedUser = user;
+
     if (!businessId) {
       setProducts([]);
       setIsLoading(false);
@@ -128,8 +140,12 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
       setError('');
 
       try {
+        const token = await authenticatedUser.getIdToken();
         const response = await fetch(buildProductsEndpoint(businessId), {
           method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           signal: controller.signal,
           cache: 'no-store',
         });
@@ -165,7 +181,7 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [businessId, reloadKey]);
+  }, [authLoading, businessId, reloadKey, user]);
 
   const groupedProducts = useMemo(() => {
     const groups = new Map<string, Product[]>();
@@ -243,12 +259,15 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     );
 
     try {
+      if (!user) throw new Error('Debes iniciar sesion para administrar este menu.');
+      const token = await user.getIdToken();
       const { response, payload } = await requestJson<ProductMutationResponse>(
         `/api/products/${encodeURIComponent(product.id)}`,
         {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ disponibilidad: nextAvailability }),
         }
@@ -288,10 +307,15 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     markProductBusy(product.id, true);
 
     try {
+      if (!user) throw new Error('Debes iniciar sesion para administrar este menu.');
+      const token = await user.getIdToken();
       const { response, payload } = await requestJson<ProductMutationResponse>(
         `/api/products/${encodeURIComponent(product.id)}`,
         {
           method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -341,10 +365,13 @@ export default function MenuManager({ businessId }: MenuManagerProps) {
     const method = editingProduct ? 'PUT' : 'POST';
 
     try {
+      if (!user) throw new Error('Debes iniciar sesion para administrar este menu.');
+      const token = await user.getIdToken();
       const { response, payload: data } = await requestJson<ProductMutationResponse>(endpoint, {
         method,
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });

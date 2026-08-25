@@ -5,12 +5,13 @@
 
 'use server';
 
-import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
+import { assertAdminToken } from '../../lib/server/authorization';
+import { MONETIZATION_FEATURE_ENABLED } from '../../lib/featureFlags';
+import { getAdminFirestore } from '../../lib/server/firebaseAdmin';
 import { serializeTimestamps } from '../../lib/server/serializeFirestore';
 import { 
   type ApplicationStatus, 
   type BusinessStatus,
-  computeProfileCompletion,
   updateBusinessState,
 } from '../../lib/businessStates';
 
@@ -19,7 +20,8 @@ import {
  * Negocios que acaban de completar el wizard
  * EXCLUYE: archived y deleted
  */
-export async function getNewSubmissions(): Promise<any[]> {
+export async function getNewSubmissions(adminToken: string): Promise<any[]> {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   const snapshot = await db
@@ -53,7 +55,8 @@ export async function getNewSubmissions(): Promise<any[]> {
  * Negocios que necesitan más información o están incompletos
  * EXCLUYE: submitted (están en "Nuevas"), ready_for_review (están en "Listas"), archived y deleted
  */
-export async function getPendingBusinesses(): Promise<any[]> {
+export async function getPendingBusinesses(adminToken: string): Promise<any[]> {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   // Obtener negocios con needs_info o draft con baja completitud
@@ -105,7 +108,8 @@ export async function getPendingBusinesses(): Promise<any[]> {
  * Negocios que cumplen requisitos y están esperando aprobación
  * EXCLUYE: archived y deleted
  */
-export async function getReadyForReview(): Promise<any[]> {
+export async function getReadyForReview(adminToken: string): Promise<any[]> {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   const snapshot = await db
@@ -139,8 +143,10 @@ export async function getReadyForReview(): Promise<any[]> {
  */
 export async function approveBusiness(
   businessId: string,
+  adminToken: string,
   adminNotes?: string
 ) {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   const businessRef = db.collection('businesses').doc(businessId);
@@ -156,7 +162,9 @@ export async function approveBusiness(
   await businessRef.update({
     businessStatus: 'published' as BusinessStatus,
     applicationStatus: 'approved' as ApplicationStatus,
+    adminStatus: 'active',
     visibility: 'published', // Hacer visible en directorio público
+    isActive: true,
     publishedAt: new Date(),
     lastReviewedAt: new Date(),
     adminNotes: adminNotes || null,
@@ -202,8 +210,10 @@ export async function approveBusiness(
  */
 export async function rejectBusiness(
   businessId: string,
-  rejectionReason: string
+  rejectionReason: string,
+  adminToken: string
 ) {
+  await assertAdminToken(adminToken);
   if (!rejectionReason || rejectionReason.trim().length < 10) {
     throw new Error('Debes proporcionar un motivo de rechazo (mínimo 10 caracteres)');
   }
@@ -269,8 +279,10 @@ export async function rejectBusiness(
 export async function requestMoreInfo(
   businessId: string,
   adminNotes: string,
+  adminToken: string,
   missingFields?: string[]
 ) {
+  await assertAdminToken(adminToken);
   if (!adminNotes || adminNotes.trim().length < 10) {
     throw new Error('Debes especificar qué información se necesita');
   }
@@ -336,8 +348,10 @@ export async function requestMoreInfo(
  */
 export async function unpublishBusiness(
   businessId: string,
-  reason: string
+  reason: string,
+  adminToken: string
 ) {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   const businessRef = db.collection('businesses').doc(businessId);
@@ -362,7 +376,8 @@ export async function unpublishBusiness(
 /**
  * OBTENER ESTADÍSTICAS DEL PANEL ADMIN
  */
-export async function getAdminStats() {
+export async function getAdminStats(adminToken: string) {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   const [newSubmissions, pending, readyForReview, published] = await Promise.all([
@@ -384,7 +399,8 @@ export async function getAdminStats() {
  * RECALCULAR ESTADO DE UN NEGOCIO
  * Útil para migración o corrección
  */
-export async function recalculateBusinessState(businessId: string) {
+export async function recalculateBusinessState(businessId: string, adminToken: string) {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   const businessRef = db.collection('businesses').doc(businessId);
@@ -427,7 +443,8 @@ export async function recalculateBusinessState(businessId: string) {
  * Negocios aprobados y visibles públicamente
  * EXCLUYE: archived y deleted
  */
-export async function getPublishedBusinesses(): Promise<any[]> {
+export async function getPublishedBusinesses(adminToken: string): Promise<any[]> {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   const snapshot = await db
@@ -457,7 +474,8 @@ export async function getPublishedBusinesses(): Promise<any[]> {
  * Obtener negocios rechazados
  * EXCLUYE: archived y deleted
  */
-export async function getRejectedBusinesses(): Promise<any[]> {
+export async function getRejectedBusinesses(adminToken: string): Promise<any[]> {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   const snapshot = await db
@@ -487,7 +505,8 @@ export async function getRejectedBusinesses(): Promise<any[]> {
  * INCLUYE archived (gris) y deleted (informativo)
  * Este tab muestra TODOS los negocios sin filtros
  */
-export async function getAllBusinesses(): Promise<any[]> {
+export async function getAllBusinesses(adminToken: string): Promise<any[]> {
+  await assertAdminToken(adminToken);
   const db = getAdminFirestore();
   
   const snapshot = await db
@@ -532,27 +551,8 @@ export async function adminDeleteBusiness(
   reason?: string
 ): Promise<{ success: boolean; error?: string; message?: string }> {
   try {
-    const auth = getAdminAuth();
+    const decoded = await assertAdminToken(adminToken);
     const db = getAdminFirestore();
-    
-    // Verificar token de admin
-    let decoded;
-    try {
-      decoded = await auth.verifyIdToken(adminToken);
-    } catch (authError) {
-      console.error('[adminDeleteBusiness] Token inválido:', authError);
-      return {
-        success: false,
-        error: 'No autorizado. Inicia sesión nuevamente.',
-      };
-    }
-    
-    // TODO: Verificar que el usuario sea admin
-    // Puedes agregar custom claims o verificar email en lista de admins
-    // Ejemplo:
-    // if (!decoded.admin && decoded.email !== 'admin@yajagon.com') {
-    //   return { success: false, error: 'Permisos insuficientes (solo admin)' };
-    // }
     
     // Obtener negocio
     const businessRef = db.collection('businesses').doc(businessId);
@@ -641,25 +641,8 @@ export async function adminArchiveBusiness(
   reason?: string
 ): Promise<{ success: boolean; error?: string; message?: string }> {
   try {
-    const auth = getAdminAuth();
+    const decoded = await assertAdminToken(adminToken);
     const db = getAdminFirestore();
-    
-    // Verificar token de admin
-    let decoded;
-    try {
-      decoded = await auth.verifyIdToken(adminToken);
-    } catch (authError) {
-      console.error('[adminArchiveBusiness] Token inválido:', authError);
-      return {
-        success: false,
-        error: 'No autorizado. Inicia sesión nuevamente.',
-      };
-    }
-    
-    // TODO: Verificar custom claims admin
-    // if (!decoded.admin && decoded.email !== 'admin@yajagon.com') {
-    //   return { success: false, error: 'Permisos insuficientes (solo admin)' };
-    // }
     
     // Obtener negocio
     const businessRef = db.collection('businesses').doc(businessId);
@@ -736,18 +719,8 @@ export async function adminUnarchiveBusiness(
   adminToken: string
 ): Promise<{ success: boolean; error?: string; message?: string }> {
   try {
-    const auth = getAdminAuth();
+    const decoded = await assertAdminToken(adminToken);
     const db = getAdminFirestore();
-    
-    let decoded;
-    try {
-      decoded = await auth.verifyIdToken(adminToken);
-    } catch (authError) {
-      return {
-        success: false,
-        error: 'No autorizado. Inicia sesión nuevamente.',
-      };
-    }
     
     const businessRef = db.collection('businesses').doc(businessId);
     const businessSnap = await businessRef.get();
@@ -823,18 +796,8 @@ export async function adminMarkDuplicate(
   adminToken: string
 ): Promise<{ success: boolean; error?: string; message?: string }> {
   try {
-    const auth = getAdminAuth();
+    const decoded = await assertAdminToken(adminToken);
     const db = getAdminFirestore();
-    
-    let decoded;
-    try {
-      decoded = await auth.verifyIdToken(adminToken);
-    } catch (authError) {
-      return {
-        success: false,
-        error: 'No autorizado. Inicia sesión nuevamente.',
-      };
-    }
     
     // Validar que no sean el mismo negocio
     if (businessId === canonicalBusinessId) {
@@ -921,17 +884,7 @@ export async function createAssistedBusiness(
   authToken: string
 ): Promise<{ success: boolean; businessId?: string; error?: string }> {
   try {
-    // Verificar autenticación admin
-    const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(authToken);
-    
-    const { hasAdminOverride } = await import('../../lib/adminOverrides');
-    if (!decoded.admin && !hasAdminOverride(decoded.email)) {
-      return {
-        success: false,
-        error: 'No autorizado - Se requiere permiso de admin',
-      };
-    }
+    const decoded = await assertAdminToken(authToken);
 
     const db = getAdminFirestore();
     const { resolveCategory } = await import('../../lib/categoriesCatalog');
@@ -954,8 +907,11 @@ export async function createAssistedBusiness(
       colonia: businessData.colonia || null,
       neighborhood: businessData.neighborhood || null,
       
-      // Plan (opcional, default free)
-      plan: businessData.plan || 'free',
+      // La infraestructura comercial se conserva, pero no puede activarse con el kill switch apagado.
+      plan: MONETIZATION_FEATURE_ENABLED ? businessData.plan || 'free' : 'free',
+      featured:
+        MONETIZATION_FEATURE_ENABLED &&
+        (businessData.plan === 'featured' || businessData.plan === 'sponsor'),
       
       // Estados del sistema dual
       businessStatus: 'draft' as BusinessStatus,

@@ -1,10 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminFirestore, getAdminAuth } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
+import { MONETIZATION_FEATURE_ENABLED } from '../../../lib/featureFlags';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return res.status(503).json({ error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' });
   }
 
   try {
@@ -54,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'Error al leer el comprobante' });
     }
 
-    const { businessId, plan, ownerEmail } = receiptData;
+    const { businessId, plan } = receiptData;
 
     // Actualizar el status del comprobante
     await receiptRef.update({

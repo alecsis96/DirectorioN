@@ -69,12 +69,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       
       if (action === 'approve') {
-        // Cambiar status a published
+        const now = new Date();
+        // businessStatus es la fuente de verdad; status se conserva solo por compatibilidad legacy.
         await businessRef.update({
           status: 'published',
-          publishedAt: new Date(),
+          businessStatus: 'published',
+          applicationStatus: 'approved',
+          adminStatus: 'active',
+          visibility: 'published',
+          isActive: true,
+          publishedAt: now,
+          lastReviewedAt: now,
           publishedBy: decoded.uid,
-          updatedAt: new Date(),
+          updatedAt: now,
         });
         
         console.log(`✅ [review-business] Business ${businessId} published successfully`);
@@ -119,7 +126,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             
             await fetch(`${baseUrl}/api/send-whatsapp-notification`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
               body: JSON.stringify({
                 type: 'approved',
                 to: phoneNumber,
@@ -258,7 +268,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           
           await fetch(`${baseUrl}/api/send-whatsapp-notification`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               type: 'approved',
               to: phoneNumber,

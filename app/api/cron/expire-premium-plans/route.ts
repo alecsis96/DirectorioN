@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { downgradeExpiredPremiumPlans } from '@/lib/server/premiumPlanExpiry';
+import { MONETIZATION_FEATURE_ENABLED } from '@/lib/featureFlags';
 
 export const runtime = 'nodejs';
 
@@ -18,6 +19,12 @@ function isAuthorized(request: Request) {
 }
 
 async function run(request: Request) {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return NextResponse.json(
+      { error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' },
+      { status: 503 }
+    );
+  }
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

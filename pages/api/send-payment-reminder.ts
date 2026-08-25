@@ -1,19 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import nodemailer from 'nodemailer';
+import { MONETIZATION_FEATURE_ENABLED } from '../../lib/featureFlags';
 
 /**
  * API para enviar recordatorios de pago por email y WhatsApp
  * WhatsApp usa CallMeBot (gratuito, sin necesidad de Twilio)
  */
-
-// Configurar transporter de email
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 const isEmailConfigured = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
 const isWhatsAppConfigured = Boolean(process.env.CALLMEBOT_API_KEY);
@@ -33,6 +25,9 @@ interface ReminderRequest {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return res.status(503).json({ error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' });
   }
 
   const { 
@@ -80,6 +75,14 @@ async function sendEmailReminder(
     console.warn('Email not configured. Skipping email reminder.');
     return res.status(200).json({ ok: true, message: 'Email not configured, skipped' });
   }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 
   const planName = plan === 'sponsor' ? 'Patrocinado' : plan === 'featured' ? 'Destacado' : 'Premium';
   

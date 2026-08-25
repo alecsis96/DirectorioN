@@ -1,10 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/server/firebaseAdmin';
+import {
+  assertAdminToken,
+  AuthorizationError,
+  extractBearerToken,
+} from '@/lib/server/authorization';
+import { MONETIZATION_FEATURE_ENABLED } from '@/lib/featureFlags';
+
+const ACTIONS_BY_TYPE: Record<string, ReadonlySet<string>> = {
+  application: new Set(['approve', 'reject', 'request-info']),
+  review: new Set(['publish', 'reject']),
+  payment: new Set(['remind', 'suspend']),
+  expiration: new Set(['remind', 'extend']),
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const { itemId, businessId, action, type } = await request.json();
-    
+    await assertAdminToken(extractBearerToken(request.headers));
+
+    const body = await request.json();
+    const { itemId, businessId, action, type } =
+      body && typeof body === 'object' && !Array.isArray(body) ? body : {};
+    if (
+      typeof itemId !== 'string' || !itemId.trim() ||
+      typeof businessId !== 'string' || !businessId.trim() ||
+      typeof action !== 'string' ||
+      typeof type !== 'string' ||
+      !ACTIONS_BY_TYPE[type]?.has(action)
+    ) {
+      return NextResponse.json({ error: 'Invalid inbox action payload' }, { status: 400 });
+    }
+
+    if (!MONETIZATION_FEATURE_ENABLED && (type === 'payment' || type === 'expiration')) {
+      return NextResponse.json(
+        { error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' },
+        { status: 503 }
+      );
+    }
+
     const db = getAdminFirestore();
     
     // Execute action based on type
@@ -21,7 +55,12 @@ export async function POST(request: NextRequest) {
       case 'publish':
         await db.collection('businesses').doc(businessId).update({
           businessStatus: 'published',
+          applicationStatus: 'approved',
+          adminStatus: 'active',
+          visibility: 'published',
+          isActive: true,
           publishedAt: new Date().toISOString(),
+          lastReviewedAt: new Date().toISOString(),
         });
         break;
       
@@ -80,6 +119,9 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('[inbox-action] Error:', error);
     return NextResponse.json({ error: 'Failed to execute action' }, { status: 500 });
   }

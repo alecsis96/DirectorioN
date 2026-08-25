@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import InboxVirtual from '@/components/admin/operations/InboxVirtual';
 import { hasAdminOverride } from '@/lib/adminOverrides';
 import { getAdminAuth, getAdminFirestore } from '@/lib/server/firebaseAdmin';
+import { MONETIZATION_FEATURE_ENABLED } from '@/lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
@@ -50,7 +51,6 @@ interface InboxItem {
 
 async function fetchInboxItems() {
   const db = getAdminFirestore();
-  const now = new Date();
   const items: InboxItem[] = [];
 
   try {
@@ -92,44 +92,47 @@ async function fetchInboxItems() {
       });
     });
 
-    const paymentsSnap = await db.collection('businesses').where('plan', 'in', ['featured', 'sponsor']).get();
-    paymentsSnap.docs.forEach((doc) => {
-      const data = doc.data();
-      if (!data.planExpiresAt) return;
+    if (MONETIZATION_FEATURE_ENABLED) {
+      const now = new Date();
+      const paymentsSnap = await db.collection('businesses').where('plan', 'in', ['featured', 'sponsor']).get();
+      paymentsSnap.docs.forEach((doc) => {
+        const data = doc.data();
+        if (!data.planExpiresAt) return;
 
-      const expiresAt = data.planExpiresAt.toDate();
-      const daysUntil = Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const expiresAt = data.planExpiresAt.toDate();
+        const daysUntil = Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-      if (daysUntil < 0) {
-        items.push({
-          id: `payment-${doc.id}`,
-          type: 'payment',
-          priority: 'critical',
-          priorityScore: 1,
-          businessName: data.businessName || data.name || 'Sin nombre',
-          businessId: doc.id,
-          metadata: {
-            plan: data.plan,
-            daysOverdue: Math.abs(daysUntil),
-          },
-          actions: ['remind', 'suspend', 'extend'],
-        });
-      } else if (daysUntil <= 7) {
-        items.push({
-          id: `payment-${doc.id}`,
-          type: 'expiration',
-          priority: 'warning',
-          priorityScore: 2,
-          businessName: data.businessName || data.name || 'Sin nombre',
-          businessId: doc.id,
-          metadata: {
-            plan: data.plan,
-            daysUntilExpiration: daysUntil,
-          },
-          actions: ['remind', 'extend'],
-        });
-      }
-    });
+        if (daysUntil < 0) {
+          items.push({
+            id: `payment-${doc.id}`,
+            type: 'payment',
+            priority: 'critical',
+            priorityScore: 1,
+            businessName: data.businessName || data.name || 'Sin nombre',
+            businessId: doc.id,
+            metadata: {
+              plan: data.plan,
+              daysOverdue: Math.abs(daysUntil),
+            },
+            actions: ['remind', 'suspend', 'extend'],
+          });
+        } else if (daysUntil <= 7) {
+          items.push({
+            id: `payment-${doc.id}`,
+            type: 'expiration',
+            priority: 'warning',
+            priorityScore: 2,
+            businessName: data.businessName || data.name || 'Sin nombre',
+            businessId: doc.id,
+            metadata: {
+              plan: data.plan,
+              daysUntilExpiration: daysUntil,
+            },
+            actions: ['remind', 'extend'],
+          });
+        }
+      });
+    }
 
     items.sort((a, b) => a.priorityScore - b.priorityScore);
   } catch (error) {

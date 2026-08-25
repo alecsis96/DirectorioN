@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { MONETIZATION_FEATURE_ENABLED } from '../../../lib/featureFlags';
 
 /**
  * Cron job para verificar pagos VENCIDOS y degradar planes
@@ -16,6 +17,9 @@ import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 const GRACE_PERIOD_DAYS = 7; // Días de gracia antes de degradar a FREE
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return res.status(503).json({ error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' });
+  }
   // Verificar autorización
   const authHeader = req.headers.authorization;
   const cronSecret = process.env.CRON_SECRET;

@@ -2,7 +2,16 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import {
+  assertOwnerOrAdmin,
+  AuthorizationError,
+  extractBearerToken,
+  verifyIdTokenOrThrow,
+} from "@/lib/server/authorization";
+import { getAdminFirestore } from "@/lib/server/firebaseAdmin";
+import { preservesProductBusinessId } from "@/lib/productAuthorization";
+import {
   deleteProduct,
+  getProductById,
   getProductsStoreErrorMessage,
   updateProduct,
 } from "@/lib/server/productsStore";
@@ -14,7 +23,6 @@ type RouteContext = {
 };
 
 const allowedFields = [
-  "business_id",
   "nombre",
   "descripcion",
   "precio",
@@ -24,6 +32,7 @@ const allowedFields = [
 
 async function updateProductHandler(request: NextRequest, context: RouteContext) {
   try {
+    const decoded = await verifyIdTokenOrThrow(extractBearerToken(request.headers));
     const resolvedParams = await context.params;
     const productId = String(resolvedParams.product_id || "").trim();
 
@@ -31,7 +40,30 @@ async function updateProductHandler(request: NextRequest, context: RouteContext)
       return NextResponse.json({ error: "product_id invalido." }, { status: 400 });
     }
 
+    const currentProduct = await getProductById(productId);
+    if (!currentProduct) {
+      return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
+    }
+
+    const businessSnapshot = await getAdminFirestore()
+      .collection("businesses")
+      .doc(currentProduct.business_id)
+      .get();
+    if (!businessSnapshot.exists) {
+      return NextResponse.json({ error: "Negocio no encontrado." }, { status: 404 });
+    }
+    assertOwnerOrAdmin(decoded, businessSnapshot.data()?.ownerId);
+
     const body = await request.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json({ error: "Payload invalido." }, { status: 400 });
+    }
+    if (!preservesProductBusinessId(currentProduct.business_id, body.business_id)) {
+      return NextResponse.json(
+        { error: "No se permite reasignar un producto a otro negocio." },
+        { status: 400 }
+      );
+    }
     const updates: Record<string, unknown> = {};
 
     for (const field of allowedFields) {
@@ -75,6 +107,9 @@ async function updateProductHandler(request: NextRequest, context: RouteContext)
 
     return NextResponse.json({ product });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("[api/products/:product_id] UPDATE failed", error);
     return NextResponse.json(
       { error: getProductsStoreErrorMessage(error) },
@@ -91,8 +126,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   return updateProductHandler(request, context);
 }
 
-export async function DELETE(_request: NextRequest, context: RouteContext) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
+    const decoded = await verifyIdTokenOrThrow(extractBearerToken(request.headers));
     const resolvedParams = await context.params;
     const productId = String(resolvedParams.product_id || "").trim();
 
@@ -100,14 +136,27 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "product_id invalido." }, { status: 400 });
     }
 
-    const deleted = await deleteProduct(productId);
-
-    if (!deleted) {
+    const currentProduct = await getProductById(productId);
+    if (!currentProduct) {
       return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
     }
 
+    const businessSnapshot = await getAdminFirestore()
+      .collection("businesses")
+      .doc(currentProduct.business_id)
+      .get();
+    if (!businessSnapshot.exists) {
+      return NextResponse.json({ error: "Negocio no encontrado." }, { status: 404 });
+    }
+    assertOwnerOrAdmin(decoded, businessSnapshot.data()?.ownerId);
+
+    await deleteProduct(productId);
+
     return NextResponse.json({ message: "Producto eliminado correctamente." });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("[api/products/:product_id] DELETE failed", error);
     return NextResponse.json(
       { error: getProductsStoreErrorMessage(error) },

@@ -29,9 +29,10 @@ export function isArchived(business: Partial<Business>): boolean {
 }
 
 export function isVisible(business: Partial<Business>): boolean {
-  const adminStatus = business.adminStatus || 'active';
-  const visibility = business.visibility || 'published';
-  const businessStatus = business.businessStatus;
+  const hasOwn = (field: keyof Business) => Object.prototype.hasOwnProperty.call(business, field);
+  const adminStatus = hasOwn('adminStatus') ? business.adminStatus : 'active';
+  const visibility = hasOwn('visibility') ? business.visibility : 'published';
+  const isActive = hasOwn('isActive') ? business.isActive === true : true;
 
-  return adminStatus === 'active' && visibility === 'published' && businessStatus === 'published';
+  return isActive && adminStatus === 'active' && visibility === 'published' && business.businessStatus === 'published';
 }

@@ -72,7 +72,7 @@ export function useCurrentUser(): User | null {
 
 /**
  * Verifica si el usuario actual puede editar un negocio específico
- * Considera tanto el ownerId como el ownerEmail para compatibilidad
+ * El ownership autenticado depende exclusivamente de ownerId.
  * 
  * @param user - Usuario actual (puede ser null)
  * @param isAdmin - Si el usuario es administrador
@@ -86,9 +86,5 @@ export function canEditBusiness(
 ): boolean {
   if (!user || !business) return false;
   if (isAdmin) return true;
-  const normalizedUserEmail = (user.email || "").trim().toLowerCase();
-  const normalizedOwnerEmail = (business.ownerEmail || "").trim().toLowerCase();
-  const isOwnerById = Boolean(business.ownerId && user.uid === business.ownerId);
-  const isOwnerByEmail = Boolean(normalizedUserEmail && normalizedOwnerEmail && normalizedUserEmail === normalizedOwnerEmail);
-  return isOwnerById || isOwnerByEmail;
+  return Boolean(business.ownerId && user.uid === business.ownerId);
 }

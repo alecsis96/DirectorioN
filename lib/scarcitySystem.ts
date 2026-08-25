@@ -8,8 +8,9 @@
  * - Lista de espera automatizada
  */
 
-import { BusinessPlan } from './planPermissions';
+import type { BusinessPlan } from './planPermissions';
 import { resolveCategory } from './categoriesCatalog';
+import { MONETIZATION_FEATURE_ENABLED } from './featureFlags';
 
 export type CategoryTier = 'saturated' | 'specialized' | 'premium';
 export type Zone = 'centro' | 'norte' | 'sur' | 'periferia' | 'city-wide';
@@ -200,6 +201,10 @@ export async function canUpgradeToPlan(
   message: string;
   urgencyLevel: 'none' | 'low' | 'medium' | 'high' | 'critical';
 }> {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    throw new Error('MONETIZATION_DISABLED');
+  }
+
   // Plan FREE siempre permitido
   if (targetPlan === 'free') {
     return {
@@ -435,6 +440,10 @@ export async function addToWaitlist(
   position: number;
   estimatedWaitDays: number;
 }> {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    throw new Error('MONETIZATION_DISABLED');
+  }
+
   const resolved = resolveCategory(categoryId);
   if (typeof window === 'undefined') {
     // Server-side
@@ -500,6 +509,10 @@ export async function notifyWaitlistWhenAvailable(
   zone?: Zone,
   specialty?: string
 ): Promise<void> {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    throw new Error('MONETIZATION_DISABLED');
+  }
+
   const resolved = resolveCategory(categoryId);
   try {
     const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
@@ -617,6 +630,10 @@ export async function getScarcityMetrics(categoryId: string): Promise<{
   };
   competitionLevel: 'low' | 'medium' | 'high' | 'saturated';
 }> {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    throw new Error('MONETIZATION_DISABLED');
+  }
+
   const category = CATEGORY_LIMITS[categoryId as keyof typeof CATEGORY_LIMITS];
   
   if (!category) {

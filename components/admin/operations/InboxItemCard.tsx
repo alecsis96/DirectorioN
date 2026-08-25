@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { useAuth } from '@/hooks/useAuth';
 import StatusBadge from '../shared/StatusBadge';
 
 interface Props {
@@ -44,14 +45,20 @@ function getTitle(item: Props['item']) {
 
 export default function InboxItemCard({ item }: Props) {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const handleAction = async (action: string) => {
     setLoading(true);
     try {
+      if (!user) throw new Error('No hay una sesion administrativa activa.');
+      const token = await user.getIdToken();
       const response = await fetch('/api/admin/inbox-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           itemId: item.id,
           businessId: item.businessId,
@@ -63,11 +70,12 @@ export default function InboxItemCard({ item }: Props) {
       if (response.ok) {
         router.refresh();
       } else {
-        alert('Error al ejecutar acción');
+        const payload = await response.json().catch(() => null);
+        alert(payload?.error || 'Error al ejecutar accion');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al ejecutar acción');
+      alert(error instanceof Error ? error.message : 'Error al ejecutar accion');
     } finally {
       setLoading(false);
     }

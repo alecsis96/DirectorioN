@@ -12,6 +12,10 @@ import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
 import type { Business, Review } from "./types/business";
+import {
+  MONETIZATION_DISABLED_RESULT,
+  MONETIZATION_FEATURE_ENABLED,
+} from "./featureFlags";
 
 // Inicializar Firebase Admin si no está inicializado
 if (!admin.apps.length) {
@@ -630,6 +634,8 @@ export const onBusinessStatusChange = functions.firestore
  * Esta función es llamada desde el webhook de Stripe
  */
 export async function sendPaymentFailedNotification(businessId: string): Promise<void> {
+  if (!MONETIZATION_FEATURE_ENABLED) return;
+
   try {
     const businessDoc = await admin.firestore().doc(`businesses/${businessId}`).get();
     
@@ -694,6 +700,10 @@ export const sendPaymentReminders = functions.pubsub
   .schedule("0 9 * * *")
   .timeZone("America/Mexico_City")
   .onRun(async (context) => {
+    if (!MONETIZATION_FEATURE_ENABLED) {
+      return MONETIZATION_DISABLED_RESULT;
+    }
+
     console.log("[sendPaymentReminders] Starting scheduled payment reminders");
 
     try {
@@ -764,6 +774,8 @@ async function sendPaymentReminderEmail(params: {
   daysUntil: number;
   plan: string;
 }): Promise<void> {
+  if (!MONETIZATION_FEATURE_ENABLED) return;
+
   const { businessName, ownerEmail, nextPaymentDate, daysUntil, plan } = params;
   
   const formattedDate = new Date(nextPaymentDate).toLocaleDateString("es-MX", {

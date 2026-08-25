@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth, getAdminFirestore } from '../../../../lib/server/firebaseAdmin';
-import { hasAdminOverride } from '../../../../lib/adminOverrides';
+import { getAdminFirestore } from '../../../../lib/server/firebaseAdmin';
 import { appRateLimit } from '../../../../lib/appRateLimit';
+import {
+  AuthorizationError,
+  extractBearerToken,
+  isAdminIdentity,
+  verifyIdTokenOrThrow,
+} from '../../../../lib/server/authorization';
 
 type Params = {
   email: string;
@@ -55,28 +60,10 @@ export async function GET(
   }
 
   try {
-    const authHeader = _request.headers.get('authorization') || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    if (!token) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 },
-      );
-    }
-
-    const auth = getAdminAuth();
-    let decoded;
-    try {
-      decoded = await auth.verifyIdToken(token);
-    } catch {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 },
-      );
-    }
+    const decoded = await verifyIdTokenOrThrow(extractBearerToken(_request.headers));
 
     const requesterEmail = normalizeEmail(decoded.email);
-    const isAdmin = (decoded as any).admin === true || hasAdminOverride(decoded.email);
+    const isAdmin = isAdminIdentity(decoded);
     if (!isAdmin && requesterEmail !== email) {
       return NextResponse.json(
         { error: 'Acceso denegado' },
@@ -89,10 +76,9 @@ export async function GET(
       .collection('applications')
       .where('ownerEmail', '==', email)
       .orderBy('createdAt', 'desc');
-    const businessesQuery = db
-      .collection('businesses')
-      .where('ownerEmail', '==', email)
-      .orderBy('createdAt', 'desc');
+    const businessesQuery = isAdmin
+      ? db.collection('businesses').where('ownerEmail', '==', email).orderBy('createdAt', 'desc')
+      : db.collection('businesses').where('ownerId', '==', decoded.uid).orderBy('createdAt', 'desc');
 
     const [applicationsSnap, businessesSnap] = await Promise.all([
       applicationsQuery.get(),
@@ -129,6 +115,9 @@ export async function GET(
 
     return NextResponse.json({ items });
   } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('[api/solicitud/[email]] error', error);
     return NextResponse.json(
       { error: 'No se pudieron obtener las solicitudes' },

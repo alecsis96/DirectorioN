@@ -13,6 +13,11 @@ import {onDocumentCreated, onDocumentDeleted, onDocumentUpdated} from "firebase-
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {initializeApp} from "firebase-admin/app";
 import * as https from "https";
+import {
+  MONETIZATION_DISABLED_CODE,
+  MONETIZATION_DISABLED_MESSAGE,
+  MONETIZATION_FEATURE_ENABLED,
+} from "./featureFlags";
 // import * as logger from "firebase-functions/logger";
 
 // Inicializar Firebase Admin
@@ -36,6 +41,14 @@ export const sendPaymentFailedEmail = onRequest(async (req, res) => {
   // Solo permitir POST
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    res.status(503).json({
+      error: MONETIZATION_DISABLED_MESSAGE,
+      code: MONETIZATION_DISABLED_CODE,
+    });
     return;
   }
 

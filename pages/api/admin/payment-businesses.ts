@@ -1,9 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminFirestore, getAdminAuth } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride as checkAdminOverride } from '../../../lib/adminOverrides';
-
-const adminDb = getAdminFirestore();
-const adminAuth = getAdminAuth();
+import { MONETIZATION_FEATURE_ENABLED } from '../../../lib/featureFlags';
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,8 +10,13 @@ export default async function handler(
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return res.status(503).json({ error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' });
+  }
 
   try {
+    const adminDb = getAdminFirestore();
+    const adminAuth = getAdminAuth();
     // Verificar autenticación
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {

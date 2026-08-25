@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies, headers } from 'next/headers';
 import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
 import Link from 'next/link';
-import { ArrowLeft, Crown } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import MetricasClient from '../../components/MetricasClient';
 
 export const dynamic = 'force-dynamic';
@@ -35,10 +35,10 @@ async function getAuthUser() {
   }
 }
 
-async function getUserBusinessMetrics(userId: string, userEmail?: string) {
+async function getUserBusinessMetrics(userId: string) {
   const db = getAdminFirestore();
   
-  console.log('[metricas] Fetching businesses for userId:', userId, 'email:', userEmail);
+  console.log('[metricas] Fetching businesses for userId:', userId);
   
   // Obtener negocios por ownerId
   const businessesSnapshot = await db
@@ -56,61 +56,8 @@ async function getUserBusinessMetrics(userId: string, userEmail?: string) {
     };
   });
 
-  // TAMBIÉN buscar por ownerEmail (para negocios sin ownerId o con ownerId diferente)
-  let businessesByEmail: any[] = [];
-  if (userEmail) {
-    console.log('[metricas] Also searching by ownerEmail:', userEmail);
-    const businessesByEmailSnapshot = await db
-      .collection('businesses')
-      .where('ownerEmail', '==', userEmail)
-      .get();
-
-    console.log('[metricas] Found businesses by ownerEmail:', businessesByEmailSnapshot.docs.length);
-
-    businessesByEmail = businessesByEmailSnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...(data as any)
-      };
-    });
-
-    // Migración suave: actualizar ownerId si falta
-    if (businessesByEmail.length > 0) {
-      console.log('[metricas] Updating ownerId for businesses found by email');
-      const updatePromises = businessesByEmail.map(async (business: any) => {
-        if (!business.ownerId || business.ownerId !== userId) {
-          try {
-            await db.collection('businesses').doc(business.id).update({
-              ownerId: userId,
-              updatedAt: new Date()
-            });
-            console.log(`[metricas] Updated ownerId for business ${business.id}`);
-          } catch (error) {
-            console.error(`[metricas] Error updating ownerId for ${business.id}:`, error);
-          }
-        }
-      });
-      await Promise.all(updatePromises);
-    }
-  }
-
-  // Combinar resultados y eliminar duplicados por ID
-  const businessMap = new Map();
-  
-  // Agregar negocios por ownerId
-  businessesById.forEach(business => {
-    businessMap.set(business.id, business);
-  });
-  
-  // Agregar negocios por email (solo si no están ya en el mapa)
-  businessesByEmail.forEach(business => {
-    if (!businessMap.has(business.id)) {
-      businessMap.set(business.id, business);
-    }
-  });
-
-  const businesses = Array.from(businessMap.values());
+  // ownerEmail es solo informativo: nunca concede acceso ni asigna ownership.
+  const businesses = businessesById;
 
   // Log detallado de cada negocio encontrado
   businesses.forEach((business: any) => {
@@ -245,7 +192,7 @@ export default async function MetricasPage() {
     redirect('/para-negocios?auth=required');
   }
 
-  const { metrics } = await getUserBusinessMetrics(user.uid, user.email);
+  const { metrics } = await getUserBusinessMetrics(user.uid);
 
   // Si no tiene ningún negocio, mostrar mensaje para registrar
   if (metrics.length === 0) {

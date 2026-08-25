@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
-import { db } from '../../../firebaseConfig';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { MONETIZATION_FEATURE_ENABLED } from '../../../lib/featureFlags';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-10-29.clover',
@@ -46,6 +45,15 @@ export default async function handler(
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).json({ error: `Webhook Error: ${err.message}` });
   }
+
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return res.status(200).json({ received: true, ignored: true });
+  }
+
+  const [{ db }, { doc, updateDoc, getDoc }] = await Promise.all([
+    import('../../../firebaseConfig'),
+    import('firebase/firestore'),
+  ]);
 
   // Handle the event
   switch (event.type) {

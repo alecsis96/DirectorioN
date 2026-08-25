@@ -9,7 +9,7 @@ import {
 import type { Business, BusinessPreview } from '../../types/business';
 import { pickBusinessPreview } from '../../types/business';
 import { fetchBusinesses, toNumber, sortBusinessesWithSponsors } from '../../lib/server/businessData';
-import { findBusinessesNear } from '../../lib/firestore/search';
+import { clampPublicSearchRadius, findBusinessesNear } from '../../lib/firestore/search';
 import { COLONIAS_MAP, inferColoniaFromAddress, normalizeColonia } from '../../lib/helpers/colonias';
 import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, type Filters, type SortMode } from '../../lib/negociosFilters';
 import { resolveCategory, type CategoryGroupId } from '../../lib/categoriesCatalog';
@@ -63,7 +63,7 @@ async function buildBusinessesResult(params: SearchParams) {
   const lat = typeof params.lat === 'string' ? Number.parseFloat(params.lat) : undefined;
   const lng = typeof params.lng === 'string' ? Number.parseFloat(params.lng) : undefined;
   const radiusParam = typeof params.radius === 'string' ? Number.parseFloat(params.radius) : undefined;
-  const radius = Number.isFinite(radiusParam) && radiusParam! > 0 ? radiusParam! : 5;
+  const radius = clampPublicSearchRadius(radiusParam ?? 5);
 
   let allBusinesses: Business[] = [];
   let error: string | null = null;

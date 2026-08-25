@@ -1,7 +1,7 @@
 import { getAdminFirestore } from "./firebaseAdmin";
-import { downgradeExpiredPremiumPlans } from "./premiumPlanExpiry";
 import type { Business } from "../../types/business";
 import { resolveCategory } from "../categoriesCatalog";
+import { isVisible } from "../businessHelpers";
 import { asPlanInput, resolveLegacyPlan } from "../businessPlanVisibility";
 
 export function toNumber(value: unknown): number | null {
@@ -135,8 +135,6 @@ export async function fetchBusinesses(
   lastId?: string
 ): Promise<PaginatedBusinesses> {
   try {
-    await downgradeExpiredPremiumPlans();
-
     const safeLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
     const cacheKey = `${safeLimit}:${lastId ?? 'first'}`;
     const cached = BUSINESS_CACHE.get(cacheKey);
@@ -150,15 +148,8 @@ export async function fetchBusinesses(
       .where("businessStatus", "==", "published")
       .get();
 
-    // Filtrar solo negocios activos y visibles
-    let allDocs = snap.docs.filter(doc => {
-      const data = doc.data();
-      const adminStatus = data.adminStatus || 'active';
-      const visibility = data.visibility || 'published';
-      
-      // Solo incluir: adminStatus='active' y visibility='published'
-      return adminStatus === 'active' && visibility === 'published';
-    });
+    // Mantener un unico criterio para todas las superficies publicas.
+    let allDocs = snap.docs.filter((doc) => isVisible(doc.data()));
     
     allDocs.sort((a, b) => {
       const nameA = String(a.data().name || '').toLowerCase();

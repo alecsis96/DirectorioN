@@ -1,11 +1,14 @@
 import AdminSidebar from '@/components/admin/shared/AdminSidebar';
 import AdminFab from '@/components/admin/shared/AdminFab';
+import { requireAdminPage } from '@/lib/server/adminPageAuthorization';
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdminPage();
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar - Fixed on desktop, drawer on mobile */}

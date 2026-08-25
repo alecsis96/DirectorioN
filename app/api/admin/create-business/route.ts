@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminFirestore } from '../../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../../lib/adminOverrides';
 import { appRateLimit } from '../../../../lib/appRateLimit';
+import { MONETIZATION_FEATURE_ENABLED } from '../../../../lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
     let decoded;
     try {
       decoded = await auth.verifyIdToken(token);
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
     }
 
@@ -56,7 +57,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Calcular fechas de pago para planes premium
-    const isPremium = businessData.plan === 'featured' || businessData.plan === 'sponsor';
+    const effectivePlan = MONETIZATION_FEATURE_ENABLED ? businessData.plan || 'free' : 'free';
+    const isPremium = effectivePlan === 'featured' || effectivePlan === 'sponsor';
     const now = new Date();
     const nextPaymentDate = isPremium ? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) : null; // 30 días
     const planExpiresAt = isPremium ? nextPaymentDate : null;
@@ -90,8 +92,11 @@ export async function POST(req: NextRequest) {
       
       // Estado y plan
       status: 'published',
-      plan: businessData.plan || 'free',
-      featured: businessData.plan === 'featured' || businessData.plan === 'sponsor',
+      businessStatus: 'published',
+      adminStatus: 'active',
+      visibility: 'published',
+      plan: effectivePlan,
+      featured: isPremium,
       published: true,
       isActive: true,
       

@@ -8,6 +8,12 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import {
+  MONETIZATION_DISABLED_CODE,
+  MONETIZATION_DISABLED_MESSAGE,
+  MONETIZATION_DISABLED_RESULT,
+  MONETIZATION_FEATURE_ENABLED,
+} from "./featureFlags";
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -40,6 +46,8 @@ async function countBusinessesInPlan(
   zone?: string,
   specialty?: string
 ): Promise<number> {
+  if (!MONETIZATION_FEATURE_ENABLED) return 0;
+
   let query = db.collection('businesses')
     .where('category', '==', categoryId)
     .where('plan', '==', plan)
@@ -59,6 +67,10 @@ async function canUpgrade(
   zone?: string,
   specialty?: string
 ): Promise<{ allowed: boolean; slotsLeft: number }> {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return {allowed: false, slotsLeft: 0};
+  }
+
   if (targetPlan === 'free') {
     return { allowed: true, slotsLeft: Infinity };
   }
@@ -90,6 +102,8 @@ function getPlanRank(plan: string): number {
 export const onBusinessPlanChange = onDocumentUpdated(
   'businesses/{businessId}',
   async (event) => {
+    if (!MONETIZATION_FEATURE_ENABLED) return;
+
     const before = event.data?.before.data();
     const after = event.data?.after.data();
     
@@ -123,6 +137,8 @@ async function notifyWaitlist(
   zone?: string,
   specialty?: string
 ): Promise<void> {
+  if (!MONETIZATION_FEATURE_ENABLED) return;
+
   let query = db.collection('waitlist')
     .where('category', '==', categoryId)
     .where('targetPlan', '==', plan)
@@ -163,6 +179,14 @@ async function notifyWaitlist(
  * ➕ CALLABLE: Agregar negocio a lista de espera
  */
 export const addToWaitlistCallable = onCall(async (request) => {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    throw new HttpsError(
+      "failed-precondition",
+      MONETIZATION_DISABLED_MESSAGE,
+      {code: MONETIZATION_DISABLED_CODE}
+    );
+  }
+
   // Validar autenticación
   if (!request.auth) {
     throw new HttpsError(
@@ -233,6 +257,14 @@ export const addToWaitlistCallable = onCall(async (request) => {
  * ✅ CALLABLE: Confirmar upgrade desde lista de espera
  */
 export const confirmWaitlistUpgrade = onCall(async (request) => {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    throw new HttpsError(
+      "failed-precondition",
+      MONETIZATION_DISABLED_MESSAGE,
+      {code: MONETIZATION_DISABLED_CODE}
+    );
+  }
+
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Debes estar autenticado');
   }
@@ -305,6 +337,8 @@ export const confirmWaitlistUpgrade = onCall(async (request) => {
  * ⏰ SCHEDULED: Limpiar waitlist expirados (cada 6 horas)
  */
 export const cleanExpiredWaitlist = onSchedule('every 6 hours', async (event) => {
+  if (!MONETIZATION_FEATURE_ENABLED) return;
+
   const now = admin.firestore.Timestamp.now();
   
   // Buscar entradas notificadas que expiraron
@@ -350,6 +384,17 @@ export const cleanExpiredWaitlist = onSchedule('every 6 hours', async (event) =>
  * 🔍 CALLABLE: Verificar disponibilidad de upgrade
  */
 export const checkUpgradeAvailability = onCall(async (request) => {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return {
+      ...MONETIZATION_DISABLED_RESULT,
+      allowed: false,
+      slotsLeft: 0,
+      totalSlots: 0,
+      urgencyLevel: "none" as const,
+      waitlistPosition: 0,
+    };
+  }
+
   const { categoryId, targetPlan, zone, specialty } = request.data;
   
   const availability = await canUpgrade(categoryId, targetPlan, zone, specialty);
@@ -383,6 +428,17 @@ export const checkUpgradeAvailability = onCall(async (request) => {
  * 📊 CALLABLE: Obtener métricas de categoría
  */
 export const getCategoryMetrics = onCall(async (request) => {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return {
+      ...MONETIZATION_DISABLED_RESULT,
+      totalBusinesses: 0,
+      byPlan: {free: 0, featured: 0, sponsor: 0},
+      saturation: {featured: 0, sponsor: 0},
+      limits: null,
+      competitionLevel: "disabled" as const,
+    };
+  }
+
   const { categoryId, zone, specialty } = request.data;
   
   // Contar negocios por plan
@@ -414,6 +470,8 @@ export const getCategoryMetrics = onCall(async (request) => {
 export const onPackagePurchase = onDocumentCreated(
   'purchases/{purchaseId}',
   async (event) => {
+    if (!MONETIZATION_FEATURE_ENABLED) return;
+
     const purchase = event.data?.data();
     
     if (!purchase || !purchase.businessId || !purchase.packageId) return;
@@ -457,6 +515,8 @@ export const dailyMetricsReport = onSchedule(
     timeZone: 'America/Mexico_City',
   },
   async (event) => {
+    if (!MONETIZATION_FEATURE_ENABLED) return;
+
     // Obtener estadísticas del día anterior
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);

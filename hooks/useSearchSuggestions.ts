@@ -35,7 +35,10 @@ export function useSearchSuggestions(searchTerm: string, categories: string[]) {
         const businessesRef = collection(db, 'businesses');
         const businessQuery = query(
           businessesRef,
-          where('status', '==', 'published'),
+          where('businessStatus', '==', 'published'),
+          where('adminStatus', '==', 'active'),
+          where('visibility', '==', 'published'),
+          where('isActive', '==', true),
           limit(3)
         );
 

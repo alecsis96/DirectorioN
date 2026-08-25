@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '../../firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { MONETIZATION_FEATURE_ENABLED } from '../../lib/featureFlags';
 
 /**
  * Endpoint para enviar notificación de pago fallido
@@ -13,8 +12,15 @@ export default async function handler(
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return res.status(503).json({ error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' });
+  }
 
   try {
+    const [{ db }, { doc, getDoc }] = await Promise.all([
+      import('../../firebaseConfig'),
+      import('firebase/firestore'),
+    ]);
     const { businessId } = req.body;
 
     if (!businessId) {

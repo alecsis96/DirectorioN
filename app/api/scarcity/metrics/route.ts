@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getScarcityMetrics } from '@/lib/scarcitySystem';
+import { MONETIZATION_FEATURE_ENABLED } from '@/lib/featureFlags';
 
 export async function GET(request: NextRequest) {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return NextResponse.json(
+      { error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' },
+      { status: 503 }
+    );
+  }
   try {
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId');

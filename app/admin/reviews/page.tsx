@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 
 import ReviewsModerationClient from '../../../components/ReviewsModerationClient';
+import { requireAdminPage } from '../../../lib/server/adminPageAuthorization';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 
 export const metadata = {
@@ -62,6 +63,9 @@ async function fetchAllReviews(): Promise<ReviewData[]> {
 }
 
 export default async function ReviewsModerationPage() {
+  // El guard local garantiza la autorizacion antes de la lectura con Admin SDK,
+  // incluso si Next renderiza el layout y la pagina en paralelo.
+  await requireAdminPage();
   const reviews = await fetchAllReviews();
 
   return (

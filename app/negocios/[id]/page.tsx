@@ -5,7 +5,7 @@ import BusinessDetailView from '../../../components/BusinessDetailView';
 import type { Business } from '../../../types/business';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { serializeTimestamps } from '../../../lib/server/serializeFirestore';
-import { fetchBusinesses } from '../../../lib/server/businessData';
+import { isVisible } from '../../../lib/businessHelpers';
 
 export const revalidate = 60; // Cache for 60 seconds
 
@@ -19,15 +19,15 @@ async function fetchBusinessById(id: string): Promise<Business | null> {
   const db = getAdminFirestore();
   const snapshot = await db.doc(`businesses/${id}`).get();
   if (!snapshot.exists) return null;
-  const data = snapshot.data() as Business & { status?: string };
-  if (data.status && data.status !== 'published' && data.status !== 'draft') return null;
+  const data = snapshot.data() as Business;
+  if (!isVisible(data)) return null;
   return serializeTimestamps({ id, ...data });
 }
 
 export async function generateStaticParams() {
   const db = getAdminFirestore();
   const snapshot = await db.collection('businesses').where('businessStatus', '==', 'published').get();
-  return snapshot.docs.map((doc) => ({ id: doc.id }));
+  return snapshot.docs.filter((doc) => isVisible(doc.data())).map((doc) => ({ id: doc.id }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -61,12 +61,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function BusinessDetailAppPage({ params }: PageProps) {
   const { id } = await params;
   const decodedId = decodeURIComponent(id);
-  let business = await fetchBusinessById(decodedId);
-  if (!business) {
-    const { businesses: all } = await fetchBusinesses(100);
-    const fallback = all.find((item) => item.id === decodedId);
-    business = fallback ?? null;
-  }
+  const business = await fetchBusinessById(decodedId);
   if (!business) {
     notFound();
   }

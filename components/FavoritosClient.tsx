@@ -7,7 +7,7 @@ import { useFavorites } from '../context/FavoritesContext';
 import BusinessCard from './BusinessCard';
 import BusinessModalWrapper from './BusinessModalWrapper';
 import type { Business } from '../types/business';
-import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import { app } from '../firebaseConfig';
 
 const db = getFirestore(app);
@@ -40,29 +40,21 @@ export default function FavoritosClient() {
         
         console.log('[FavoritosClient] Valid Favorites IDs:', validFavorites);
         
-        // Firestore permite máximo 10 items en un 'in' query, así que dividimos en chunks
-        const chunks: string[][] = [];
-        for (let i = 0; i < validFavorites.length; i += 10) {
-          chunks.push(validFavorites.slice(i, i + 10));
-        }
+        // Cada favorito usa get individual para que las reglas evalúen su visibilidad.
+        const snapshots = await Promise.all(
+          validFavorites.map(async (businessId) => {
+            try {
+              return await getDoc(doc(db, 'businesses', businessId));
+            } catch (error) {
+              console.warn('[FavoritosClient] Business is not publicly readable:', businessId, error);
+              return null;
+            }
+          })
+        );
 
-        const allBusinesses: Business[] = [];
-        
-        for (const chunk of chunks) {
-          console.log('[FavoritosClient] Fetching chunk:', chunk);
-          const q = query(
-            collection(db, 'businesses'),
-            where('__name__', 'in', chunk)
-          );
-          
-          const snapshot = await getDocs(q);
-          console.log('[FavoritosClient] Snapshot size:', snapshot.size);
-          snapshot.forEach((doc) => {
-            const data = doc.data();
-            console.log('[FavoritosClient] Found business:', doc.id, data.name);
-            allBusinesses.push({ id: doc.id, ...data } as Business);
-          });
-        }
+        const allBusinesses = snapshots
+          .filter((snapshot): snapshot is NonNullable<typeof snapshot> => Boolean(snapshot?.exists()))
+          .map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }) as Business);
 
         console.log('[FavoritosClient] Total businesses found:', allBusinesses.length);
         setBusinesses(allBusinesses);

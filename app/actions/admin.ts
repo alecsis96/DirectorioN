@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../lib/adminOverrides';
 import type { Business } from '../../types/business';
+import { MONETIZATION_FEATURE_ENABLED } from '../../lib/featureFlags';
 
 type DecodedAdmin = admin.auth.DecodedIdToken & { admin?: boolean };
 
@@ -274,7 +275,7 @@ export async function approveApplication(
     ownerId: resolvedOwnerId,
     ownerEmail: resolvedOwnerEmail,
     ownerName: normalizeString(form.ownerName, '', 140),
-    plan: normalizeString(form.plan, 'free', 30),
+    plan: MONETIZATION_FEATURE_ENABLED ? normalizeString(form.plan, 'free', 30) : 'free',
     featured: false,
     isOpen: 'si',
     status: 'draft', // Cambiado a 'draft' - necesita edición del dueño antes de publicar
@@ -282,7 +283,19 @@ export async function approveApplication(
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  const payload = { ...baseBusiness, ...businessOverrides };
+  const payload: Record<string, any> = { ...baseBusiness, ...businessOverrides };
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    payload.plan = 'free';
+    payload.featured = false;
+    delete payload.planExpiresAt;
+    delete payload.nextPaymentDate;
+    delete payload.lastPaymentDate;
+    delete payload.paymentStatus;
+    delete payload.stripeSubscriptionId;
+    delete payload.stripeCustomerId;
+    delete payload.stripeSessionId;
+    delete payload.stripeSubscriptionStatus;
+  }
   
   console.log('✅ [approveApplication] Creating business with payload:', {
     businessId: 'will be generated',
@@ -344,13 +357,32 @@ export async function manageBusiness(token: string, businessId: string, updates:
   if (!snap.exists) {
     sanitized.createdAt = sanitized.createdAt ?? now;
     if (!sanitized.ownerId) sanitized.ownerId = adminUser.uid;
+    sanitized.plan = MONETIZATION_FEATURE_ENABLED ? sanitized.plan || 'free' : 'free';
+    sanitized.featured = MONETIZATION_FEATURE_ENABLED ? sanitized.featured || 'no' : 'no';
+  } else if (!MONETIZATION_FEATURE_ENABLED) {
+    // Una edición administrativa ordinaria no debe degradar datos históricos.
+    delete sanitized.plan;
+    delete sanitized.featured;
+  }
+
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    for (const field of [
+      'planExpiresAt',
+      'nextPaymentDate',
+      'lastPaymentDate',
+      'paymentStatus',
+      'stripeSubscriptionId',
+      'stripeCustomerId',
+      'stripeSessionId',
+      'stripeSubscriptionStatus',
+    ]) {
+      delete sanitized[field];
+    }
   }
 
   sanitized.updatedAt = now;
   if (!sanitized.status) sanitized.status = 'approved';
-  if (!sanitized.plan) sanitized.plan = 'free';
   if (!sanitized.isOpen) sanitized.isOpen = 'si';
-  if (!sanitized.featured) sanitized.featured = 'no';
 
   await ref.set(sanitized, { merge: true });
   return { ok: true, businessId };

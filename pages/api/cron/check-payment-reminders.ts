@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { MONETIZATION_FEATURE_ENABLED } from '../../../lib/featureFlags';
 
 /**
  * Cron job para verificar pagos próximos a vencer
@@ -19,6 +20,9 @@ import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 const REMINDER_DAYS = [7, 3, 1]; // Días antes de vencer para enviar recordatorio
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return res.status(503).json({ error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' });
+  }
   // Verificar que sea una petición de cron o tenga autorización
   const authHeader = req.headers.authorization;
   const cronSecret = process.env.CRON_SECRET;

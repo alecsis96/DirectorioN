@@ -116,30 +116,31 @@ export default function AdminBusinessPanel() {
   const [modalInput, setModalInput] = useState('');
 
   const loadBusinesses = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!isAdmin || !user) return;
 
     setLoading(true);
     try {
+      const token = await user.getIdToken();
       let data: BusinessWithCompletion[] = [];
 
       switch (activeTab) {
         case 'nuevas':
-          data = await getNewSubmissions();
+          data = await getNewSubmissions(token);
           break;
         case 'pendientes':
-          data = await getPendingBusinesses();
+          data = await getPendingBusinesses(token);
           break;
         case 'listas':
-          data = await getReadyForReview();
+          data = await getReadyForReview(token);
           break;
         case 'publicados':
-          data = await getPublishedBusinesses();
+          data = await getPublishedBusinesses(token);
           break;
         case 'rechazados':
-          data = await getRejectedBusinesses();
+          data = await getRejectedBusinesses(token);
           break;
         case 'todos':
-          data = await getAllBusinesses();
+          data = await getAllBusinesses(token);
           break;
       }
 
@@ -149,7 +150,7 @@ export default function AdminBusinessPanel() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, isAdmin]);
+  }, [activeTab, isAdmin, user]);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -173,7 +174,9 @@ export default function AdminBusinessPanel() {
 
     setActionLoading(businessId);
     try {
-      await approveBusiness(businessId);
+      if (!user) throw new Error('No hay usuario autenticado');
+      const token = await user.getIdToken();
+      await approveBusiness(businessId, token);
       await loadBusinesses();
     } catch (error) {
       console.error('Error al aprobar:', error);
@@ -191,7 +194,9 @@ export default function AdminBusinessPanel() {
 
     setActionLoading(modalState.businessId);
     try {
-      await rejectBusiness(modalState.businessId, modalInput.trim());
+      if (!user) throw new Error('No hay usuario autenticado');
+      const token = await user.getIdToken();
+      await rejectBusiness(modalState.businessId, modalInput.trim(), token);
       setModalState({ type: null, businessId: null, businessName: '' });
       setModalInput('');
       await loadBusinesses();
@@ -211,7 +216,9 @@ export default function AdminBusinessPanel() {
 
     setActionLoading(modalState.businessId);
     try {
-      await requestMoreInfo(modalState.businessId, modalInput.trim());
+      if (!user) throw new Error('No hay usuario autenticado');
+      const token = await user.getIdToken();
+      await requestMoreInfo(modalState.businessId, modalInput.trim(), token);
       setModalState({ type: null, businessId: null, businessName: '' });
       setModalInput('');
       await loadBusinesses();

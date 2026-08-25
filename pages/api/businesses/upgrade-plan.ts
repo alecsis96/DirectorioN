@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../lib/adminOverrides';
+import { MONETIZATION_FEATURE_ENABLED } from '../../../lib/featureFlags';
 
 const VALID_PLANS = ['featured', 'sponsor'];
 const VALID_PAYMENTS = ['card', 'transfer'];
@@ -8,6 +9,9 @@ const VALID_PAYMENTS = ['card', 'transfer'];
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+  if (!MONETIZATION_FEATURE_ENABLED) {
+    return res.status(503).json({ error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' });
   }
 
   const tokenHeader = req.headers.authorization ?? '';
