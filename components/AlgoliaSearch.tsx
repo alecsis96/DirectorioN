@@ -16,6 +16,7 @@ import { InstantSearch, SearchBox, Hits, Configure, RefinementList, CurrentRefin
 import { searchClient, ALGOLIA_INDEX_NAME } from '../lib/algoliaClient';
 import type { Business } from '../types/business';
 import { MapPin, Star, Phone, Globe } from 'lucide-react';
+import { MONETIZATION_FEATURE_ENABLED } from '../lib/featureFlags';
 
 interface AlgoliaHit {
   objectID: string;
@@ -71,7 +72,7 @@ function BusinessHit({ hit, onClick }: { hit: AlgoliaHit; onClick?: (business: B
           alt={hit.name}
           className="w-full h-full object-cover"
         />
-        {hit.isPremium && (
+        {MONETIZATION_FEATURE_ENABLED && hit.isPremium && (
           <span className="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
             Premium
           </span>
@@ -264,7 +265,7 @@ export default function AlgoliaSearch({
                 </div>
 
                 {/* Plan */}
-                <div>
+                {MONETIZATION_FEATURE_ENABLED ? <div>
                   <h4 className="font-semibold text-sm text-gray-700 mb-2">Plan</h4>
                   <RefinementList
                     attribute="plan"
@@ -279,7 +280,7 @@ export default function AlgoliaSearch({
                       count: 'text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full',
                     }}
                   />
-                </div>
+                </div> : null}
               </div>
             </div>
           )}

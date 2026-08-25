@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, MessageCircle, Store, Tag } from "lucide-react";
-import { isPremiumBusiness } from "../../lib/businessPlanVisibility";
+import { isEffectivePublicPremium } from "../../lib/businessPlanVisibility";
 import { waLink } from "../../lib/helpers/contact";
 import { generateBusinessPlaceholder } from "../../lib/placeholderGenerator";
 import type { HomePromotion } from "../../lib/homePage";
@@ -22,7 +22,7 @@ export default function HomePromotionCard({ promotion }: Props) {
   const businessHref = `/negocios/${promotion.business.id}`;
   const whatsappHref = promotion.business.WhatsApp ? waLink(promotion.business.WhatsApp) : null;
   const imageSrc = getPromotionImage(promotion);
-  const isPremium = isPremiumBusiness(promotion.business);
+  const isPremium = isEffectivePublicPremium(promotion.business);
 
   return (
     <article

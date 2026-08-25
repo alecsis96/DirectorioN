@@ -8,7 +8,7 @@ import { trackCTA, trackBusinessInteraction } from "../lib/telemetry";
 import type { Business, BusinessPreview } from "../types/business";
 import { useFavorites } from "../context/FavoritesContext";
 import { generateBusinessPlaceholder } from "../lib/placeholderGenerator";
-import { asPlanInput, resolvePremiumVisualVariant } from "../lib/businessPlanVisibility";
+import { asPlanInput, getEffectivePublicVariant } from "../lib/businessPlanVisibility";
 import { resolveCardStatusChip } from "./businessCardContent";
 
 type CardBusiness = BusinessPreview | Business;
@@ -122,7 +122,7 @@ const BusinessCard: React.FC<Props> = ({ business, onViewDetails }) => {
     plan: "plan" in business ? business.plan : undefined,
     featured: "featured" in business ? business.featured : undefined,
   });
-  const plan = ("plan" in business || "featured" in business) ? resolvePremiumVisualVariant(planInput) : "free";
+  const plan = ("plan" in business || "featured" in business) ? getEffectivePublicVariant(planInput) : "free";
   const styles = CARD_STYLES[plan];
   const isPremium = plan !== "free";
   const imageSrc = getBusinessImage(business) || getFallbackLogo(business, isPremium);

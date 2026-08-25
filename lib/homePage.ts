@@ -2,7 +2,12 @@ import { CATEGORIES, type CategoryItem } from "./categoriesCatalog";
 import type { Business, BusinessPreview } from "../types/business";
 import { pickBusinessPreview } from "../types/business";
 import { getBusinessPromotionMessage, resolveBusinessCampaign } from "./campaigns";
-import { asPlanInput, getLegacyPlanPriority, isPremiumBusiness, resolvePremiumVisualVariant } from "./businessPlanVisibility";
+import {
+  asPlanInput,
+  getEffectivePublicPriority,
+  getEffectivePublicVariant,
+  isEffectivePublicPremium,
+} from "./businessPlanVisibility";
 
 export type HomePromotion = {
   business: BusinessPreview;
@@ -81,8 +86,8 @@ function buildPromotionItems(businesses: Business[]): HomePromotion[] {
   return businesses
     .filter((business) => getBusinessPromotionMessage(business).length > 0)
     .sort((left, right) => {
-      const leftPlanScore = getLegacyPlanPriority(asPlanInput(left));
-      const rightPlanScore = getLegacyPlanPriority(asPlanInput(right));
+      const leftPlanScore = getEffectivePublicPriority(asPlanInput(left));
+      const rightPlanScore = getEffectivePublicPriority(asPlanInput(right));
 
       if (leftPlanScore !== rightPlanScore) {
         return rightPlanScore - leftPlanScore;
@@ -200,16 +205,16 @@ function sortByRank(businesses: Business[]) {
 export function buildHomePageData(allBusinesses: Business[]): HomePageData {
   const businesses = sortByRank(allBusinesses);
   const promotions = buildPromotionItems(businesses);
-  const sponsorBusinesses = businesses.filter((business) => resolvePremiumVisualVariant(asPlanInput(business)) === "sponsor" && isPremiumBusiness(asPlanInput(business)));
+  const sponsorBusinesses = businesses.filter((business) => getEffectivePublicVariant(asPlanInput(business)) === "sponsor" && isEffectivePublicPremium(asPlanInput(business)));
   const featuredBusinesses = businesses.filter(
-    (business) => resolvePremiumVisualVariant(asPlanInput(business)) === "featured" && isPremiumBusiness(asPlanInput(business))
+    (business) => getEffectivePublicVariant(asPlanInput(business)) === "featured" && isEffectivePublicPremium(asPlanInput(business))
   );
   const organicBusinesses = businesses.filter(
-    (business) => !isPremiumBusiness(asPlanInput(business))
+    (business) => !isEffectivePublicPremium(asPlanInput(business))
   );
   const premiumShowcase: HomePremiumShowcaseItem[] = [...sponsorBusinesses.slice(0, 2), ...featuredBusinesses.slice(0, 4)].map((business) => ({
     business: asPreview(business),
-    variant: resolvePremiumVisualVariant(asPlanInput(business)) === "sponsor" ? "sponsor" : "featured",
+    variant: getEffectivePublicVariant(asPlanInput(business)) === "sponsor" ? "sponsor" : "featured",
   }));
 
   return {

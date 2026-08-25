@@ -11,7 +11,7 @@ import type {
   CampaignRecord,
 } from "../../types/campaign";
 import { getLegacyHeroCampaignFallback as getLegacyCampaignHeroFromBusinesses } from "../campaigns";
-import { asPlanInput, resolveVisibleTier } from "../businessPlanVisibility";
+import { asPlanInput, isEffectivePublicPremium } from "../businessPlanVisibility";
 
 const CAMPAIGNS_COLLECTION = "campaigns";
 const VALID_PLACEMENTS: CampaignDocumentPlacement[] = ["hero_banner", "offers_carousel"];
@@ -344,7 +344,7 @@ export async function duplicateCampaign(campaignId: string, createdBy?: string):
 
 function buildHeroFromRecord(campaign: CampaignRecord, businessesById: Map<string, BusinessPreview>): CampaignHero {
   const business = campaign.businessId ? businessesById.get(campaign.businessId) : undefined;
-  const tone = business && resolveVisibleTier(asPlanInput(business)) === "premium" ? "premium" : "neutral";
+  const tone = business && isEffectivePublicPremium(asPlanInput(business)) ? "premium" : "neutral";
   const ctaType =
     campaign.ctaType === "whatsapp" && !business?.WhatsApp
       ? business

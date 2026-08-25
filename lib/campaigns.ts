@@ -1,7 +1,7 @@
 import type { Business, BusinessPreview } from "../types/business";
 import { pickBusinessPreview } from "../types/business";
 import type { CampaignHero, CampaignPlacement, CampaignPreview } from "../types/campaign";
-import { asPlanInput, getLegacyPlanPriority, resolveVisibleTier } from "./businessPlanVisibility";
+import { asPlanInput, getEffectivePublicPriority, isEffectivePublicPremium } from "./businessPlanVisibility";
 
 const PROMO_CODE_REGEX = /(?:codigo|code)\s*[:\-]?\s*([A-Z0-9-]{3,})/i;
 
@@ -111,8 +111,8 @@ export function resolveBusinessHeroCampaign(business: Business | BusinessPreview
 
   if (!campaign) return null;
 
-  const priority = getLegacyPlanPriority(asPlanInput(business)) * 10 + (preview.WhatsApp ? 3 : 0) + (preview.coverUrl ? 1 : 0);
-  const tone = resolveVisibleTier(asPlanInput(business)) === "premium" ? "premium" : "neutral";
+  const priority = getEffectivePublicPriority(asPlanInput(business)) * 10 + (preview.WhatsApp ? 3 : 0) + (preview.coverUrl ? 1 : 0);
+  const tone = isEffectivePublicPremium(asPlanInput(business)) ? "premium" : "neutral";
 
   return {
     ...campaign,

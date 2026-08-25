@@ -14,6 +14,7 @@ import HomePromotionCard from "../components/home/HomePromotionCard";
 import HomePromoSpotlight from "../components/home/HomePromoSpotlight";
 import HomeSearchPanel from "../components/home/HomeSearchPanel";
 import { buildHomePageData } from "../lib/homePage";
+import { MONETIZATION_FEATURE_ENABLED } from "../lib/featureFlags";
 import { fetchBusinesses } from "../lib/server/businessData";
 
 const ASSISTED_WHATSAPP = "5219191565865";
@@ -403,7 +404,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="px-4 py-10 sm:py-14">
+      {MONETIZATION_FEATURE_ENABLED ? <section className="px-4 py-10 sm:py-14">
         <div className="mx-auto max-w-6xl">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-orange-500">Visibilidad premium</p>
           <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -465,7 +466,7 @@ export default async function Home() {
             </div>
           )}
         </div>
-      </section>
+      </section> : null}
 
       <section className="px-4 py-10 sm:py-14">
         <div className="mx-auto max-w-6xl rounded-[36px] bg-gray-900 px-6 py-10 text-white shadow-[0_28px_90px_rgba(15,23,42,0.18)] sm:px-10 sm:py-12">

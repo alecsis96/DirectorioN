@@ -55,12 +55,21 @@ import { trackPageView } from '../lib/telemetry';
 import { sliceBusinesses } from '../lib/pagination';
 import type { Business, BusinessPreview } from '../types/business';
 import { normalizeColonia } from '../lib/helpers/colonias';
-import { DEFAULT_FILTER_STATE, DEFAULT_ORDER, PAGE_SIZE, type Filters, type SortMode } from '../lib/negociosFilters';
+import {
+  buildNeutralPublicBusinessPage,
+  DEFAULT_FILTER_STATE,
+  DEFAULT_ORDER,
+  PAGE_SIZE,
+  sortBusinessesByPublicCriterion,
+  type Filters,
+  type SortMode,
+} from '../lib/negociosFilters';
 import { getBusinessStatus } from './BusinessHours';
 import { useFavorites } from '../context/FavoritesContext';
 import { selectSponsoredRotation } from '../lib/sponsoredRotation';
 import { CATEGORY_GROUPS, resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
 import type { CampaignHero } from '../types/campaign';
+import { MONETIZATION_FEATURE_ENABLED } from '../lib/featureFlags';
 
 const BusinessModalWrapper = dynamic(() => import('./BusinessModalWrapper'), { ssr: false });
 
@@ -379,32 +388,39 @@ export default function NegociosListClient({
       return true;
     });
     
-    // Separar por planes ANTES de ordenar
-    // Para patrocinados: aplicar rotacion justa (max 6 por sesion)
+    // Orden organico compartido por todos los planes cuando monetizacion esta apagada.
+    const isBusinessOpen = (business: BusinessPreview) =>
+      business.hours ? getBusinessStatus(business.hours, now).isOpen : false;
+    const sortGroup = (group: BusinessPreview[]) =>
+      sortBusinessesByPublicCriterion(group, uiFilters.order, isBusinessOpen);
+
+    if (!MONETIZATION_FEATURE_ENABLED) {
+      const neutralPage = buildNeutralPublicBusinessPage(
+        filtered,
+        uiFilters.order,
+        uiFilters.page,
+        isBusinessOpen,
+      );
+
+      return {
+        items: neutralPage.items,
+        patrocinados: [],
+        destacados: [],
+        gratis: neutralPage.items,
+        total: neutralPage.total,
+      };
+    }
+
+    // Branch comercial reutilizable: rota primero hasta seis sponsors sin omitir el resto.
     const allPatrocinados = filtered.filter(b => b.plan === 'sponsor');
-    const patrocinados = selectSponsoredRotation(allPatrocinados, 6);
+    const rotatedPatrocinados = selectSponsoredRotation(allPatrocinados, 6);
+    const rotatedIds = new Set(rotatedPatrocinados.map((business) => business.id));
+    const patrocinados = [
+      ...rotatedPatrocinados,
+      ...allPatrocinados.filter((business) => !rotatedIds.has(business.id)),
+    ];
     const destacados = filtered.filter(b => b.plan === 'featured');
     const gratis = filtered.filter(b => !b.plan || b.plan === 'free');
-    
-    // FunciÃ³n para ordenar cada grupo
-    const sortGroup = (group: BusinessPreview[]) => {
-      const sorted = [...group];
-      if (uiFilters.order === 'az') {
-        sorted.sort((a, b) => a.name.localeCompare(b.name, 'es'));
-      } else if (uiFilters.order === 'rating') {
-        sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-      } else {
-        sorted.sort((a, b) => {
-          const aOpen = a.hours ? getBusinessStatus(a.hours, now).isOpen : false;
-          const bOpen = b.hours ? getBusinessStatus(b.hours, now).isOpen : false;
-          if (aOpen !== bOpen) {
-            return aOpen ? -1 : 1;
-          }
-          return (b.rating ?? 0) - (a.rating ?? 0);
-        });
-      }
-      return sorted;
-    };
     
     const sortedPatrocinados = sortGroup(patrocinados);
     const sortedDestacados = sortGroup(destacados);
@@ -809,7 +825,7 @@ export default function NegociosListClient({
         ) : null}
 
         {/* Vitrina Premium visible */}
-        {!uiFilters.category && !uiFilters.categoryGroupId && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
+        {MONETIZATION_FEATURE_ENABLED && !uiFilters.category && !uiFilters.categoryGroupId && !uiFilters.query && !uiFilters.colonia && !quickFilterOpen && !quickFilterTopRated && !quickFilterDelivery && !quickFilterNew && (
           <>
             {(() => {
               const allSponsored = businesses.filter((b) => b.plan === 'sponsor');
@@ -920,8 +936,10 @@ export default function NegociosListClient({
           
           // Obtener los IDs de los negocios ya mostrados en la vitrina Premium superior
           const allSponsoredForTop = businesses.filter(b => b.plan === 'sponsor');
-          const rotatedSponsoredForTop = selectSponsoredRotation(allSponsoredForTop, 6);
-          const premiumTopIds = showTopSections
+          const rotatedSponsoredForTop = MONETIZATION_FEATURE_ENABLED
+            ? selectSponsoredRotation(allSponsoredForTop, 6)
+            : [];
+          const premiumTopIds = MONETIZATION_FEATURE_ENABLED && showTopSections
             ? [...rotatedSponsoredForTop, ...businesses.filter(b => b.plan === 'featured' || b.featured === true || b.featured === 'true')]
                 .filter((business, index, array) => array.findIndex((item) => item.id === business.id) === index)
                 .slice(0, 6)
@@ -961,7 +979,7 @@ export default function NegociosListClient({
                         </div>
                         
                         {/* Leyenda debajo del mapa */}
-                        <div className="bg-white rounded-lg shadow-md px-4 py-3 border border-gray-200">
+                        {MONETIZATION_FEATURE_ENABLED ? <div className="bg-white rounded-lg shadow-md px-4 py-3 border border-gray-200">
                           <p className="font-bold text-gray-700 mb-2 text-sm flex items-center gap-2">
                             Leyenda de colores
                           </p>
@@ -975,7 +993,7 @@ export default function NegociosListClient({
                               <span className="text-sm text-gray-600">Regular</span>
                             </div>
                           </div>
-                        </div>
+                        </div> : null}
                       </div>
 
                       {/* Columna derecha: Lista de negocios */}
@@ -1010,12 +1028,12 @@ export default function NegociosListClient({
                                     <div className="flex items-start justify-between gap-2 mb-1">
                                       <p className="text-sm font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
                                         <span className="line-clamp-1">{business.name}</span>
-                                        {business.plan === 'sponsor' && (
+                                        {MONETIZATION_FEATURE_ENABLED && business.plan === 'sponsor' && (
                                           <span className="ml-1 inline-flex items-center rounded bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700">
                                             PREMIUM
                                           </span>
                                         )}
-                                        {business.plan === 'featured' && (
+                                        {MONETIZATION_FEATURE_ENABLED && business.plan === 'featured' && (
                                           <span className="ml-1 inline-flex items-center rounded bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700">
                                             PREMIUM
                                           </span>
@@ -1058,6 +1076,17 @@ export default function NegociosListClient({
                   )}
 
                   {!showEmptyState && (() => {
+                    if (!MONETIZATION_FEATURE_ENABLED) {
+                      return businessesToDisplay.map((business) => (
+                        <div key={business.id}>
+                          <BusinessCard
+                            business={business}
+                            onViewDetails={(selected) => setSelectedBusiness(selected)}
+                          />
+                        </div>
+                      ));
+                    }
+
                     // Separar solo patrocinados (usan PremiumBusinessCard) del resto (usan BusinessCard)
                     // Solo separamos para aplicar lÃ­mite de paginaciÃ³n a negocios free
                     const sponsoredBusinesses = businessesToDisplay.filter(biz => 

@@ -1,4 +1,5 @@
 import type { Business, BusinessPreview } from "../types/business";
+import { MONETIZATION_FEATURE_ENABLED } from "./featureFlags";
 
 export type LegacyBusinessPlan = "free" | "featured" | "sponsor";
 export type VisibleBusinessTier = "free" | "premium";
@@ -81,6 +82,33 @@ export function getLegacyPlanPriority(input: PlanInput): number {
   if (plan === "sponsor") return 2;
   if (plan === "featured") return 1;
   return 0;
+}
+
+export function getEffectivePublicVariant(
+  input: PlanInput,
+  monetizationEnabled = MONETIZATION_FEATURE_ENABLED,
+): PlanVisualVariant {
+  if (!monetizationEnabled) return "free";
+
+  return resolvePremiumVisualVariant(input);
+}
+
+export function getEffectivePublicPriority(
+  input: PlanInput,
+  monetizationEnabled = MONETIZATION_FEATURE_ENABLED,
+): number {
+  if (!monetizationEnabled) return 0;
+
+  return getLegacyPlanPriority(input);
+}
+
+export function isEffectivePublicPremium(
+  input: PlanInput,
+  monetizationEnabled = MONETIZATION_FEATURE_ENABLED,
+): boolean {
+  if (!monetizationEnabled) return false;
+
+  return isPremiumBusiness(input);
 }
 
 export function asPlanInput(business: Pick<Business | BusinessPreview, "plan" | "featured">): PlanInput {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Business } from '../types/business';
+import { asPlanInput, getEffectivePublicVariant } from '../lib/businessPlanVisibility';
 
 interface BusinessesMapViewProps {
   businesses: Business[];
@@ -102,9 +103,9 @@ export default function BusinessesMapView({
               className: 'map-marker-label'
             },
             icon: {
-              url: business.plan === 'sponsor' 
+              url: getEffectivePublicVariant(asPlanInput(business)) === 'sponsor'
                 ? 'http://maps.google.com/mapfiles/ms/icons/purple-dot.png'
-                : business.plan === 'featured'
+                : getEffectivePublicVariant(asPlanInput(business)) === 'featured'
                 ? 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png'
                 : 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
               scaledSize: new window.google.maps.Size(32, 32),

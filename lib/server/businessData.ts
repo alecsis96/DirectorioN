@@ -2,7 +2,7 @@ import { getAdminFirestore } from "./firebaseAdmin";
 import type { Business } from "../../types/business";
 import { resolveCategory } from "../categoriesCatalog";
 import { isVisible } from "../businessHelpers";
-import { asPlanInput, resolveLegacyPlan } from "../businessPlanVisibility";
+import { asPlanInput, getEffectivePublicPriority, resolveLegacyPlan } from "../businessPlanVisibility";
 
 export function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -196,8 +196,14 @@ export async function fetchBusinesses(
  * Reorganiza los negocios para poner patrocinados primero, luego destacados, luego el resto.
  */
 export function sortBusinessesWithSponsors(businesses: Business[]): Business[] {
-  const sponsors = businesses.filter((biz) => resolveLegacyPlan(asPlanInput(biz)) === 'sponsor');
-  const featured = businesses.filter((biz) => resolveLegacyPlan(asPlanInput(biz)) === 'featured');
-  const others = businesses.filter((biz) => !sponsors.includes(biz) && !featured.includes(biz));
-  return [...sponsors, ...featured, ...others];
+  return businesses
+    .map((business, index) => ({ business, index }))
+    .sort((left, right) => {
+      const priorityDifference =
+        getEffectivePublicPriority(asPlanInput(right.business)) -
+        getEffectivePublicPriority(asPlanInput(left.business));
+
+      return priorityDifference || left.index - right.index;
+    })
+    .map(({ business }) => business);
 }

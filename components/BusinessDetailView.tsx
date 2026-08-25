@@ -31,6 +31,7 @@ import { generateBusinessPlaceholder } from "../lib/placeholderGenerator";
 import { getDetailViewTokens, getHeroHeight, type BusinessPlan } from "../lib/designTokens";
 import { resolveCategory } from "../lib/categoriesCatalog";
 import { MENU_FEATURE_ENABLED } from "../lib/featureFlags";
+import { getEffectivePublicVariant } from "../lib/businessPlanVisibility";
 
 import { upsertReview, reviewsQuery, ReviewSchema } from "../lib/firestore/reviews";
 import { hasAdminOverride } from "../lib/adminOverrides";
@@ -589,7 +590,10 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
   }, [business, facebookHref, galleryItems, reviews.length, tel, pageUrl]);
 
   // -------- Sistema de Temas por Plan ----------
-  const plan = (business as any).plan as BusinessPlan || 'free';
+  const plan = getEffectivePublicVariant({
+    plan: (business as any).plan as BusinessPlan | undefined,
+    featured: business.featured,
+  }) as BusinessPlan;
   const detailTokens = getDetailViewTokens(plan);
 
   const theme = {
