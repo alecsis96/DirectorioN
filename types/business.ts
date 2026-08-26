@@ -30,6 +30,7 @@ export type Business = {
   Facebook?: string;
   price?: string;
   rating?: number;
+  reviewCount?: number;
   ownerId?: string;
   ownerEmail?: string;
   plan?: "free" | "featured" | "sponsor" | string;

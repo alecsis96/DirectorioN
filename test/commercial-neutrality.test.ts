@@ -150,9 +150,13 @@ describe('neutralidad local de Algolia', () => {
   });
 
   it('conserva plan histórico y neutraliza flags públicos del objeto', () => {
-    const record = transformBusinessForAlgolia(makeBusiness('sponsor', 'sponsor', 5) as Business & { id: string });
+    const record = transformBusinessForAlgolia({
+      ...makeBusiness('sponsor', 'sponsor', 5),
+      reviewCount: 27,
+    } as Business & { id: string });
 
     expect(record.plan).toBe('sponsor');
+    expect(record.reviewCount).toBe(27);
     expect(record.isPremium).toBe(false);
     expect(record.isFeatured).toBe(false);
     expect(record.status).toBe('published');

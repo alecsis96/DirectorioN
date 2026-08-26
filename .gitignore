@@ -5,6 +5,7 @@ node_modules/
 *.log
 .DS_Store
 out/
+.algolia-backups/
 
 # Credenciales y claves privadas
 serviceAccountKey.json

@@ -4,7 +4,6 @@
  */
 
 import { algoliasearch } from 'algoliasearch';
-import type { SearchClient } from 'algoliasearch';
 import { MONETIZATION_FEATURE_ENABLED } from './featureFlags';
 
 // Validar variables de entorno
@@ -87,6 +86,7 @@ export function getEffectiveAlgoliaIndexSettings(
       'logo',
       'coverUrl',
       'rating',
+      'reviewCount',
       'isPremium',
       'isFeatured',
       'hours',

@@ -25,6 +25,7 @@ export function transformBusinessForAlgolia(business: Business & { id: string })
     logo: business.logoUrl || '',
     coverUrl: business.coverUrl || '',
     rating: business.rating || 0,
+    reviewCount: typeof business.reviewCount === 'number' ? business.reviewCount : 0,
     isPremium: isEffectivePublicPremium(asPlanInput(business)),
     isFeatured: publicVariant === 'featured',
     status: 'published',
