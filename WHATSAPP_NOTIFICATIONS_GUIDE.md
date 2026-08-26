@@ -32,7 +32,7 @@ Agrega estas líneas a tu archivo `.env.local`:
 ```env
 # Notificaciones WhatsApp
 ADMIN_WHATSAPP_NUMBER=5216671234567
-CALLMEBOT_API_KEY=123456
+CALLMEBOT_API_KEY=<CALLMEBOT_API_KEY>
 ```
 
 **Importante:**
@@ -51,7 +51,7 @@ Para las notificaciones de reseñas (que se ejecutan en Cloud Functions):
    ```env
    # WhatsApp Notifications
    ADMIN_WHATSAPP_NUMBER=529191565865
-   CALLMEBOT_API_KEY=1523609
+   CALLMEBOT_API_KEY=<CALLMEBOT_API_KEY>
    ```
 
 2. Despliega las funciones (el archivo .env se carga automáticamente):
@@ -273,7 +273,7 @@ firebase functions:log --only onReviewCreated
 
 4. **Prueba el API directamente:**
    ```bash
-   curl "https://api.callmebot.com/whatsapp.php?phone=5216671234567&text=Test&apikey=123456"
+   curl "https://api.callmebot.com/whatsapp.php?phone=5216671234567&text=Test&apikey=<CALLMEBOT_API_KEY>"
    ```
 
 ### Error "API Key inválido"

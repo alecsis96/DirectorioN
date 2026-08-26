@@ -1,22 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import nodemailer from 'nodemailer';
+import {
+  AuthorizationError,
+  isAdminIdentity,
+  verifyIdTokenOrThrow,
+} from '../../lib/server/authorization';
 
 /**
  * API para enviar notificaciones por email
  * Tipos: approved, rejected, welcome
  */
-
-// Configurar transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-// Verificar configuración
-const isConfigured = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
 
 type EmailType = 'approved' | 'rejected' | 'welcome';
 
@@ -33,10 +26,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Verificar que las credenciales estén configuradas
-  if (!isConfigured) {
-    console.warn('Email not configured. Set EMAIL_USER and EMAIL_PASS in .env.local');
-    return res.status(200).json({ ok: true, message: 'Email not configured, skipped' });
+  const authorization = req.headers.authorization || '';
+  const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  let decoded;
+  try {
+    decoded = await verifyIdTokenOrThrow(token);
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    return res.status(401).json({ error: 'Autenticacion requerida.' });
   }
 
   const { type, to, businessName, ownerName, rejectionNotes }: EmailRequest = req.body;
@@ -44,6 +43,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!type || !to || !businessName) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+
+  const normalizedRecipient = String(to).trim().toLowerCase();
+  const verifiedEmail = decoded.email?.trim().toLowerCase();
+  const canSendOwnWelcome = type === 'welcome'
+    && decoded.email_verified === true
+    && Boolean(verifiedEmail)
+    && verifiedEmail === normalizedRecipient;
+  if (!isAdminIdentity(decoded) && !canSendOwnWelcome) {
+    return res.status(403).json({ error: 'Permisos insuficientes para enviar esta notificacion.' });
+  }
+
+  const emailUser = process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_PASS;
+  if (!emailUser || !emailPass) {
+    return res.status(503).json({ error: 'Servicio de correo no disponible.' });
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: emailUser,
+      pass: emailPass,
+    },
+  });
 
   try {
     let subject = '';
@@ -70,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     await transporter.sendMail({
-      from: `"YajaGon" <${process.env.EMAIL_USER}>`,
+      from: `"YajaGon" <${emailUser}>`,
       to,
       subject,
       html,

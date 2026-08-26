@@ -98,7 +98,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           try {
             await fetch(`${baseUrl}/api/send-email-notification`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
               body: JSON.stringify({
                 type: 'approved',
                 to: ownerEmail,
@@ -240,7 +243,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
           await fetch(`${baseUrl}/api/send-email-notification`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               type: 'approved',
               to: ownerEmail,
@@ -301,7 +307,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         await fetch(`${baseUrl}/api/send-email-notification`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             type: 'rejected',
             to: appData?.ownerEmail,

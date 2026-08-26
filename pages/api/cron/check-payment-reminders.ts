@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { MONETIZATION_FEATURE_ENABLED } from '../../../lib/featureFlags';
+import { isCronRequestAuthorized } from '../../../lib/server/cronAuthorization';
 
 /**
  * Cron job para verificar pagos próximos a vencer
@@ -24,10 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(503).json({ error: 'Monetization is temporarily disabled', code: 'MONETIZATION_DISABLED' });
   }
   // Verificar que sea una petición de cron o tenga autorización
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
-  
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!isCronRequestAuthorized(req.headers.authorization)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

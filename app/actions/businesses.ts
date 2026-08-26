@@ -324,7 +324,10 @@ export async function submitNewBusiness(formData: FormData) {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         await fetch(`${baseUrl}/api/send-email-notification`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${parsed.token}`,
+          },
           body: JSON.stringify({
             type: 'welcome',
             to: decoded.email,
@@ -379,7 +382,10 @@ export async function submitNewBusiness(formData: FormData) {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         await fetch(`${baseUrl}/api/send-email-notification`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${parsed.token}`,
+          },
           body: JSON.stringify({
             type: 'welcome',
             to: decoded.email,
