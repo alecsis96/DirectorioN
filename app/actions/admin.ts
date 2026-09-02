@@ -8,6 +8,12 @@ import { getAdminAuth, getAdminFirestore } from '../../lib/server/firebaseAdmin'
 import { hasAdminOverride } from '../../lib/adminOverrides';
 import type { Business } from '../../types/business';
 import { MONETIZATION_FEATURE_ENABLED } from '../../lib/featureFlags';
+import {
+  assertSupportedApplicationVersion,
+  getApplicationBusinessData,
+  isApplicationV2,
+  resolveApplicationOwnerId,
+} from '../../lib/applications/compatibility';
 
 type DecodedAdmin = admin.auth.DecodedIdToken & { admin?: boolean };
 
@@ -127,10 +133,6 @@ function extractOwnerEmail(app: Record<string, any>, form: Record<string, any>):
   return '';
 }
 
-function extractOwnerId(app: Record<string, any>, form: Record<string, any>): string {
-  return normalizeString(app.uid || app.ownerId || form.uid || form.ownerId, '', 128);
-}
-
 function sanitizeBusinessData(source: Record<string, unknown>) {
   const target: Record<string, unknown> = {};
   let lat: number | null = null;
@@ -230,16 +232,14 @@ export async function approveApplication(
     throw new Error('Solicitud no encontrada.');
   }
   const appData = appSnap.data() || {};
+  assertSupportedApplicationVersion(appData);
   if (appData.status === 'approved') {
     return { ok: true, businessId: appData.businessId };
   }
-  const form = (appData.formData as Record<string, any>) || {};
-  const ownerId = extractOwnerId(appData, form);
+  const applicationV2 = isApplicationV2(appData);
+  const form = getApplicationBusinessData(appData) as Record<string, any>;
+  const ownerId = resolveApplicationOwnerId(applicationId, appData);
   const ownerEmail = extractOwnerEmail(appData, form);
-  
-  // CRÍTICO: Si no se encuentra ownerId en los campos, usar applicationId que ES el UID del usuario
-  // porque el documento está en applications/{uid}
-  const resolvedOwnerId = ownerId || applicationId;
   const resolvedOwnerEmail = ownerEmail || normalizeString(form.ownerEmail, '', 200);
 
   // Debug: Log de los datos de la aplicación
@@ -248,8 +248,8 @@ export async function approveApplication(
     'appData.ownerId': appData.ownerId,
     'appData.ownerUid': appData.ownerUid,
     'form.ownerId': form.ownerId,
-    'extractedOwnerId': ownerId,
-    'FINAL resolvedOwnerId': resolvedOwnerId,
+    schemaVersion: appData.schemaVersion,
+    'resolvedOwnerId': ownerId,
     businessName: form.businessName || form.name || appData.businessName || appData.name,
     extractedOwnerEmail: resolvedOwnerEmail,
   });
@@ -267,14 +267,13 @@ export async function approveApplication(
     description: normalizeString(form.description, '', 1500),
     address: normalizeString(form.address, '', 300),
     colonia: normalizeString(form.colonia, '', 120),
-    phone: normalizeString(form.ownerPhone || form.phone, '', 30),
+    phone: normalizeString(form.ownerPhone || form.phone || appData.ownerPhone, '', 30),
     WhatsApp: normalizeString(form.whatsapp || form.WhatsApp, '', 30),
     Facebook: normalizeString(form.facebookPage || form.Facebook, '', 300),
     hours: normalizeString(form.hours, '', 200),
     price: normalizeString(form.price, '', 100),
-    ownerId: resolvedOwnerId,
     ownerEmail: resolvedOwnerEmail,
-    ownerName: normalizeString(form.ownerName, '', 140),
+    ownerName: normalizeString(form.ownerName || appData.ownerName, '', 140),
     plan: MONETIZATION_FEATURE_ENABLED ? normalizeString(form.plan, 'free', 30) : 'free',
     featured: false,
     isOpen: 'si',
@@ -283,7 +282,22 @@ export async function approveApplication(
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
+  if (ownerId) {
+    (baseBusiness as Record<string, unknown>).ownerId = ownerId;
+  }
   const payload: Record<string, any> = { ...baseBusiness, ...businessOverrides };
+  if (applicationV2) {
+    // Una v2 aprobada permanece ownerless hasta un claim transaccional futuro.
+    delete payload.ownerId;
+    delete payload.ownerUid;
+    payload.sourceApplicationId = applicationId;
+    payload.applicationSchemaVersion = 2;
+    payload.businessStatus = 'draft';
+    payload.applicationStatus = 'approved';
+    payload.adminStatus = 'active';
+    payload.visibility = 'hidden';
+    payload.isActive = true;
+  }
   if (!MONETIZATION_FEATURE_ENABLED) {
     payload.plan = 'free';
     payload.featured = false;
@@ -305,14 +319,37 @@ export async function approveApplication(
   });
   
   const bizRef = db.collection('businesses').doc();
-  await bizRef.set(payload, { merge: false });
-  
-  console.log(`✅ [approveApplication] Business created successfully: ${bizRef.id} for owner: ${payload.ownerId}`);
+  let resolvedBusinessId = bizRef.id;
+  if (applicationV2) {
+    resolvedBusinessId = await db.runTransaction(async (transaction) => {
+      const freshApplication = await transaction.get(appRef);
+      if (!freshApplication.exists) throw new Error('Solicitud no encontrada.');
+      const freshData = freshApplication.data() || {};
+      if (freshData.status === 'approved' && freshData.businessId) {
+        return String(freshData.businessId);
+      }
 
-  // Eliminar la solicitud de applications después de crear el negocio
-  await appRef.delete();
+      transaction.create(bizRef, payload);
+      transaction.update(appRef, {
+        status: 'approved',
+        businessId: bizRef.id,
+        approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+        approvedBy: adminUser.uid,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return bizRef.id;
+    });
+  } else {
+    // Compatibilidad v1: conserva creación y eliminación histórica de applications/{uid}.
+    await bizRef.set(payload, { merge: false });
+    await appRef.delete();
+  }
   
-  console.log(`🗑️ [approveApplication] Application ${applicationId} deleted from applications collection`);
+  console.log(`✅ [approveApplication] Business created successfully: ${resolvedBusinessId}`, {
+    applicationId,
+    ownerId: payload.ownerId || null,
+    schemaVersion: appData.schemaVersion || 1,
+  });
 
   try {
     await db.collection('events').add({
@@ -325,16 +362,25 @@ export async function approveApplication(
     console.warn('[telemetry] app_approved', error);
   }
 
-  return { ok: true, businessId: bizRef.id };
+  return { ok: true, businessId: resolvedBusinessId };
 }
 
 export async function deleteApplication(token: string, applicationId: string) {
   await verifyAdmin(token);
   const db = getAdminFirestore();
 
-  await db.doc(`applications/${applicationId}`).delete();
-  await db.doc(`businesses/${applicationId}`).delete().catch(() => {});
-  await db.doc(`business_wizard/${applicationId}`).delete().catch(() => {});
+  const appRef = db.doc(`applications/${applicationId}`);
+  const appSnap = await appRef.get();
+  if (!appSnap.exists) return { ok: true };
+
+  const appData = appSnap.data() || {};
+  assertSupportedApplicationVersion(appData);
+  await appRef.delete();
+  if (!isApplicationV2(appData)) {
+    // En v1 el ID era el UID y también identificaba el progreso del wizard.
+    await db.doc(`businesses/${applicationId}`).delete().catch(() => {});
+    await db.doc(`business_wizard/${applicationId}`).delete().catch(() => {});
+  }
 
   return { ok: true };
 }

@@ -16,6 +16,10 @@ import {
   MONETIZATION_DISABLED_RESULT,
   MONETIZATION_FEATURE_ENABLED,
 } from "./featureFlags";
+import {
+  getApplicationNotificationReference,
+  getSupportedApplicationSchemaVersion,
+} from "./applicationReferences";
 
 // Inicializar Firebase Admin si no está inicializado
 if (!admin.apps.length) {
@@ -451,9 +455,17 @@ export const onApplicationCreated = functions.firestore
   .document("applications/{applicationId}")
   .onCreate(async (snap, context) => {
     const data = snap.data();
+    const reference = getApplicationNotificationReference(
+      context.params.applicationId,
+      data || {},
+    );
+    if (!data || getSupportedApplicationSchemaVersion(data) === null) {
+      console.warn("Unsupported application schema; skipping email", reference);
+      return;
+    }
     
-    if (!data || !data.ownerEmail || !data.ownerName) {
-      console.log("Missing email or name, skipping email");
+    if (!data.ownerEmail || !data.ownerName) {
+      console.log("Missing email or name, skipping email", reference);
       return;
     }
 
@@ -480,20 +492,38 @@ export const onApplicationStatusChange = functions.firestore
     
     // Si el status cambió a 'approved'
     if (before.status !== "approved" && after.status === "approved") {
-      // Buscar el business creado con el mismo ownerEmail
-      const businessesRef = admin.firestore().collection("businesses");
-      const snapshot = await businessesRef
-        .where("ownerEmail", "==", after.ownerEmail)
-        .orderBy("createdAt", "desc")
-        .limit(1)
-        .get();
-      
-      if (snapshot.empty) {
-        console.log("No business found for approved application");
+      const schemaVersion = getSupportedApplicationSchemaVersion(after);
+      if (schemaVersion === null) {
+        console.warn("Unsupported application schema; skipping approval email", {
+          applicationId: context.params.applicationId,
+        });
         return;
       }
-      
-      const businessDoc = snapshot.docs[0];
+      if (schemaVersion === 2) {
+        console.log("V2 approval email deferred until ownership claims are activated", {
+          applicationId: context.params.applicationId,
+          businessId: after.businessId || null,
+        });
+        return;
+      }
+
+      const reference = getApplicationNotificationReference(
+        context.params.applicationId,
+        after,
+      );
+      if (!reference.businessId) {
+        console.warn("Approved application has no exact businessId; skipping email", reference);
+        return;
+      }
+
+      const businessDoc = await admin
+        .firestore()
+        .doc(`businesses/${reference.businessId}`)
+        .get();
+      if (!businessDoc.exists) {
+        console.warn("Exact business not found for approved application", reference);
+        return;
+      }
       
       await sendEmail({
         to: after.ownerEmail,
@@ -501,7 +531,7 @@ export const onApplicationStatusChange = functions.firestore
         html: getApplicationApprovedTemplate(
           after.ownerName,
           after.businessName || "tu negocio",
-          businessDoc.id,
+          reference.businessId,
           after.ownerEmail
         ),
       });

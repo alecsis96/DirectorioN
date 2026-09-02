@@ -72,20 +72,30 @@ export async function GET(
     }
 
     const db = getAdminFirestore();
-    const applicationsQuery = db
-      .collection('applications')
-      .where('ownerEmail', '==', email)
-      .orderBy('createdAt', 'desc');
+    // Un usuario normal obtiene su application v1 por UID. El email sólo filtra
+    // búsquedas administrativas y nunca concede acceso por sí mismo.
+    const applicationsPromise = isAdmin
+      ? db
+          .collection('applications')
+          .where('ownerEmail', '==', email)
+          .orderBy('createdAt', 'desc')
+          .get()
+      : db.collection('applications').doc(decoded.uid).get();
     const businessesQuery = isAdmin
       ? db.collection('businesses').where('ownerEmail', '==', email).orderBy('createdAt', 'desc')
       : db.collection('businesses').where('ownerId', '==', decoded.uid).orderBy('createdAt', 'desc');
 
     const [applicationsSnap, businessesSnap] = await Promise.all([
-      applicationsQuery.get(),
+      applicationsPromise,
       businessesQuery.get(),
     ]);
 
-    const applications = applicationsSnap.docs.map((doc) => {
+    const applicationDocs = 'docs' in applicationsSnap
+      ? applicationsSnap.docs
+      : applicationsSnap.exists
+        ? [applicationsSnap]
+        : [];
+    const applications = applicationDocs.map((doc) => {
       const data = doc.data() as Record<string, any>;
       return {
         id: doc.id,

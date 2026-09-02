@@ -76,9 +76,11 @@ export interface BusinessWithState {
   horarios?: Record<string, { abierto: boolean; desde: string; hasta: string }>;
   
   // Owner
-  ownerId: string;
+  ownerId?: string;
   ownerEmail?: string;
   ownerName?: string;
+  sourceApplicationId?: string;
+  applicationSchemaVersion?: 1 | 2;
   
   // NUEVOS CAMPOS DE ESTADO
   businessStatus: BusinessStatus;
@@ -437,6 +439,17 @@ export function updateBusinessState(business: Partial<BusinessWithState>): {
       isPublishReady: ready,
       missingFields,
       applicationStatus,
+    };
+  }
+
+  // 0.2R: el estado de intake v2 no se deriva de la completitud del perfil.
+  // Una solicitud recién recibida permanece en Nuevas hasta una decisión admin explícita.
+  if (business.applicationSchemaVersion === 2 && applicationStatus === 'submitted') {
+    return {
+      completionPercent,
+      isPublishReady: ready,
+      missingFields,
+      applicationStatus: 'submitted',
     };
   }
   

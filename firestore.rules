@@ -409,15 +409,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // ============== RECLAMOS (opcional) ==============
+    // ============== RECLAMOS LEGACY (desactivados) ==============
     match /claims/{claimId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow read, write: if false;
+    }
 
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && exists(/databases/$(database)/documents/businesses/$(request.resource.data.businessId));
+    // 0.2R: concesiones internas. Sólo Admin SDK puede leer o escribir.
+    match /ownershipClaims/{claimId} {
+      allow read, write: if false;
+    }
 
-      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    // Puntero determinista que serializa emisión/reemisión por businessId.
+    match /ownershipClaimGuards/{businessId} {
+      allow read, write: if false;
     }
 
     // ============== NOTIFICATIONS (logs de notificaciones WhatsApp) ==============

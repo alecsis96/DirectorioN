@@ -21,6 +21,7 @@ describe('ownerEmail ownership regressions', () => {
 
     expect(route).toContain("where('ownerId', '==', uid)");
     expect(route).not.toMatch(/collection\(['"]businesses['"]\)[\s\S]{0,120}where\(['"]ownerEmail['"]/);
+    expect(route).not.toMatch(/collection\(['"]applications['"]\)[\s\S]{0,120}where\(['"]ownerEmail['"]/);
   });
 
   it('client management links never infer ownership from matching email', () => {
@@ -36,6 +37,7 @@ describe('ownerEmail ownership regressions', () => {
 
     expect(route).toContain('requesterEmail !== email');
     expect(route).toContain("where('ownerId', '==', decoded.uid)");
+    expect(route).toContain("doc(decoded.uid).get()");
   });
 
   it('assisted registration creates an ownerless review draft', () => {

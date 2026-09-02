@@ -160,6 +160,40 @@ runner("Firestore security rules for /businesses", () => {
     await assertSucceeds(admin.firestore().collection("businesses").doc("assisted-private").get());
   });
 
+  it("keeps current and legacy ownership claims server-only for every client", async () => {
+    const anonymous = testEnv.unauthenticatedContext();
+    const user = testEnv.authenticatedContext("user-uid", { email: "user@example.com" });
+    const admin = testEnv.authenticatedContext("admin-uid", { admin: true });
+    const anonymousRef = anonymous.firestore().collection("ownershipClaims").doc("claim-1");
+    const userRef = user.firestore().collection("ownershipClaims").doc("claim-1");
+    const adminRef = admin.firestore().collection("ownershipClaims").doc("claim-1");
+    const anonymousGuard = anonymous.firestore().collection("ownershipClaimGuards").doc("business-1");
+    const userGuard = user.firestore().collection("ownershipClaimGuards").doc("business-1");
+    const adminGuard = admin.firestore().collection("ownershipClaimGuards").doc("business-1");
+    const anonymousLegacy = anonymous.firestore().collection("claims").doc("legacy-claim-1");
+    const userLegacy = user.firestore().collection("claims").doc("legacy-claim-1");
+    const adminLegacy = admin.firestore().collection("claims").doc("legacy-claim-1");
+
+    await assertFails(anonymousRef.get());
+    await assertFails(anonymousRef.set({ businessId: "business-1", tokenHash: "hash" }));
+    await assertFails(userRef.get());
+    await assertFails(userRef.set({ businessId: "business-1", tokenHash: "hash" }));
+    await assertFails(adminRef.get());
+    await assertFails(adminRef.set({ businessId: "business-1", tokenHash: "hash" }));
+    await assertFails(anonymousGuard.get());
+    await assertFails(anonymousGuard.set({ activeClaimId: "claim-1", version: 1 }));
+    await assertFails(userGuard.get());
+    await assertFails(userGuard.set({ activeClaimId: "claim-1", version: 1 }));
+    await assertFails(adminGuard.get());
+    await assertFails(adminGuard.set({ activeClaimId: "claim-1", version: 1 }));
+    await assertFails(anonymousLegacy.get());
+    await assertFails(anonymousLegacy.set({ businessId: "business-1", userId: "anonymous" }));
+    await assertFails(userLegacy.get());
+    await assertFails(userLegacy.set({ businessId: "business-1", userId: "user-uid" }));
+    await assertFails(adminLegacy.get());
+    await assertFails(adminLegacy.set({ businessId: "business-1", userId: "admin-uid" }));
+  });
+
   it("allows owner to update their business but denies others", async () => {
     await seedBusiness(testEnv, {
       id: "biz-owner",

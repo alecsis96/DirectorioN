@@ -21,6 +21,7 @@ import {
 import { resolveCategory } from '../../lib/categoriesCatalog';
 import { pickOwnerEditableBusinessUpdates } from '../../lib/ownerBusinessUpdates';
 import { getResourceLimit } from '../../lib/planPermissions';
+import { resolveLinkedApplicationId } from '../../lib/applications/compatibility';
 
 const createBusinessSchema = z.object({
   token: z.string().min(1, 'Missing auth token'),
@@ -199,6 +200,8 @@ export async function createBusinessImmediately(formData: FormData) {
       // NUEVOS CAMPOS DE ESTADO
       businessStatus: 'draft' as BusinessStatus,
       applicationStatus: 'submitted' as ApplicationStatus,
+      sourceApplicationId: decoded.uid,
+      applicationSchemaVersion: 1,
       
       // Timestamps
       createdAt: new Date(),
@@ -429,17 +432,25 @@ export async function requestPublish(businessId: string, token: string) {
     
     // Sincronizar application (crear o actualizar)
     try {
-      const appRef = db.collection('applications').doc(decoded.uid);
+      const linkedApplicationId = resolveLinkedApplicationId(freshData) ?? decoded.uid;
+      const appRef = db.collection('applications').doc(linkedApplicationId);
       const appSnap = await appRef.get();
       
       if (appSnap.exists) {
         // Actualizar existente
-        await appRef.update({
-          status: 'ready_for_review',
-          businessId: businessId,
-          updatedAt: new Date(),
-        });
-      } else {
+        await appRef.update(
+          freshData.applicationSchemaVersion === 2
+            ? {
+                businessId,
+                updatedAt: new Date(),
+              }
+            : {
+                status: 'ready_for_review',
+                businessId,
+                updatedAt: new Date(),
+              },
+        );
+      } else if (freshData.applicationSchemaVersion !== 2) {
         // Crear nuevo documento de application
         await appRef.set({
           businessId: businessId,
@@ -562,16 +573,25 @@ export async function deleteBusiness(
     });
     
     // Sincronizar application
-    if (businessData?.ownerId) {
+    const linkedApplicationId = resolveLinkedApplicationId(businessData);
+    if (linkedApplicationId) {
       try {
-        const appRef = db.collection('applications').doc(businessData.ownerId);
+        const appRef = db.collection('applications').doc(linkedApplicationId);
         const appSnap = await appRef.get();
         
         if (appSnap.exists) {
-          await appRef.update({
-            status: 'deleted',
-            updatedAt: new Date(),
-          });
+          await appRef.update(
+            businessData?.applicationSchemaVersion === 2
+              ? {
+                  status: 'rejected',
+                  adminNotes: 'Associated business deleted by owner',
+                  updatedAt: new Date(),
+                }
+              : {
+                  status: 'deleted',
+                  updatedAt: new Date(),
+                },
+          );
         }
       } catch (appError) {
         console.warn('[deleteBusiness] Error actualizando application (no crítico):', appError);

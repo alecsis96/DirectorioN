@@ -29,8 +29,6 @@ export async function GET(req: Request) {
 
     const decoded = await verifyIdTokenOrThrow(extractBearerToken(req.headers));
     const uid = decoded.uid;
-    const email = (decoded.email || '').toLowerCase();
-
     const db = getAdminFirestore();
 
     // La lectura privada de negocios depende exclusivamente de ownerId.
@@ -39,20 +37,18 @@ export async function GET(req: Request) {
     const bizMap = new Map<string, Record<string, unknown>>();
     byIdSnap.forEach((doc) => bizMap.set(doc.id, { id: doc.id, ...doc.data() }));
 
-    // Applications (pending) by uid or email
-    const appQueries = [
+    // Applications v1 por identidad real. ownerEmail nunca concede lectura.
+    const [appByIdSnap, appByOwnerSnap] = await Promise.all([
       db.collection('applications').doc(uid).get(),
-      ...(email ? [db.collection('applications').where('ownerEmail', '==', email).limit(3).get()] : []),
-    ];
-    const [appByIdSnap, appByEmailSnap] = await Promise.all(appQueries);
+      db.collection('applications').where('ownerId', '==', uid).limit(3).get(),
+    ]);
     const applications: Record<string, unknown>[] = [];
     const appByIdDoc = appByIdSnap as unknown as FirebaseFirestore.DocumentSnapshot;
     if (appByIdDoc && (appByIdDoc as any).exists === true) {
       applications.push({ id: (appByIdDoc as any).id, ...(appByIdDoc.data() as object) });
     }
-    const appByEmailQuerySnap = appByEmailSnap as FirebaseFirestore.QuerySnapshot | null;
-    if (appByEmailQuerySnap && !appByEmailQuerySnap.empty) {
-      appByEmailQuerySnap.forEach((doc) => {
+    if (!appByOwnerSnap.empty) {
+      appByOwnerSnap.forEach((doc) => {
         if (!applications.find((a) => (a as any).id === doc.id)) {
           applications.push({ id: doc.id, ...doc.data() });
         }

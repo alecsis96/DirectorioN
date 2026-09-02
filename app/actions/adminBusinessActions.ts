@@ -6,9 +6,16 @@
 'use server';
 
 import { assertAdminToken } from '../../lib/server/authorization';
-import { MONETIZATION_FEATURE_ENABLED } from '../../lib/featureFlags';
+import {
+  MONETIZATION_FEATURE_ENABLED,
+  PUBLIC_APPLICATION_V2_ENABLED,
+} from '../../lib/featureFlags';
 import { getAdminFirestore } from '../../lib/server/firebaseAdmin';
 import { serializeTimestamps } from '../../lib/server/serializeFirestore';
+import {
+  getApplicationAdminQueue,
+  resolveLinkedApplicationId,
+} from '../../lib/applications/compatibility';
 import { 
   type ApplicationStatus, 
   type BusinessStatus,
@@ -48,6 +55,36 @@ export async function getNewSubmissions(adminToken: string): Promise<any[]> {
     });
   
   return businesses;
+}
+
+/**
+ * Base v2 para la futura bandeja Nuevas. No se conecta al panel visible en 0.2R.1.
+ * El status persistido manda; la completitud del perfil no promueve la solicitud.
+ */
+export async function getNewApplicationV2Submissions(adminToken: string): Promise<any[]> {
+  await assertAdminToken(adminToken);
+  if (!PUBLIC_APPLICATION_V2_ENABLED) return [];
+
+  const db = getAdminFirestore();
+  const snapshot = await db
+    .collection('applications')
+    .where('schemaVersion', '==', 2)
+    .where('status', '==', 'submitted')
+    .orderBy('createdAt', 'desc')
+    .limit(50)
+    .get();
+
+  return snapshot.docs
+    .map((doc) => {
+      const data = doc.data();
+      return serializeTimestamps({
+        id: doc.id,
+        applicationId: doc.id,
+        queue: getApplicationAdminQueue(data),
+        ...data,
+      });
+    })
+    .filter((application) => (application as any).queue === 'new');
 }
 
 /**
@@ -156,7 +193,7 @@ export async function approveBusiness(
     throw new Error('Negocio no encontrado');
   }
   
-  const data = snapshot.data();
+  const data = snapshot.data() || {};
   
   // Actualizar negocio
   await businessRef.update({
@@ -171,9 +208,10 @@ export async function approveBusiness(
   });
   
   // 🔥 Sincronizar application (crear o actualizar)
-  if (data?.ownerId) {
+  const linkedApplicationId = resolveLinkedApplicationId(data);
+  if (linkedApplicationId) {
     try {
-      const appRef = db.collection('applications').doc(data.ownerId);
+      const appRef = db.collection('applications').doc(linkedApplicationId);
       const appSnap = await appRef.get();
       
       if (appSnap.exists) {
@@ -182,7 +220,7 @@ export async function approveBusiness(
           status: 'approved',
           updatedAt: new Date(),
         });
-      } else {
+      } else if (data?.applicationSchemaVersion !== 2) {
         // Crear nuevo documento
         await appRef.set({
           businessId: businessId,
@@ -227,7 +265,7 @@ export async function rejectBusiness(
     throw new Error('Negocio no encontrado');
   }
   
-  const data = snapshot.data();
+  const data = snapshot.data() || {};
   
   // Actualizar negocio
   await businessRef.update({
@@ -239,9 +277,10 @@ export async function rejectBusiness(
   });
   
   // 🔥 Sincronizar application (crear o actualizar)
-  if (data?.ownerId) {
+  const linkedApplicationId = resolveLinkedApplicationId(data);
+  if (linkedApplicationId) {
     try {
-      const appRef = db.collection('applications').doc(data.ownerId);
+      const appRef = db.collection('applications').doc(linkedApplicationId);
       const appSnap = await appRef.get();
       
       if (appSnap.exists) {
@@ -250,7 +289,7 @@ export async function rejectBusiness(
           rejectionReason,
           updatedAt: new Date(),
         });
-      } else {
+      } else if (data?.applicationSchemaVersion !== 2) {
         await appRef.set({
           businessId: businessId,
           businessName: data.name || 'Negocio sin nombre',
@@ -296,7 +335,7 @@ export async function requestMoreInfo(
     throw new Error('Negocio no encontrado');
   }
   
-  const data = snapshot.data();
+  const data = snapshot.data() || {};
   
   // Actualizar negocio
   await businessRef.update({
@@ -309,9 +348,10 @@ export async function requestMoreInfo(
   });
   
   // 🔥 Sincronizar application (crear o actualizar)
-  if (data?.ownerId) {
+  const linkedApplicationId = resolveLinkedApplicationId(data);
+  if (linkedApplicationId) {
     try {
-      const appRef = db.collection('applications').doc(data.ownerId);
+      const appRef = db.collection('applications').doc(linkedApplicationId);
       const appSnap = await appRef.get();
       
       if (appSnap.exists) {
@@ -320,7 +360,7 @@ export async function requestMoreInfo(
           adminNotes,
           updatedAt: new Date(),
         });
-      } else {
+      } else if (data?.applicationSchemaVersion !== 2) {
         await appRef.set({
           businessId: businessId,
           businessName: data.name || 'Negocio sin nombre',
@@ -591,16 +631,25 @@ export async function adminDeleteBusiness(
     });
     
     // Sincronizar application
-    if (businessData?.ownerId) {
+    const linkedApplicationId = resolveLinkedApplicationId(businessData);
+    if (linkedApplicationId) {
       try {
-        const appRef = db.collection('applications').doc(businessData.ownerId);
+        const appRef = db.collection('applications').doc(linkedApplicationId);
         const appSnap = await appRef.get();
         
         if (appSnap.exists) {
-          await appRef.update({
-            status: 'deleted',
-            updatedAt: new Date(),
-          });
+          await appRef.update(
+            businessData?.applicationSchemaVersion === 2
+              ? {
+                  status: 'rejected',
+                  adminNotes: 'Associated business deleted by admin',
+                  updatedAt: new Date(),
+                }
+              : {
+                  status: 'deleted',
+                  updatedAt: new Date(),
+                },
+          );
         }
       } catch (appError) {
         console.warn('[adminDeleteBusiness] Error actualizando application (no crítico):', appError);

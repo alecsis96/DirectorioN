@@ -3,6 +3,12 @@ import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdm
 import { hasAdminOverride } from '../../../lib/adminOverrides';
 import { rateLimit } from '../../../lib/rateLimit';
 import { csrfProtection } from '../../../lib/csrfProtection';
+import {
+  assertSupportedApplicationVersion,
+  getApplicationBusinessData,
+  isApplicationV2,
+  resolveApplicationOwnerId,
+} from '../../../lib/applications/compatibility';
 
 const limiter = rateLimit({ interval: 60000, uniqueTokenPerInterval: 20 });
 
@@ -169,14 +175,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Application or business not found' });
     }
 
-    const appData = appSnap.data();
+    const appData = appSnap.data() || {};
+    assertSupportedApplicationVersion(appData);
+    const applicationV2 = isApplicationV2(appData);
+    const applicationBusiness = getApplicationBusinessData(appData);
+
+    if (applicationV2 && appData.status === 'approved' && typeof appData.businessId === 'string') {
+      return res.status(200).json({
+        ok: true,
+        message: 'Application already approved',
+        businessId: appData.businessId,
+      });
+    }
     
     console.log('🔍 [review-business] Application data:', {
       businessId,
       ownerId: appData?.ownerId,
       ownerUid: appData?.ownerUid,
       ownerEmail: appData?.ownerEmail,
-      businessName: appData?.businessName,
+      businessName: applicationBusiness.businessName,
+      schemaVersion: appData.schemaVersion,
     });
 
     if (action === 'approve') {
@@ -184,58 +202,104 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const businessRef = db.collection('businesses').doc();
       const now = new Date();
       
-      // Mapear correctamente todos los campos
-      // IMPORTANTE: businessId es el UID del usuario (doc path: applications/{uid})
-      const finalOwnerId = appData?.ownerId || appData?.ownerUid || businessId;
+      // En v1 se conserva applications/{uid}; un ID v2 aleatorio nunca es ownership.
+      const finalOwnerId = resolveApplicationOwnerId(businessId, appData);
       
       console.log('📝 [review-business] Creating business with ownerId:', finalOwnerId);
-      
-      await businessRef.set({
-        name: appData?.businessName || 'Sin nombre',
-        category: appData?.category || '',
-        description: appData?.description || '',
-        address: appData?.address || '',
-        colonia: appData?.colonia || '',
-        phone: appData?.phone || '',
-        WhatsApp: appData?.whatsapp || '',
-        Facebook: appData?.facebookPage || '',
-        hours: appData?.hours || '',
-        horarios: appData?.horarios || {},
-        ownerId: finalOwnerId,
-        ownerEmail: appData?.ownerEmail || '',
-        ownerName: appData?.ownerName || '',
+
+      const newBusiness: Record<string, unknown> = {
+        name: applicationBusiness.businessName || 'Sin nombre',
+        category: applicationBusiness.category || '',
+        description: applicationBusiness.description || '',
+        address: applicationBusiness.address || '',
+        colonia: applicationBusiness.colonia || '',
+        phone: applicationBusiness.phone || appData.ownerPhone || '',
+        WhatsApp: applicationBusiness.whatsapp || '',
+        Facebook: applicationBusiness.facebookPage || '',
+        hours: applicationBusiness.hours || '',
+        horarios: applicationBusiness.horarios || {},
+        ownerEmail: appData.ownerEmail || '',
+        ownerName: appData.ownerName || '',
         plan: 'free', // Siempre inicia como free
         featured: false,
         isOpen: 'si',
         rating: 0,
-        logoUrl: appData?.logoUrl || null,
-        coverUrl: appData?.coverPhoto || null,
-        image1: appData?.gallery?.[0] || null,
-        image2: appData?.gallery?.[1] || null,
-        image3: appData?.gallery?.[2] || null,
-        images: appData?.gallery || [],
-        location: appData?.location || null,
-        hasEnvio: appData?.hasEnvio || false,
+        logoUrl: applicationBusiness.logoUrl || null,
+        coverUrl: applicationBusiness.coverPhoto || null,
+        image1: Array.isArray(applicationBusiness.gallery) ? applicationBusiness.gallery[0] || null : null,
+        image2: Array.isArray(applicationBusiness.gallery) ? applicationBusiness.gallery[1] || null : null,
+        image3: Array.isArray(applicationBusiness.gallery) ? applicationBusiness.gallery[2] || null : null,
+        images: applicationBusiness.gallery || [],
+        location: applicationBusiness.location || null,
+        hasEnvio: applicationBusiness.hasEnvio || false,
         status: 'draft', // Cambiado a 'draft' - necesita edición del dueño antes de publicar
         approvedAt: now,
         approvedBy: decoded.uid,
         createdAt: appData?.createdAt || now,
         updatedAt: now,
-      });
+      };
+      if (finalOwnerId) newBusiness.ownerId = finalOwnerId;
+      if (applicationV2) {
+        newBusiness.sourceApplicationId = businessId;
+        newBusiness.applicationSchemaVersion = 2;
+        newBusiness.businessStatus = 'draft';
+        newBusiness.applicationStatus = 'approved';
+        newBusiness.adminStatus = 'active';
+        newBusiness.visibility = 'hidden';
+        newBusiness.isActive = true;
+      }
 
-      // Eliminar de applications
-      await appRef.delete();
+      if (applicationV2) {
+        const resolvedBusinessId = await db.runTransaction(async (transaction) => {
+          const freshApplication = await transaction.get(appRef);
+          if (!freshApplication.exists) throw new Error('Application not found');
+          const freshData = freshApplication.data() || {};
+          if (freshData.status === 'approved' && freshData.businessId) {
+            return String(freshData.businessId);
+          }
+
+          transaction.create(businessRef, newBusiness);
+          transaction.update(appRef, {
+            status: 'approved',
+            businessId: businessRef.id,
+            approvedAt: now,
+            approvedBy: decoded.uid,
+            updatedAt: now,
+          });
+          return businessRef.id;
+        });
+        if (resolvedBusinessId !== businessRef.id) {
+          return res.status(200).json({
+            ok: true,
+            message: 'Application already approved',
+            businessId: resolvedBusinessId,
+          });
+        }
+      } else {
+        await businessRef.set(newBusiness);
+        // Compatibilidad v1: la ruta histórica consumía applications/{uid}.
+        await appRef.delete();
+      }
 
       console.log(`✅ [review-business] Business ${businessRef.id} created successfully`);
       console.log(`   - ownerId: ${finalOwnerId}`);
       console.log(`   - ownerEmail: ${appData?.ownerEmail}`);
       console.log(`   - businessName: ${appData?.businessName}`);
 
+      if (applicationV2) {
+        return res.status(200).json({
+          ok: true,
+          message: 'Ownerless business approved; claim delivery remains disabled',
+          businessId: businessRef.id,
+          applicationId: businessId,
+        });
+      }
+
       // Enviar notificaciones (email y WhatsApp)
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
       const ownerEmail = appData?.ownerEmail;
-      const ownerPhone = appData?.phone || appData?.whatsapp;
-      const businessName = appData?.businessName;
+      const ownerPhone = applicationBusiness.phone || applicationBusiness.whatsapp || appData.ownerPhone;
+      const businessName = applicationBusiness.businessName;
       const ownerName = appData?.ownerName;
       
       // Enviar email
@@ -252,6 +316,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               to: ownerEmail,
               businessName,
               ownerName,
+              applicationId: businessId,
+              businessId: businessRef.id,
             }),
           });
           console.log(`📧 Email notification sent to ${ownerEmail}`);
@@ -283,6 +349,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               to: phoneNumber,
               businessName,
               ownerName,
+              applicationId: businessId,
+              businessId: businessRef.id,
             }),
           });
           console.log(`📱 WhatsApp notification sent to ${phoneNumber}`);
@@ -314,8 +382,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           body: JSON.stringify({
             type: 'rejected',
             to: appData?.ownerEmail,
-            businessName: appData?.businessName,
+            businessName: applicationBusiness.businessName,
             ownerName: appData?.ownerName,
+            applicationId: businessId,
+            businessId: typeof appData.businessId === 'string' ? appData.businessId : null,
             rejectionNotes: notes || 'Por favor revisa la información de tu negocio y asegúrate de que esté completa y precisa.',
           }),
         });
