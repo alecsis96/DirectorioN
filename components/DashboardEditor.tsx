@@ -49,7 +49,7 @@ import type { Business } from '../types/business';
 import { YAJALON_COLONIAS } from '../lib/helpers/colonias';
 
 import { CATEGORY_GROUPS, CATEGORIES, getCategoriesByGroup, resolveCategory, type CategoryGroupId } from '../lib/categoriesCatalog';
-import { MENU_FEATURE_ENABLED } from '../lib/featureFlags';
+import { MENU_FEATURE_ENABLED, MONETIZATION_FEATURE_ENABLED } from '../lib/featureFlags';
 
 type DaySchedule = { open: boolean; start: string; end: string };
 
@@ -704,7 +704,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
   useEffect(() => {
 
-    if (!id) return;
+    if (!id || initialBusiness) return;
 
     let isMounted = true;
 
@@ -750,7 +750,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
     };
 
-  }, [id, applyBusinessData]);
+  }, [id, initialBusiness, applyBusinessData]);
 
   const userCanEdit = canEditBusiness(user, isAdmin, biz);
 
@@ -2558,7 +2558,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               {/* Sistema avanzado de upgrade con escasez artificial */}
 
-              {biz.plan === 'free' && biz.category && (
+              {MONETIZATION_FEATURE_ENABLED && biz.plan === 'free' && biz.category && (
 
                 <div className="space-y-6">
 
