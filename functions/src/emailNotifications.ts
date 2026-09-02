@@ -15,11 +15,16 @@ import type { Business, Review } from "./types/business";
 import {
   MONETIZATION_DISABLED_RESULT,
   MONETIZATION_FEATURE_ENABLED,
+  PUBLIC_APPLICATION_V2_ENABLED,
 } from "./featureFlags";
 import {
   getApplicationNotificationReference,
   getSupportedApplicationSchemaVersion,
 } from "./applicationReferences";
+import {
+  beginApplicationV2NotificationDelivery,
+  isAnonymousApplicationV2NotificationSource,
+} from "./notificationDelivery";
 
 // Inicializar Firebase Admin si no está inicializado
 if (!admin.apps.length) {
@@ -35,10 +40,10 @@ const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 async function sendSlackNotification(message: {
   text: string;
   blocks?: any[];
-}): Promise<void> {
+}): Promise<boolean> {
   if (!SLACK_WEBHOOK_URL) {
     console.warn("SLACK_WEBHOOK_URL not configured. Skipping Slack notification.");
-    return;
+    return false;
   }
 
   try {
@@ -55,8 +60,10 @@ async function sendSlackNotification(message: {
     }
 
     console.log("✅ Slack notification sent successfully");
+    return true;
   } catch (error) {
     console.error("❌ Error sending Slack notification:", error);
+    return false;
   }
 }
 
@@ -79,11 +86,11 @@ interface EmailOptions {
   html: string;
 }
 
-async function sendEmail(options: EmailOptions): Promise<void> {
+async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
     if (!gmailEmail || !gmailPassword) {
       console.error("Email credentials not configured. Please set EMAIL_USER and EMAIL_PASS in functions/.env file");
-      return;
+      return false;
     }
 
     await transporter.sendMail({
@@ -93,8 +100,10 @@ async function sendEmail(options: EmailOptions): Promise<void> {
       html: options.html,
     });
     console.log(`Email sent to ${options.to}: ${options.subject}`);
+    return true;
   } catch (error) {
     console.error("Error sending email:", error);
+    return false;
   }
 }
 
@@ -151,6 +160,45 @@ function getApplicationReceivedTemplate(ownerName: string, businessName: string,
           <p>Directorio de Negocios Yajalón</p>
           <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
         </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function getApplicationV2ReceivedTemplate(
+  ownerName: string,
+  businessName: string,
+  publicReference: string,
+): string {
+  const safeOwnerName = escapeHtml(ownerName);
+  const safeBusinessName = escapeHtml(businessName);
+  const safeReference = escapeHtml(publicReference);
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 24px;">
+        <h1 style="color: #38761D;">Solicitud recibida</h1>
+        <p>Hola <strong>${safeOwnerName}</strong>,</p>
+        <p>Recibimos la solicitud de <strong>${safeBusinessName}</strong>.</p>
+        <p>La revisaremos en un plazo estimado de <strong>24–48 horas</strong> y te avisaremos por correo.</p>
+        <p style="padding: 12px; background: #f3f4f6; border-radius: 8px;">
+          Folio: <strong>${safeReference}</strong>
+        </p>
+        <p style="font-size: 12px; color: #666;">
+          Este folio es solo una referencia de seguimiento: no es una contraseña y no concede propiedad ni acceso al negocio.
+        </p>
       </div>
     </body>
     </html>
@@ -459,13 +507,69 @@ export const onApplicationCreated = functions.firestore
       context.params.applicationId,
       data || {},
     );
-    if (!data || getSupportedApplicationSchemaVersion(data) === null) {
+    const schemaVersion = data ? getSupportedApplicationSchemaVersion(data) : null;
+    if (!data || schemaVersion === null) {
       console.warn("Unsupported application schema; skipping email", reference);
       return;
     }
     
     if (!data.ownerEmail || !data.ownerName) {
       console.log("Missing email or name, skipping email", reference);
+      return;
+    }
+
+    if (schemaVersion === 2) {
+      if (!PUBLIC_APPLICATION_V2_ENABLED) {
+        console.warn("V2 intake notifications disabled by rollout flag", reference);
+        return;
+      }
+      if (!isAnonymousApplicationV2NotificationSource(data)) {
+        console.warn("Non-canonical v2 application; skipping intake notifications", reference);
+        return;
+      }
+      const businessName = data.business?.businessName || "tu negocio";
+      const publicReference = data.publicReference || "Sin folio";
+      const delivery = await beginApplicationV2NotificationDelivery(
+        admin.firestore(),
+        () => admin.firestore.FieldValue.serverTimestamp(),
+        reference.applicationId,
+        context.eventId,
+      );
+      if (!delivery.acquired) {
+        console.log("V2 intake notifications already claimed; skipping duplicate event", reference);
+        return;
+      }
+      const [emailSent, adminNoticeSent] = await Promise.all([
+        sendEmail({
+          to: data.ownerEmail,
+          subject: "✅ Solicitud recibida - YajaGon",
+          html: getApplicationV2ReceivedTemplate(
+            data.ownerName,
+            businessName,
+            publicReference,
+          ),
+        }),
+        sendSlackNotification({
+          text: "🔔 Nueva solicitud pública v2",
+          blocks: [
+            {
+              type: "section",
+              fields: [
+                { type: "plain_text", text: `Folio: ${String(publicReference).slice(0, 80)}` },
+                { type: "plain_text", text: `Application ID: ${reference.applicationId}` },
+                { type: "plain_text", text: `Negocio: ${String(businessName).slice(0, 140)}` },
+                { type: "plain_text", text: `Business ID: ${reference.businessId || "ownerless"}` },
+              ],
+            },
+          ],
+        }),
+      ]);
+      await delivery.reference.set({
+        status: emailSent && adminNoticeSent ? "sent" : "partial",
+        emailSent,
+        adminNoticeSent,
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
       return;
     }
 

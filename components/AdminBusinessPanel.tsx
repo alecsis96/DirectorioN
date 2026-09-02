@@ -10,6 +10,7 @@ import {
   approveBusiness,
   getAllBusinesses,
   getNewSubmissions,
+  getNewApplicationV2Submissions,
   getPendingBusinesses,
   getPublishedBusinesses,
   getReadyForReview,
@@ -32,6 +33,23 @@ type BusinessWithCompletion = Business & {
   applicationStatus?: 'submitted' | 'needs_info' | 'ready_for_review' | 'approved' | 'rejected';
   adminNotes?: string;
   rejectionReason?: string;
+};
+
+type ApplicationV2Submission = {
+  id: string;
+  applicationId: string;
+  schemaVersion: 2;
+  status: 'submitted';
+  publicReference?: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+  business: {
+    businessName: string;
+    category?: string;
+    phone?: string;
+    whatsapp?: string;
+  };
 };
 
 const TAB_CONFIG: Array<{ id: TabType; label: string }> = [
@@ -102,6 +120,7 @@ export default function AdminBusinessPanel() {
 
   const [activeTab, setActiveTab] = useState<TabType>('nuevas');
   const [businesses, setBusinesses] = useState<BusinessWithCompletion[]>([]);
+  const [v2Applications, setV2Applications] = useState<ApplicationV2Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{
@@ -125,7 +144,14 @@ export default function AdminBusinessPanel() {
 
       switch (activeTab) {
         case 'nuevas':
-          data = await getNewSubmissions(token);
+          {
+            const [legacy, applicationsV2] = await Promise.all([
+              getNewSubmissions(token),
+              getNewApplicationV2Submissions(token),
+            ]);
+            data = legacy;
+            setV2Applications(applicationsV2 as ApplicationV2Submission[]);
+          }
           break;
         case 'pendientes':
           data = await getPendingBusinesses(token);
@@ -143,6 +169,8 @@ export default function AdminBusinessPanel() {
           data = await getAllBusinesses(token);
           break;
       }
+
+      if (activeTab !== 'nuevas') setV2Applications([]);
 
       setBusinesses(data);
     } catch (error) {
@@ -164,10 +192,10 @@ export default function AdminBusinessPanel() {
   }, [authLoading, isAdmin, loadBusinesses, router]);
 
   const summary = useMemo(() => {
-    const total = businesses.length;
+    const total = businesses.length + v2Applications.length;
     const ready = businesses.filter((business) => business.isPublishReady).length;
     return { total, ready };
-  }, [businesses]);
+  }, [businesses, v2Applications]);
 
   const handleApprove = async (businessId: string, businessName: string) => {
     if (!confirm(`Aprobar y publicar "${businessName}"?`)) return;
@@ -328,12 +356,15 @@ export default function AdminBusinessPanel() {
 
         {loading ? (
           <div className="py-12 text-center text-gray-500">Cargando solicitudes...</div>
-        ) : businesses.length === 0 ? (
+        ) : businesses.length === 0 && v2Applications.length === 0 ? (
           <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
             <p className="text-base font-semibold text-gray-700">No hay elementos en esta bandeja.</p>
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
+            {v2Applications.map((application) => (
+              <ApplicationV2Card key={application.applicationId} application={application} />
+            ))}
             {businesses.map((business) => {
               const variant = resolveCardVariant(activeTab, business);
               const commonProps = {
@@ -409,6 +440,51 @@ export default function AdminBusinessPanel() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function ApplicationV2Card({ application }: { application: ApplicationV2Submission }) {
+  const business = application.business;
+  return (
+    <article data-testid="application-v2-card" className="rounded-2xl border border-violet-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-semibold text-gray-900">{business.businessName}</h3>
+            <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">
+              Solicitud v2 · Nueva
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-gray-600">{business.category || 'Sin categoría'}</p>
+        </div>
+        <span className="font-mono text-xs font-semibold text-gray-600">
+          {application.publicReference || 'Sin folio'}
+        </span>
+      </div>
+
+      <dl className="mt-4 grid gap-2 rounded-xl bg-gray-50 p-3 text-sm sm:grid-cols-2">
+        <div>
+          <dt className="text-xs font-medium text-gray-500">Responsable</dt>
+          <dd className="font-semibold text-gray-900">{application.ownerName}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium text-gray-500">Correo</dt>
+          <dd className="break-all text-gray-800">{application.ownerEmail}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium text-gray-500">Teléfono responsable</dt>
+          <dd className="text-gray-800">{application.ownerPhone}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium text-gray-500">Negocio / WhatsApp</dt>
+          <dd className="text-gray-800">{business.phone || business.whatsapp || 'No indicado'}</dd>
+        </div>
+      </dl>
+
+      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+        Aprobación y reclamo disponibles en 0.2R.3
+      </div>
+    </article>
   );
 }
 

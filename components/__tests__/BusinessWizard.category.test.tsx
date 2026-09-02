@@ -25,6 +25,7 @@ vi.mock('next/navigation', () => ({
     push: vi.fn(),
     refresh: vi.fn(),
   }),
+  useSearchParams: () => ({ get: () => null }),
 }));
 
 // Mock Google Maps

@@ -11,6 +11,23 @@ export const ApplicationV2StatusSchema = z.enum([
 
 const optionalText = (max: number) => z.string().trim().max(max).optional();
 
+function normalizePhone(value: string): string {
+  const trimmed = value.trim();
+  const hasPlus = trimmed.startsWith('+');
+  const digits = trimmed.replace(/\D/g, '');
+  return `${hasPlus ? '+' : ''}${digits}`;
+}
+
+const phoneSchema = z
+  .string()
+  .max(40)
+  .transform(normalizePhone)
+  .refine((value) => /^\+?\d{7,15}$/.test(value), 'Teléfono inválido');
+
+const optionalPhoneSchema = z
+  .union([z.literal('').transform(() => undefined), phoneSchema])
+  .optional();
+
 const businessHoursDaySchema = z
   .object({
     abierto: z.boolean(),
@@ -40,8 +57,8 @@ export const ApplicationV2BusinessSchema = z
     address: optionalText(400),
     colonia: optionalText(140),
     municipio: optionalText(140),
-    phone: optionalText(30),
-    whatsapp: optionalText(30),
+    phone: optionalPhoneSchema,
+    whatsapp: optionalPhoneSchema,
     facebookPage: optionalText(300),
     instagramUser: optionalText(200),
     emailContact: z.string().trim().email().max(200).optional(),
@@ -64,7 +81,7 @@ export const AnonymousApplicationV2InputSchema = z
   .object({
     ownerEmail: z.string().trim().toLowerCase().email().max(200),
     ownerName: z.string().trim().min(1).max(140),
-    ownerPhone: z.string().trim().min(7).max(30),
+    ownerPhone: phoneSchema,
     business: ApplicationV2BusinessSchema,
   })
   .strict();
@@ -85,9 +102,11 @@ export const ApplicationV2Schema = z
     schemaVersion: z.literal(APPLICATION_V2_SCHEMA_VERSION),
     status: ApplicationV2StatusSchema,
     businessId: z.string().trim().min(1).max(128).nullable(),
+    /** Referencia pública de seguimiento. Nunca se usa como credencial ni concede acceso. */
+    publicReference: z.string().trim().min(8).max(40).optional(),
     ownerEmail: z.string().trim().toLowerCase().email().max(200),
     ownerName: z.string().trim().min(1).max(140),
-    ownerPhone: z.string().trim().min(7).max(30),
+    ownerPhone: phoneSchema,
     business: ApplicationV2BusinessSchema,
     createdAt: persistedTimestampSchema,
     updatedAt: persistedTimestampSchema,
@@ -110,6 +129,7 @@ export type ApplicationV2 = z.infer<typeof ApplicationV2Schema>;
 export function buildApplicationV2Record(
   input: AnonymousApplicationV2Input,
   now: Date = new Date(),
+  metadata: { publicReference?: string } = {},
 ): ApplicationV2 {
   const parsed = AnonymousApplicationV2InputSchema.parse(input);
 
@@ -117,6 +137,7 @@ export function buildApplicationV2Record(
     schemaVersion: APPLICATION_V2_SCHEMA_VERSION,
     status: 'submitted',
     businessId: null,
+    ...metadata,
     ...parsed,
     createdAt: now,
     updatedAt: now,

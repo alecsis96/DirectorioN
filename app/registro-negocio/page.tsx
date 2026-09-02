@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import BusinessWizard from '../../components/BusinessWizard';
+import { PUBLIC_APPLICATION_V2_ENABLED } from '../../lib/featureFlags';
 
 export const metadata: Metadata = {
   title: 'Registro de negocio | Directorio',
@@ -11,7 +12,7 @@ export default function RegistroNegocioPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 px-6 py-12 pb-24 md:pb-12 text-gray-800">
       <section className="mx-auto max-w-5xl">
-        <BusinessWizard />
+        <BusinessWizard publicApplicationV2Enabled={PUBLIC_APPLICATION_V2_ENABLED} />
       </section>
     </main>
   );

@@ -222,7 +222,28 @@ function usePlacesAutocomplete(
 }
 
 // ---------- Componente principal ----------
-function BusinessWizardProInner() {
+type BusinessWizardProps = {
+  publicApplicationV2Enabled?: boolean;
+};
+
+type PublicApplicationConfirmation = {
+  email: string;
+  folio: string;
+};
+
+function createBrowserIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  if (typeof crypto === 'undefined') {
+    throw new Error('SECURE_RANDOM_UNAVAILABLE');
+  }
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+}
+
+function BusinessWizardProInner({ publicApplicationV2Enabled = false }: BusinessWizardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const wizardMode = searchParams?.get('mode'); // 'new' = forzar nuevo negocio
@@ -236,22 +257,35 @@ function BusinessWizardProInner() {
   // Watch category values for display
   const watchedGroupId = watch("categoryGroupId") as CategoryGroupId | "";
   const watchedCategoryId = watch("categoryId") || "";
+  const watchedOwnerPhone = watch("ownerPhone") || "";
+  const watchedBusinessPhone = watch("phone") || "";
 
   const [currentStep, setCurrentStep] = useState<StepKey>(steps[0].key);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(() => auth.currentUser);
+  const [user, setUser] = useState<User | null>(() => publicApplicationV2Enabled ? null : auth.currentUser);
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [showConfirmError, setShowConfirmError] = useState(false);
   const [emailVerificationRequired, setEmailVerificationRequired] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [existingBusiness, setExistingBusiness] = useState<{ id: string; name: string } | null>(null);
+  const [useOwnerPhoneForBusiness, setUseOwnerPhoneForBusiness] = useState(false);
+  const [useBusinessPhoneForWhatsapp, setUseBusinessPhoneForWhatsapp] = useState(false);
+  const [publicConfirmation, setPublicConfirmation] = useState<PublicApplicationConfirmation | null>(null);
 
   const addressRef = useRef<HTMLInputElement>(null);
+  const honeypotRef = useRef<HTMLInputElement>(null);
+  const submittingPublicRef = useRef(false);
+  const idempotencyRef = useRef<{ payload: string; key: string } | null>(null);
 
   useEffect(() => {
+    if (publicApplicationV2Enabled) {
+      setUser(null);
+      setEmailVerificationRequired(false);
+      return;
+    }
     const unsubscribe = auth.onAuthStateChanged((u) => {
       setUser(u);
       // Verificar si el email está verificado
@@ -262,11 +296,15 @@ function BusinessWizardProInner() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [publicApplicationV2Enabled]);
 
   //  Verificar si el usuario ya tiene un negocio registrado
   // Si mode=new, solo informar pero NO bloquear el flujo
   useEffect(() => {
+    if (publicApplicationV2Enabled) {
+      setExistingBusiness(null);
+      return;
+    }
     if (!user?.uid) {
       setExistingBusiness(null);
       return;
@@ -297,7 +335,7 @@ function BusinessWizardProInner() {
     };
 
     checkExistingBusiness();
-  }, [user]);
+  }, [user, publicApplicationV2Enabled]);
 
   // Carga progreso guardado
   // ⚠️ Si mode=new, NO cargar progreso viejo (empezar limpio)
@@ -305,6 +343,10 @@ function BusinessWizardProInner() {
     let isMounted = true;
 
     async function loadProgress() {
+      if (publicApplicationV2Enabled) {
+        if (isMounted) setLoading(false);
+        return;
+      }
       if (!user?.uid) {
         if (isMounted) {
           setLoading(false);
@@ -365,7 +407,19 @@ function BusinessWizardProInner() {
     return () => {
       isMounted = false;
     };
-  }, [user?.uid, reset, isNewBusinessMode]);
+  }, [user?.uid, reset, isNewBusinessMode, publicApplicationV2Enabled]);
+
+  useEffect(() => {
+    if (publicApplicationV2Enabled && useOwnerPhoneForBusiness) {
+      setValue('phone', watchedOwnerPhone, { shouldValidate: true });
+    }
+  }, [publicApplicationV2Enabled, setValue, useOwnerPhoneForBusiness, watchedOwnerPhone]);
+
+  useEffect(() => {
+    if (publicApplicationV2Enabled && useBusinessPhoneForWhatsapp) {
+      setValue('whatsapp', watchedBusinessPhone, { shouldValidate: true });
+    }
+  }, [publicApplicationV2Enabled, setValue, useBusinessPhoneForWhatsapp, watchedBusinessPhone]);
 
   // Autocomplete
   usePlacesAutocomplete(addressRef, ({ address, lat, lng }) => {
@@ -422,6 +476,64 @@ function BusinessWizardProInner() {
       // Validar checkbox en el último paso
       if (!next && !confirmChecked) {
         setShowConfirmError(true);
+        return;
+      }
+
+      if (publicApplicationV2Enabled) {
+        if (next) {
+          setStatusMsg('');
+          setCurrentStep(next.key);
+          return;
+        }
+
+        if (submittingPublicRef.current) return;
+        submittingPublicRef.current = true;
+        setSaving(true);
+        setStatusMsg('');
+        try {
+          const merged = { ...getValues(), ...values };
+          const business: Record<string, string> = {
+            businessName: merged.businessName,
+          };
+          if (merged.categoryName || merged.category) business.category = merged.categoryName || merged.category;
+          if (merged.categoryId) business.categoryId = merged.categoryId;
+          if (merged.categoryGroupId) business.categoryGroupId = merged.categoryGroupId;
+          if (merged.phone.trim()) business.phone = merged.phone;
+          if (merged.whatsapp.trim()) business.whatsapp = merged.whatsapp;
+
+          const requestBody = {
+            ownerName: merged.ownerName,
+            ownerEmail: merged.ownerEmail,
+            ownerPhone: merged.ownerPhone,
+            business,
+            contactWebsite: honeypotRef.current?.value || '',
+          };
+          const serialized = JSON.stringify(requestBody);
+          if (!idempotencyRef.current || idempotencyRef.current.payload !== serialized) {
+            idempotencyRef.current = { payload: serialized, key: createBrowserIdempotencyKey() };
+          }
+
+          const response = await fetch('/api/public-applications', {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'idempotency-key': idempotencyRef.current.key,
+            },
+            body: serialized,
+          });
+          const result = await response.json() as { ok?: boolean; folio?: string };
+          if (!response.ok || !result.ok || !result.folio) {
+            throw new Error('PUBLIC_APPLICATION_SUBMISSION_FAILED');
+          }
+
+          setPublicConfirmation({ email: merged.ownerEmail.trim().toLowerCase(), folio: result.folio });
+        } catch (error) {
+          console.error('public application submit', error);
+          setStatusMsg('No pudimos enviar tu solicitud. Intenta de nuevo.');
+        } finally {
+          submittingPublicRef.current = false;
+          setSaving(false);
+        }
         return;
       }
       
@@ -542,15 +654,36 @@ function BusinessWizardProInner() {
                     className="input" 
                     type="email" 
                     placeholder="correo@gmail.com" 
-                    {...register("ownerEmail", { required: "Ingresa tu correo" })} 
+                    {...register("ownerEmail", {
+                      required: "Ingresa tu correo",
+                      ...(publicApplicationV2Enabled ? {
+                        pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Ingresa un correo válido' },
+                      } : {}),
+                    })}
                   />
                 </Field>
                 <Field label="Tu teléfono" error={formState.errors.ownerPhone?.message}>
                   <input 
                     className="input" 
+                    aria-label="Tu teléfono"
                     placeholder="9611234567" 
-                    {...register("ownerPhone", { required: "Ingresa tu teléfono" })} 
+                    {...register("ownerPhone", {
+                      required: "Ingresa tu teléfono",
+                      ...(publicApplicationV2Enabled ? {
+                        pattern: { value: /^\+?[\d\s().-]{7,40}$/, message: 'Ingresa un teléfono válido' },
+                      } : {}),
+                    })}
                   />
+                  {publicApplicationV2Enabled && (
+                    <label className="mt-2 flex items-center gap-2 text-xs font-medium text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={useOwnerPhoneForBusiness}
+                        onChange={(event) => setUseOwnerPhoneForBusiness(event.target.checked)}
+                      />
+                      Usar este número como teléfono del negocio
+                    </label>
+                  )}
                 </Field>
               </div>
             </Group>
@@ -565,7 +698,7 @@ function BusinessWizardProInner() {
               </Field>
               
               <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Categora" error={formState.errors.category?.message}>
+                <Field label={publicApplicationV2Enabled ? "Categoría y tipo de negocio" : "Categora"} error={formState.errors.category?.message}>
                   {/* Hidden fields for category metadata */}
                   <input type="hidden" {...register("categoryName")} />
                   <input type="hidden" {...register("category")} />
@@ -573,14 +706,18 @@ function BusinessWizardProInner() {
                   <div className="space-y-3">
                     <div className="grid sm:grid-cols-2 gap-3">
                       <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-700">Grupo</label>
+                        <label className="text-xs font-semibold text-gray-700">
+                          {publicApplicationV2Enabled ? 'Categoría' : 'Grupo'}
+                        </label>
                         <div className="relative">
                           <Controller
                             name="categoryGroupId"
                             control={control}
+                            rules={publicApplicationV2Enabled ? { required: 'Selecciona una categoría' } : undefined}
                             render={({ field }) => (
                               <select
                                 {...field}
+                                aria-label={publicApplicationV2Enabled ? 'Categoría' : 'Grupo'}
                                 className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                                 onChange={(e) => {
                                   const nextGroup = e.target.value as CategoryGroupId;
@@ -605,23 +742,28 @@ function BusinessWizardProInner() {
                           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
                         </div>
                         <p className="text-[11px] text-gray-600">
-                          Elige un grupo para acotar las categoras disponibles.
+                          {publicApplicationV2Enabled
+                            ? 'Elige la categoría general de tu negocio.'
+                            : 'Elige un grupo para acotar las categoras disponibles.'}
                         </p>
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-700">Categora especfica</label>
+                        <label className="text-xs font-semibold text-gray-700">
+                          {publicApplicationV2Enabled ? 'Tipo de negocio' : 'Categora especfica'}
+                        </label>
                         <div className="relative">
                           <Controller
                             name="categoryId"
                             control={control}
+                            rules={publicApplicationV2Enabled ? { required: 'Selecciona un tipo de negocio' } : undefined}
                             render={({ field }) => {
                               const availableCats = watchedGroupId ? getCategoriesByGroup(watchedGroupId as CategoryGroupId) : [];
                               
                               return (
                                 <select
-                                  key={watchedGroupId || 'no-group'}
                                   {...field}
+                                  aria-label={publicApplicationV2Enabled ? 'Tipo de negocio' : 'Categoría específica'}
                                   className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                                   disabled={!watchedGroupId}
                                   onChange={(e) => {
@@ -656,7 +798,9 @@ function BusinessWizardProInner() {
                           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
                         </div>
                         <p className="text-[11px] text-gray-600">
-                          Guardamos el slug estable y la etiqueta legacy para compatibilidad.
+                          {publicApplicationV2Enabled
+                            ? 'Selecciona la opción que mejor describe tu negocio.'
+                            : 'Guardamos el slug estable y la etiqueta legacy para compatibilidad.'}
                         </p>
                       </div>
                     </div>
@@ -676,7 +820,7 @@ function BusinessWizardProInner() {
                           })()}
                         </div>
                         <div className="text-xs text-emerald-700">
-                          Grupo: {CATEGORY_GROUPS.find((g) => g.id === watchedGroupId)?.name ?? "Sin seleccionar"}
+                          {publicApplicationV2Enabled ? 'Categoría' : 'Grupo'}: {CATEGORY_GROUPS.find((g) => g.id === watchedGroupId)?.name ?? "Sin seleccionar"}
                         </div>
                       </div>
                     </div>
@@ -686,7 +830,9 @@ function BusinessWizardProInner() {
                 <Field label="WhatsApp del negocio">
                   <input 
                     className="input" 
+                    aria-label="WhatsApp del negocio"
                     placeholder="5219991234567" 
+                    readOnly={publicApplicationV2Enabled && useBusinessPhoneForWhatsapp}
                     {...register("whatsapp")} 
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -698,9 +844,21 @@ function BusinessWizardProInner() {
               <Field label="Teléfono del negocio">
                 <input 
                   className="input" 
+                  aria-label="Teléfono del negocio"
                   placeholder="9991234567" 
+                  readOnly={publicApplicationV2Enabled && useOwnerPhoneForBusiness}
                   {...register("phone")} 
                 />
+                {publicApplicationV2Enabled && (
+                  <label className="mt-2 flex items-center gap-2 text-xs font-medium text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={useBusinessPhoneForWhatsapp}
+                      onChange={(event) => setUseBusinessPhoneForWhatsapp(event.target.checked)}
+                    />
+                    Usar este número también para WhatsApp
+                  </label>
+                )}
               </Field>
             </Group>
 
@@ -721,7 +879,7 @@ function BusinessWizardProInner() {
               <h3 className="text-lg font-bold text-[#38761D] mb-3"> Resumen de tu solicitud</h3>
               
               <div className="space-y-2 text-sm">
-                <p><strong>Dueño:</strong> {v.ownerName || ""}</p>
+                <p><strong>Responsable:</strong> {v.ownerName || ""}</p>
                 <p><strong>Email:</strong> {v.ownerEmail || ""}</p>
                 <p><strong>Teléfono:</strong> {v.ownerPhone || ""}</p>
                 <hr className="my-3 border-[#38761D]/20" />
@@ -735,8 +893,9 @@ function BusinessWizardProInner() {
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
               <p className="text-sm text-blue-900">
                 ️ <strong>¿Qué sigue?</strong> <br/>
-                Un administrador revisará tu solicitud.
-                Si es aprobada, podrás acceder a tu dashboard para completar la información de tu negocio y publicarlo en YajaGon.
+                {publicApplicationV2Enabled
+                  ? 'Nuestro equipo revisará tu solicitud y te enviará por correo los siguientes pasos. En este envío no se crea una cuenta ni se asigna la propiedad del negocio.'
+                  : 'Un administrador revisará tu solicitud. Si es aprobada, podrás acceder a tu dashboard para completar la información de tu negocio y publicarlo en YajaGon.'}
               </p>
             </div>
           </div>
@@ -745,13 +904,38 @@ function BusinessWizardProInner() {
       default:
         return null;
     }
-  }, [currentStep, formState.errors, register, control, setValue, getValues, watchedGroupId, watchedCategoryId]);
+  }, [currentStep, formState.errors, register, control, setValue, getValues, watchedGroupId, watchedCategoryId, publicApplicationV2Enabled, useOwnerPhoneForBusiness, useBusinessPhoneForWhatsapp]);
 
   const currentIndex = stepToIndex(currentStep);
   const hasNext = currentIndex < steps.length - 1;
 
   if (loading) {
     return <div className="text-center text-sm text-gray-500">Cargando asistente...</div>;
+  }
+
+  if (publicApplicationV2Enabled && publicConfirmation) {
+    return (
+      <div data-testid="public-application-confirmation" className="mx-auto max-w-2xl rounded-2xl border border-emerald-200 bg-white p-8 shadow-sm">
+        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Solicitud recibida</p>
+        <h1 className="mt-2 text-3xl font-bold text-gray-900">Gracias. Ya recibimos tu solicitud.</h1>
+        <p className="mt-4 text-gray-700">
+          La revisaremos en un plazo estimado de <strong>24–48 horas</strong> y te avisaremos por correo.
+        </p>
+        <dl className="mt-6 grid gap-3 rounded-xl bg-gray-50 p-4 text-sm">
+          <div>
+            <dt className="font-medium text-gray-500">Correo de contacto</dt>
+            <dd className="font-semibold text-gray-900">{publicConfirmation.email}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-gray-500">Folio</dt>
+            <dd className="font-mono font-bold text-gray-900">{publicConfirmation.folio}</dd>
+          </div>
+        </dl>
+        <p className="mt-5 text-sm text-gray-600">
+          Guarda este folio. No es una contraseña y no concede acceso ni propiedad sobre el negocio.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -767,7 +951,7 @@ function BusinessWizardProInner() {
 
       {/*  Banner de negocio existente */}
       {/* Si mode=new, mostrar banner informativo pero NO bloquear */}
-      {existingBusiness && user && !isNewBusinessMode && (
+      {!publicApplicationV2Enabled && existingBusiness && user && !isNewBusinessMode && (
         <div className="rounded-xl border-2 border-blue-300 bg-blue-50 p-5 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 text-3xl"></div>
@@ -792,7 +976,7 @@ function BusinessWizardProInner() {
       )}
       
       {/* Banner informativo en modo nuevo negocio */}
-      {existingBusiness && user && isNewBusinessMode && (
+      {!publicApplicationV2Enabled && existingBusiness && user && isNewBusinessMode && (
         <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 text-3xl">ℹ️</div>
@@ -817,7 +1001,7 @@ function BusinessWizardProInner() {
         </div>
       )}
 
-      {!user && (
+      {!publicApplicationV2Enabled && !user && (
         <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 flex items-start gap-3">
           <span className="text-xl"></span>
           <div className="flex-1">
@@ -837,7 +1021,7 @@ function BusinessWizardProInner() {
         </div>
       )}
 
-      {emailVerificationRequired && user && (
+      {!publicApplicationV2Enabled && emailVerificationRequired && user && (
         <div className="rounded-xl border border-yellow-200 bg-yellow-50/50 p-4 flex items-start gap-3">
           <span className="text-xl">️</span>
           <div className="flex-1">
@@ -903,7 +1087,7 @@ function BusinessWizardProInner() {
 
       {statusMsg && (
         <div className={`rounded-xl border-2 px-4 py-4 ${
-          statusMsg.includes('') 
+          /No pudimos|Debes iniciar|Ocurrió un error|aún no está verificado/.test(statusMsg)
             ? 'border-red-300 bg-red-50 text-red-800'
             : statusMsg.includes('Redirigiendo')
             ? 'border-blue-400 bg-blue-50 text-blue-800'
@@ -911,9 +1095,9 @@ function BusinessWizardProInner() {
         }`}>
           <p className="font-bold text-base mb-2 flex items-center gap-2">
             <span className="text-xl">
-              {statusMsg.includes('') ? '' : statusMsg.includes('Redirigiendo') ? '' : ''}
+              {/No pudimos|Debes iniciar|Ocurrió un error|aún no está verificado/.test(statusMsg) ? '⚠️' : statusMsg.includes('Redirigiendo') ? '⏳' : '✓'}
             </span>
-            <span>{statusMsg.replace('', '').replace('', '').replace('', '').replace('', '').trim()}</span>
+            <span>{statusMsg.trim()}</span>
           </p>
           {isRedirecting && (
             <div className="mt-4 space-y-3">
@@ -939,7 +1123,7 @@ function BusinessWizardProInner() {
                 </p>
                 <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
                   <span>⏱️</span>
-                  <span>Tiempo estimado de revisión: <strong>2448 horas</strong></span>
+                  <span>Tiempo estimado de revisión: <strong>24–48 horas</strong></span>
                 </p>
               </div>
               
@@ -967,6 +1151,17 @@ function BusinessWizardProInner() {
       )}
 
       <form className="space-y-6" onSubmit={handleSubmit(onStepSubmit)}>
+        {publicApplicationV2Enabled && (
+          <input
+            ref={honeypotRef}
+            type="text"
+            name="contactWebsite"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="absolute -left-[10000px] h-px w-px opacity-0"
+          />
+        )}
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           {stepContent}
         </section>
@@ -1006,7 +1201,7 @@ function BusinessWizardProInner() {
              Anterior
           </button>
           <div className="flex items-center gap-3">
-            {user?.uid && (
+            {!publicApplicationV2Enabled && user?.uid && (
               <button
                 type="button"
                 onClick={onSaveDraft}
@@ -1018,7 +1213,7 @@ function BusinessWizardProInner() {
             )}
             <button
               type="submit"
-              disabled={saving || (!hasNext && !confirmChecked) || emailVerificationRequired || isRedirecting}
+              disabled={saving || (!hasNext && !confirmChecked) || (!publicApplicationV2Enabled && emailVerificationRequired) || isRedirecting}
               className="rounded-lg bg-[#38761D] px-6 py-2 text-sm font-bold text-white hover:bg-[#2f5a1a] hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               {isRedirecting ? (
@@ -1029,7 +1224,7 @@ function BusinessWizardProInner() {
               ) : hasNext ? (
                 "Siguiente "
               ) : (
-                " Completar mi negocio"
+                publicApplicationV2Enabled ? "Enviar solicitud" : " Completar mi negocio"
               )}
             </button>
           </div>
@@ -1037,7 +1232,7 @@ function BusinessWizardProInner() {
         
         {!hasNext && (
           <p className="text-xs text-gray-500 text-center mt-2">
-            ⏱️ Tiempo de revisión estimado: 2448 horas
+            ⏱️ Tiempo de revisión estimado: 24–48 horas
           </p>
         )}
       </form>
@@ -1138,10 +1333,10 @@ function UserBadge({ user, onSignIn, onSignOut }: { user: User | null; onSignIn:
 }
 
 // Wrapper con Suspense para useSearchParams
-export default function BusinessWizardPro() {
+export default function BusinessWizardPro(props: BusinessWizardProps) {
   return (
     <Suspense fallback={<div className="text-center text-sm text-gray-500">Cargando formulario...</div>}>
-      <BusinessWizardProInner />
+      <BusinessWizardProInner {...props} />
     </Suspense>
   );
 }

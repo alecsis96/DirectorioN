@@ -194,6 +194,26 @@ runner("Firestore security rules for /businesses", () => {
     await assertFails(adminLegacy.set({ businessId: "business-1", userId: "admin-uid" }));
   });
 
+  it("keeps public intake idempotency and rate-limit state server-only", async () => {
+    const contexts = [
+      testEnv.unauthenticatedContext(),
+      testEnv.authenticatedContext("user-uid", { email: "user@example.com" }),
+      testEnv.authenticatedContext("admin-uid", { admin: true }),
+    ];
+
+    for (const context of contexts) {
+      const idempotencyRef = context.firestore().collection("publicApplicationIdempotency").doc("guard-1");
+      const rateLimitRef = context.firestore().collection("publicApplicationRateLimits").doc("bucket-1");
+      const deliveryRef = context.firestore().collection("notificationDeliveries").doc("delivery-1");
+      await assertFails(idempotencyRef.get());
+      await assertFails(idempotencyRef.set({ applicationId: "application-1" }));
+      await assertFails(rateLimitRef.get());
+      await assertFails(rateLimitRef.set({ count: 0 }));
+      await assertFails(deliveryRef.get());
+      await assertFails(deliveryRef.set({ status: "processing" }));
+    }
+  });
+
   it("allows owner to update their business but denies others", async () => {
     await seedBusiness(testEnv, {
       id: "biz-owner",
