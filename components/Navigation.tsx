@@ -27,7 +27,7 @@ import { auth } from '../firebaseConfig';
 import LoginModal from './LoginModal';
 
 // Componente de Menú Desplegable de Usuario
-const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void }) => {
+const UserDropdown = ({ user, isAdmin, onSignOut }: { user: any, isAdmin: boolean, onSignOut: () => void }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +43,7 @@ const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void })
   }, []);
 
   const menuItems = [
+    ...(isAdmin ? [{ icon: LayoutDashboard, label: 'Panel admin', href: '/admin/solicitudes', desc: 'Revisa solicitudes nuevas', badge: 'Admin' }] : []),
     { icon: LayoutDashboard, label: 'Mis Negocios', href: '/mis-negocios', desc: 'Gestiona tus empresas' },
     { icon: Heart, label: 'Favoritos', href: '/favoritos', desc: 'Tus lugares guardados' },
     { icon: History, label: 'Historial', href: '/historial', desc: 'Visto recientemente' },
@@ -96,6 +97,11 @@ const UserDropdown = ({ user, onSignOut }: { user: any, onSignOut: () => void })
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-semibold text-gray-800">{item.label}</span>
+                    {'badge' in item ? (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700">
+                        {item.badge}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="text-xs text-gray-500">{item.desc}</p>
                 </div>
@@ -127,7 +133,7 @@ function NavigationContent() {
   const router = useRouter();
   const params = useSearchParams();
   const { favorites } = useFavorites();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -454,7 +460,7 @@ function NavigationContent() {
             
             {/* Área de Usuario/Login */}
             {user ? (
-              <UserDropdown user={user} onSignOut={handleSignOut} />
+              <UserDropdown user={user} isAdmin={isAdmin} onSignOut={handleSignOut} />
             ) : (
               <button
                 onClick={handleSignIn}
@@ -792,6 +798,25 @@ function NavigationContent() {
 
             {/* Opciones del Menú */}
             <div className="p-4">
+              {isAdmin ? (
+                <Link
+                  href="/admin/solicitudes"
+                  onClick={() => setShowProfileModal(false)}
+                  className="flex items-center gap-4 rounded-xl p-4 transition-colors hover:bg-violet-50 active:bg-violet-100"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100">
+                    <LayoutDashboard className="h-6 w-6 text-violet-700" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-semibold text-gray-900">Panel admin</p>
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700">Admin</span>
+                    </div>
+                    <p className="text-xs text-gray-500">Revisa solicitudes nuevas</p>
+                  </div>
+                </Link>
+              ) : null}
+
               <Link 
                 href="/mis-negocios"
                 onClick={() => setShowProfileModal(false)}

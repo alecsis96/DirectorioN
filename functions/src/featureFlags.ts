@@ -15,6 +15,10 @@ export const OWNERSHIP_CLAIMS_ENABLED =
 export const EMAIL_LINK_AUTH_ENABLED =
   process.env.EMAIL_LINK_AUTH_ENABLED === "true";
 
+// Canal operativo independiente; se activa sólo después de configurar el bot.
+export const TELEGRAM_APPLICATION_ALERTS_ENABLED =
+  process.env.TELEGRAM_APPLICATION_ALERTS_ENABLED === "true";
+
 export const MONETIZATION_DISABLED_CODE = "MONETIZATION_DISABLED";
 export const MONETIZATION_DISABLED_MESSAGE =
   "Monetization is temporarily disabled";

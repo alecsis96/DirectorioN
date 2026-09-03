@@ -44,13 +44,19 @@ export const PublicApplicationSubmissionSchema = AnonymousApplicationV2InputSche
   })
   .strict();
 
+export const PublicApplicationRequestSchema = PublicApplicationSubmissionSchema.extend({
+  /** Credencial efímera de Turnstile. La ruta la separa antes de persistir. */
+  turnstileToken: z.string().trim().max(2_048).optional(),
+}).strict();
+
 export type PublicApplicationSubmission = z.input<typeof PublicApplicationSubmissionSchema>;
 
 export interface PublicApplicationChallengeVerifier {
   verify(input: {
+    token?: string;
     requestHeaders: Headers;
     clientIdentifier: string;
-  }): Promise<{ ok: boolean }>;
+  }): Promise<{ ok: boolean; valid?: boolean; reason?: string }>;
 }
 
 export class PublicApplicationIntakeError extends Error {
@@ -75,6 +81,7 @@ type IntakeOptions = {
   publicReference?: string;
   rateLimit?: number;
   challengeVerifier?: PublicApplicationChallengeVerifier;
+  challengeToken?: string;
   requestHeaders?: Headers;
 };
 
@@ -113,17 +120,18 @@ export async function submitPublicApplicationV2(
     throw new PublicApplicationIntakeError('INVALID_IDEMPOTENCY_KEY');
   }
 
+  const parsed = PublicApplicationSubmissionSchema.parse(input);
+  if (parsed.contactWebsite) {
+    return { accepted: false as const, honeypot: true as const };
+  }
+
   if (options.challengeVerifier) {
     const challenge = await options.challengeVerifier.verify({
+      token: options.challengeToken,
       requestHeaders: options.requestHeaders ?? new Headers(),
       clientIdentifier: context.clientIdentifier,
     });
     if (!challenge.ok) throw new PublicApplicationIntakeError('CHALLENGE_FAILED');
-  }
-
-  const parsed = PublicApplicationSubmissionSchema.parse(input);
-  if (parsed.contactWebsite) {
-    return { accepted: false as const, honeypot: true as const };
   }
 
   const applicationInput = normalizePublicApplicationInput(parsed);

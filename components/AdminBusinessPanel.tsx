@@ -21,11 +21,13 @@ import {
   requestMoreInfo,
 } from '../app/actions/adminBusinessActions';
 import { useAuth } from '../hooks/useAuth';
+import { buildApprovedApplicationWhatsAppUrl } from '../lib/adminApplicationContact';
 import { getEffectivePlan, getPlanBadgeClasses, getPlanDisplayName } from '../lib/businessHelpers';
 import type { Business } from '../types/business';
 
 type TabType = 'nuevas' | 'pendientes' | 'listas' | 'publicados' | 'rechazados' | 'todos';
 type CardVariant = 'review' | 'published' | 'incomplete';
+type ApplicationRiskFilter = 'all' | 'flagged' | 'high' | 'pending';
 
 type BusinessWithCompletion = Business & {
   completionPercent?: number;
@@ -54,6 +56,15 @@ type ApplicationV2Submission = {
     phone?: string;
     whatsapp?: string;
   };
+  riskAssessment?: {
+    riskLevel: 'low' | 'medium' | 'high';
+    riskScore: number;
+    signals: Array<{
+      code: 'contact_match' | 'name_category_match' | 'email_match';
+      candidateType: 'application' | 'business';
+      candidateId: string;
+    }>;
+  } | null;
 };
 
 const TAB_CONFIG: Array<{ id: TabType; label: string }> = [
@@ -128,6 +139,7 @@ export default function AdminBusinessPanel() {
   const [activeTab, setActiveTab] = useState<TabType>('nuevas');
   const [businesses, setBusinesses] = useState<BusinessWithCompletion[]>([]);
   const [v2Applications, setV2Applications] = useState<ApplicationV2Submission[]>([]);
+  const [riskFilter, setRiskFilter] = useState<ApplicationRiskFilter>('all');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{
@@ -203,6 +215,15 @@ export default function AdminBusinessPanel() {
     const ready = businesses.filter((business) => business.isPublishReady).length;
     return { total, ready };
   }, [businesses, v2Applications]);
+
+  const filteredV2Applications = useMemo(() => {
+    if (riskFilter === 'all') return v2Applications;
+    if (riskFilter === 'pending') return v2Applications.filter((application) => !application.riskAssessment);
+    if (riskFilter === 'high') {
+      return v2Applications.filter((application) => application.riskAssessment?.riskLevel === 'high');
+    }
+    return v2Applications.filter((application) => (application.riskAssessment?.signals.length || 0) > 0);
+  }, [riskFilter, v2Applications]);
 
   const handleApprove = async (businessId: string, businessName: string) => {
     if (!confirm(`Aprobar y publicar "${businessName}"?`)) return;
@@ -408,6 +429,30 @@ export default function AdminBusinessPanel() {
           </div>
         </div>
 
+        {activeTab === 'nuevas' && v2Applications.length > 0 ? (
+          <div className="mb-4 flex flex-wrap items-center gap-2" aria-label="Filtrar solicitudes v2 por señales">
+            {([
+              ['all', 'Todas v2'],
+              ['flagged', 'Con señales'],
+              ['high', 'Riesgo alto'],
+              ['pending', 'Análisis pendiente'],
+            ] as Array<[ApplicationRiskFilter, string]>).map(([filter, label]) => (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setRiskFilter(filter)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  riskFilter === filter
+                    ? 'border-violet-600 bg-violet-600 text-white'
+                    : 'border-violet-200 bg-white text-violet-700 hover:bg-violet-50'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="py-12 text-center text-gray-500">Cargando solicitudes...</div>
         ) : businesses.length === 0 && v2Applications.length === 0 ? (
@@ -416,7 +461,12 @@ export default function AdminBusinessPanel() {
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
-            {v2Applications.map((application) => (
+            {activeTab === 'nuevas' && filteredV2Applications.length === 0 && businesses.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-600 lg:col-span-2">
+                No hay solicitudes v2 que coincidan con este filtro.
+              </div>
+            ) : null}
+            {filteredV2Applications.map((application) => (
               <ApplicationV2Card
                 key={application.applicationId}
                 application={application}
@@ -516,6 +566,22 @@ function ApplicationV2Card({
 }) {
   const business = application.business;
   const approved = application.status === 'approved' && Boolean(application.businessId);
+  const whatsappUrl = approved ? buildApprovedApplicationWhatsAppUrl(application) : null;
+  const risk = application.riskAssessment;
+  const riskLabel = !risk
+    ? 'Análisis pendiente'
+    : risk.riskLevel === 'high'
+      ? 'Riesgo alto · revisar duplicado'
+      : risk.riskLevel === 'medium'
+        ? 'Posible duplicado · revisar'
+        : 'Sin coincidencias relevantes';
+  const riskClassName = !risk
+    ? 'bg-gray-100 text-gray-700'
+    : risk.riskLevel === 'high'
+      ? 'bg-red-100 text-red-800'
+      : risk.riskLevel === 'medium'
+        ? 'bg-amber-100 text-amber-800'
+        : 'bg-emerald-100 text-emerald-800';
   const invitationLabel = application.ownershipInvitationStatus === 'delivered'
     ? 'Invitación entregada'
     : application.ownershipInvitationStatus === 'failed'
@@ -529,6 +595,9 @@ function ApplicationV2Card({
             <h3 className="text-base font-semibold text-gray-900">{business.businessName}</h3>
             <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">
               {approved ? 'Solicitud v2 · Aprobada' : 'Solicitud v2 · Nueva'}
+            </span>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${riskClassName}`}>
+              {riskLabel}
             </span>
           </div>
           <p className="mt-2 text-sm text-gray-600">{business.category || 'Sin categoría'}</p>
@@ -557,6 +626,37 @@ function ApplicationV2Card({
         </div>
       </dl>
 
+      {risk?.signals.length ? (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          <p className="font-semibold">Señales para revisión humana</p>
+          <ul className="mt-1 space-y-1">
+            {risk.signals.slice(0, 4).map((signal, index) => (
+              <li key={`${signal.candidateType}-${signal.candidateId}-${signal.code}-${index}`}>
+                {signal.code === 'contact_match'
+                  ? 'Coincide un teléfono o WhatsApp'
+                  : signal.code === 'name_category_match'
+                    ? 'Coinciden nombre y categoría'
+                    : 'Coincide el correo de contacto'}
+                {' · '}
+                {signal.candidateType === 'business' ? (
+                  <a
+                    href={`/dashboard/${signal.candidateId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline"
+                  >
+                    Ver negocio candidato
+                  </a>
+                ) : (
+                  <span>otra solicitud</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2">Estas señales no bloquean la aprobación ni prueban fraude.</p>
+        </div>
+      ) : null}
+
       {approved ? (
         <div className="mt-4 space-y-3">
           <div className={`rounded-xl border px-3 py-2 text-sm font-medium ${
@@ -584,6 +684,16 @@ function ApplicationV2Card({
             >
               {loading ? 'Procesando…' : 'Reenviar invitación'}
             </button>
+            {whatsappUrl ? (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sm:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+              >
+                Contactar por WhatsApp
+              </a>
+            ) : null}
           </div>
         </div>
       ) : (

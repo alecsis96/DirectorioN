@@ -2,13 +2,17 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
-import { PUBLIC_APPLICATION_V2_ENABLED } from '../../../lib/featureFlags';
+import {
+  PUBLIC_APPLICATION_TURNSTILE_MODE,
+  PUBLIC_APPLICATION_V2_ENABLED,
+} from '../../../lib/featureFlags';
 import {
   PUBLIC_APPLICATION_MAX_BODY_BYTES,
   PublicApplicationIntakeError,
-  PublicApplicationSubmissionSchema,
+  PublicApplicationRequestSchema,
   submitPublicApplicationV2,
 } from '../../../lib/server/publicApplicationIntake';
+import { verifyPublicApplicationTurnstile } from '../../../lib/server/turnstile';
 
 export const runtime = 'nodejs';
 
@@ -21,6 +25,10 @@ function getClientIdentifier(request: NextRequest): string {
 export function createPublicApplicationPostHandler(dependencies: {
   enabled: boolean;
   submit: typeof submitPublicApplicationV2;
+  turnstile?: {
+    mode: 'off' | 'observe' | 'enforce';
+    verify: typeof verifyPublicApplicationTurnstile;
+  };
 }) {
   return async function publicApplicationPost(request: NextRequest) {
     if (!dependencies.enabled) {
@@ -42,12 +50,36 @@ export function createPublicApplicationPostHandler(dependencies: {
         return NextResponse.json({ ok: false, code: 'BODY_TOO_LARGE' }, { status: 413 });
       }
 
-      const body = PublicApplicationSubmissionSchema.parse(JSON.parse(rawBody));
+      const requestBody = PublicApplicationRequestSchema.parse(JSON.parse(rawBody));
+      const { turnstileToken, ...body } = requestBody;
       const idempotencyKey = request.headers.get('idempotency-key') || '';
       const result = await dependencies.submit(
         body,
         { idempotencyKey, clientIdentifier: getClientIdentifier(request) },
-        { requestHeaders: request.headers },
+        {
+          requestHeaders: request.headers,
+          challengeToken: turnstileToken,
+          challengeVerifier: dependencies.turnstile
+            ? {
+                verify: async ({ token, clientIdentifier }) => {
+                  const verification = await dependencies.turnstile!.verify({
+                    mode: dependencies.turnstile!.mode,
+                    token,
+                    remoteIp: clientIdentifier,
+                    secret: process.env.TURNSTILE_SECRET_KEY,
+                    allowedHostnames: process.env.TURNSTILE_ALLOWED_HOSTNAMES,
+                  });
+                  if (dependencies.turnstile!.mode === 'observe' && !verification.valid) {
+                    console.warn('public application Turnstile observation', {
+                      valid: false,
+                      reason: verification.reason || 'unknown',
+                    });
+                  }
+                  return verification;
+                },
+              }
+            : undefined,
+        },
       );
 
       if (!result.accepted) {
@@ -79,10 +111,11 @@ export function createPublicApplicationPostHandler(dependencies: {
   };
 }
 
-// No CAPTCHA/App Check dependency is available in this repository yet. The
-// verifier interface lives in the server service so 0.2R.3 can add one without
-// trusting a client boolean. Persistent throttling + honeypot are active now.
 export const POST = createPublicApplicationPostHandler({
   enabled: PUBLIC_APPLICATION_V2_ENABLED,
   submit: submitPublicApplicationV2,
+  turnstile: {
+    mode: PUBLIC_APPLICATION_TURNSTILE_MODE,
+    verify: verifyPublicApplicationTurnstile,
+  },
 });

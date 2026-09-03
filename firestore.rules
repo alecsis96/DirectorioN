@@ -439,6 +439,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Señales operativas de duplicados. Incluso el panel admin las obtiene
+    // mediante Server Actions/Admin SDK, nunca mediante Firebase Client SDK.
+    match /applicationRiskAssessments/{applicationId} {
+      allow read, write: if false;
+    }
+
     // ============== NOTIFICATIONS (logs de notificaciones WhatsApp) ==============
     // Usado por el sistema de notificaciones para idempotencia
     match /notifications/{notificationId} {

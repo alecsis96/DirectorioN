@@ -86,14 +86,25 @@ export async function getNewApplicationV2Submissions(adminToken: string): Promis
       .get(),
   ]);
 
-  return [...submittedSnapshot.docs, ...approvedSnapshot.docs]
-    .map((doc) => {
+  const applicationDocuments = [...submittedSnapshot.docs, ...approvedSnapshot.docs];
+  const riskSnapshots = await Promise.all(
+    applicationDocuments.map((doc) =>
+      db.collection('applicationRiskAssessments').doc(doc.id).get().catch(() => null),
+    ),
+  );
+
+  return applicationDocuments
+    .map((doc, index) => {
       const data = doc.data();
+      const riskSnapshot = riskSnapshots[index];
       return serializeTimestamps({
         id: doc.id,
         applicationId: doc.id,
         queue: getApplicationAdminQueue(data),
         ...data,
+        riskAssessment: riskSnapshot?.exists
+          ? serializeTimestamps(riskSnapshot.data() || {})
+          : null,
       });
     })
     .filter((application) => {

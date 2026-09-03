@@ -16,15 +16,16 @@ import {
   MONETIZATION_DISABLED_RESULT,
   MONETIZATION_FEATURE_ENABLED,
   PUBLIC_APPLICATION_V2_ENABLED,
+  TELEGRAM_APPLICATION_ALERTS_ENABLED,
 } from "./featureFlags";
 import {
   getApplicationNotificationReference,
   getSupportedApplicationSchemaVersion,
 } from "./applicationReferences";
-import {
-  beginApplicationV2NotificationDelivery,
-  isAnonymousApplicationV2NotificationSource,
-} from "./notificationDelivery";
+import {isAnonymousApplicationV2NotificationSource} from "./notificationDelivery";
+import {assessApplicationV2DuplicateRisk} from "./applicationRiskAssessment";
+import {sendApplicationV2TelegramAlert} from "./telegramNotifications";
+import {processApplicationV2Created} from "./applicationV2Notifications";
 
 // Inicializar Firebase Admin si no está inicializado
 if (!admin.apps.length) {
@@ -499,7 +500,9 @@ export async function sendNewReviewNotification(review: Review, business: Busine
  * Trigger cuando se crea una nueva application
  * Envía email de confirmación al dueño
  */
-export const onApplicationCreated = functions.firestore
+export const onApplicationCreated = functions
+  .runWith({secrets: ["TELEGRAM_BOT_TOKEN"]})
+  .firestore
   .document("applications/{applicationId}")
   .onCreate(async (snap, context) => {
     const data = snap.data();
@@ -529,18 +532,19 @@ export const onApplicationCreated = functions.firestore
       }
       const businessName = data.business?.businessName || "tu negocio";
       const publicReference = data.publicReference || "Sin folio";
-      const delivery = await beginApplicationV2NotificationDelivery(
-        admin.firestore(),
-        () => admin.firestore.FieldValue.serverTimestamp(),
-        reference.applicationId,
-        context.eventId,
-      );
-      if (!delivery.acquired) {
-        console.log("V2 intake notifications already claimed; skipping duplicate event", reference);
-        return;
-      }
-      const [emailSent, adminNoticeSent] = await Promise.all([
-        sendEmail({
+      const delivery = await processApplicationV2Created({
+        db: admin.firestore(),
+        applicationId: reference.applicationId,
+        eventId: context.eventId,
+        serverTimestamp: () => admin.firestore.FieldValue.serverTimestamp(),
+        assessRisk: () => assessApplicationV2DuplicateRisk(
+          admin.firestore(),
+          reference.applicationId,
+          data,
+          () => admin.firestore.FieldValue.serverTimestamp(),
+        ),
+        onAssessmentPending: () => console.warn("V2 duplicate assessment pending", reference),
+        sendEmail: () => sendEmail({
           to: data.ownerEmail,
           subject: "✅ Solicitud recibida - YajaGon",
           html: getApplicationV2ReceivedTemplate(
@@ -549,7 +553,7 @@ export const onApplicationCreated = functions.firestore
             publicReference,
           ),
         }),
-        sendSlackNotification({
+        sendAdminNotice: () => sendSlackNotification({
           text: "🔔 Nueva solicitud pública v2",
           blocks: [
             {
@@ -563,13 +567,20 @@ export const onApplicationCreated = functions.firestore
             },
           ],
         }),
-      ]);
-      await delivery.reference.set({
-        status: emailSent && adminNoticeSent ? "sent" : "partial",
-        emailSent,
-        adminNoticeSent,
-        completedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
+        sendTelegram: (duplicateLabel) => sendApplicationV2TelegramAlert({
+          enabled: TELEGRAM_APPLICATION_ALERTS_ENABLED,
+          botToken: process.env.TELEGRAM_BOT_TOKEN,
+          chatId: process.env.TELEGRAM_ADMIN_CHAT_ID,
+          adminPanelBaseUrl: process.env.ADMIN_PANEL_BASE_URL,
+          publicReference: String(publicReference),
+          businessName: String(businessName),
+          category: String(data.business?.category || "Sin categoría"),
+          duplicateLabel,
+        }),
+      });
+      if (delivery.deduplicated) {
+        console.log("V2 intake notifications already claimed; skipping duplicate event", reference);
+      }
       return;
     }
 

@@ -1,8 +1,8 @@
-type NotificationDeliveryReference = {
+export type NotificationDeliveryReference = {
   set(data: Record<string, unknown>, options: { merge: boolean }): Promise<unknown>;
 };
 
-type NotificationDeliveryFirestore = {
+export type NotificationDeliveryFirestore = {
   collection(name: string): {
     doc(id: string): NotificationDeliveryReference;
   };

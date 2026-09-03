@@ -9,6 +9,8 @@ import { submitNewBusiness } from "../app/actions/businesses";
 import { createBusinessImmediately } from "../app/actions/businessActions";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CATEGORY_GROUPS, CATEGORIES, getCategoriesByGroup, resolveCategory, type CategoryGroupId } from "../lib/categoriesCatalog";
+import type { PublicApplicationTurnstileMode } from "../lib/featureFlags";
+import TurnstileWidget from "./security/TurnstileWidget";
 
 // ---------- Tipos ----------
 type DayKey =
@@ -224,6 +226,8 @@ function usePlacesAutocomplete(
 // ---------- Componente principal ----------
 type BusinessWizardProps = {
   publicApplicationV2Enabled?: boolean;
+  turnstileMode?: PublicApplicationTurnstileMode;
+  turnstileSiteKey?: string;
 };
 
 type PublicApplicationConfirmation = {
@@ -243,7 +247,11 @@ function createBrowserIdempotencyKey(): string {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
 }
 
-function BusinessWizardProInner({ publicApplicationV2Enabled = false }: BusinessWizardProps) {
+function BusinessWizardProInner({
+  publicApplicationV2Enabled = false,
+  turnstileMode = 'off',
+  turnstileSiteKey = '',
+}: BusinessWizardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const wizardMode = searchParams?.get('mode'); // 'new' = forzar nuevo negocio
@@ -274,11 +282,16 @@ function BusinessWizardProInner({ publicApplicationV2Enabled = false }: Business
   const [useOwnerPhoneForBusiness, setUseOwnerPhoneForBusiness] = useState(false);
   const [useBusinessPhoneForWhatsapp, setUseBusinessPhoneForWhatsapp] = useState(false);
   const [publicConfirmation, setPublicConfirmation] = useState<PublicApplicationConfirmation | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   const addressRef = useRef<HTMLInputElement>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
   const submittingPublicRef = useRef(false);
   const idempotencyRef = useRef<{ payload: string; key: string } | null>(null);
+  const handleTurnstileTokenChange = useCallback((token: string | null) => {
+    setTurnstileToken(token);
+  }, []);
 
   useEffect(() => {
     if (publicApplicationV2Enabled) {
@@ -519,7 +532,10 @@ function BusinessWizardProInner({ publicApplicationV2Enabled = false }: Business
               'content-type': 'application/json',
               'idempotency-key': idempotencyRef.current.key,
             },
-            body: serialized,
+            body: JSON.stringify({
+              ...requestBody,
+              ...(turnstileToken ? { turnstileToken } : {}),
+            }),
           });
           const result = await response.json() as { ok?: boolean; folio?: string };
           if (!response.ok || !result.ok || !result.folio) {
@@ -533,6 +549,7 @@ function BusinessWizardProInner({ publicApplicationV2Enabled = false }: Business
         } finally {
           submittingPublicRef.current = false;
           setSaving(false);
+          if (turnstileMode !== 'off') setTurnstileResetKey((current) => current + 1);
         }
         return;
       }
@@ -1167,27 +1184,43 @@ function BusinessWizardProInner({ publicApplicationV2Enabled = false }: Business
         </section>
 
         {currentStep === 'confirm' && (
-          <div className="rounded-xl border-2 border-gray-200 bg-gray-50 p-4">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={confirmChecked}
-                onChange={(e) => {
-                  setConfirmChecked(e.target.checked);
-                  setShowConfirmError(false);
-                }}
-                className="mt-1 h-5 w-5 rounded border-gray-300 text-[#38761D] focus:ring-2 focus:ring-[#38761D]/40 cursor-pointer"
+          <div className="space-y-4 rounded-xl border-2 border-gray-200 bg-gray-50 p-4">
+            <div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={confirmChecked}
+                  onChange={(e) => {
+                    setConfirmChecked(e.target.checked);
+                    setShowConfirmError(false);
+                  }}
+                  className="mt-1 h-5 w-5 rounded border-gray-300 text-[#38761D] focus:ring-2 focus:ring-[#38761D]/40 cursor-pointer"
+                />
+                <span className="text-sm font-semibold text-gray-800">
+                  Confirmo que la información proporcionada es correcta.
+                </span>
+              </label>
+              {showConfirmError && (
+                <p className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1">
+                  <span>️</span>
+                  <span>Por favor, confirma que la información es correcta antes de enviar.</span>
+                </p>
+              )}
+            </div>
+
+            {publicApplicationV2Enabled && turnstileMode !== 'off' && turnstileSiteKey ? (
+              <TurnstileWidget
+                siteKey={turnstileSiteKey}
+                resetKey={turnstileResetKey}
+                onTokenChange={handleTurnstileTokenChange}
               />
-              <span className="text-sm font-semibold text-gray-800">
-                Confirmo que la información proporcionada es correcta.
-              </span>
-            </label>
-            {showConfirmError && (
-              <p className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1">
-                <span>️</span>
-                <span>Por favor, confirma que la información es correcta antes de enviar.</span>
+            ) : null}
+
+            {publicApplicationV2Enabled && turnstileMode === 'enforce' && !turnstileSiteKey ? (
+              <p className="text-sm font-medium text-red-700">
+                La verificación de seguridad no está disponible. Recarga la página antes de enviar.
               </p>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -1213,7 +1246,13 @@ function BusinessWizardProInner({ publicApplicationV2Enabled = false }: Business
             )}
             <button
               type="submit"
-              disabled={saving || (!hasNext && !confirmChecked) || (!publicApplicationV2Enabled && emailVerificationRequired) || isRedirecting}
+              disabled={
+                saving ||
+                (!hasNext && !confirmChecked) ||
+                (!hasNext && publicApplicationV2Enabled && turnstileMode === 'enforce' && !turnstileToken) ||
+                (!publicApplicationV2Enabled && emailVerificationRequired) ||
+                isRedirecting
+              }
               className="rounded-lg bg-[#38761D] px-6 py-2 text-sm font-bold text-white hover:bg-[#2f5a1a] hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               {isRedirecting ? (
