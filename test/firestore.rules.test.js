@@ -206,6 +206,8 @@ runner("Firestore security rules for /businesses", () => {
       const rateLimitRef = context.firestore().collection("publicApplicationRateLimits").doc("bucket-1");
       const deliveryRef = context.firestore().collection("notificationDeliveries").doc("delivery-1");
       const invitationOutboxRef = context.firestore().collection("ownershipInvitationOutbox").doc("outbox-1");
+      const claimAuditRef = context.firestore().collection("ownershipClaimAudits").doc("audit-1");
+      const emailLinkRateRef = context.firestore().collection("ownershipEmailLinkRateLimits").doc("claim-1");
       await assertFails(idempotencyRef.get());
       await assertFails(idempotencyRef.set({ applicationId: "application-1" }));
       await assertFails(rateLimitRef.get());
@@ -214,6 +216,10 @@ runner("Firestore security rules for /businesses", () => {
       await assertFails(deliveryRef.set({ status: "processing" }));
       await assertFails(invitationOutboxRef.get());
       await assertFails(invitationOutboxRef.set({ status: "pending" }));
+      await assertFails(claimAuditRef.get());
+      await assertFails(claimAuditRef.set({ event: "ownership_claim_consumed" }));
+      await assertFails(emailLinkRateRef.get());
+      await assertFails(emailLinkRateRef.set({ lastSentAt: new Date() }));
     }
   });
 

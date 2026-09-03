@@ -19,6 +19,7 @@ import {
   AuthorizationError,
   isOwnerIdentity,
   verifyIdTokenOrThrow,
+  verifyRevocationCheckedIdTokenOrThrow,
   verifySessionOrIdTokenOrThrow,
 } from '../authorization';
 
@@ -66,6 +67,15 @@ describe('server authorization', () => {
 
     verifyIdToken.mockRejectedValueOnce(new Error('invalid token'));
     await expect(verifyIdTokenOrThrow('invalid')).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('checks revocation for irreversible ownership operations', async () => {
+    verifyIdToken.mockResolvedValueOnce(identity());
+    await expect(verifyRevocationCheckedIdTokenOrThrow('valid')).resolves.toMatchObject({ uid: 'user-1' });
+    expect(verifyIdToken).toHaveBeenLastCalledWith('valid', true);
+
+    verifyIdToken.mockRejectedValueOnce(new Error('auth/id-token-revoked'));
+    await expect(verifyRevocationCheckedIdTokenOrThrow('revoked')).rejects.toMatchObject({ status: 401 });
   });
 
   it('returns 403 for an authenticated non-admin', async () => {

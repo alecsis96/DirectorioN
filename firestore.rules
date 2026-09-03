@@ -424,6 +424,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Auditoría de consumos de ownership: sólo Admin SDK.
+    match /ownershipClaimAudits/{auditId} {
+      allow read, write: if false;
+    }
+
+    // Cooldown persistente para envío de Email Links de ownership: sólo servidor.
+    match /ownershipEmailLinkRateLimits/{claimId} {
+      allow read, write: if false;
+    }
+
     // Outbox de invitaciones v2: sólo el servidor puede leer o escribir.
     match /ownershipInvitationOutbox/{outboxId} {
       allow read, write: if false;

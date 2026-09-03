@@ -48,6 +48,21 @@ export async function verifyIdTokenOrThrow(token?: string | null): Promise<Decod
   }
 }
 
+/** Verificación reforzada para operaciones irreversibles como asignar ownership. */
+export async function verifyRevocationCheckedIdTokenOrThrow(
+  token?: string | null,
+): Promise<DecodedIdToken> {
+  if (!token?.trim()) {
+    throw new AuthorizationError('Autenticacion requerida.', 401);
+  }
+
+  try {
+    return await getAdminAuth().verifyIdToken(token.trim(), true);
+  } catch {
+    throw new AuthorizationError('Token de autenticacion invalido, expirado o revocado.', 401);
+  }
+}
+
 export function isAdminIdentity(decoded: DecodedIdToken): boolean {
   return decoded.admin === true || hasAdminOverride(decoded.email);
 }
