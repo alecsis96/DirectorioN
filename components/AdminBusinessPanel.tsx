@@ -7,6 +7,7 @@ import {
   adminArchiveBusiness,
   adminDeleteBusiness,
   adminMarkDuplicate,
+  approveApplicationV2,
   approveBusiness,
   getAllBusinesses,
   getNewSubmissions,
@@ -16,6 +17,7 @@ import {
   getReadyForReview,
   getRejectedBusinesses,
   rejectBusiness,
+  resendOwnershipInvitationV2,
   requestMoreInfo,
 } from '../app/actions/adminBusinessActions';
 import { useAuth } from '../hooks/useAuth';
@@ -39,7 +41,9 @@ type ApplicationV2Submission = {
   id: string;
   applicationId: string;
   schemaVersion: 2;
-  status: 'submitted';
+  status: 'submitted' | 'approved';
+  businessId?: string | null;
+  ownershipInvitationStatus?: 'pending' | 'delivered' | 'failed';
   publicReference?: string;
   ownerName: string;
   ownerEmail: string;
@@ -68,8 +72,11 @@ function resolvePrimaryStatus(business: BusinessWithCompletion) {
   if (business.applicationStatus === 'needs_info') {
     return { label: 'Necesita info', className: 'bg-orange-100 text-orange-700' };
   }
-  if (business.applicationStatus === 'approved' || business.businessStatus === 'published') {
+  if (business.businessStatus === 'published') {
     return { label: 'Publicado', className: 'bg-emerald-100 text-emerald-700' };
+  }
+  if (business.applicationStatus === 'approved') {
+    return { label: 'Aprobado · no publicado', className: 'bg-violet-100 text-violet-700' };
   }
   if (business.applicationStatus === 'rejected') {
     return { label: 'Rechazado', className: 'bg-red-100 text-red-700' };
@@ -81,7 +88,7 @@ function resolvePrimaryStatus(business: BusinessWithCompletion) {
 }
 
 function resolveCardVariant(tab: TabType, business: BusinessWithCompletion): CardVariant {
-  if (tab === 'publicados' || business.businessStatus === 'published' || business.applicationStatus === 'approved') {
+  if (tab === 'publicados' || business.businessStatus === 'published') {
     return 'published';
   }
 
@@ -209,6 +216,53 @@ export default function AdminBusinessPanel() {
     } catch (error) {
       console.error('Error al aprobar:', error);
       alert('No se pudo aprobar el negocio');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleApproveV2 = async (application: ApplicationV2Submission) => {
+    if (!confirm(`Aprobar "${application.business.businessName}" sin publicarlo todavía?`)) return;
+
+    setActionLoading(application.applicationId);
+    try {
+      if (!user) throw new Error('No hay usuario autenticado');
+      const token = await user.getIdToken();
+      const result = await approveApplicationV2(application.applicationId, token);
+      setV2Applications((current) => current.map((item) =>
+        item.applicationId === application.applicationId
+          ? {
+              ...item,
+              status: 'approved',
+              businessId: result.businessId,
+              ownershipInvitationStatus: result.invitationStatus,
+            }
+          : item,
+      ));
+    } catch (error) {
+      console.error('Error al aprobar solicitud v2:', error);
+      alert(error instanceof Error ? error.message : 'No se pudo aprobar la solicitud');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResendInvitationV2 = async (application: ApplicationV2Submission) => {
+    if (!confirm(`Reemitir la invitación para "${application.business.businessName}"?`)) return;
+
+    setActionLoading(application.applicationId);
+    try {
+      if (!user) throw new Error('No hay usuario autenticado');
+      const token = await user.getIdToken();
+      const result = await resendOwnershipInvitationV2(application.applicationId, token);
+      setV2Applications((current) => current.map((item) =>
+        item.applicationId === application.applicationId
+          ? { ...item, ownershipInvitationStatus: result.invitationStatus }
+          : item,
+      ));
+    } catch (error) {
+      console.error('Error al reenviar invitación v2:', error);
+      alert(error instanceof Error ? error.message : 'No se pudo reenviar la invitación');
     } finally {
       setActionLoading(null);
     }
@@ -363,7 +417,13 @@ export default function AdminBusinessPanel() {
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             {v2Applications.map((application) => (
-              <ApplicationV2Card key={application.applicationId} application={application} />
+              <ApplicationV2Card
+                key={application.applicationId}
+                application={application}
+                loading={actionLoading === application.applicationId}
+                onApprove={() => handleApproveV2(application)}
+                onResend={() => handleResendInvitationV2(application)}
+              />
             ))}
             {businesses.map((business) => {
               const variant = resolveCardVariant(activeTab, business);
@@ -443,8 +503,24 @@ export default function AdminBusinessPanel() {
   );
 }
 
-function ApplicationV2Card({ application }: { application: ApplicationV2Submission }) {
+function ApplicationV2Card({
+  application,
+  loading,
+  onApprove,
+  onResend,
+}: {
+  application: ApplicationV2Submission;
+  loading: boolean;
+  onApprove: () => void;
+  onResend: () => void;
+}) {
   const business = application.business;
+  const approved = application.status === 'approved' && Boolean(application.businessId);
+  const invitationLabel = application.ownershipInvitationStatus === 'delivered'
+    ? 'Invitación entregada'
+    : application.ownershipInvitationStatus === 'failed'
+      ? 'Invitación fallida'
+      : 'Invitación pendiente';
   return (
     <article data-testid="application-v2-card" className="rounded-2xl border border-violet-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -452,7 +528,7 @@ function ApplicationV2Card({ application }: { application: ApplicationV2Submissi
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-semibold text-gray-900">{business.businessName}</h3>
             <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">
-              Solicitud v2 · Nueva
+              {approved ? 'Solicitud v2 · Aprobada' : 'Solicitud v2 · Nueva'}
             </span>
           </div>
           <p className="mt-2 text-sm text-gray-600">{business.category || 'Sin categoría'}</p>
@@ -481,9 +557,50 @@ function ApplicationV2Card({ application }: { application: ApplicationV2Submissi
         </div>
       </dl>
 
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
-        Aprobación y reclamo disponibles en 0.2R.3
-      </div>
+      {approved ? (
+        <div className="mt-4 space-y-3">
+          <div className={`rounded-xl border px-3 py-2 text-sm font-medium ${
+            application.ownershipInvitationStatus === 'delivered'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : application.ownershipInvitationStatus === 'failed'
+                ? 'border-red-200 bg-red-50 text-red-800'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+          }`}>
+            {invitationLabel}. El negocio sigue ownerless y oculto.
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => window.open(`/dashboard/${application.businessId}`, '_blank')}
+              className="rounded-xl bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+            >
+              Gestionar negocio
+            </button>
+            <button
+              type="button"
+              onClick={onResend}
+              disabled={loading}
+              className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50"
+            >
+              {loading ? 'Procesando…' : 'Reenviar invitación'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+            Aprobar crea un negocio ownerless y oculto. Publicarlo será una decisión posterior.
+          </div>
+          <button
+            type="button"
+            onClick={onApprove}
+            disabled={loading}
+            className="w-full rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {loading ? 'Aprobando…' : 'Aprobar solicitud'}
+          </button>
+        </div>
+      )}
     </article>
   );
 }

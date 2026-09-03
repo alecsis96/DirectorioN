@@ -32,6 +32,16 @@ export type IssueOwnershipClaimInput = {
   expiresAt: Date;
 };
 
+export type PreparedOwnershipClaim = {
+  businessId: string;
+  applicationId: string;
+  emailNormalized: string;
+  token: string;
+  tokenHash: string;
+  expiresAt: Date;
+  now: Date;
+};
+
 type OwnershipClaimOptions = {
   now?: Date;
   enabled?: boolean;
@@ -64,13 +74,13 @@ export function hashOwnershipClaimToken(token: string): string {
 }
 
 /**
- * Emite o reemite una concesión de claim dentro de una transacción Firestore.
- * No existe ruta de cliente para este helper en 0.2R.1.
+ * Prepara el secreto y los datos canónicos antes de abrir una transacción.
+ * El token sólo vive en memoria; el record persistible se construye aparte.
  */
-export async function issueOwnershipClaim(
+export function prepareOwnershipClaim(
   input: IssueOwnershipClaimInput,
-  options: OwnershipClaimOptions = {},
-) {
+  options: Pick<OwnershipClaimOptions, 'now' | 'enabled'> = {},
+): PreparedOwnershipClaim {
   const enabled = options.enabled ?? OWNERSHIP_CLAIMS_ENABLED;
   if (!enabled) throw new Error('OWNERSHIP_CLAIMS_DISABLED');
 
@@ -79,11 +89,51 @@ export async function issueOwnershipClaim(
     throw new Error('CLAIM_EXPIRATION_INVALID');
   }
 
-  const businessId = requiredId(input.businessId, 'BUSINESS_ID');
-  const applicationId = requiredId(input.applicationId, 'APPLICATION_ID');
-  const emailNormalized = normalizeClaimEmail(input.email);
   const token = generateOwnershipClaimToken();
-  const tokenHash = hashOwnershipClaimToken(token);
+  return {
+    businessId: requiredId(input.businessId, 'BUSINESS_ID'),
+    applicationId: requiredId(input.applicationId, 'APPLICATION_ID'),
+    emailNormalized: normalizeClaimEmail(input.email),
+    token,
+    tokenHash: hashOwnershipClaimToken(token),
+    expiresAt: input.expiresAt,
+    now,
+  };
+}
+
+export function buildOwnershipClaimRecord(
+  prepared: PreparedOwnershipClaim,
+  version: number,
+): OwnershipClaimRecord {
+  if (!Number.isSafeInteger(version) || version < 1) {
+    throw new Error('CLAIM_VERSION_INVALID');
+  }
+
+  return {
+    businessId: prepared.businessId,
+    applicationId: prepared.applicationId,
+    emailNormalized: prepared.emailNormalized,
+    tokenHash: prepared.tokenHash,
+    status: 'active',
+    expiresAt: prepared.expiresAt,
+    consumedAt: null,
+    consumedByUid: null,
+    version,
+    createdAt: prepared.now,
+    updatedAt: prepared.now,
+  };
+}
+
+/**
+ * Emite o reemite una concesión de claim dentro de una transacción Firestore.
+ * No existe ruta de cliente para este helper en 0.2R.1.
+ */
+export async function issueOwnershipClaim(
+  input: IssueOwnershipClaimInput,
+  options: OwnershipClaimOptions = {},
+) {
+  const prepared = prepareOwnershipClaim(input, options);
+  const { businessId, applicationId, emailNormalized, now, token } = prepared;
   const db = options.db ?? getAdminFirestore();
   const claims = db.collection(OWNERSHIP_CLAIMS_COLLECTION);
   const claimRef = claims.doc();
@@ -128,19 +178,7 @@ export async function issueOwnershipClaim(
       });
     }
 
-    const record: OwnershipClaimRecord = {
-      businessId,
-      applicationId,
-      emailNormalized,
-      tokenHash,
-      status: 'active',
-      expiresAt: input.expiresAt,
-      consumedAt: null,
-      consumedByUid: null,
-      version,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const record = buildOwnershipClaimRecord(prepared, version);
     transaction.create(claimRef, record);
     transaction.set(guardRef, {
       businessId,

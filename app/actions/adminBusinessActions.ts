@@ -13,6 +13,10 @@ import {
 import { getAdminFirestore } from '../../lib/server/firebaseAdmin';
 import { serializeTimestamps } from '../../lib/server/serializeFirestore';
 import {
+  approveAndDeliverApplicationV2,
+  reissueAndDeliverOwnershipInvitationV2,
+} from '../../lib/server/applicationV2ApprovalWorkflow';
+import {
   getApplicationAdminQueue,
   resolveLinkedApplicationId,
 } from '../../lib/applications/compatibility';
@@ -66,15 +70,23 @@ export async function getNewApplicationV2Submissions(adminToken: string): Promis
   if (!PUBLIC_APPLICATION_V2_ENABLED) return [];
 
   const db = getAdminFirestore();
-  const snapshot = await db
-    .collection('applications')
-    .where('schemaVersion', '==', 2)
-    .where('status', '==', 'submitted')
-    .orderBy('createdAt', 'desc')
-    .limit(50)
-    .get();
+  const applications = db.collection('applications');
+  const [submittedSnapshot, approvedSnapshot] = await Promise.all([
+    applications
+      .where('schemaVersion', '==', 2)
+      .where('status', '==', 'submitted')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get(),
+    applications
+      .where('schemaVersion', '==', 2)
+      .where('status', '==', 'approved')
+      .orderBy('createdAt', 'desc')
+      .limit(25)
+      .get(),
+  ]);
 
-  return snapshot.docs
+  return [...submittedSnapshot.docs, ...approvedSnapshot.docs]
     .map((doc) => {
       const data = doc.data();
       return serializeTimestamps({
@@ -84,7 +96,25 @@ export async function getNewApplicationV2Submissions(adminToken: string): Promis
         ...data,
       });
     })
-    .filter((application) => (application as any).queue === 'new');
+    .filter((application) => {
+      const candidate = application as any;
+      return candidate.queue === 'new' || candidate.status === 'approved';
+    })
+    .sort((left: any, right: any) =>
+      String(right.createdAt || '').localeCompare(String(left.createdAt || '')),
+    );
+}
+
+/** Aprobación v2 separada: nunca publica ni asigna ownerId. */
+export async function approveApplicationV2(applicationId: string, adminToken: string) {
+  const admin = await assertAdminToken(adminToken);
+  return approveAndDeliverApplicationV2(applicationId, admin.uid);
+}
+
+/** Reenvío seguro: revoca el claim anterior y emite un token nuevo. */
+export async function resendOwnershipInvitationV2(applicationId: string, adminToken: string) {
+  const admin = await assertAdminToken(adminToken);
+  return reissueAndDeliverOwnershipInvitationV2(applicationId, admin.uid);
 }
 
 /**

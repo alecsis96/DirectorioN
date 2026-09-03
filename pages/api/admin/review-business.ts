@@ -9,6 +9,7 @@ import {
   isApplicationV2,
   resolveApplicationOwnerId,
 } from '../../../lib/applications/compatibility';
+import { approveAndDeliverApplicationV2 } from '../../../lib/server/applicationV2ApprovalWorkflow';
 
 const limiter = rateLimit({ interval: 60000, uniqueTokenPerInterval: 20 });
 
@@ -180,11 +181,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const applicationV2 = isApplicationV2(appData);
     const applicationBusiness = getApplicationBusinessData(appData);
 
-    if (applicationV2 && appData.status === 'approved' && typeof appData.businessId === 'string') {
+    if (applicationV2) {
+      if (action !== 'approve') {
+        return res.status(409).json({
+          error: 'La revisión v2 sólo permite aprobación segura en esta fase.',
+        });
+      }
+      const result = await approveAndDeliverApplicationV2(businessId, decoded.uid);
       return res.status(200).json({
-        ok: true,
-        message: 'Application already approved',
-        businessId: appData.businessId,
+        ...result,
+        message: result.created ? 'Ownerless business approved' : 'Application already approved',
       });
     }
     
@@ -202,7 +208,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const businessRef = db.collection('businesses').doc();
       const now = new Date();
       
-      // En v1 se conserva applications/{uid}; un ID v2 aleatorio nunca es ownership.
+      // En v1 se conserva applications/{uid}; v2 ya salió por el servicio seguro anterior.
       const finalOwnerId = resolveApplicationOwnerId(businessId, appData);
       
       console.log('📝 [review-business] Creating business with ownerId:', finalOwnerId);
@@ -239,61 +245,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         updatedAt: now,
       };
       if (finalOwnerId) newBusiness.ownerId = finalOwnerId;
-      if (applicationV2) {
-        newBusiness.sourceApplicationId = businessId;
-        newBusiness.applicationSchemaVersion = 2;
-        newBusiness.businessStatus = 'draft';
-        newBusiness.applicationStatus = 'approved';
-        newBusiness.adminStatus = 'active';
-        newBusiness.visibility = 'hidden';
-        newBusiness.isActive = true;
-      }
-
-      if (applicationV2) {
-        const resolvedBusinessId = await db.runTransaction(async (transaction) => {
-          const freshApplication = await transaction.get(appRef);
-          if (!freshApplication.exists) throw new Error('Application not found');
-          const freshData = freshApplication.data() || {};
-          if (freshData.status === 'approved' && freshData.businessId) {
-            return String(freshData.businessId);
-          }
-
-          transaction.create(businessRef, newBusiness);
-          transaction.update(appRef, {
-            status: 'approved',
-            businessId: businessRef.id,
-            approvedAt: now,
-            approvedBy: decoded.uid,
-            updatedAt: now,
-          });
-          return businessRef.id;
-        });
-        if (resolvedBusinessId !== businessRef.id) {
-          return res.status(200).json({
-            ok: true,
-            message: 'Application already approved',
-            businessId: resolvedBusinessId,
-          });
-        }
-      } else {
-        await businessRef.set(newBusiness);
-        // Compatibilidad v1: la ruta histórica consumía applications/{uid}.
-        await appRef.delete();
-      }
+      await businessRef.set(newBusiness);
+      // Compatibilidad v1: la ruta histórica consumía applications/{uid}.
+      await appRef.delete();
 
       console.log(`✅ [review-business] Business ${businessRef.id} created successfully`);
       console.log(`   - ownerId: ${finalOwnerId}`);
       console.log(`   - ownerEmail: ${appData?.ownerEmail}`);
       console.log(`   - businessName: ${appData?.businessName}`);
-
-      if (applicationV2) {
-        return res.status(200).json({
-          ok: true,
-          message: 'Ownerless business approved; claim delivery remains disabled',
-          businessId: businessRef.id,
-          applicationId: businessId,
-        });
-      }
 
       // Enviar notificaciones (email y WhatsApp)
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';

@@ -301,10 +301,12 @@ describe('0.2R.2 integration boundaries', () => {
     expect(isAnonymousApplicationV2NotificationSource({ ...canonical, publicReference: 'fake' })).toBe(false);
   });
 
-  it('keeps v2 admin actions disabled and the submission status-driven in Nuevas', () => {
+  it('keeps submitted v2 applications status-driven in Nuevas and delegates approval safely', () => {
     const panel = source('components/AdminBusinessPanel.tsx');
     const actions = source('app/actions/adminBusinessActions.ts');
-    expect(panel).toContain('Aprobación y reclamo disponibles en 0.2R.3');
+    expect(panel).toContain('Aprobar solicitud');
+    expect(panel).toContain('Reenviar invitación');
+    expect(actions).toContain('approveAndDeliverApplicationV2');
     expect(actions).toMatch(/where\('status', '==', 'submitted'\)/);
     expect(actions).toContain("queue === 'new'");
     const indexes = JSON.parse(source('firestore.indexes.json')) as { indexes: Array<{ collectionGroup: string; fields: Array<{ fieldPath: string }> }> };

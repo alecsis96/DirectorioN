@@ -205,12 +205,15 @@ runner("Firestore security rules for /businesses", () => {
       const idempotencyRef = context.firestore().collection("publicApplicationIdempotency").doc("guard-1");
       const rateLimitRef = context.firestore().collection("publicApplicationRateLimits").doc("bucket-1");
       const deliveryRef = context.firestore().collection("notificationDeliveries").doc("delivery-1");
+      const invitationOutboxRef = context.firestore().collection("ownershipInvitationOutbox").doc("outbox-1");
       await assertFails(idempotencyRef.get());
       await assertFails(idempotencyRef.set({ applicationId: "application-1" }));
       await assertFails(rateLimitRef.get());
       await assertFails(rateLimitRef.set({ count: 0 }));
       await assertFails(deliveryRef.get());
       await assertFails(deliveryRef.set({ status: "processing" }));
+      await assertFails(invitationOutboxRef.get());
+      await assertFails(invitationOutboxRef.set({ status: "pending" }));
     }
   });
 
@@ -256,6 +259,31 @@ runner("Firestore security rules for /businesses", () => {
         { merge: true }
       )
     );
+  });
+
+  it("keeps an approved v2 ownerless business private to normal users but manageable by admin", async () => {
+    await seedBusiness(testEnv, {
+      id: "approved-v2-ownerless",
+      businessName: "Negocio v2 ownerless",
+      sourceApplicationId: "application-random-v2",
+      applicationSchemaVersion: 2,
+      businessStatus: "draft",
+      applicationStatus: "approved",
+      adminStatus: "active",
+      visibility: "hidden",
+      isActive: true,
+      status: "draft",
+    });
+
+    const user = testEnv.authenticatedContext("normal-user", { email: "contacto@example.com" });
+    const userRef = user.firestore().collection("businesses").doc("approved-v2-ownerless");
+    await assertFails(userRef.get());
+    await assertFails(userRef.update({ ownerId: "normal-user" }));
+
+    const admin = testEnv.authenticatedContext("admin-user", { admin: true });
+    const adminRef = admin.firestore().collection("businesses").doc("approved-v2-ownerless");
+    await assertSucceeds(adminRef.get());
+    await assertSucceeds(adminRef.update({ adminNotes: "Revisión administrativa" }));
   });
 
   it.each([

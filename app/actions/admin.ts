@@ -14,6 +14,7 @@ import {
   isApplicationV2,
   resolveApplicationOwnerId,
 } from '../../lib/applications/compatibility';
+import { approveAndDeliverApplicationV2 } from '../../lib/server/applicationV2ApprovalWorkflow';
 
 type DecodedAdmin = admin.auth.DecodedIdToken & { admin?: boolean };
 
@@ -233,10 +234,12 @@ export async function approveApplication(
   }
   const appData = appSnap.data() || {};
   assertSupportedApplicationVersion(appData);
+  if (isApplicationV2(appData)) {
+    return approveAndDeliverApplicationV2(applicationId, adminUser.uid);
+  }
   if (appData.status === 'approved') {
     return { ok: true, businessId: appData.businessId };
   }
-  const applicationV2 = isApplicationV2(appData);
   const form = getApplicationBusinessData(appData) as Record<string, any>;
   const ownerId = resolveApplicationOwnerId(applicationId, appData);
   const ownerEmail = extractOwnerEmail(appData, form);
@@ -286,18 +289,6 @@ export async function approveApplication(
     (baseBusiness as Record<string, unknown>).ownerId = ownerId;
   }
   const payload: Record<string, any> = { ...baseBusiness, ...businessOverrides };
-  if (applicationV2) {
-    // Una v2 aprobada permanece ownerless hasta un claim transaccional futuro.
-    delete payload.ownerId;
-    delete payload.ownerUid;
-    payload.sourceApplicationId = applicationId;
-    payload.applicationSchemaVersion = 2;
-    payload.businessStatus = 'draft';
-    payload.applicationStatus = 'approved';
-    payload.adminStatus = 'active';
-    payload.visibility = 'hidden';
-    payload.isActive = true;
-  }
   if (!MONETIZATION_FEATURE_ENABLED) {
     payload.plan = 'free';
     payload.featured = false;
@@ -319,31 +310,10 @@ export async function approveApplication(
   });
   
   const bizRef = db.collection('businesses').doc();
-  let resolvedBusinessId = bizRef.id;
-  if (applicationV2) {
-    resolvedBusinessId = await db.runTransaction(async (transaction) => {
-      const freshApplication = await transaction.get(appRef);
-      if (!freshApplication.exists) throw new Error('Solicitud no encontrada.');
-      const freshData = freshApplication.data() || {};
-      if (freshData.status === 'approved' && freshData.businessId) {
-        return String(freshData.businessId);
-      }
-
-      transaction.create(bizRef, payload);
-      transaction.update(appRef, {
-        status: 'approved',
-        businessId: bizRef.id,
-        approvedAt: admin.firestore.FieldValue.serverTimestamp(),
-        approvedBy: adminUser.uid,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      return bizRef.id;
-    });
-  } else {
-    // Compatibilidad v1: conserva creación y eliminación histórica de applications/{uid}.
-    await bizRef.set(payload, { merge: false });
-    await appRef.delete();
-  }
+  const resolvedBusinessId = bizRef.id;
+  // Compatibilidad v1: conserva creación y eliminación histórica de applications/{uid}.
+  await bizRef.set(payload, { merge: false });
+  await appRef.delete();
   
   console.log(`✅ [approveApplication] Business created successfully: ${resolvedBusinessId}`, {
     applicationId,
@@ -375,6 +345,12 @@ export async function deleteApplication(token: string, applicationId: string) {
 
   const appData = appSnap.data() || {};
   assertSupportedApplicationVersion(appData);
+  if (
+    isApplicationV2(appData) &&
+    (appData.status === 'approved' || typeof appData.businessId === 'string')
+  ) {
+    throw new Error('APPLICATION_V2_DELETE_REQUIRES_ARCHIVE');
+  }
   await appRef.delete();
   if (!isApplicationV2(appData)) {
     // En v1 el ID era el UID y también identificaba el progreso del wizard.

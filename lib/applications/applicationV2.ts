@@ -9,6 +9,12 @@ export const ApplicationV2StatusSchema = z.enum([
   'rejected',
 ]);
 
+export const OwnershipInvitationStatusSchema = z.enum([
+  'pending',
+  'delivered',
+  'failed',
+]);
+
 const optionalText = (max: number) => z.string().trim().max(max).optional();
 
 function normalizePhone(value: string): string {
@@ -112,6 +118,13 @@ export const ApplicationV2Schema = z
     updatedAt: persistedTimestampSchema,
     approvedAt: persistedTimestampSchema.optional(),
     approvedBy: z.string().trim().min(1).max(128).optional(),
+    ownershipInvitationStatus: OwnershipInvitationStatusSchema.optional(),
+    ownershipInvitationOutboxId: z.string().trim().min(1).max(128).optional(),
+    ownershipInvitationUpdatedAt: persistedTimestampSchema.optional(),
+    ownershipInvitationDeliveredAt: persistedTimestampSchema.optional(),
+    ownershipInvitationFailureCode: z.string().trim().min(1).max(80).nullable().optional(),
+    invitationReissuedAt: persistedTimestampSchema.optional(),
+    invitationReissuedBy: z.string().trim().min(1).max(128).optional(),
     rejectedAt: persistedTimestampSchema.optional(),
     rejectedBy: z.string().trim().min(1).max(128).optional(),
     rejectionNotes: z.string().trim().max(1_000).optional(),
@@ -122,6 +135,7 @@ export const ApplicationV2Schema = z
   .strict();
 
 export type ApplicationV2Status = z.infer<typeof ApplicationV2StatusSchema>;
+export type OwnershipInvitationStatus = z.infer<typeof OwnershipInvitationStatusSchema>;
 export type ApplicationV2Business = z.infer<typeof ApplicationV2BusinessSchema>;
 export type AnonymousApplicationV2Input = z.input<typeof AnonymousApplicationV2InputSchema>;
 export type ApplicationV2 = z.infer<typeof ApplicationV2Schema>;

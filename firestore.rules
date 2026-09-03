@@ -424,6 +424,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Outbox de invitaciones v2: sólo el servidor puede leer o escribir.
+    match /ownershipInvitationOutbox/{outboxId} {
+      allow read, write: if false;
+    }
+
     // ============== NOTIFICATIONS (logs de notificaciones WhatsApp) ==============
     // Usado por el sistema de notificaciones para idempotencia
     match /notifications/{notificationId} {
