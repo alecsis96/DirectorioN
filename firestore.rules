@@ -415,6 +415,18 @@ service cloud.firestore {
     }
 
     // 0.2R: concesiones internas. Sólo Admin SDK puede leer o escribir.
+    match /ownershipClaimAttempts/{attemptId} {
+      allow read, write: if false;
+    }
+    match /emailLoginContexts/{contextId} {
+      allow read, write: if false;
+    }
+    match /emailLoginRateLimits/{emailId} {
+      allow read, write: if false;
+    }
+    match /ownershipClaimIdentities/{identityId} {
+      allow read, write: if false;
+    }
     match /ownershipClaims/{claimId} {
       allow read, write: if false;
     }

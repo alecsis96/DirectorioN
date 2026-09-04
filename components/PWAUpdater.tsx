@@ -43,11 +43,17 @@ export default function PWAUpdater() {
 
     // Escuchar por cambios de estado del controller
     let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
+    const handleControllerChange = () => {
+      // A reload can destroy the invitation held in memory or abort begin before
+      // its HttpOnly continuation cookie arrives. Let these flows finish first.
+      const path = window.location.pathname;
+      if (path === '/reclamar-negocio' || path === '/entrar' || path === '/dashboard' || path.startsWith('/dashboard/')) return;
       if (refreshing) return;
       refreshing = true;
       window.location.reload();
-    });
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
   }, []);
 
   const updateApp = () => {

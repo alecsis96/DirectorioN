@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:claim-e2e": "firebase emulators:exec --only auth,firestore --project demo-claim-e2e --config firebase.claim-e2e.json \"playwright test --config playwright.claim.config.ts\"",
     "build": "next build",
     "start": "next start",
     "verify-env": "node scripts/verifyEnv.js",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.5.2",

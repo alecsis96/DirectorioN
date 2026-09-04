@@ -49,6 +49,19 @@ async function defaultSendMail(message: {
   await transporter.sendMail({ from: `"YajaGon" <${user}>`, ...message });
 }
 
+/** Normal Firebase email authentication. Destination comes from the HttpOnly-bound attempt. */
+export async function sendAttemptEmailSignInLink(email: string, baseUrl: string, standalone = false) {
+  const url = new URL(standalone ? '/entrar?flow=login' : '/entrar', baseUrl).href;
+  const authLink = await defaultGenerateSignInLink(email, url);
+  // The Auth emulator records the OOB link; never send mail from an isolated demo project.
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.startsWith('demo-')) return;
+  await defaultSendMail({
+    to: email, subject: 'Entra en YajaGon',
+    text: `Entra en tu cuenta de YajaGon:\n\n${authLink}\n\nAbre el enlace en el navegador donde confirmaste tu invitación.`,
+    html: `<p>Entra en tu cuenta de YajaGon:</p><p><a href="${authLink}">Entrar en YajaGon</a></p><p>Abre el enlace en el navegador donde confirmaste tu invitación.</p>`,
+  });
+}
+
 /** Genera y entrega el enlace al email canónico del claim, nunca a un email del body. */
 export async function sendOwnershipEmailSignInLink(
   token: string,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { authService } from '../lib/authService';
 import EmailPasswordLogin from './EmailPasswordLogin';
 
@@ -74,6 +75,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }: LoginModalPro
 
             {/* Opciones de login */}
             <div className="space-y-3">
+              <Link href="/entrar?flow=login" onClick={onClose} className="block rounded-xl border p-4 text-center font-semibold text-emerald-700">Entrar con un enlace por correo</Link>
               {/* Email/Password */}
               <button
                 onClick={() => setMethod('email')}

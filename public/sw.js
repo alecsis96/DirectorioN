@@ -1,5 +1,5 @@
-// Service Worker - Version 1.0.1
-const CACHE_VERSION = "directorio-v1.0.1";
+// Service Worker - Version 1.0.2 (authenticated navigation is network-only)
+const CACHE_VERSION = "directorio-v1.0.2";
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_DYNAMIC = `${CACHE_VERSION}-dynamic`;
 const CACHE_IMAGES = `${CACHE_VERSION}-images`;
@@ -144,7 +144,8 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Leave live APIs untouched. The app should talk to the network directly.
-  if (url.pathname.startsWith("/api/")) {
+  if (url.pathname.startsWith("/api/") || url.pathname === "/reclamar-negocio" || url.pathname === "/entrar" ||
+      url.pathname === "/dashboard" || url.pathname.startsWith("/dashboard/")) {
     return;
   }
 

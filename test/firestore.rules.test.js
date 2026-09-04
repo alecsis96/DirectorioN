@@ -207,6 +207,11 @@ runner("Firestore security rules for /businesses", () => {
       const deliveryRef = context.firestore().collection("notificationDeliveries").doc("delivery-1");
       const invitationOutboxRef = context.firestore().collection("ownershipInvitationOutbox").doc("outbox-1");
       const claimAuditRef = context.firestore().collection("ownershipClaimAudits").doc("audit-1");
+      for (const collection of ["ownershipClaimAttempts", "ownershipClaimIdentities", "emailLoginContexts", "emailLoginRateLimits"]) {
+        const ref = context.firestore().collection(collection).doc("internal-1");
+        await assertFails(ref.get());
+        await assertFails(ref.set({ targetUid: "attacker" }));
+      }
       const emailLinkRateRef = context.firestore().collection("ownershipEmailLinkRateLimits").doc("claim-1");
       const riskAssessmentRef = context.firestore().collection("applicationRiskAssessments").doc("application-1");
       await assertFails(idempotencyRef.get());

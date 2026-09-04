@@ -12,6 +12,8 @@ serviceAccountKey.json
 *.pem
 *.key
 .env.*.local
+test-results/
+playwright-report/
 
 # Archivos de configuración sensibles
 firebaseConfig.local.ts

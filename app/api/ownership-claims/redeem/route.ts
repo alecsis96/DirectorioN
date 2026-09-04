@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getAdminAuth } from '../../../../lib/server/firebaseAdmin';
+import { assertClaimUser } from '../../../../lib/server/ownershipClaimAttempts';
+import { normalizeClaimEmail } from '../../../../lib/server/ownershipClaims';
 
 import {
-  EMAIL_LINK_AUTH_ENABLED,
   OWNERSHIP_CLAIMS_ENABLED,
 } from '../../../../lib/featureFlags';
 import {
@@ -34,7 +36,7 @@ const statusByCode = {
 } as const;
 
 export async function POST(request: Request) {
-  if (!OWNERSHIP_CLAIMS_ENABLED || !EMAIL_LINK_AUTH_ENABLED) {
+  if (!OWNERSHIP_CLAIMS_ENABLED) {
     return NextResponse.json({ ok: false, code: 'OWNERSHIP_CLAIMS_DISABLED' }, { status: 404 });
   }
 
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, code: 'INVALID_REQUEST' }, { status: 400 });
     }
 
+    assertClaimUser(await getAdminAuth().getUser(decoded.uid), normalizeClaimEmail(decoded.email || ''));
     const result = await redeemOwnershipClaim(parsed.data.token, {
       uid: decoded.uid,
       email: typeof decoded.email === 'string' ? decoded.email : '',

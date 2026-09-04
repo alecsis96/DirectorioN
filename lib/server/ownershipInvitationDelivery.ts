@@ -82,7 +82,7 @@ function buildInvitationMessage(input: {
       `Tu negocio ${input.businessName} fue aprobado en YajaGon.`,
       'Hemos preparado el acceso para que puedas reclamar y administrar tu negocio.',
       '',
-      `Reclamar mi negocio: ${input.invitationUrl}`,
+      `Administrar mi negocio: ${input.invitationUrl}`,
       '',
       'Abrir el enlace todavía no asigna la propiedad del negocio.',
     ].join('\n'),
@@ -92,7 +92,7 @@ function buildInvitationMessage(input: {
         <p>Hola <strong>${recipientName}</strong>,</p>
         <p>Tu negocio <strong>${businessName}</strong> fue aprobado.</p>
         <p>Hemos preparado el acceso para que puedas reclamar y administrar tu negocio.</p>
-        <p style="margin:28px 0"><a href="${invitationUrl}" style="background:#38761D;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700">Reclamar mi negocio</a></p>
+        <p style="margin:28px 0"><a href="${invitationUrl}" style="background:#38761D;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700">Administrar mi negocio</a></p>
         <p style="font-size:13px;color:#6b7280">Abrir este enlace todavía no asigna la propiedad del negocio.</p>
       </div>
     `,

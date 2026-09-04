@@ -3,6 +3,7 @@ import { cookies, headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
 import DashboardEditor from '../../../components/DashboardEditor';
+import ClaimGoogleLink from '../../../components/ClaimGoogleLink';
 import { assertOwnerOrAdmin, AuthorizationError } from '../../../lib/server/authorization';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { serializeTimestamps } from '../../../lib/server/serializeFirestore';
@@ -37,7 +38,7 @@ async function requireAuthenticatedUser(): Promise<DecodedIdToken> {
 }
 
 // Se resuelve la promesa 'params' con await directamente en la firma de la función.
-export default async function DashboardBusinessPage({ params }: { params: DashboardParams | Promise<DashboardParams> }) {
+export default async function DashboardBusinessPage({ params }: { params: Promise<DashboardParams> }) {
   const user = await requireAuthenticatedUser();
   // Asegurarse de resolver params con await
   const resolvedParams = await params; 
@@ -59,5 +60,11 @@ export default async function DashboardBusinessPage({ params }: { params: Dashbo
     id: snap.id,
     ...(snap.data() as Record<string, unknown>),
   });
-  return <DashboardEditor businessId={businessId} initialBusiness={initialBusiness} />;
+  if (snap.data()?.applicationSchemaVersion !== 2 || snap.data()?.ownerId !== user.uid) {
+    return <DashboardEditor businessId={businessId} initialBusiness={initialBusiness} />;
+  }
+  return <>
+    <ClaimGoogleLink ownerId={user.uid} />
+    <DashboardEditor businessId={businessId} initialBusiness={initialBusiness} />
+  </>;
 }

@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return ['/reclamar-negocio', '/entrar'].map(source => ({ source, headers: [
+      { key: 'Cache-Control', value: 'private, no-store' },
+      { key: 'Referrer-Policy', value: 'no-referrer' },
+      { key: 'X-Frame-Options', value: 'DENY' },
+    ] }));
+  },
   // La configuración 'api' solo funciona en Pages Router
   // En App Router, configura el bodyParser por ruta en route.ts con:
   // export const config = { api: { bodyParser: { sizeLimit: '10mb' } } }

@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const verifyRevocationCheckedIdTokenOrThrow = vi.fn();
 const redeemOwnershipClaim = vi.fn();
+vi.mock('../lib/server/firebaseAdmin', () => ({ getAdminAuth: () => ({
+  getUser: async () => ({ uid: 'firebase-uid', email: 'owner@example.com', emailVerified: true, providerData: [] }),
+}) }));
 
 vi.mock('../lib/featureFlags', () => ({
   OWNERSHIP_CLAIMS_ENABLED: true,

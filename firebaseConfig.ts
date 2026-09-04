@@ -1,12 +1,13 @@
 // Configuración de Firebase
 import { initializeApp, getApps, type FirebaseOptions } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  connectAuthEmulator,
 } from "firebase/auth";
 
 function readEnv(value: string | undefined, key: string): string {
@@ -32,6 +33,15 @@ const firebaseConfig: FirebaseOptions = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true' && firebaseConfig.projectId?.startsWith('demo-')) {
+  // Demo projects have no production resources. Only used by the isolated E2E runner.
+  const state = globalThis as typeof globalThis & { claimEmulatorsConnected?: boolean };
+  if (!state.claimEmulatorsConnected) {
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    state.claimEmulatorsConnected = true;
+  }
+}
 export const googleProvider = new GoogleAuthProvider();
 export { app };
 

@@ -43,6 +43,7 @@ type RedeemOwnershipClaimOptions = {
   db?: ReturnType<typeof getAdminFirestore>;
   enabled?: boolean;
   now?: Date;
+  attempt?: { id: string; secretHash: string };
 };
 
 type ValidateClaimEmailLinkOptions = RedeemOwnershipClaimOptions;
@@ -182,9 +183,20 @@ export async function redeemOwnershipClaim(
 
   const token = validateToken(tokenInput);
   const tokenHash = hashOwnershipClaimToken(token);
+  return redeemOwnershipClaimHash(tokenHash, identityInput, options);
+}
+
+/** Server-only continuation: the hash must come from a verified attempt, never a request body. */
+export async function redeemOwnershipClaimHash(
+  tokenHash: string,
+  identityInput: VerifiedClaimIdentity,
+  options: RedeemOwnershipClaimOptions = {},
+): Promise<{ businessId: string; idempotent: boolean }> {
+  if (!(options.enabled ?? OWNERSHIP_CLAIMS_ENABLED)) {
+    throw new RedeemOwnershipClaimError('OWNERSHIP_CLAIMS_DISABLED');
+  }
   const identity = validateIdentity(identityInput);
   const db = options.db ?? getAdminFirestore();
-  const now = options.now ?? new Date();
   const claimsQuery = await db
     .collection(OWNERSHIP_CLAIMS_COLLECTION)
     .where('tokenHash', '==', tokenHash)
@@ -201,9 +213,28 @@ export async function redeemOwnershipClaim(
   const auditRef = db.collection(OWNERSHIP_CLAIM_AUDITS_COLLECTION).doc();
 
   return db.runTransaction(async (transaction) => {
+    const now = options.now ?? new Date();
+    const attemptRef = options.attempt
+      ? db.collection('ownershipClaimAttempts').doc(options.attempt.id) : null;
+    if (attemptRef && options.attempt) {
+      const attempt = (await transaction.get(attemptRef)).data();
+      if (!attempt || !safeHashEqual(attempt.secretHash, options.attempt.secretHash) ||
+          attempt.targetUid !== identity.uid || attempt.tokenHash !== tokenHash ||
+          attempt.claimId !== claimRef.id || !attempt.confirmedAt ||
+          !['ready', 'completed'].includes(attempt.status) ||
+          (asDate(attempt.expiresAt)?.getTime() ?? 0) <= now.getTime()) {
+        throw new RedeemOwnershipClaimError('CLAIM_INVALID');
+      }
+    }
     const claimSnapshot = await transaction.get(claimRef);
     if (!claimSnapshot.exists) throw new RedeemOwnershipClaimError('CLAIM_INVALID');
     const claim = claimSnapshot.data() || {};
+    if (attemptRef) {
+      const attempt = (await transaction.get(attemptRef)).data()!;
+      if (attempt.claimVersion !== claim.version) {
+        throw new RedeemOwnershipClaimError('CLAIM_INTEGRITY_ERROR');
+      }
+    }
     const businessId = typeof claim.businessId === 'string' ? claim.businessId : '';
     const applicationId = typeof claim.applicationId === 'string' ? claim.applicationId : '';
     if (!businessId || !applicationId || !safeHashEqual(claim.tokenHash, tokenHash)) {
@@ -242,6 +273,7 @@ export async function redeemOwnershipClaim(
         guard.businessId === businessId &&
         guardVersion === claimVersion
       ) {
+        if (attemptRef) transaction.update(attemptRef, { status: 'completed', completedAt: now });
         return { businessId, idempotent: true };
       }
       throw new RedeemOwnershipClaimError('CLAIM_ALREADY_USED');
@@ -279,6 +311,7 @@ export async function redeemOwnershipClaim(
     }
 
     transaction.update(businessRef, { ownerId: identity.uid, updatedAt: now });
+    if (attemptRef) transaction.update(attemptRef, { status: 'completed', completedAt: now });
     transaction.update(claimRef, {
       status: 'consumed',
       consumedAt: now,

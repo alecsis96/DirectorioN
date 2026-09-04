@@ -68,7 +68,7 @@ describe('/dashboard/[id] server authorization', () => {
       email: 'override-admin@example.test',
     });
 
-    const result = await DashboardBusinessPage({ params: { id: 'ownerless-private' } });
+    const result = await DashboardBusinessPage({ params: Promise.resolve({ id: 'ownerless-private' }) });
 
     expect(result.props.initialBusiness).toMatchObject({
       id: 'ownerless-private',
@@ -83,7 +83,7 @@ describe('/dashboard/[id] server authorization', () => {
     mocks.verifySessionCookie.mockResolvedValue({ uid: 'normal-user' });
 
     await expect(
-      DashboardBusinessPage({ params: { id: 'ownerless-private' } }),
+      DashboardBusinessPage({ params: Promise.resolve({ id: 'ownerless-private' }) }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
     expect(mocks.notFound).toHaveBeenCalledTimes(1);
   });
