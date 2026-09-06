@@ -139,7 +139,7 @@ export default function OwnershipClaimClient({ enabled, login = false, emailLink
       </>}
       {(view === 'loading' || view === 'busy') && <p role="status">Preparando tu acceso…</p>}
       {view === 'login' && <>
-        <p>Entra en tu cuenta <strong>{email}</strong>. Tu confirmación se conserva durante diez minutos.</p>
+        <p>Ya existe una cuenta de YajaGon con <strong>{email}</strong>. Entra con su contraseña actual o solicita un enlace. Tu confirmación se conserva durante diez minutos.</p>
         {emailReturn ? <button className="claim-button" onClick={() => act(async () => {
           const credential = await signInWithEmailLink(auth, email, window.location.href);
           window.history.replaceState(null, '', '/entrar');

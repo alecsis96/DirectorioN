@@ -128,7 +128,6 @@ export interface BusinessPreview {
   categoryGroupId?: CategoryGroupId;
   colonia: string;
   rating?: number | null;
-  ownerId?: string;
   ownerEmail?: string;
   isOpen: "si" | "no";
   address: string;
@@ -169,7 +168,6 @@ export const pickBusinessPreview = (biz: Business): BusinessPreview => {
     categoryName: categoryName ?? resolved.categoryName,
     categoryGroupId: biz.categoryGroupId ?? resolved.groupId,
     colonia: biz.colonia ?? biz.neighborhood ?? "",
-    ownerId: biz.ownerId,
     ownerEmail: biz.ownerEmail,
     rating: typeof biz.rating === "number" ? biz.rating : null,
     isOpen: biz.isOpen === "no" ? "no" : "si",

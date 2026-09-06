@@ -1408,7 +1408,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                   <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
 
-                    Estado: {biz.status || 'draft'}
+                    Estado: {businessState.businessStatus === 'in_review' ? 'en revisión' : businessState.businessStatus || biz.status || 'draft'}
 
                   </span>
 

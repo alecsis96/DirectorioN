@@ -18,6 +18,8 @@ import type { ReactImageGalleryItem } from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 
 import BusinessHours from "./BusinessHours";
+import BusinessLogo from "./BusinessLogo";
+import OnDemandBusinessMap from "./OnDemandBusinessMap";
 import RestaurantOrderExperience from "./RestaurantOrderExperience";
 import ShareButton from "./ShareButton";
 import type { Business } from "../types/business";
@@ -34,7 +36,6 @@ import { MENU_FEATURE_ENABLED } from "../lib/featureFlags";
 import { getEffectivePublicVariant } from "../lib/businessPlanVisibility";
 
 import { upsertReview, reviewsQuery, ReviewSchema } from "../lib/firestore/reviews";
-import { hasAdminOverride } from "../lib/adminOverrides";
 
 // Swiper for interactive image carousel
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -51,11 +52,6 @@ const _ImageGallery = dynamic(() => import("react-image-gallery"), {
 
   ssr: false
 
-}) as React.ComponentType<any>;
-
-// Carga dinámica para BusinessMapComponent (usa google.maps)
-const BusinessMapComponent = dynamic(() => import("./BusinessMapComponent"), {
-  ssr: false
 }) as React.ComponentType<any>;
 
 const ReportBusinessModal = dynamic(() => import("./ReportBusinessModal"), {
@@ -176,7 +172,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
   const [user, setUser] = useState<null | { uid: string; displayName?: string | null; email?: string | null }>(null);
 
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isOwnedBySession, setIsOwnedBySession] = useState(false);
 
   const [reviews, setReviews] = useState<ReviewDoc[]>([]);
 
@@ -191,7 +187,6 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
   const [busy, setBusy] = useState(false);
   const [saveData, setSaveData] = useState<boolean | null>(null);
   const [pageUrl, setPageUrl] = useState<string | undefined>(undefined);
-  const [isMounted, setIsMounted] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [showAllGalleryImages, setShowAllGalleryImages] = useState(false);
@@ -209,11 +204,6 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
   const showOrderCart =
     MENU_FEATURE_ENABLED && resolvedCategory.groupId === "food" && Boolean(businessId);
 
-  // Detectar cuando el componente está montado en el cliente
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   useEffect(() => {
     trackPageView('detail', {
       businessId,
@@ -224,11 +214,8 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
 
 
-  // Dueno autenticado exclusivamente por uid; ownerEmail es informativo.
-
-  const isOwnerByUid = Boolean(user?.uid && business.ownerId && user.uid === business.ownerId);
-
-  const canManage = (isOwnerByUid || isAdmin) && !!business.id;
+  // Ownership comes from the authenticated, server-side owner query below.
+  const canManage = isOwnedBySession && !!business.id;
 
   const dashboardHref = business.id ? `/dashboard/${business.id}` : "/dashboard";
 
@@ -238,27 +225,39 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
   useEffect(() => {
 
+    let active = true;
     const unsub = onAuthStateChanged(auth, async (u) => {
 
       setUser(u as any);
+      setIsOwnedBySession(false);
 
       if (u) {
         try {
-          const tr = await u.getIdTokenResult();
-          const email = (tr.claims?.email as string | undefined) || u.email;
-          setIsAdmin(tr.claims?.admin === true || hasAdminOverride(email));
+          if (businessId) {
+            const response = await fetch('/api/my-businesses', {
+              cache: 'no-store',
+              headers: { Authorization: `Bearer ${await u.getIdToken()}` },
+            });
+            if (response.ok) {
+              const payload = await response.json();
+              if (active && auth.currentUser?.uid === u.uid) {
+                setIsOwnedBySession(
+                  Array.isArray(payload.businesses) &&
+                  payload.businesses.some((owned: { id?: unknown }) => owned.id === businessId),
+                );
+              }
+            }
+          }
         } catch {
-          setIsAdmin(false);
+          setIsOwnedBySession(false);
         }
-      } else {
-        setIsAdmin(false);
       }
 
     });
 
-    return () => unsub();
+    return () => { active = false; unsub(); };
 
-  }, []);
+  }, [businessId]);
 
   useEffect(() => {
 
@@ -390,7 +389,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
     if (!user) return setErrorMsg("Debes iniciar sesion para dejar una resena.");
 
-    if (isOwnerByUid) return setErrorMsg("No puedes dejar resena en tu propio negocio.");
+    if (isOwnedBySession) return setErrorMsg("No puedes dejar resena en tu propio negocio.");
 
 
 
@@ -515,13 +514,7 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
 
   const googleKey = optionalPublicEnv("NEXT_PUBLIC_GOOGLE_MAPS_KEY");
   const dataSaverEnabled = saveData === true;
-  const canEmbed = !dataSaverEnabled && lat != null && lng != null;
-  let embedSrc: string | null = null;
-  if (canEmbed) {
-    embedSrc = googleKey
-      ? `https://www.google.com/maps/embed/v1/view?key=${googleKey}&center=${lat},${lng}&zoom=16`
-      : `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
-  }
+  const canOfferInteractiveMap = Boolean(googleKey && !dataSaverEnabled && lat != null && lng != null);
   const hasGallery = galleryItems.length > 0;
 
   // Helper para tracking de eventos en esta vista
@@ -555,9 +548,9 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
       id: business.id,
       saveData: dataSaverEnabled,
       hasGallery: !dataSaverEnabled && hasGallery,
-      hasMap: Boolean(embedSrc),
+      hasMap: canOfferInteractiveMap,
     });
-  }, [business.id, dataSaverEnabled, hasGallery, embedSrc]);
+  }, [business.id, dataSaverEnabled, hasGallery, canOfferInteractiveMap]);
 
 
   // -------- JSON-LD (SEO Local) ----------
@@ -743,13 +736,8 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
           <div className="flex items-start gap-3 mb-4">
             {/* Logo circular pequeño a la izquierda */}
             <div className="flex-shrink-0">
-              <img 
-                src={
-                  business.logoUrl ||
-                  business.image1 ||
-                  'https://via.placeholder.com/64x64?text=Logo'
-                } 
-                alt={`Logo de ${business.name}`}
+              <BusinessLogo
+                logoUrl={business.logoUrl}
                 className="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white ring-2 ring-gray-100"
               />
             </div>
@@ -1166,38 +1154,13 @@ export default function BusinessDetailView({ business, onGalleryStateChange }: P
         <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
           🗺️ Ubicación
         </h2>
-        {!dataSaverEnabled && (lat != null && lng != null) ? (
-          <div className="rounded-xl overflow-hidden border border-gray-200">
-            {isMounted ? (
-              <BusinessMapComponent business={business} height="400px" zoom={16} />
-            ) : (
-              <div className="h-[400px] flex items-center justify-center bg-gray-100">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600" />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center">
-            <div className="text-5xl mb-3">📍</div>
-            <p className="text-gray-600 mb-4">
-              {dataSaverEnabled 
-                ? "Modo ahorro de datos activo: mapa deshabilitado." 
-                : "No hay coordenadas disponibles para mostrar el mapa."}
-            </p>
-            {hasMapLink && (
-              <a
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#38761D] text-white rounded-lg font-semibold hover:bg-[#2d5418] transition shadow-md"
-                href={mapHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Abrir ubicacion de ${business.name} en Google Maps`}
-                onClick={handleMapClick}
-              >
-                🧭 Abrir en Google Maps
-              </a>
-            )}
-          </div>
-        )}
+        <OnDemandBusinessMap
+          business={business}
+          apiKey={googleKey}
+          externalHref={hasMapLink ? mapHref : null}
+          disabled={dataSaverEnabled}
+          onExternalClick={handleMapClick}
+        />
       </section>
 
       {/* Resenas */}

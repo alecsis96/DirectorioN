@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { optionalPublicEnv } from '../lib/env';
+import { loadGoogleMapsSdk } from '../lib/googleMapsLoader';
 
 type AddressValue = { address: string; lat: number; lng: number };
 type Props = {
@@ -13,43 +15,27 @@ export default function AddressPicker({ value, onChange }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [isLoadingMap, setIsLoadingMap] = useState(false);
+  const [mapLoadFailed, setMapLoadFailed] = useState(false);
+  const googleMapsKey = optionalPublicEnv('NEXT_PUBLIC_GOOGLE_MAPS_KEY');
   const mapInitializedRef = useRef(false);
   const googleMapInstanceRef = useRef<google.maps.Map | null>(null);
   const markerInstanceRef = useRef<google.maps.Marker | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Verificar si Google Maps está disponible (sin forzar carga)
-  useEffect(() => {
-    const checkGoogleMaps = () => {
-      if ('google' in window && window.google?.maps && window.google?.maps?.places) {
-        setIsGoogleMapsLoaded(true);
-        return true;
-      }
-      return false;
-    };
-
-    // Verificar inmediatamente
-    if (checkGoogleMaps()) return;
-
-    // Verificar periódicamente sin timeout de error
-    const interval = setInterval(() => {
-      if (checkGoogleMaps()) {
-        clearInterval(interval);
-      }
-    }, 1000);
-
-    // Limpiar después de 15 segundos
-    const cleanup = setTimeout(() => {
-      clearInterval(interval);
-    }, 15000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(cleanup);
-    };
-  }, [retryCount]);
+  const requestInteractiveMap = async () => {
+    if (!googleMapsKey || isLoadingMap) return;
+    setIsLoadingMap(true); setMapLoadFailed(false);
+    try {
+      await loadGoogleMapsSdk(googleMapsKey);
+      setIsGoogleMapsLoaded(true); setShowMap(true);
+    } catch {
+      setMapLoadFailed(true);
+    } finally {
+      setIsLoadingMap(false);
+    }
+  };
 
   // Sincronizar input cuando value.address cambia desde arriba
   useEffect(() => {
@@ -271,16 +257,17 @@ export default function AddressPicker({ value, onChange }: Props) {
       </div>
 
       {/* Botón para mostrar mapa solo si está disponible */}
-      {isGoogleMapsLoaded && !showMap && (
+      {googleMapsKey && !showMap && (
         <button
           type="button"
-          onClick={() => setShowMap(true)}
+          onClick={() => void requestInteractiveMap()}
+          disabled={isLoadingMap}
           className="w-full px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-medium flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
           </svg>
-          Usar mapa interactivo para ubicación precisa
+          {isLoadingMap ? 'Cargando mapa…' : 'Usar mapa interactivo para ubicación precisa'}
         </button>
       )}
 
@@ -298,7 +285,7 @@ export default function AddressPicker({ value, onChange }: Props) {
       )}
 
       {/* Mensaje de ayuda si Maps no está disponible */}
-      {!isGoogleMapsLoaded && (
+      {(!googleMapsKey || mapLoadFailed) && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
           <p className="flex items-center gap-2">
             <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { getIdToken } from 'firebase/auth';
 import Link from 'next/link';
 import { LayoutDashboard, Plus, Search, Store, Calendar, DollarSign, Eye, BarChart2 } from 'lucide-react';
+import { resolveOwnedBusinessStatus } from '../../lib/ownedBusinessPresentation';
 
 type Business = {
   id: string;
@@ -18,6 +19,7 @@ type Business = {
   createdAt: any;
   views?: number;
   rating?: number;
+  canManage: boolean;
 };
 
 export default function MisNegociosPage() {
@@ -61,12 +63,13 @@ export default function MisNegociosPage() {
           name: biz.name || 'Sin nombre',
           category: biz.category || '',
           plan: biz.plan || 'free',
-          status: (biz.status || 'draft') as Business['status'],
+          status: resolveOwnedBusinessStatus(biz),
           logoUrl: biz.logoUrl,
           image1: biz.image1 || biz.images?.[0]?.url,
           createdAt: biz.createdAt,
           views: biz.views || 0,
           rating: biz.rating || 0,
+          canManage: biz.canManage === true,
         });
       });
 
@@ -77,7 +80,8 @@ export default function MisNegociosPage() {
       });
 
       const apps = (payload.applications as any[] | undefined) ?? [];
-      const pendingApplication = apps.map((doc) => ({
+      const ownedBusinessIds = new Set(approvedBusinesses.map(business => business.id));
+      const pendingApplication = apps.filter(doc => !doc.businessId || !ownedBusinessIds.has(doc.businessId)).map((doc) => ({
         id: doc.id,
         name: doc.businessName || 'Sin nombre',
         category: doc.category || '',
@@ -88,6 +92,7 @@ export default function MisNegociosPage() {
         createdAt: doc.createdAt,
         views: 0,
         rating: 0,
+        canManage: false,
       }));
 
       const allBusinesses = [...approvedBusinesses, ...pendingApplication];
@@ -253,22 +258,22 @@ export default function MisNegociosPage() {
 
                     {/* Botones de Acción */}
                     <div className="space-y-2">
-                      {business.status === 'approved' || business.status === 'published' ? (
+                      {business.canManage ? (
                         <>
                           <Link
                             href={`/dashboard/${business.id}`}
                             className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#38761D] text-white rounded-lg font-semibold hover:bg-[#2f5a1a] transition"
                           >
                             <LayoutDashboard className="w-4 h-4" />
-                            Editar Negocio
+                            Gestionar negocio
                           </Link>
-                          <Link
+                          {business.status === 'published' && <Link
                             href={`/negocios/${business.id}`}
                             className="flex items-center justify-center gap-2 w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
                           >
                             <Eye className="w-4 h-4" />
                             Ver Publicación
-                          </Link>
+                          </Link>}
                         </>
                       ) : (
                         <Link

@@ -35,7 +35,16 @@ export async function GET(req: Request) {
     const byIdSnap = await db.collection('businesses').where('ownerId', '==', uid).get();
 
     const bizMap = new Map<string, Record<string, unknown>>();
-    byIdSnap.forEach((doc) => bizMap.set(doc.id, { id: doc.id, ...doc.data() }));
+    byIdSnap.forEach((doc) => {
+      const business = doc.data();
+      const { ownerId: _ownerId, ownerUid: _ownerUid, ...privateBusinessView } = business;
+      bizMap.set(doc.id, {
+        id: doc.id,
+        ...privateBusinessView,
+        // This flag is authoritative because the server query is ownerId == decoded uid.
+        canManage: business.ownerId === uid,
+      });
+    });
 
     // Applications v1 por identidad real. ownerEmail nunca concede lectura.
     const [appByIdSnap, appByOwnerSnap] = await Promise.all([
