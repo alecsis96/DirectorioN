@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 import { auth } from '../../../firebaseConfig';
-import { hasAdminOverride } from '../../../lib/adminOverrides';
+import { useAuth } from '../../../hooks/useAuth';
 import {
   REPORT_REASON_LABELS,
   REPORT_STATUS_LABELS,
@@ -14,8 +13,7 @@ import {
 } from '../../../types/report';
 
 export default function AdminReportsPage() {
-  const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<BusinessReport[]>([]);
   const [filter, setFilter] = useState<ReportStatus | 'all'>('pending');
@@ -24,24 +22,10 @@ export default function AdminReportsPage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        router.push('/');
-        return;
-      }
-
-      const admin = await hasAdminOverride(user.email);
-      if (!admin) {
-        router.push('/');
-        return;
-      }
-
-      setIsAdmin(true);
-      loadReports();
-    });
-
-    return () => unsubscribe();
-  }, [router]);
+    if (authLoading) return;
+    if (isAdmin) void loadReports();
+    else setLoading(false);
+  }, [authLoading, isAdmin]);
 
   const loadReports = async () => {
     try {

@@ -5,13 +5,14 @@ import { EMAIL_LINK_AUTH_ENABLED } from '../../../../lib/featureFlags';
 import { getAdminAuth, getAdminFirestore } from '../../../../lib/server/firebaseAdmin';
 import { assertClaimUser } from '../../../../lib/server/ownershipClaimAttempts';
 import { assertUnambiguousAuthProject } from '../../../../lib/server/claimIdentityPolicy';
-import { sendAttemptEmailSignInLink } from '../../../../lib/server/ownershipEmailLink';
+import { sendOrdinaryEmailSignInLink } from '../../../../lib/server/ordinaryEmailLink';
+import { safeInternalNext } from '../../../../lib/authRedirect';
 
 export const runtime = 'nodejs';
 const COOKIE = '__Host-yajagonEmailLogin';
 const hash = (text: string) => createHash('sha256').update(text).digest('hex');
 const schema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('request'), email: z.string().trim().email().max(200) }).strict(),
+  z.object({ action: z.literal('request'), email: z.string().trim().email().max(200), next: z.string().max(500).optional() }).strict(),
   z.object({ action: z.literal('context') }).strict(),
 ]);
 const response = (body: object, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
       return true;
     });
     if (!allowed) return accepted;
-    await sendAttemptEmailSignInLink(email, origin, true);
+    await sendOrdinaryEmailSignInLink(email, origin, safeInternalNext(body.next));
   } catch { /* Do not reveal user existence or authentication policy. */ }
   return accepted;
 }

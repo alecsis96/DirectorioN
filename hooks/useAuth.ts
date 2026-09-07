@@ -3,8 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebaseConfig";
-import { hasAdminOverride } from "../lib/adminOverrides";
+import { auth, authPersistenceReady } from "../firebaseConfig";
 import { writeSessionCookie } from "../lib/sessionCookie";
 
 /**
@@ -22,32 +21,25 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-
-      if (currentUser) {
-        try {
-          const tokenResult = await currentUser.getIdTokenResult();
-          const email =
-            (tokenResult.claims?.email as string | undefined) || currentUser.email;
-          setIsAdmin(
-            tokenResult.claims?.admin === true || hasAdminOverride(email)
-          );
-          writeSessionCookie(tokenResult.token);
-        } catch (error) {
-          console.error("Error al verificar claims de admin:", error);
-          setIsAdmin(false);
-          writeSessionCookie();
-        }
-      } else {
+    let active = true;
+    let unsubscribe = () => {};
+    void authPersistenceReady.then(() => {
+      if (!active) return;
+      unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        setUser(currentUser);
         setIsAdmin(false);
-        writeSessionCookie();
-      }
+        try {
+          const state = await writeSessionCookie(currentUser ? await currentUser.getIdToken() : undefined);
+          if (active) setIsAdmin(currentUser !== null && state.isAdmin === true);
+        } catch {
+          if (active) setIsAdmin(false);
+        } finally {
+          if (active) setLoading(false);
+        }
+      });
+    }).catch(() => { if (active) setLoading(false); });
 
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    return () => { active = false; unsubscribe(); };
   }, []);
 
   return { user, isAdmin, loading };
@@ -63,8 +55,12 @@ export function useCurrentUser(): User | null {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
+    let active = true;
+    let unsubscribe = () => {};
+    void authPersistenceReady.then(() => {
+      if (active) unsubscribe = onAuthStateChanged(auth, setUser);
+    }).catch(() => {});
+    return () => { active = false; unsubscribe(); };
   }, []);
 
   return user;

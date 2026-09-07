@@ -468,10 +468,10 @@ describe('0.2R.2 integration boundaries', () => {
 
   it('adds an admin-only shortcut without changing ownership checks', () => {
     const navigation = source('components/Navigation.tsx');
-    expect(navigation).toContain("label: 'Panel admin'");
-    expect(navigation).toContain("href: '/admin/solicitudes'");
+    expect(navigation).toContain("label: 'Panel de administración'");
+    expect(navigation).toContain("href: '/admin'");
     expect(navigation).toContain('...(isAdmin ?');
-    expect(navigation.match(/href=\"\/admin\/solicitudes\"/g)).toHaveLength(1);
+    expect(navigation.match(/href=\"\/admin\"/g)).toHaveLength(1);
     expect(navigation).toContain('Revisa solicitudes nuevas');
     expect(source('hooks/useAuth.ts')).toContain('business.ownerId && user.uid === business.ownerId');
   });

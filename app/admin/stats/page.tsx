@@ -1,39 +1,7 @@
-import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-
-import { hasAdminOverride } from '../../../lib/adminOverrides';
-import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { requireAdminPage } from '../../../lib/server/adminPageAuthorization';
 
 export const dynamic = 'force-dynamic';
-
-async function requireAdmin() {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  const authHeader = headerStore.get('authorization');
-  const token =
-    cookieStore.get('__session')?.value ||
-    cookieStore.get('session')?.value ||
-    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader);
-
-  if (!token) {
-    redirect('/para-negocios?auth=required');
-  }
-
-  const auth = getAdminAuth();
-  try {
-    const decoded = await auth.verifySessionCookie(token, true);
-    if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-  } catch {
-    try {
-      const decoded = await auth.verifyIdToken(token);
-      if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-    } catch (error) {
-      console.error('[admin/stats] auth error', error);
-    }
-  }
-
-  redirect('/?auth=forbidden');
-}
 
 interface AdminStats {
   totalBusinesses: number;
@@ -112,7 +80,7 @@ async function getAdminStats(): Promise<AdminStats> {
 }
 
 export default async function AdminStatsPage() {
-  await requireAdmin();
+  await requireAdminPage('/admin/stats');
   const stats = await getAdminStats();
 
   return (

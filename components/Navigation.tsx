@@ -22,9 +22,8 @@ import {
   Store
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
 import LoginModal from './LoginModal';
+import { logoutEverywhereInThisBrowser } from '../lib/logout';
 
 // Componente de Menú Desplegable de Usuario
 const UserDropdown = ({ user, isAdmin, onSignOut }: { user: any, isAdmin: boolean, onSignOut: () => void }) => {
@@ -43,7 +42,7 @@ const UserDropdown = ({ user, isAdmin, onSignOut }: { user: any, isAdmin: boolea
   }, []);
 
   const menuItems = [
-    ...(isAdmin ? [{ icon: LayoutDashboard, label: 'Panel admin', href: '/admin/solicitudes', desc: 'Revisa solicitudes nuevas', badge: 'Admin' }] : []),
+    ...(isAdmin ? [{ icon: LayoutDashboard, label: 'Panel de administración', href: '/admin', desc: 'Abre el panel administrativo', badge: 'Admin' }] : []),
     { icon: LayoutDashboard, label: 'Mis Negocios', href: '/mis-negocios', desc: 'Gestiona tus empresas' },
     { icon: Heart, label: 'Favoritos', href: '/favoritos', desc: 'Tus lugares guardados' },
     { icon: History, label: 'Historial', href: '/historial', desc: 'Visto recientemente' },
@@ -183,7 +182,7 @@ function NavigationContent() {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await logoutEverywhereInThisBrowser();
       router.push('/');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
@@ -800,7 +799,7 @@ function NavigationContent() {
             <div className="p-4">
               {isAdmin ? (
                 <Link
-                  href="/admin/solicitudes"
+                  href="/admin"
                   onClick={() => setShowProfileModal(false)}
                   className="flex items-center gap-4 rounded-xl p-4 transition-colors hover:bg-violet-50 active:bg-violet-100"
                 >
@@ -809,7 +808,7 @@ function NavigationContent() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-base font-semibold text-gray-900">Panel admin</p>
+                      <p className="text-base font-semibold text-gray-900">Panel de administración</p>
                       <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700">Admin</span>
                     </div>
                     <p className="text-xs text-gray-500">Revisa solicitudes nuevas</p>

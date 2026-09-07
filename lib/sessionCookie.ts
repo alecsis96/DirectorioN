@@ -1,12 +1,18 @@
-export function writeSessionCookie(token?: string, maxAgeSeconds = 60 * 60 * 24) {
-  if (typeof document === 'undefined') return;
-  const base = '__session=';
-  const isSecure = window.location.protocol === 'https:';
-  const secureFlag = isSecure ? '; Secure' : '';
-  
-  if (!token) {
-    document.cookie = `${base}; path=/; max-age=0; SameSite=Lax${secureFlag}`;
-    return;
-  }
-  document.cookie = `${base}${token}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax${secureFlag}`;
+import { SESSION_SYNC_HEADER } from './sessionConfig';
+
+export type ServerSessionState = { authenticated: boolean; isAdmin: boolean };
+
+/** Exchange a current Firebase ID token for an HttpOnly server session, or clear it. */
+export async function writeSessionCookie(token?: string): Promise<ServerSessionState> {
+  const response = await fetch('/api/auth/session', {
+    method: token ? 'POST' : 'DELETE',
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers: {
+      [SESSION_SYNC_HEADER]: '1',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!response.ok) throw new Error('SERVER_SESSION_SYNC_FAILED');
+  return response.json();
 }

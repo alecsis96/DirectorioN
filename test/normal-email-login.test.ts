@@ -3,7 +3,7 @@ const mocks = vi.hoisted(() => ({ getUserByEmail: vi.fn(), createUser: vi.fn(), 
 vi.mock('../lib/featureFlags', () => ({ EMAIL_LINK_AUTH_ENABLED: true, OWNERSHIP_CLAIMS_ENABLED: true }));
 vi.mock('../lib/server/claimIdentityPolicy', () => ({ assertUnambiguousAuthProject: async () => {} }));
 vi.mock('../lib/server/firebaseAdmin', () => ({ getAdminAuth: () => mocks, getAdminFirestore: () => mocks.db }));
-vi.mock('../lib/server/ownershipEmailLink', () => ({ sendAttemptEmailSignInLink: mocks.send }));
+vi.mock('../lib/server/ordinaryEmailLink', () => ({ sendOrdinaryEmailSignInLink: mocks.send }));
 import { POST } from '../app/api/login/email/route';
 
 let records: Map<string, any>;
@@ -28,7 +28,7 @@ function request(body: object, cookie = '') {
 it('normal email login remembers email across tabs, sends Firebase auth, and never assigns ownership or bootstraps', async () => {
   const response = await POST(request({ action: 'request', email: 'owner@example.com' }));
   expect(response.status).toBe(202);
-  expect(mocks.send).toHaveBeenCalledWith('owner@example.com', 'https://example.test', true);
+  expect(mocks.send).toHaveBeenCalledWith('owner@example.com', 'https://example.test', '/dashboard');
   const cookie = response.headers.get('set-cookie')!.split(';')[0];
   expect(await (await POST(request({ action: 'context' }, cookie))).json()).toEqual({ ok: true, email: 'owner@example.com' });
   await POST(request({ action: 'request', email: 'owner@example.com' }));

@@ -1,42 +1,12 @@
-import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-
 import InboxVirtual from '@/components/admin/operations/InboxVirtual';
-import { hasAdminOverride } from '@/lib/adminOverrides';
-import { getAdminAuth, getAdminFirestore } from '@/lib/server/firebaseAdmin';
+import { getAdminFirestore } from '@/lib/server/firebaseAdmin';
+import { requireAdminPage } from '@/lib/server/adminPageAuthorization';
 import { MONETIZATION_FEATURE_ENABLED } from '@/lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
   title: 'Inbox - Admin Panel',
 };
-
-async function requireAdmin() {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  const authHeader = headerStore.get('authorization');
-  const token =
-    cookieStore.get('__session')?.value ||
-    cookieStore.get('session')?.value ||
-    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader);
-
-  if (!token) redirect('/para-negocios?auth=required');
-
-  const auth = getAdminAuth();
-  try {
-    const decoded = await auth.verifySessionCookie(token, true);
-    if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-  } catch {
-    try {
-      const decoded = await auth.verifyIdToken(token);
-      if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-    } catch (error) {
-      console.error('[admin] auth error', error);
-    }
-  }
-
-  redirect('/?auth=forbidden');
-}
 
 interface InboxItem {
   id: string;
@@ -143,7 +113,7 @@ async function fetchInboxItems() {
 }
 
 export default async function AdminInboxPage() {
-  await requireAdmin();
+  await requireAdminPage('/admin');
   const items = await fetchInboxItems();
 
   return (

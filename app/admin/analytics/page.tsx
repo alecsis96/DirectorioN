@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 
 import { auth } from '../../../firebaseConfig';
-import { hasAdminOverride } from '../../../lib/adminOverrides';
+import { useAuth } from '../../../hooks/useAuth';
 
 type AnalyticsData = {
   totalEvents: number;
@@ -82,34 +81,12 @@ function formatTrend(change?: string) {
 }
 
 export default function AnalyticsPage() {
-  const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { isAdmin, loading } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'today' | '7d' | '30d' | 'all'>('7d');
   const [searchTerm, setSearchTerm] = useState('');
   const [eventFilter, setEventFilter] = useState('');
   const [ctaFilter, setCtaFilter] = useState('');
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        router.push('/');
-        return;
-      }
-
-      const admin = await hasAdminOverride(user.email);
-      if (!admin) {
-        router.push('/');
-        return;
-      }
-
-      setIsAdmin(true);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [router]);
 
   const fetcher = async (url: string) => {
     const user = auth.currentUser;

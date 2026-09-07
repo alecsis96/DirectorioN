@@ -1,43 +1,10 @@
-import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-
 import AdminBusinessCreator from '../../../../components/AdminBusinessCreator';
-import { hasAdminOverride } from '../../../../lib/adminOverrides';
-import { getAdminAuth } from '../../../../lib/server/firebaseAdmin';
+import { requireAdminPage } from '../../../../lib/server/adminPageAuthorization';
 
 export const dynamic = 'force-dynamic';
 
-async function requireAdmin() {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  const authHeader = headerStore.get('authorization');
-  const token =
-    cookieStore.get('__session')?.value ||
-    cookieStore.get('session')?.value ||
-    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader);
-
-  if (!token) {
-    redirect('/para-negocios?auth=required');
-  }
-
-  const auth = getAdminAuth();
-  try {
-    const decoded = await auth.verifySessionCookie(token, true);
-    if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-  } catch {
-    try {
-      const decoded = await auth.verifyIdToken(token);
-      if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-    } catch (error) {
-      console.error('[admin/businesses/nuevo] auth error', error);
-    }
-  }
-
-  redirect('/?auth=forbidden');
-}
-
 export default async function AdminCreateBusinessPage() {
-  await requireAdmin();
+  await requireAdminPage('/admin/businesses/nuevo');
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">

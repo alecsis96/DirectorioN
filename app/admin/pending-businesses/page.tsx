@@ -1,40 +1,9 @@
-import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import PendingBusinessesList from '../../../components/PendingBusinessesList';
-import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
-import { hasAdminOverride } from '../../../lib/adminOverrides';
+import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { requireAdminPage } from '../../../lib/server/adminPageAuthorization';
 import { requireLegacyAccess } from '../../../lib/legacyRouteGuard';
 
 export const dynamic = 'force-dynamic';
-
-async function requireAdmin() {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  const authHeader = headerStore.get('authorization');
-  const token =
-    cookieStore.get('__session')?.value ||
-    cookieStore.get('session')?.value ||
-    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader);
-
-  if (!token) {
-    redirect('/para-negocios?auth=required');
-  }
-
-  const auth = getAdminAuth();
-  try {
-    const decoded = await auth.verifySessionCookie(token, true);
-    if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-  } catch {
-    try {
-      const decoded = await auth.verifyIdToken(token);
-      if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-    } catch (error) {
-      console.error('[admin/pending-businesses] auth error', error);
-    }
-  }
-
-  redirect('/?auth=forbidden');
-}
 
 function serializeTimestamp(value: any): string | null {
   if (value?.toDate) return value.toDate().toISOString();
@@ -86,7 +55,7 @@ export default async function PendingBusinessesPage() {
   // Guard: verificar si rutas legacy están habilitadas
   requireLegacyAccess('/admin/pending-businesses');
   
-  await requireAdmin();
+  await requireAdminPage('/admin/pending-businesses');
   const businesses = await fetchPendingBusinesses();
 
   return (

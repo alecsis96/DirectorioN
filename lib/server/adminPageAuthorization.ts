@@ -8,8 +8,9 @@ import {
   AuthorizationError,
   extractBearerToken,
 } from './authorization';
+import { adminFailureDestination } from '../authRedirect';
 
-export async function requireAdminPage() {
+export async function requireAdminPage(nextPath = '/admin') {
   const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
   const token =
     extractBearerToken(headerStore) ||
@@ -23,7 +24,6 @@ export async function requireAdminPage() {
     return await assertAdminSessionOrIdToken(token);
   } catch (error) {
     if (!(error instanceof AuthorizationError)) throw error;
-    if (error.status === 401) redirect('/para-negocios?auth=required');
-    redirect('/?auth=forbidden');
+    redirect(adminFailureDestination(error.status, nextPath));
   }
 }

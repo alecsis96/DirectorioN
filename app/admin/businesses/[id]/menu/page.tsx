@@ -1,42 +1,11 @@
-import { cookies, headers } from 'next/headers';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { FaArrowLeft, FaUtensils } from 'react-icons/fa';
 
 import MenuManager from '@/components/MenuManager';
-import { hasAdminOverride } from '@/lib/adminOverrides';
 import { MENU_FEATURE_ENABLED } from '@/lib/featureFlags';
-import { getAdminAuth, getAdminFirestore } from '@/lib/server/firebaseAdmin';
-
-async function requireAdmin() {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  const authHeader = headerStore.get('authorization');
-  const token =
-    cookieStore.get('__session')?.value ||
-    cookieStore.get('session')?.value ||
-    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader);
-
-  if (!token) {
-    redirect('/para-negocios?auth=required');
-  }
-
-  const auth = getAdminAuth();
-
-  try {
-    const decoded = await auth.verifySessionCookie(token, true);
-    if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-  } catch {
-    try {
-      const decoded = await auth.verifyIdToken(token);
-      if ((decoded as any).admin === true || hasAdminOverride(decoded.email)) return decoded;
-    } catch (error) {
-      console.error('[admin/businesses/[id]/menu] auth error', error);
-    }
-  }
-
-  redirect('/?auth=forbidden');
-}
+import { getAdminFirestore } from '@/lib/server/firebaseAdmin';
+import { requireAdminPage } from '@/lib/server/adminPageAuthorization';
 
 async function fetchBusiness(businessId: string) {
   const db = getAdminFirestore();
@@ -59,14 +28,13 @@ export default async function AdminBusinessMenuPage({
 }: {
   params: { id: string } | Promise<{ id: string }>;
 }) {
+  const resolvedParams = await params;
+  const businessId = decodeURIComponent(resolvedParams.id);
   if (!MENU_FEATURE_ENABLED) {
     redirect('/admin/businesses');
   }
 
-  await requireAdmin();
-
-  const resolvedParams = await params;
-  const businessId = decodeURIComponent(resolvedParams.id);
+  await requireAdminPage(`/admin/businesses/${encodeURIComponent(businessId)}/menu`);
   const business = await fetchBusiness(businessId);
 
   if (!business) {

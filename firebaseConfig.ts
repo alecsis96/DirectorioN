@@ -3,6 +3,8 @@ import { initializeApp, getApps, type FirebaseOptions } from "firebase/app";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import {
   getAuth,
+  browserLocalPersistence,
+  setPersistence,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
@@ -33,6 +35,12 @@ const firebaseConfig: FirebaseOptions = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+/** Firebase restores the browser user locally; server authorization still requires an HttpOnly session. */
+export const authPersistenceReady: Promise<void> = typeof window === 'undefined'
+  ? Promise.resolve()
+  : setPersistence(auth, browserLocalPersistence).catch(() => {
+      // Continue with Firebase's available persistence if local persistence is unavailable.
+    });
 if (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true' && firebaseConfig.projectId?.startsWith('demo-')) {
   // Demo projects have no production resources. Only used by the isolated E2E runner.
   const state = globalThis as typeof globalThis & { claimEmulatorsConnected?: boolean };
