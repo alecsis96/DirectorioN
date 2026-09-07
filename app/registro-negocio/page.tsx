@@ -17,7 +17,7 @@ export default async function RegistroNegocioPage() {
     : 'off';
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 px-6 py-12 pb-24 md:pb-12 text-gray-800">
+    <main className="min-h-screen bg-gradient-to-b from-white to-gray-50 px-4 py-6 pb-20 text-gray-800 sm:px-6 sm:py-10">
       <section className="mx-auto max-w-5xl">
         <BusinessWizard
           publicApplicationV2Enabled={PUBLIC_APPLICATION_V2_ENABLED}

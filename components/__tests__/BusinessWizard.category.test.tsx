@@ -299,7 +299,7 @@ describe('BusinessWizard - Category Selection Bug Fix', () => {
       expect(categorySelect).toBeDisabled();
       
       // Placeholder option should exist
-      const placeholder = within(categorySelect).getByText(/selecciona un grupo primero/i);
+      const placeholder = within(categorySelect).getByText(/elige una categoría primero/i);
       expect(placeholder).toBeInTheDocument();
     });
   });

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
+import React, { useCallback, useEffect, useRef, useState, Suspense } from "react";
 import { useForm, UseFormRegister, Controller } from "react-hook-form";
 import { auth, db, signInWithGoogle } from "../firebaseConfig";
 import { doc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -158,8 +158,8 @@ const defaultValues: WizardData = {
 // ---------- Pasos SIMPLIFICADOS (Solo fase pública) ----------
 // El dueño completará el resto en el dashboard después de la aprobación
 const steps = [
-  { key: "basics", title: "Información básica" },
-  { key: "confirm", title: "Confirmación" },
+  { key: "basics", title: "Datos" },
+  { key: "confirm", title: "Confirmar" },
 ] as const;
 type StepKey = typeof steps[number]["key"];
 
@@ -264,7 +264,6 @@ function BusinessWizardProInner({
   
   // Watch category values for display
   const watchedGroupId = watch("categoryGroupId") as CategoryGroupId | "";
-  const watchedCategoryId = watch("categoryId") || "";
   const watchedOwnerPhone = watch("ownerPhone") || "";
   const watchedBusinessPhone = watch("phone") || "";
 
@@ -279,8 +278,8 @@ function BusinessWizardProInner({
   const [emailVerificationRequired, setEmailVerificationRequired] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [existingBusiness, setExistingBusiness] = useState<{ id: string; name: string } | null>(null);
-  const [useOwnerPhoneForBusiness, setUseOwnerPhoneForBusiness] = useState(false);
-  const [useBusinessPhoneForWhatsapp, setUseBusinessPhoneForWhatsapp] = useState(false);
+  const [useOwnerPhoneForBusiness, setUseOwnerPhoneForBusiness] = useState(publicApplicationV2Enabled);
+  const [useBusinessPhoneForWhatsapp, setUseBusinessPhoneForWhatsapp] = useState(publicApplicationV2Enabled);
   const [publicConfirmation, setPublicConfirmation] = useState<PublicApplicationConfirmation | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileResetKey, setTurnstileResetKey] = useState(0);
@@ -487,7 +486,7 @@ function BusinessWizardProInner({
       const next = steps[index + 1];
       
       // Validar checkbox en el último paso
-      if (!next && !confirmChecked) {
+      if (!next && !publicApplicationV2Enabled && !confirmChecked) {
         setShowConfirmError(true);
         return;
       }
@@ -643,31 +642,24 @@ function BusinessWizardProInner({
   }, [currentStep]);
 
   // ------------- Contenido por paso SIMPLIFICADO -------------
-  const stepContent = useMemo(() => {
+  const stepContent = (() => {
     switch (currentStep) {
       case "basics":
         return (
-          <div className="grid gap-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                 Solicitud de registro simplificada
-              </h3>
-              <p className="text-sm text-blue-800">
-                Solo necesitamos estos datos básicos para comenzar. Después de la aprobación, podrás completar toda la información de tu negocio en el dashboard.
-              </p>
-            </div>
-
-            <Group title="Tus datos (Responsable)">
-              <Field label="Tu nombre completo" error={formState.errors.ownerName?.message}>
+          <div className="grid gap-4">
+            <Group title="Tus datos" description="Usaremos estos datos para avisarte sobre tu solicitud.">
+              <Field label="Nombre" htmlFor="owner-name" error={formState.errors.ownerName?.message}>
                 <input 
+                  id="owner-name"
                   className="input" 
                   placeholder="Ej: Juan Pérez" 
                   {...register("ownerName", { required: "Ingresa tu nombre" })} 
                 />
               </Field>
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field label="Tu correo electrónico" error={formState.errors.ownerEmail?.message}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Correo" htmlFor="owner-email" error={formState.errors.ownerEmail?.message}>
                   <input 
+                    id="owner-email"
                     className="input" 
                     type="email" 
                     placeholder="correo@gmail.com" 
@@ -679,10 +671,12 @@ function BusinessWizardProInner({
                     })}
                   />
                 </Field>
-                <Field label="Tu teléfono" error={formState.errors.ownerPhone?.message}>
+                <Field label="Teléfono" htmlFor="owner-phone" error={formState.errors.ownerPhone?.message}>
                   <input 
+                    id="owner-phone"
                     className="input" 
-                    aria-label="Tu teléfono"
+                    type="tel"
+                    inputMode="tel"
                     placeholder="9611234567" 
                     {...register("ownerPhone", {
                       required: "Ingresa tu teléfono",
@@ -696,232 +690,169 @@ function BusinessWizardProInner({
                       <input
                         type="checkbox"
                         checked={useOwnerPhoneForBusiness}
-                        onChange={(event) => setUseOwnerPhoneForBusiness(event.target.checked)}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setUseOwnerPhoneForBusiness(checked);
+                          setValue('phone', checked ? getValues('ownerPhone') : '', { shouldValidate: true });
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-[#38761D]"
                       />
-                      Usar este número como teléfono del negocio
+                      Usar este número para mi negocio
                     </label>
                   )}
                 </Field>
               </div>
             </Group>
 
-            <Group title="Información del negocio">
-              <Field label="Nombre del negocio" error={formState.errors.businessName?.message}>
+            <Group title="Tu negocio">
+              <Field label="Nombre del negocio" htmlFor="business-name" error={formState.errors.businessName?.message}>
                 <input 
+                  id="business-name"
                   className="input" 
                   placeholder="Ej: Restaurante El Sabor" 
                   {...register("businessName", { required: "Ingresa el nombre del negocio" })} 
                 />
               </Field>
               
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field label={publicApplicationV2Enabled ? "Categoría y tipo de negocio" : "Categora"} error={formState.errors.category?.message}>
-                  {/* Hidden fields for category metadata */}
-                  <input type="hidden" {...register("categoryName")} />
-                  <input type="hidden" {...register("category")} />
-                  
-                  <div className="space-y-3">
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-700">
-                          {publicApplicationV2Enabled ? 'Categoría' : 'Grupo'}
-                        </label>
-                        <div className="relative">
-                          <Controller
-                            name="categoryGroupId"
-                            control={control}
-                            rules={publicApplicationV2Enabled ? { required: 'Selecciona una categoría' } : undefined}
-                            render={({ field }) => (
-                              <select
-                                {...field}
-                                aria-label={publicApplicationV2Enabled ? 'Categoría' : 'Grupo'}
-                                className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                                onChange={(e) => {
-                                  const nextGroup = e.target.value as CategoryGroupId;
-                                  field.onChange(nextGroup);
-                                  // Clear category when group changes
-                                  setValue("categoryId", "");
-                                  setValue("categoryName", "");
-                                  setValue("category", "");
-                                }}
-                              >
-                                <option value="" disabled>
-                                  Selecciona un grupo
-                                </option>
-                                {CATEGORY_GROUPS.map((group) => (
-                                  <option key={group.id} value={group.id}>
-                                    {group.icon} {group.name}
-                                  </option>
-                                ))}
-                              </select>
-                            )}
-                          />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
-                        </div>
-                        <p className="text-[11px] text-gray-600">
-                          {publicApplicationV2Enabled
-                            ? 'Elige la categoría general de tu negocio.'
-                            : 'Elige un grupo para acotar las categoras disponibles.'}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-700">
-                          {publicApplicationV2Enabled ? 'Tipo de negocio' : 'Categora especfica'}
-                        </label>
-                        <div className="relative">
-                          <Controller
-                            name="categoryId"
-                            control={control}
-                            rules={publicApplicationV2Enabled ? { required: 'Selecciona un tipo de negocio' } : undefined}
-                            render={({ field }) => {
-                              const availableCats = watchedGroupId ? getCategoriesByGroup(watchedGroupId as CategoryGroupId) : [];
-                              
-                              return (
-                                <select
-                                  {...field}
-                                  aria-label={publicApplicationV2Enabled ? 'Tipo de negocio' : 'Categoría específica'}
-                                  className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                                  disabled={!watchedGroupId}
-                                  onChange={(e) => {
-                                    const catId = e.target.value;
-                                    field.onChange(catId);
-                                    
-                                    if (catId) {
-                                      const cat = CATEGORIES.find((c) => c.id === catId);
-                                      if (cat) {
-                                        setValue("categoryName", cat.name);
-                                        setValue("category", cat.name);
-                                      }
-                                    } else {
-                                      setValue("categoryName", "");
-                                      setValue("category", "");
-                                    }
-                                  }}
-                                >
-                                  {!watchedGroupId && <option value="">Selecciona un grupo primero</option>}
-                                  {watchedGroupId && <option value="">Selecciona una categoría</option>}
-                                  {watchedGroupId && availableCats.length === 0 && (
-                                    <option value="">No hay categoras para este grupo</option>
-                                  )}
-                                  {watchedGroupId && availableCats.map((cat) => (
-                                    <option key={cat.id} value={cat.id}>
-                                      {cat.icon} {cat.name}
-                                    </option>
-                                  ))}\n                                </select>
-                              );
-                            }}
-                          />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></span>
-                        </div>
-                        <p className="text-[11px] text-gray-600">
-                          {publicApplicationV2Enabled
-                            ? 'Selecciona la opción que mejor describe tu negocio.'
-                            : 'Guardamos el slug estable y la etiqueta legacy para compatibilidad.'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                      <span className="text-base">
-                        {(() => {
-                          const availableCats = watchedGroupId ? getCategoriesByGroup(watchedGroupId as CategoryGroupId) : [];
-                          return availableCats.find((c) => c.id === watchedCategoryId)?.icon ?? "";
-                        })()}
-                      </span>
-                      <div>
-                        <div className="font-semibold">
-                          {(() => {
-                            const availableCats = watchedGroupId ? getCategoriesByGroup(watchedGroupId as CategoryGroupId) : [];
-                            return availableCats.find((c) => c.id === watchedCategoryId)?.name ?? "Selecciona una categora";
-                          })()}
-                        </div>
-                        <div className="text-xs text-emerald-700">
-                          {publicApplicationV2Enabled ? 'Categoría' : 'Grupo'}: {CATEGORY_GROUPS.find((g) => g.id === watchedGroupId)?.name ?? "Sin seleccionar"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <input type="hidden" {...register("categoryName")} />
+              <input type="hidden" {...register("category")} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label={publicApplicationV2Enabled ? 'Categoría' : 'Grupo'} htmlFor="business-category-group" error={formState.errors.categoryGroupId?.message}>
+                  <Controller
+                    name="categoryGroupId"
+                    control={control}
+                    rules={publicApplicationV2Enabled ? { required: 'Selecciona una categoría' } : undefined}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        id="business-category-group"
+                        className="input appearance-none bg-white"
+                        onChange={(event) => {
+                          field.onChange(event.target.value as CategoryGroupId);
+                          setValue('categoryId', '');
+                          setValue('categoryName', '');
+                          setValue('category', '');
+                        }}
+                      >
+                        <option value="">Selecciona una categoría</option>
+                        {CATEGORY_GROUPS.map((group) => (
+                          <option key={group.id} value={group.id}>{group.icon} {group.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  />
                 </Field>
 
-                <Field label="WhatsApp del negocio">
-                  <input 
-                    className="input" 
-                    aria-label="WhatsApp del negocio"
-                    placeholder="5219991234567" 
-                    readOnly={publicApplicationV2Enabled && useBusinessPhoneForWhatsapp}
-                    {...register("whatsapp")} 
+                <Field label={publicApplicationV2Enabled ? 'Tipo de negocio' : 'Categoría específica'} htmlFor="business-category-type" error={formState.errors.categoryId?.message}>
+                  <Controller
+                    name="categoryId"
+                    control={control}
+                    rules={publicApplicationV2Enabled ? { required: 'Selecciona un tipo de negocio' } : undefined}
+                    render={({ field }) => {
+                      const availableCategories = watchedGroupId
+                        ? getCategoriesByGroup(watchedGroupId as CategoryGroupId)
+                        : [];
+                      return (
+                        <select
+                          {...field}
+                          id="business-category-type"
+                          className="input appearance-none bg-white"
+                          disabled={!watchedGroupId}
+                          onChange={(event) => {
+                            const categoryId = event.target.value;
+                            field.onChange(categoryId);
+                            const category = CATEGORIES.find((item) => item.id === categoryId);
+                            setValue('categoryName', category?.name || '');
+                            setValue('category', category?.name || '');
+                          }}
+                        >
+                          <option value="">{watchedGroupId ? 'Selecciona un tipo' : 'Elige una categoría primero'}</option>
+                          {availableCategories.map((category) => (
+                            <option key={category.id} value={category.id}>{category.icon} {category.name}</option>
+                          ))}
+                        </select>
+                      );
+                    }}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Incluye código de país (521...)
-                  </p>
                 </Field>
               </div>
 
-              <Field label="Teléfono del negocio">
-                <input 
-                  className="input" 
-                  aria-label="Teléfono del negocio"
-                  placeholder="9991234567" 
-                  readOnly={publicApplicationV2Enabled && useOwnerPhoneForBusiness}
-                  {...register("phone")} 
-                />
-                {publicApplicationV2Enabled && (
-                  <label className="mt-2 flex items-center gap-2 text-xs font-medium text-gray-600">
-                    <input
-                      type="checkbox"
-                      checked={useBusinessPhoneForWhatsapp}
-                      onChange={(event) => setUseBusinessPhoneForWhatsapp(event.target.checked)}
-                    />
-                    Usar este número también para WhatsApp
-                  </label>
-                )}
-              </Field>
+              {!publicApplicationV2Enabled || !useOwnerPhoneForBusiness ? (
+                <Field label="Contacto del negocio" htmlFor="business-contact" error={formState.errors.phone?.message}>
+                  <input
+                    id="business-contact"
+                    className="input"
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="9611234567"
+                    {...register('phone', {
+                      ...(publicApplicationV2Enabled ? {
+                        required: 'Ingresa el contacto del negocio',
+                        pattern: { value: /^\+?[\d\s().-]{7,40}$/, message: 'Ingresa un teléfono válido' },
+                      } : {}),
+                    })}
+                  />
+                </Field>
+              ) : null}
+
+              {publicApplicationV2Enabled ? (
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={useBusinessPhoneForWhatsapp}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setUseBusinessPhoneForWhatsapp(checked);
+                      setValue('whatsapp', checked ? getValues('phone') : '');
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-[#38761D]"
+                  />
+                  Este número tiene WhatsApp
+                </label>
+              ) : (
+                <Field label="WhatsApp del negocio" htmlFor="business-whatsapp">
+                  <input id="business-whatsapp" className="input" {...register('whatsapp')} />
+                </Field>
+              )}
             </Group>
 
-            <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-3.5">
-              <p className="text-xs text-amber-900 leading-relaxed">
-                <span className="text-sm"></span> Solo necesitamos un medio de contacto.
-                Después podrás agregar ubicación, horarios, fotos y más desde tu panel.
-              </p>
-            </div>
           </div>
         );
 
       case "confirm":
         const v = getValues();
         return (
-          <div className="grid gap-4">
-            <div className="rounded-2xl border p-4 bg-gradient-to-br from-[#38761D]/5 to-[#38761D]/10">
-              <h3 className="text-lg font-bold text-[#38761D] mb-3"> Resumen de tu solicitud</h3>
-              
-              <div className="space-y-2 text-sm">
-                <p><strong>Responsable:</strong> {v.ownerName || ""}</p>
-                <p><strong>Email:</strong> {v.ownerEmail || ""}</p>
-                <p><strong>Teléfono:</strong> {v.ownerPhone || ""}</p>
-                <hr className="my-3 border-[#38761D]/20" />
-                <p><strong>Negocio:</strong> {v.businessName || ""}</p>
-                <p><strong>Categoría:</strong> {v.categoryName || v.category || "Sin especificar"}</p>
-                <p><strong>Teléfono del negocio:</strong> {v.phone || ""}</p>
-                <p><strong>WhatsApp:</strong> {v.whatsapp || ""}</p>
+          <div className="grid gap-3">
+            <h2 className="text-xl font-bold text-gray-900">Revisar información</h2>
+            <div className="grid gap-3 sm:grid-cols-2" data-testid="application-summary">
+              <section className="rounded-xl bg-gray-50 p-4 text-sm">
+                <h3 className="mb-2 font-bold text-[#38761D]">Tus datos</h3>
+                <p className="font-semibold text-gray-900">{v.ownerName || ''}</p>
+                <p className="break-all text-gray-600">{v.ownerEmail || ''}</p>
+                <p className="text-gray-600">{v.ownerPhone || ''}</p>
+              </section>
+              <section className="rounded-xl bg-gray-50 p-4 text-sm">
+                <h3 className="mb-2 font-bold text-[#38761D]">Tu negocio</h3>
+                <p className="font-semibold text-gray-900">{v.businessName || ''}</p>
+                <p className="text-gray-600">
+                  {CATEGORY_GROUPS.find((group) => group.id === v.categoryGroupId)?.name || 'Sin categoría'} · {v.categoryName || v.category || 'Sin tipo'}
+                </p>
+                <p className="mt-2 text-gray-600">Contacto: {v.phone || ''}</p>
+                <p className="text-gray-600">WhatsApp: {v.whatsapp || 'No indicado'}</p>
+              </section>
+            </div>
+            {!publicApplicationV2Enabled ? (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                Un administrador revisará tu solicitud. Si es aprobada, podrás completar tu negocio desde el dashboard.
               </div>
-            </div>
-
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-              <p className="text-sm text-blue-900">
-                ️ <strong>¿Qué sigue?</strong> <br/>
-                {publicApplicationV2Enabled
-                  ? 'Nuestro equipo revisará tu solicitud y te enviará por correo los siguientes pasos. En este envío no se crea una cuenta ni se asigna la propiedad del negocio.'
-                  : 'Un administrador revisará tu solicitud. Si es aprobada, podrás acceder a tu dashboard para completar la información de tu negocio y publicarlo en YajaGon.'}
-              </p>
-            </div>
+            ) : null}
           </div>
         );
 
       default:
         return null;
     }
-  }, [currentStep, formState.errors, register, control, setValue, getValues, watchedGroupId, watchedCategoryId, publicApplicationV2Enabled, useOwnerPhoneForBusiness, useBusinessPhoneForWhatsapp]);
+  })();
 
   const currentIndex = stepToIndex(currentStep);
   const hasNext = currentIndex < steps.length - 1;
@@ -956,13 +887,11 @@ function BusinessWizardProInner({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-4 sm:space-y-5">
       <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#38761D]">Solicitud de registro</h1>
-          <p className="text-sm text-gray-600">Registro rápido en 2 pasos
-            Completa tu negocio después de la aprobación.
-          </p>
+          <h1 className="text-3xl font-bold text-[#38761D]">Registra tu negocio</h1>
+          <p className="mt-1 text-sm text-gray-600">Registro rápido en 2 pasos. Completa tu negocio después de la aprobación.</p>
         </div>
       </header>
 
@@ -1071,33 +1000,28 @@ function BusinessWizardProInner({
         </div>
       )}
 
-      <nav className="flex gap-3">
+      <nav aria-label="Progreso del registro" className="flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm">
         {steps.map((s, index) => {
           const active = s.key === currentStep;
           const completed = index < stepToIndex(currentStep);
           return (
+            <React.Fragment key={s.key}>
             <button
-              key={s.key}
               type="button"
               onClick={() => completed && setCurrentStep(s.key)}
-              className={`flex-1 rounded-xl border-2 px-4 py-3 text-xs font-semibold transition-all ${
+              className={`flex flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition ${
                 active
-                  ? "border-[#38761D] bg-[#38761D]/5 text-[#38761D] shadow-sm"
+                  ? "bg-[#38761D]/10 text-[#38761D]"
                   : completed
-                  ? "border-[#38761D]/40 bg-white text-[#38761D] hover:bg-[#38761D]/5 cursor-pointer"
-                  : "border-gray-200 bg-gray-50/50 text-gray-400 cursor-not-allowed"
+                  ? "text-[#38761D] hover:bg-[#38761D]/5 cursor-pointer"
+                  : "text-gray-400 cursor-not-allowed"
               }`}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="uppercase tracking-wider text-[10px] font-bold">
-                  Paso {index + 1}
-                </span>
-                {completed && (
-                  <span className="text-[#38761D] text-base"></span>
-                )}
-              </div>
-              <span className="block text-left text-sm font-bold">{s.title}</span>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-current/10 text-xs">{index + 1}</span>
+              <span>{s.title}</span>
             </button>
+            {index === 0 ? <span aria-hidden="true" className="mx-1 text-gray-300">→</span> : null}
+            </React.Fragment>
           );
         })}
       </nav>
@@ -1167,7 +1091,7 @@ function BusinessWizardProInner({
         </div>
       )}
 
-      <form className="space-y-6" onSubmit={handleSubmit(onStepSubmit)}>
+      <form className="space-y-4" onSubmit={handleSubmit(onStepSubmit)}>
         {publicApplicationV2Enabled && (
           <input
             ref={honeypotRef}
@@ -1179,13 +1103,13 @@ function BusinessWizardProInner({
             className="absolute -left-[10000px] h-px w-px opacity-0"
           />
         )}
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
           {stepContent}
         </section>
 
-        {currentStep === 'confirm' && (
+        {currentStep === 'confirm' && (!publicApplicationV2Enabled || turnstileMode !== 'off') && (
           <div className="space-y-4 rounded-xl border-2 border-gray-200 bg-gray-50 p-4">
-            <div>
+            {!publicApplicationV2Enabled ? <div>
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -1206,7 +1130,7 @@ function BusinessWizardProInner({
                   <span>Por favor, confirma que la información es correcta antes de enviar.</span>
                 </p>
               )}
-            </div>
+            </div> : null}
 
             {publicApplicationV2Enabled && turnstileMode !== 'off' && turnstileSiteKey ? (
               <TurnstileWidget
@@ -1224,14 +1148,14 @@ function BusinessWizardProInner({
           </div>
         )}
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={goBack}
             disabled={currentIndex === 0 || saving}
             className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-             Anterior
+             {publicApplicationV2Enabled ? 'Volver' : 'Anterior'}
           </button>
           <div className="flex items-center gap-3">
             {!publicApplicationV2Enabled && user?.uid && (
@@ -1248,12 +1172,12 @@ function BusinessWizardProInner({
               type="submit"
               disabled={
                 saving ||
-                (!hasNext && !confirmChecked) ||
+                (!hasNext && !publicApplicationV2Enabled && !confirmChecked) ||
                 (!hasNext && publicApplicationV2Enabled && turnstileMode === 'enforce' && !turnstileToken) ||
                 (!publicApplicationV2Enabled && emailVerificationRequired) ||
                 isRedirecting
               }
-              className="rounded-lg bg-[#38761D] px-6 py-2 text-sm font-bold text-white hover:bg-[#2f5a1a] hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="min-h-11 rounded-lg bg-[#38761D] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#2f5a1a] hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               {isRedirecting ? (
                 <span className="flex items-center gap-2">
@@ -1261,7 +1185,7 @@ function BusinessWizardProInner({
                   Redirigiendo...
                 </span>
               ) : hasNext ? (
-                "Siguiente "
+                "Siguiente"
               ) : (
                 publicApplicationV2Enabled ? "Enviar solicitud" : " Completar mi negocio"
               )}
@@ -1269,7 +1193,7 @@ function BusinessWizardProInner({
           </div>
         </div>
         
-        {!hasNext && (
+        {!hasNext && !publicApplicationV2Enabled && (
           <p className="text-xs text-gray-500 text-center mt-2">
             ⏱️ Tiempo de revisión estimado: 24–48 horas
           </p>
@@ -1280,26 +1204,27 @@ function BusinessWizardProInner({
 }
 
 // ---------- Subcomponentes UI ----------
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+function Group({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <fieldset className="rounded-3xl border border-gray-100 bg-gray-50/80 p-5">
-      <legend className="px-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-gray-500">
+    <fieldset className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4">
+      <legend className="px-2 text-sm font-bold text-gray-800">
         {title}
       </legend>
-      <div className="mt-4 grid gap-4">{children}</div>
+      {description ? <p className="mb-3 text-xs text-gray-600">{description}</p> : null}
+      <div className="grid gap-3">{children}</div>
     </fieldset>
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, htmlFor, error, children }: { label: string; htmlFor: string; error?: string; children: React.ReactNode }) {
   return (
-    <label className="block text-sm font-semibold text-gray-700">
-      {label}
+    <div className="block text-sm font-semibold text-gray-700">
+      <label htmlFor={htmlFor}>{label}</label>
       <div className="mt-1">{children}</div>
       {error ? <span className="mt-1 block text-xs text-red-500">{error}</span> : null}
       <style jsx>{`
         .input {
-          @apply block w-full rounded border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#38761D]/40;
+          @apply block min-h-11 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-[#38761D]/40 sm:text-sm;
         }
         .textarea {
           @apply block w-full rounded border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#38761D]/40;
@@ -1308,7 +1233,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
           @apply inline-flex items-center gap-2 text-sm;
         }
       `}</style>
-    </label>
+    </div>
   );
 }
 

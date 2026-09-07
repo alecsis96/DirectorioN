@@ -1,113 +1,129 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  signInWithGoogle: vi.fn(),
-  onAuthStateChanged: vi.fn(() => () => {}),
-  submitLegacy: vi.fn(),
-  createBusiness: vi.fn(),
+  signInWithGoogle: vi.fn(), onAuthStateChanged: vi.fn(() => () => {}), submitLegacy: vi.fn(), createBusiness: vi.fn(),
 }));
 
 vi.mock('../firebaseConfig', () => ({
-  auth: { currentUser: null, onAuthStateChanged: mocks.onAuthStateChanged },
-  db: {},
-  signInWithGoogle: mocks.signInWithGoogle,
+  auth: { currentUser: null, onAuthStateChanged: mocks.onAuthStateChanged }, db: {}, signInWithGoogle: mocks.signInWithGoogle,
 }));
-
 vi.mock('../app/actions/businesses', () => ({ submitNewBusiness: mocks.submitLegacy }));
 vi.mock('../app/actions/businessActions', () => ({ createBusinessImmediately: mocks.createBusiness }));
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => ({ get: () => null }),
-}));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }), useSearchParams: () => ({ get: () => null }) }));
 
 import BusinessWizard from '../components/BusinessWizard';
+import { getCategoriesByGroup } from '../lib/categoriesCatalog';
 
-describe('0.2R.2 public wizard branch', () => {
+const input = (name: string) => document.querySelector<HTMLInputElement>(`input[name="${name}"]`)!;
+
+async function fillIdentityAndBusiness(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(input('ownerName'), 'Oscar González');
+  await user.type(input('ownerEmail'), 'oscar@example.com');
+  await user.type(input('ownerPhone'), '9611234567');
+  await user.type(input('businessName'), 'Pollería Magón');
+}
+
+async function chooseCategory(user: ReturnType<typeof userEvent.setup>, group = 'food', type = 'polleria_rosticeria') {
+  await user.selectOptions(screen.getByLabelText('Categoría'), group);
+  await user.selectOptions(screen.getByLabelText('Tipo de negocio'), type);
+}
+
+function submittedPayload() {
+  const [, request] = vi.mocked(fetch).mock.calls[0];
+  return JSON.parse(String(request?.body));
+}
+
+describe('0.2R.5A simplified public business wizard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
-      ok: true,
-      received: true,
-      folio: 'YJG-2026-TEST2345',
-    }), { status: 200, headers: { 'content-type': 'application/json' } })));
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: true, received: true, folio: 'YJG-2026-TEST2345' }), {
+      status: 200, headers: { 'content-type': 'application/json' },
+    })));
   });
 
-  it('advances without Google or remote calls, then submits once and shows the safe confirmation', async () => {
-    const user = userEvent.setup();
-    render(<BusinessWizard publicApplicationV2Enabled />);
+  it('reuses the personal phone as business contact by default', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard publicApplicationV2Enabled />);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Registra tu negocio' })).toBeInTheDocument();
+    await user.type(input('ownerPhone'), '9611234567');
+    expect(screen.getByRole('checkbox', { name: 'Usar este número para mi negocio' })).toBeChecked();
+    expect(screen.queryByLabelText('Contacto del negocio')).not.toBeInTheDocument();
+  });
 
-    expect(await screen.findByRole('heading', { level: 1, name: /solicitud de registro/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /iniciar sesión/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /guardar borrador/i })).not.toBeInTheDocument();
-    expect(screen.getByText('Categoría', { selector: 'label' })).toBeInTheDocument();
-    expect(screen.getByText('Tipo de negocio', { selector: 'label' })).toBeInTheDocument();
+  it('allows a different business contact without a separate WhatsApp input', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard publicApplicationV2Enabled />);
+    await screen.findByRole('heading', { name: 'Registra tu negocio' });
+    await user.click(screen.getByRole('checkbox', { name: 'Usar este número para mi negocio' }));
+    await user.type(screen.getByLabelText('Contacto del negocio'), '9197654321');
+    expect(screen.getByLabelText('Contacto del negocio')).toHaveValue('9197654321');
+    expect(screen.queryByLabelText(/WhatsApp del negocio/i)).not.toBeInTheDocument();
+  });
 
-    await user.type(screen.getByLabelText(/tu nombre completo/i), 'Persona responsable');
-    await user.type(screen.getByLabelText(/tu correo electrónico/i), 'contacto@example.com');
-    await user.type(screen.getByLabelText(/^tu teléfono/i), '9191234567');
-    await user.type(screen.getByLabelText(/nombre del negocio/i), 'Negocio público');
+  it('maps the selected business contact to WhatsApp without duplicate typing', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard publicApplicationV2Enabled />);
+    await fillIdentityAndBusiness(user); await chooseCategory(user);
+    expect(screen.getByRole('checkbox', { name: 'Este número tiene WhatsApp' })).toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(await screen.findByTestId('application-summary')).toHaveTextContent('WhatsApp: 9611234567');
+  });
 
-    const selects = screen.getAllByRole('combobox');
-    await user.selectOptions(selects[0], 'food');
-    let availableOption: HTMLOptionElement | undefined;
-    await waitFor(() => {
-      availableOption = [...screen.getAllByRole('combobox')[1].querySelectorAll('option')].find((option) => option.value);
-      expect(availableOption).toBeTruthy();
+  it('requires category before advancing', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard publicApplicationV2Enabled />);
+    await fillIdentityAndBusiness(user); await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(await screen.findByText('Selecciona una categoría', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Revisar información' })).not.toBeInTheDocument();
+  });
+
+  it('requires business type before advancing', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard publicApplicationV2Enabled />);
+    await fillIdentityAndBusiness(user); await user.selectOptions(screen.getByLabelText('Categoría'), 'food');
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(await screen.findByText('Selecciona un tipo de negocio')).toBeInTheDocument();
+  });
+
+  it('updates and clears business type when category changes', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard publicApplicationV2Enabled />);
+    const category = await screen.findByLabelText('Categoría'); const type = screen.getByLabelText('Tipo de negocio');
+    await user.selectOptions(category, 'food'); await user.selectOptions(type, 'polleria_rosticeria'); await user.selectOptions(category, 'services');
+    expect(type).toHaveValue('');
+    const values = within(type).getAllByRole('option').map(option => (option as HTMLOptionElement).value).filter(Boolean);
+    expect(values).toEqual(getCategoriesByGroup('services').map(item => item.id));
+    expect(values).not.toContain('polleria_rosticeria');
+  });
+
+  it('shows the concise owner and business summary on step two', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard publicApplicationV2Enabled />);
+    await fillIdentityAndBusiness(user); await chooseCategory(user); await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    const summary = await screen.findByTestId('application-summary');
+    expect(summary).toHaveTextContent('Oscar González'); expect(summary).toHaveTextContent('oscar@example.com');
+    expect(summary).toHaveTextContent('Pollería Magón'); expect(summary).toHaveTextContent('Comida y Bebida · Pollería / Rosticería');
+    expect(summary).toHaveTextContent('Contacto: 9611234567'); expect(screen.getByRole('button', { name: 'Volver' })).toBeEnabled();
+    expect(screen.queryByText('¿Qué sigue?')).not.toBeInTheDocument();
+  });
+
+  it('keeps the Public Application v2 payload and creates no Firebase user', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard publicApplicationV2Enabled />);
+    await fillIdentityAndBusiness(user); await chooseCategory(user); await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar solicitud' })); await screen.findByTestId('public-application-confirmation');
+    expect(submittedPayload()).toEqual({
+      ownerName: 'Oscar González', ownerEmail: 'oscar@example.com', ownerPhone: '9611234567',
+      business: { businessName: 'Pollería Magón', category: 'Pollería / Rosticería', categoryId: 'polleria_rosticeria', categoryGroupId: 'food', phone: '9611234567', whatsapp: '9611234567' },
+      contactWebsite: '',
     });
-    await user.selectOptions(screen.getAllByRole('combobox')[1], availableOption!.value);
-
-    await user.click(screen.getByRole('button', { name: /siguiente/i }));
-    expect(await screen.findByText(/resumen de tu solicitud/i)).toBeInTheDocument();
-    expect(mocks.signInWithGoogle).not.toHaveBeenCalled();
-    expect(mocks.submitLegacy).not.toHaveBeenCalled();
-    expect(mocks.createBusiness).not.toHaveBeenCalled();
-    expect(fetch).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole('checkbox', { name: /confirmo que la información/i }));
-    await user.click(screen.getByRole('button', { name: /enviar solicitud/i }));
-
-    expect(await screen.findByTestId('public-application-confirmation')).toHaveTextContent('24–48 horas');
-    expect(screen.getByTestId('public-application-confirmation')).toHaveTextContent('contacto@example.com');
-    expect(screen.getByTestId('public-application-confirmation')).toHaveTextContent('YJG-2026-TEST2345');
-    expect(screen.queryByText(/dashboard/i)).not.toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(mocks.onAuthStateChanged).not.toHaveBeenCalled();
-    expect(mocks.signInWithGoogle).not.toHaveBeenCalled();
-
-    const [, request] = vi.mocked(fetch).mock.calls[0];
-    const body = JSON.parse(String(request?.body));
-    expect(body).not.toHaveProperty('ownerId');
-    expect(body).not.toHaveProperty('ownerUid');
-    expect(body).not.toHaveProperty('status');
-    expect(body).not.toHaveProperty('businessId');
+    expect(mocks.onAuthStateChanged).not.toHaveBeenCalled(); expect(mocks.signInWithGoogle).not.toHaveBeenCalled(); expect(mocks.createBusiness).not.toHaveBeenCalled();
   });
 
-  it('reuses phone values without requiring duplicate typing', async () => {
-    const user = userEvent.setup();
-    render(<BusinessWizard publicApplicationV2Enabled />);
-    await screen.findByRole('heading', { level: 1, name: /solicitud de registro/i });
-    await user.type(screen.getByLabelText(/^tu teléfono/i), '9191234567');
-    await user.click(screen.getByRole('checkbox', { name: /usar este número como teléfono/i }));
-    await waitFor(() => expect(screen.getByLabelText(/^teléfono del negocio$/i)).toHaveValue('9191234567'));
-    await user.click(screen.getByRole('checkbox', { name: /usar este número también para WhatsApp/i }));
-    await waitFor(() => expect(screen.getByLabelText(/^whatsapp del negocio$/i)).toHaveValue('9191234567'));
+  it('keeps submission blocked when Turnstile enforce has no token', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard publicApplicationV2Enabled turnstileMode="enforce" turnstileSiteKey="" />);
+    await fillIdentityAndBusiness(user); await chooseCategory(user); await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(await screen.findByText(/verificación de seguridad no está disponible/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enviar solicitud' })).toBeDisabled(); expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('preserves the legacy Google-gated path when the flag is off', async () => {
-    const user = userEvent.setup();
-    render(<BusinessWizard />);
-    await screen.findByRole('heading', { level: 1, name: /solicitud de registro/i });
-
-    await user.type(screen.getByLabelText(/tu nombre completo/i), 'Usuario legacy');
-    await user.type(screen.getByLabelText(/tu correo electrónico/i), 'legacy@example.com');
-    await user.type(screen.getByLabelText(/^tu teléfono$/i), '9191234567');
-    await user.type(screen.getByLabelText(/nombre del negocio/i), 'Negocio legacy');
-    await user.click(screen.getByRole('button', { name: /siguiente/i }));
-
-    await waitFor(() => expect(mocks.signInWithGoogle).toHaveBeenCalledOnce());
-    expect(fetch).not.toHaveBeenCalled();
-    expect(mocks.createBusiness).not.toHaveBeenCalled();
+  it('preserves the legacy Google-gated path when Public Application v2 is off', async () => {
+    const user = userEvent.setup(); render(<BusinessWizard />); await screen.findByRole('heading', { name: 'Registra tu negocio' });
+    await fillIdentityAndBusiness(user); await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await waitFor(() => expect(mocks.signInWithGoogle).toHaveBeenCalledOnce()); expect(fetch).not.toHaveBeenCalled();
   });
 });
