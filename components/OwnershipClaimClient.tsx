@@ -50,10 +50,11 @@ export default function OwnershipClaimClient({ enabled, login = false, emailLink
   const [sent, setSent] = useState(false);
   const [emailReturn, setEmailReturn] = useState(false);
   const [standalone, setStandalone] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function finish(user: User) {
     const result = await request('complete', {}, user);
-    writeSessionCookie(await user.getIdToken(true));
+    await writeSessionCookie(await user.getIdToken(true));
     router.replace(`/dashboard/${encodeURIComponent(result.businessId)}`);
   }
 
@@ -139,13 +140,21 @@ export default function OwnershipClaimClient({ enabled, login = false, emailLink
       </>}
       {(view === 'loading' || view === 'busy') && <p role="status">Preparando tu acceso…</p>}
       {view === 'login' && <>
-        <p>Ya existe una cuenta de YajaGon con <strong>{email}</strong>. Entra con su contraseña actual o solicita un enlace. Tu confirmación se conserva durante diez minutos.</p>
+        <p>Ya existe una cuenta de YajaGon con <strong>{email}</strong>. Tu confirmación se conserva durante diez minutos.</p>
         {emailReturn ? <button className="claim-button" onClick={() => act(async () => {
           const credential = await signInWithEmailLink(auth, email, window.location.href);
           window.history.replaceState(null, '', '/entrar');
           await finish(credential.user);
         })}>Completar acceso</button> : <>
-          <form onSubmit={event => { event.preventDefault(); void act(async () => {
+          {emailLinkEnabled && <button className="claim-button" onClick={() => act(async () => {
+            await request('login-email'); setSent(true); setView('login');
+          })}>Recibir enlace por correo</button>}
+          {sent && <p role="status">Revisa tu correo. Abre el enlace en este navegador; puede ser en otra pestaña.</p>}
+          {!showPassword && <div className="mt-4 space-y-2">
+            <p className="text-sm">¿Ya configuraste una contraseña?</p>
+            <button type="button" className="font-semibold text-emerald-700" onClick={() => setShowPassword(true)}>Entrar con contraseña</button>
+          </div>}
+          {showPassword && <form onSubmit={event => { event.preventDefault(); void act(async () => {
             const credential = await signInWithEmailAndPassword(auth, email, password);
             setPassword('');
             await finish(credential.user);
@@ -153,12 +162,9 @@ export default function OwnershipClaimClient({ enabled, login = false, emailLink
             <label htmlFor="claim-password">Contraseña</label>
             <input id="claim-password" type="password" autoComplete="current-password" required value={password}
               onChange={event => setPassword(event.target.value)} className="w-full rounded-lg border p-3" />
-            <button className="claim-button" type="submit">Entrar</button>
-          </form>
-          {emailLinkEnabled && <button className="claim-button" onClick={() => act(async () => {
-            await request('login-email'); setSent(true); setView('login');
-          })}>Recibir enlace para entrar</button>}
-          {sent && <p role="status">Revisa tu correo. Abre el enlace en este navegador; puede ser en otra pestaña.</p>}
+            <button className="claim-button" type="submit">Entrar con contraseña</button>
+            {emailLinkEnabled && <button type="button" className="mt-2 font-semibold text-emerald-700" onClick={() => { setShowPassword(false); setPassword(''); }}>Prefiero recibir un enlace</button>}
+          </form>}
         </>}
       </>}
       {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-700">{error}</p>}

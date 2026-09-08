@@ -50,3 +50,9 @@ it('unknown accounts have the same accepted body and cookie without creating a u
   expect(result.headers.get('set-cookie')).toContain('HttpOnly');
   expect(mocks.send).not.toHaveBeenCalled(); expect(mocks.createUser).not.toHaveBeenCalled();
 });
+it.each(['owner@outlook.com', 'owner@hotmail.com', 'owner@yahoo.com', 'owner@empresa.example'])('delivers the same Email Link flow to %s', async email => {
+  mocks.getUserByEmail.mockImplementation(async requested => ({ uid: 'existing', email: requested, emailVerified: true, providerData: [] }));
+  const result = await POST(request({ action: 'request', email }));
+  expect(result.status).toBe(202);
+  expect(mocks.send).toHaveBeenCalledWith(email, 'https://example.test', '/dashboard');
+});

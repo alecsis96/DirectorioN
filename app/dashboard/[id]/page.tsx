@@ -6,6 +6,7 @@ import DashboardEditor from '../../../components/DashboardEditor';
 import ClaimGoogleLink from '../../../components/ClaimGoogleLink';
 import { assertOwnerOrAdmin, AuthorizationError } from '../../../lib/server/authorization';
 import { getAdminAuth, getAdminFirestore } from '../../../lib/server/firebaseAdmin';
+import { wasAccountCreatedByClaimForBusiness } from '../../../lib/server/ownershipClaimAttempts';
 import { serializeTimestamps } from '../../../lib/server/serializeFirestore';
 
 type DashboardParams = {
@@ -63,8 +64,9 @@ export default async function DashboardBusinessPage({ params }: { params: Promis
   if (snap.data()?.applicationSchemaVersion !== 2 || snap.data()?.ownerId !== user.uid) {
     return <DashboardEditor businessId={businessId} initialBusiness={initialBusiness} />;
   }
+  const accountCreatedByClaim = await wasAccountCreatedByClaimForBusiness(user.uid, businessId, { db }).catch(() => false);
   return <>
-    <ClaimGoogleLink ownerId={user.uid} />
+    <ClaimGoogleLink ownerId={user.uid} businessId={businessId} accountCreatedByClaim={accountCreatedByClaim} />
     <DashboardEditor businessId={businessId} initialBusiness={initialBusiness} />
   </>;
 }

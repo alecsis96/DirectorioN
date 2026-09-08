@@ -55,6 +55,27 @@ describe('claim UI continuity', () => {
     expect(mocks.signInWithCustomToken).not.toHaveBeenCalled();
   });
 
+  it('offers Email Link first and password only as a voluntary option for an existing UID', async () => {
+    window.history.replaceState(null, '', '/entrar');
+    api({ prepare: { status: 'login' }, status: { status: 'ready', email: firebaseUser.email, targetUid: 'target' } });
+    render(<OwnershipClaimClient enabled login />);
+    expect(await screen.findByRole('button', { name: 'Recibir enlace por correo' })).toBeInTheDocument();
+    expect(screen.getByText('¿Ya configuraste una contraseña?')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Contraseña')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar con contraseña' }));
+    expect(screen.getByLabelText('Contraseña')).toBeInTheDocument();
+  });
+
+  it('requests Email Link for an existing UID without inspecting its providers', async () => {
+    window.history.replaceState(null, '', '/entrar');
+    const fetch = api({ prepare: { status: 'login' }, status: { status: 'ready', email: firebaseUser.email, targetUid: 'target' }, 'login-email': {} });
+    render(<OwnershipClaimClient enabled login />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Recibir enlace por correo' }));
+    expect(fetch).toHaveBeenCalledWith('/api/ownership-claims/login-email', expect.anything());
+    expect(screen.queryByLabelText('Contraseña')).not.toBeInTheDocument();
+    expect(mocks.signInWithEmailAndPassword).not.toHaveBeenCalled();
+  });
+
   it('recovers an email-link return with NO fragment and empty storage via the server attempt', async () => {
     window.history.replaceState(null, '', '/entrar?mode=signIn&oobCode=real-shaped-return');
     mocks.isSignInWithEmailLink.mockReturnValue(true);

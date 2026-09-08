@@ -223,6 +223,39 @@ export async function claimAttemptContext(continuation: string, options: Options
   return { status: attempt.status, email: attempt.emailNormalized, targetUid: attempt.targetUid ?? null };
 }
 
+/** Read-only proof that this business was claimed by the UID created by that exact attempt. */
+export async function wasAccountCreatedByClaimForBusiness(
+  uid: string,
+  businessId: string,
+  options: Pick<Options, 'db'> = {},
+) {
+  if (!uid || !businessId) return false;
+  const db = options.db ?? getAdminFirestore();
+  const guardSnapshot = await db.collection('ownershipClaimGuards').doc(businessId).get();
+  const guard = guardSnapshot.data();
+  if (!guard || guard.businessId !== businessId || guard.consumedByUid !== uid ||
+      typeof guard.consumedClaimId !== 'string') return false;
+
+  const claimSnapshot = await db.collection('ownershipClaims').doc(guard.consumedClaimId).get();
+  const claim = claimSnapshot.data();
+  if (!claim || claim.status !== 'consumed' || claim.businessId !== businessId ||
+      claim.consumedByUid !== uid || typeof claim.attemptId !== 'string' ||
+      typeof claim.emailNormalized !== 'string') return false;
+
+  const [attemptSnapshot, identitySnapshot] = await Promise.all([
+    db.collection(ATTEMPTS).doc(claim.attemptId).get(),
+    db.collection(IDENTITIES).doc(hash(claim.emailNormalized)).get(),
+  ]);
+  const attempt = attemptSnapshot.data();
+  const identity = identitySnapshot.data();
+  return Boolean(
+    attempt && identity && attempt.status === 'completed' && attempt.claimId === claimSnapshot.id &&
+    attempt.targetUid === uid && identity.state === 'created' && identity.createdUid === uid &&
+    identity.createdByAttemptId === claim.attemptId &&
+    identity.creationTime === attempt.targetCreationTime,
+  );
+}
+
 export async function completeClaimAttempt(continuation: string, decoded: DecodedIdToken, options: Options = {}) {
   const auth = options.auth ?? getAdminAuth();
   const { id, secretHash, attempt } = await readClaimAttempt(continuation, options);

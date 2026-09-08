@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../lib/featureFlags', () => ({ OWNERSHIP_CLAIMS_ENABLED: true }));
 vi.mock('../lib/server/claimIdentityPolicy', () => ({ assertUnambiguousAuthProject: vi.fn(async () => {}) }));
-import { beginClaimAttempt, prepareClaimAttempt, completeClaimAttempt, claimAttemptContext, ATTEMPT_TTL_MS } from '../lib/server/ownershipClaimAttempts';
+import {
+  beginClaimAttempt,
+  prepareClaimAttempt,
+  completeClaimAttempt,
+  claimAttemptContext,
+  wasAccountCreatedByClaimForBusiness,
+  ATTEMPT_TTL_MS,
+} from '../lib/server/ownershipClaimAttempts';
 import { createRedeemDb, CLAIM_TOKEN, NOW } from './helpers/claimDb';
 
 function firebaseUser(uid = 'existing-uid', extra = {}) {
@@ -45,6 +52,7 @@ describe('simplified claims: identity and ownership boundaries', () => {
     const result = await completeClaimAttempt(begin.continuation, decoded(uid), options);
     expect(result.idempotent).toBe(false);
     expect(state.get('businesses/business-1').ownerId).toBe(uid);
+    expect(await wasAccountCreatedByClaimForBusiness(uid, 'business-1', options)).toBe(true);
     expect((await completeClaimAttempt(begin.continuation, decoded(uid), options)).idempotent).toBe(true);
     expect(state.entries('ownershipClaimAudits')).toHaveLength(1);
     await prepareClaimAttempt(begin.continuation, options);
@@ -65,6 +73,7 @@ describe('simplified claims: identity and ownership boundaries', () => {
     expect(state.get('businesses/business-1').ownerId).toBeUndefined();
     await completeClaimAttempt(continuation, decoded('existing-uid'), options);
     expect(state.get('businesses/business-1').ownerId).toBe('existing-uid');
+    expect(await wasAccountCreatedByClaimForBusiness('existing-uid', 'business-1', options)).toBe(false);
   });
 
   it('an email creation collision takes the normal-login path, never bootstraps the winner', async () => {
@@ -141,7 +150,9 @@ describe('simplified claims: identity and ownership boundaries', () => {
     const state = createRedeemDb();
     const options = { db: state.db, now: NOW };
     const { continuation } = await beginClaimAttempt(CLAIM_TOKEN, '', options);
-    expect((await claimAttemptContext(continuation, options)).email).toBe('owner@example.com');
+    const context = await claimAttemptContext(continuation, options);
+    expect(context.email).toBe('owner@example.com');
+    expect(context).not.toHaveProperty('methods');
     await expect(claimAttemptContext(`${continuation.split('.')[0]}.${'B'.repeat(43)}`, options)).rejects.toMatchObject({ code: 'ATTEMPT_MISSING' });
   });
   it('recovers an unused reservation after its original attempt expires, keeping the same candidate UID', async () => {

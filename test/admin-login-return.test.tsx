@@ -25,7 +25,7 @@ import EmailLinkLogin from '../components/EmailLinkLogin';
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 404 })));
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 202 })));
   mocks.signIn.mockResolvedValue({ user: { getIdToken: () => Promise.resolve('fresh-token') } });
   mocks.writeSession.mockResolvedValue({ authenticated: true, isAdmin: true });
 });
@@ -33,10 +33,10 @@ beforeEach(() => {
 it('returns to next=/admin after normal login and first creates the server session', async () => {
   render(<EmailLinkLogin nextPath="/admin" />);
   await userEvent.type(await screen.findByLabelText('Correo electrónico'), 'admin@example.test');
+  await userEvent.click(screen.getByRole('button', { name: 'Entrar con contraseña' }));
   await userEvent.type(screen.getByLabelText('Contraseña'), 'secret-password');
-  await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Entrar con contraseña' }));
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith('/admin'));
   expect(mocks.writeSession).toHaveBeenCalledWith('fresh-token');
   expect(mocks.writeSession.mock.invocationCallOrder[0]).toBeLessThan(mocks.replace.mock.invocationCallOrder[0]);
 });
-
