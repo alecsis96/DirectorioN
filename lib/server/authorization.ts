@@ -75,6 +75,16 @@ export async function assertAdminToken(token?: string | null): Promise<DecodedId
   return decoded;
 }
 
+export async function assertRevocationCheckedAdminToken(
+  token?: string | null,
+): Promise<DecodedIdToken> {
+  const decoded = await verifyRevocationCheckedIdTokenOrThrow(token);
+  if (!isAdminIdentity(decoded)) {
+    throw new AuthorizationError('Permisos de administrador requeridos.', 403);
+  }
+  return decoded;
+}
+
 export async function assertAdminSessionOrIdToken(token?: string | null): Promise<DecodedIdToken> {
   const decoded = await verifySessionOrIdTokenOrThrow(token);
   if (!isAdminIdentity(decoded)) {

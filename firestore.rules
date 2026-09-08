@@ -258,6 +258,10 @@ service cloud.firestore {
           'lat', 'lng', 'location', 'price',
           'updatedAt'
         ]) &&
+          // Las ediciones durante revisión pasan por el servidor para volver
+          // atómicamente a draft; un write directo no puede mutar esa versión.
+          ((('businessStatus' in resource.data) && resource.data.businessStatus == 'draft') ||
+           (!('businessStatus' in resource.data) && resource.data.get('status', 'draft') == 'draft')) &&
           sameOwner &&
           (!changedFields.hasAny(['name']) || validString(request.resource.data.name, 1, 140)) &&
           (!changedFields.hasAny(['businessName']) || validString(request.resource.data.businessName, 1, 140)) &&
@@ -295,9 +299,14 @@ service cloud.firestore {
           (!changedFields.hasAny(['updatedAt']) || request.resource.data.updatedAt is timestamp);
       }
 
-      // ---- update por admin (puede cambiar cualquier cosa incluyendo estados)
+      // ---- update directo por admin: perfil, sin estados ni ownership
       function validBusinessAdminUpdate() {
         return
+          // Las transiciones de estado y ownership son exclusivamente server-side.
+          request.resource.data.get('ownerId', null) == resource.data.get('ownerId', null) &&
+          request.resource.data.get('ownerUid', null) == resource.data.get('ownerUid', null) &&
+          request.resource.data.get('businessStatus', null) == resource.data.get('businessStatus', null) &&
+          request.resource.data.get('status', null) == resource.data.get('status', null) &&
           (!('businessName' in request.resource.data) || optionalString(request.resource.data.businessName, 140)) &&
           (!('name' in request.resource.data) || optionalString(request.resource.data.name, 140)) &&
           (!('ownerName' in request.resource.data) || optionalString(request.resource.data.ownerName, 140)) &&

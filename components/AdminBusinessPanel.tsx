@@ -77,23 +77,23 @@ const TAB_CONFIG: Array<{ id: TabType; label: string }> = [
 ];
 
 function resolvePrimaryStatus(business: BusinessWithCompletion) {
+  if (business.businessStatus === 'published') {
+    return { label: 'Publicado', className: 'bg-emerald-100 text-emerald-700' };
+  }
+  if (business.businessStatus === 'in_review') {
+    return { label: 'En revision', className: 'bg-sky-100 text-sky-700' };
+  }
   if (business.applicationStatus === 'ready_for_review') {
     return { label: 'Listo para revisar', className: 'bg-blue-100 text-blue-700' };
   }
   if (business.applicationStatus === 'needs_info') {
     return { label: 'Necesita info', className: 'bg-orange-100 text-orange-700' };
   }
-  if (business.businessStatus === 'published') {
-    return { label: 'Publicado', className: 'bg-emerald-100 text-emerald-700' };
-  }
   if (business.applicationStatus === 'approved') {
     return { label: 'Aprobado · no publicado', className: 'bg-violet-100 text-violet-700' };
   }
   if (business.applicationStatus === 'rejected') {
     return { label: 'Rechazado', className: 'bg-red-100 text-red-700' };
-  }
-  if (business.businessStatus === 'in_review') {
-    return { label: 'En revision', className: 'bg-sky-100 text-sky-700' };
   }
   return { label: 'Borrador', className: 'bg-gray-100 text-gray-700' };
 }

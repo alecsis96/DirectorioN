@@ -5,7 +5,10 @@
 
 'use server';
 
-import { assertAdminToken } from '../../lib/server/authorization';
+import {
+  assertAdminToken,
+  assertRevocationCheckedAdminToken,
+} from '../../lib/server/authorization';
 import {
   MONETIZATION_FEATURE_ENABLED,
   PUBLIC_APPLICATION_V2_ENABLED,
@@ -25,6 +28,7 @@ import {
   type BusinessStatus,
   updateBusinessState,
 } from '../../lib/businessStates';
+import { reviewExistingBusiness } from '../../lib/server/businessReviewWorkflow';
 
 /**
  * 1️⃣ NUEVAS SOLICITUDES (submitted)
@@ -192,9 +196,7 @@ export async function getReadyForReview(adminToken: string): Promise<any[]> {
   
   const snapshot = await db
     .collection('businesses')
-    .where('applicationStatus', '==', 'ready_for_review')
-    .orderBy('updatedAt', 'desc')
-    .limit(50)
+    .where('businessStatus', '==', 'in_review')
     .get();
   
   // Filtrar archived/deleted en memoria
@@ -210,7 +212,11 @@ export async function getReadyForReview(adminToken: string): Promise<any[]> {
         id: doc.id,
         ...data,
       });
-    });
+    })
+    .sort((left: any, right: any) =>
+      String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')),
+    )
+    .slice(0, 50);
   
   return businesses;
 }
@@ -224,59 +230,15 @@ export async function approveBusiness(
   adminToken: string,
   adminNotes?: string
 ) {
-  await assertAdminToken(adminToken);
+  const admin = await assertRevocationCheckedAdminToken(adminToken);
   const db = getAdminFirestore();
-  
-  const businessRef = db.collection('businesses').doc(businessId);
-  const snapshot = await businessRef.get();
-  
-  if (!snapshot.exists) {
-    throw new Error('Negocio no encontrado');
-  }
-  
-  const data = snapshot.data() || {};
-  
-  // Actualizar negocio
-  await businessRef.update({
-    businessStatus: 'published' as BusinessStatus,
-    applicationStatus: 'approved' as ApplicationStatus,
-    adminStatus: 'active',
-    visibility: 'published', // Hacer visible en directorio público
-    isActive: true,
-    publishedAt: new Date(),
-    lastReviewedAt: new Date(),
-    adminNotes: adminNotes || null,
+  await reviewExistingBusiness({
+    db,
+    businessId,
+    adminUid: admin.uid,
+    action: 'approve',
+    notes: adminNotes,
   });
-  
-  // 🔥 Sincronizar application (crear o actualizar)
-  const linkedApplicationId = resolveLinkedApplicationId(data);
-  if (linkedApplicationId) {
-    try {
-      const appRef = db.collection('applications').doc(linkedApplicationId);
-      const appSnap = await appRef.get();
-      
-      if (appSnap.exists) {
-        // Actualizar existente
-        await appRef.update({
-          status: 'approved',
-          updatedAt: new Date(),
-        });
-      } else if (data?.applicationSchemaVersion !== 2) {
-        // Crear nuevo documento
-        await appRef.set({
-          businessId: businessId,
-          businessName: data.name || 'Negocio sin nombre',
-          ownerEmail: data.ownerEmail || '',
-          ownerId: data.ownerId,
-          status: 'approved',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-    } catch (appError) {
-      console.warn('[approveBusiness] Error sincronizando application (no crítico):', appError);
-    }
-  }
   
   // TODO: Enviar notificación al owner (WhatsApp/Email)
   
@@ -292,60 +254,20 @@ export async function rejectBusiness(
   rejectionReason: string,
   adminToken: string
 ) {
-  await assertAdminToken(adminToken);
+  const admin = await assertRevocationCheckedAdminToken(adminToken);
   if (!rejectionReason || rejectionReason.trim().length < 10) {
     throw new Error('Debes proporcionar un motivo de rechazo (mínimo 10 caracteres)');
   }
   
   const db = getAdminFirestore();
   
-  const businessRef = db.collection('businesses').doc(businessId);
-  const snapshot = await businessRef.get();
-  
-  if (!snapshot.exists) {
-    throw new Error('Negocio no encontrado');
-  }
-  
-  const data = snapshot.data() || {};
-  
-  // Actualizar negocio
-  await businessRef.update({
-    applicationStatus: 'rejected' as ApplicationStatus,
-    businessStatus: 'draft' as BusinessStatus,
-    rejectionReason,
-    lastReviewedAt: new Date(),
-    updatedAt: new Date(),
+  await reviewExistingBusiness({
+    db,
+    businessId,
+    adminUid: admin.uid,
+    action: 'reject',
+    notes: rejectionReason,
   });
-  
-  // 🔥 Sincronizar application (crear o actualizar)
-  const linkedApplicationId = resolveLinkedApplicationId(data);
-  if (linkedApplicationId) {
-    try {
-      const appRef = db.collection('applications').doc(linkedApplicationId);
-      const appSnap = await appRef.get();
-      
-      if (appSnap.exists) {
-        await appRef.update({
-          status: 'rejected',
-          rejectionReason,
-          updatedAt: new Date(),
-        });
-      } else if (data?.applicationSchemaVersion !== 2) {
-        await appRef.set({
-          businessId: businessId,
-          businessName: data.name || 'Negocio sin nombre',
-          ownerEmail: data.ownerEmail || '',
-          ownerId: data.ownerId,
-          status: 'rejected',
-          rejectionReason,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-    } catch (appError) {
-      console.warn('[rejectBusiness] Error sincronizando application (no crítico):', appError);
-    }
-  }
   
   // TODO: Enviar notificación al owner (WhatsApp/Email)
   
@@ -362,61 +284,21 @@ export async function requestMoreInfo(
   adminToken: string,
   missingFields?: string[]
 ) {
-  await assertAdminToken(adminToken);
+  const admin = await assertRevocationCheckedAdminToken(adminToken);
   if (!adminNotes || adminNotes.trim().length < 10) {
     throw new Error('Debes especificar qué información se necesita');
   }
   
   const db = getAdminFirestore();
   
-  const businessRef = db.collection('businesses').doc(businessId);
-  const snapshot = await businessRef.get();
-  
-  if (!snapshot.exists) {
-    throw new Error('Negocio no encontrado');
-  }
-  
-  const data = snapshot.data() || {};
-  
-  // Actualizar negocio
-  await businessRef.update({
-    applicationStatus: 'needs_info' as ApplicationStatus,
-    businessStatus: 'draft' as BusinessStatus,
-    adminNotes,
-    missingFields: missingFields || [],
-    lastReviewedAt: new Date(),
-    updatedAt: new Date(),
+  await reviewExistingBusiness({
+    db,
+    businessId,
+    adminUid: admin.uid,
+    action: 'reject',
+    notes: adminNotes,
+    missingFields,
   });
-  
-  // 🔥 Sincronizar application (crear o actualizar)
-  const linkedApplicationId = resolveLinkedApplicationId(data);
-  if (linkedApplicationId) {
-    try {
-      const appRef = db.collection('applications').doc(linkedApplicationId);
-      const appSnap = await appRef.get();
-      
-      if (appSnap.exists) {
-        await appRef.update({
-          status: 'needs_info',
-          adminNotes,
-          updatedAt: new Date(),
-        });
-      } else if (data?.applicationSchemaVersion !== 2) {
-        await appRef.set({
-          businessId: businessId,
-          businessName: data.name || 'Negocio sin nombre',
-          ownerEmail: data.ownerEmail || '',
-          ownerId: data.ownerId,
-          status: 'needs_info',
-          adminNotes,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-    } catch (appError) {
-      console.warn('[requestMoreInfo] Error sincronizando application (no crítico):', appError);
-    }
-  }
   
   // TODO: Enviar notificación al owner (WhatsApp/Email)
   

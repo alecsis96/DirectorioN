@@ -1,7 +1,6 @@
 import PendingBusinessesList from '../../../components/PendingBusinessesList';
 import { getAdminFirestore } from '../../../lib/server/firebaseAdmin';
 import { requireAdminPage } from '../../../lib/server/adminPageAuthorization';
-import { requireLegacyAccess } from '../../../lib/legacyRouteGuard';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,9 +51,6 @@ async function fetchPendingBusinesses(): Promise<PendingBusiness[]> {
 }
 
 export default async function PendingBusinessesPage() {
-  // Guard: verificar si rutas legacy están habilitadas
-  requireLegacyAccess('/admin/pending-businesses');
-  
   await requireAdminPage('/admin/pending-businesses');
   const businesses = await fetchPendingBusinesses();
 
@@ -62,10 +58,9 @@ export default async function PendingBusinessesPage() {
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
         <div className="mb-6 sm:mb-8">
-          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Legacy</p>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#38761D] mb-2">Negocios en revision</h1>
           <p className="text-sm sm:text-base text-gray-600">
-            Vista heredada. La revision operativa vive ahora en Inbox y Solicitudes.
+            Revisa los negocios que sus propietarios enviaron explícitamente.
           </p>
         </div>
         <PendingBusinessesList businesses={businesses} />

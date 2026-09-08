@@ -22,6 +22,10 @@ import { resolveCategory } from '../../lib/categoriesCatalog';
 import { pickOwnerEditableBusinessUpdates } from '../../lib/ownerBusinessUpdates';
 import { getResourceLimit } from '../../lib/planPermissions';
 import { resolveLinkedApplicationId } from '../../lib/applications/compatibility';
+import {
+  deliverBusinessReviewTelegram,
+  submitBusinessForReview,
+} from '../../lib/server/businessReviewWorkflow';
 
 const createBusinessSchema = z.object({
   token: z.string().min(1, 'Missing auth token'),
@@ -308,29 +312,10 @@ export async function updateBusinessWithState(
 ) {
   try {
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = await auth.verifyIdToken(token, true);
     const db = getAdminFirestore();
-    
     const businessRef = db.collection('businesses').doc(businessId);
-    const snapshot = await businessRef.get();
-    
-    if (!snapshot.exists) {
-      throw new Error('Negocio no encontrado');
-    }
-    
-    const currentData = snapshot.data() as Record<string, unknown>;
-    
-    // Verificar ownership
-    if (currentData.ownerId !== decoded.uid) {
-      throw new Error('No tienes permisos para editar este negocio');
-    }
-    
-    // Verificar que pueda editar (solo draft o in_review)
-    const currentStatus = currentData.businessStatus as BusinessStatus;
-    if (currentStatus === 'published') {
-      throw new Error('No puedes editar un negocio publicado. Contacta al administrador.');
-    }
-    
+
     // Esta action usa Admin SDK: aplica la misma frontera que las Rules y nunca
     // acepta ownership, estados, moderacion ni monetizacion enviados por el owner.
     const ownerUpdates = pickOwnerEditableBusinessUpdates(updates);
@@ -348,19 +333,43 @@ export async function updateBusinessWithState(
       (ownerUpdates as any).categoryName = resolved.categoryName;
       (ownerUpdates as any).categoryGroupId = resolved.groupId;
     }
-    const updatedData = { ...currentData, ...ownerUpdates };
-    
-    // Recalcular estado
-    const stateUpdate = updateBusinessState(updatedData);
-    
-    // Guardar
-    await businessRef.update({
-      ...ownerUpdates,
-      completionPercent: stateUpdate.completionPercent,
-      isPublishReady: stateUpdate.isPublishReady,
-      missingFields: stateUpdate.missingFields,
-      applicationStatus: stateUpdate.applicationStatus,
-      updatedAt: new Date(),
+    const stateUpdate = await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(businessRef);
+      if (!snapshot.exists) throw new Error('Negocio no encontrado');
+      const currentData = snapshot.data() as Record<string, unknown>;
+      if (currentData.ownerId !== decoded.uid) {
+        throw new Error('No tienes permisos para editar este negocio');
+      }
+      const currentStatus = currentData.businessStatus ??
+        (currentData.status === 'published' ? 'published' : 'draft');
+      if (currentStatus === 'published') {
+        throw new Error('No puedes editar un negocio publicado. Contacta al administrador.');
+      }
+      if (currentData.businessStatus === 'deleted') {
+        throw new Error('No puedes editar un negocio eliminado.');
+      }
+
+      const reviewInvalidated = currentStatus === 'in_review';
+      const updatedData = {
+        ...currentData,
+        ...ownerUpdates,
+        ...(reviewInvalidated ? { businessStatus: 'draft' as BusinessStatus } : {}),
+      };
+      const nextState = updateBusinessState(updatedData);
+      const now = new Date();
+      transaction.update(businessRef, {
+        ...ownerUpdates,
+        ...nextState,
+        ...(reviewInvalidated
+          ? {
+              businessStatus: 'draft' as BusinessStatus,
+              reviewInvalidatedAt: now,
+              reviewInvalidatedBy: decoded.uid,
+            }
+          : {}),
+        updatedAt: now,
+      });
+      return nextState;
     });
     
     return {
@@ -385,109 +394,32 @@ export async function updateBusinessWithState(
 export async function requestPublish(businessId: string, token: string) {
   try {
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = await auth.verifyIdToken(token, true);
     const db = getAdminFirestore();
-    
-    const businessRef = db.collection('businesses').doc(businessId);
-    const snapshot = await businessRef.get();
-    
-    if (!snapshot.exists) {
-      throw new Error('Negocio no encontrado');
-    }
-    
-    const businessData = snapshot.data() as Record<string, unknown>;
-    
-    // Verificar ownership
-    if (businessData.ownerId !== decoded.uid) {
-      throw new Error('No tienes permisos');
-    }
-    
-    // 🔥 CRÍTICO: Recalcular estado antes de verificar
-    const freshStateUpdate = updateBusinessState(businessData);
-    await businessRef.set(freshStateUpdate, { merge: true });
-    
-    // Obtener datos frescos después de recalcular
-    const freshSnapshot = await businessRef.get();
-    const freshData = freshSnapshot.data() as Record<string, unknown>;
-    
-    // Verificar que esté listo
-    const { isPublishReady, missingFields } = freshStateUpdate;
-    if (!isPublishReady) {
-      return {
-        success: false,
-        error: 'Tu negocio aún no cumple los requisitos mínimos',
-        missingFields,
-      };
-    }
-    
-    // Cambiar a ready_for_review (listo para que admin apruebe)
-    await businessRef.update({
-      businessStatus: 'draft' as BusinessStatus, // Mantiene draft hasta aprobación
-      applicationStatus: 'ready_for_review' as ApplicationStatus,
-      updatedAt: new Date(),
-      submittedForReviewAt: new Date(),
-      submittedForReviewBy: decoded.uid,
-      lastReviewRequestedAt: new Date(),
-    });
-    
-    // Sincronizar application (crear o actualizar)
-    try {
-      const linkedApplicationId = resolveLinkedApplicationId(freshData) ?? decoded.uid;
-      const appRef = db.collection('applications').doc(linkedApplicationId);
-      const appSnap = await appRef.get();
-      
-      if (appSnap.exists) {
-        // Actualizar existente
-        await appRef.update(
-          freshData.applicationSchemaVersion === 2
-            ? {
-                businessId,
-                updatedAt: new Date(),
-              }
-            : {
-                status: 'ready_for_review',
-                businessId,
-                updatedAt: new Date(),
-              },
-        );
-      } else if (freshData.applicationSchemaVersion !== 2) {
-        // Crear nuevo documento de application
-        await appRef.set({
-          businessId: businessId,
-          businessName: freshData.name || 'Negocio sin nombre',
-          ownerEmail: decoded.email || freshData.ownerEmail,
-          ownerId: decoded.uid,
-          status: 'ready_for_review',
-          createdAt: new Date(),
-          updatedAt: new Date(),
+    const result = await submitBusinessForReview(db, businessId, decoded.uid);
+    if (!result.success) return result;
+
+    if (result.notification?.acquired) {
+      try {
+        await deliverBusinessReviewTelegram({
+          reference: result.notification.reference,
+          businessId,
+          businessName: result.notification.businessName,
         });
+      } catch (notifyError) {
+        await result.notification.reference.set(
+          { status: 'failed', completedAt: new Date() },
+          { merge: true },
+        ).catch(() => undefined);
+        console.warn('[requestPublish] No se pudo entregar la alerta de revisión:', notifyError);
       }
-    } catch (appError) {
-      console.warn('[requestPublish] Error actualizando application (no crítico):', appError);
-      // No fallar si la actualización de applications falla
-    }
-    
-    // Notificar admin (Slack + WhatsApp)
-    try {
-      const notifyUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/notify-business-review`;
-      await fetch(notifyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          businessId: businessId,
-          businessName: freshData.name || 'Negocio sin nombre',
-        }),
-      });
-    } catch (notifyError) {
-      console.warn('[requestPublish] Error al notificar (no crítico):', notifyError);
-      // No fallar si la notificación falla
     }
     
     return {
       success: true,
+      idempotent: result.idempotent,
+      error: undefined,
+      missingFields: undefined,
       message: '¡Tu negocio ha sido enviado a revisión! Te notificaremos cuando sea aprobado.',
     };
     

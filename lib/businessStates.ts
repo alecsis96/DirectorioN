@@ -489,9 +489,11 @@ export function canEditBusiness(businessStatus: BusinessStatus): boolean {
  */
 export function canPublishBusiness(business: Partial<BusinessWithState>): boolean {
   const { ready } = isPublishReady(business);
+  const effectiveStatus = business.businessStatus ??
+    (business.status === 'published' ? 'published' : 'draft');
   return (
     ready &&
-    (business.businessStatus === 'draft' || business.businessStatus === undefined) &&
+    effectiveStatus === 'draft' &&
     business.applicationStatus !== 'rejected'
   );
 }
@@ -514,13 +516,14 @@ export function getStatusText(business?: Partial<BusinessWithState> | null): {
     };
   }
   
-  const status = business.businessStatus || 'draft';
+  const status = business.businessStatus ??
+    (business.status === 'published' ? 'published' : 'draft');
   const appStatus = business.applicationStatus || 'submitted';
   
   // 1️⃣ PRIORIDAD MÁXIMA: Verificar businessStatus primero
   if (status === 'published') {
     return {
-      title: '✅ Negocio publicado',
+      title: 'Publicado',
       description: 'Tu negocio es visible en YajaGon y puede recibir clientes.',
       variant: 'success',
     };
@@ -528,16 +531,16 @@ export function getStatusText(business?: Partial<BusinessWithState> | null): {
   
   if (status === 'in_review') {
     return {
-      title: '⏳ En revisión por administrador',
-      description: 'Tu solicitud está siendo revisada. Te notificaremos cuando sea aprobada.',
+      title: 'En revisión',
+      description: 'YajaGon está revisando tu negocio. Te avisaremos cuando sea publicado.',
       variant: 'info',
     };
   }
   
-  // 2️⃣ SEGUNDA PRIORIDAD: applicationStatus (solo para draft)
+  // Los estados auxiliares sólo enriquecen el borrador; businessStatus manda.
   if (appStatus === 'rejected') {
     return {
-      title: '❌ Solicitud rechazada',
+      title: 'Borrador',
       description: business.rejectionReason || 'Revisa las observaciones del administrador.',
       variant: 'error',
     };
@@ -545,16 +548,16 @@ export function getStatusText(business?: Partial<BusinessWithState> | null): {
   
   if (appStatus === 'ready_for_review' && status === 'draft') {
     return {
-      title: '✨ Perfil completo',
-      description: 'Tu negocio cumple todos los requisitos. Envíalo a revisión para publicarlo.',
-      action: '🚀 Enviar a revisión',
+      title: 'Borrador',
+      description: 'Tu negocio todavía no es visible públicamente.',
+      action: 'Enviar a revisión',
       variant: 'success',
     };
   }
   
   if (appStatus === 'needs_info') {
     return {
-      title: '⚠️ Se necesita más información',
+      title: 'Borrador',
       description: business.adminNotes || 'Completa los campos faltantes para poder publicar tu negocio.',
       variant: 'warning',
     };
@@ -566,17 +569,16 @@ export function getStatusText(business?: Partial<BusinessWithState> | null): {
   
   if (isComplete) {
     return {
-      title: '✨ Perfil completo',
-      description: `Tu negocio está completo (${percent}%). Envíalo a revisión cuando estés listo.`,
-      action: '🚀 Enviar a revisión',
+      title: 'Borrador',
+      description: 'Tu negocio todavía no es visible públicamente.',
+      action: 'Enviar a revisión',
       variant: 'success',
     };
   }
   
   return {
-    title: '📝 Completando perfil',
-    description: `Tu negocio aún no es visible. Completa tu perfil (${percent}%) para poder publicarlo.`,
-    action: percent >= 50 ? '✏️ Completar perfil' : undefined,
+    title: 'Borrador',
+    description: 'Tu negocio todavía no es visible públicamente.',
     variant: 'draft',
   };
 }

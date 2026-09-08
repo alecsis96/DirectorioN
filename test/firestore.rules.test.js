@@ -375,7 +375,7 @@ runner("Firestore security rules for /businesses", () => {
     );
   });
 
-  it("allows admins to create, update, and delete any business", async () => {
+  it("allows admin profile maintenance but keeps state transitions server-side", async () => {
     const adminContext = testEnv.authenticatedContext("admin-user", { admin: true });
     const collection = adminContext.firestore().collection("businesses");
 
@@ -391,13 +391,12 @@ runner("Firestore security rules for /businesses", () => {
 
     await assertSucceeds(
       docRef.update({
-        businessStatus: "published",
-        visibility: "published",
-        adminStatus: "active",
-        isActive: true,
-        plan: "sponsor",
+        name: "Alta asistida actualizada",
       })
     );
+
+    await assertFails(docRef.update({ businessStatus: "published" }));
+    await assertFails(docRef.update({ ownerId: "otro-owner" }));
 
     await assertSucceeds(docRef.delete());
   });

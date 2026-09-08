@@ -431,31 +431,51 @@ export async function updateBusinessDetails(businessId: string, formData: FormDa
   }
 
   const auth = getAdminAuth();
-  const decoded = await auth.verifyIdToken(parsed.token);
+  const decoded = await auth.verifyIdToken(parsed.token, true);
   const db = getAdminFirestore();
   const ref = db.doc(`businesses/${parsed.businessId}`);
-  const snap = await ref.get();
-  if (!snap.exists) {
-    throw new Error('Negocio no encontrado.');
-  }
+  const result = await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists) throw new Error('Negocio no encontrado.');
 
-  const data = snap.data() as Record<string, unknown> | undefined;
-  const ownerId = data?.ownerId;
-  const isOwner = typeof ownerId === 'string' && ownerId === decoded.uid;
-  const isAdmin = (decoded as any).admin === true || hasAdminOverride(decoded.email);
-  if (!isOwner && !isAdmin) {
-    throw new Error('No tienes permisos para editar este negocio.');
-  }
+    const data = snap.data() as Record<string, unknown>;
+    const isOwner = typeof data.ownerId === 'string' && data.ownerId === decoded.uid;
+    const isAdmin = (decoded as any).admin === true || hasAdminOverride(decoded.email);
+    if (!isOwner && !isAdmin) {
+      throw new Error('No tienes permisos para editar este negocio.');
+    }
+    const currentStatus = data.businessStatus ??
+      (data.status === 'published' ? 'published' : 'draft');
+    if (currentStatus === 'published' && !isAdmin) {
+      throw new Error('Un negocio publicado no puede editarse desde este flujo.');
+    }
+    if (data.businessStatus === 'deleted') {
+      throw new Error('Un negocio eliminado no puede editarse.');
+    }
 
-  sanitized.updatedAt = new Date();
-  await ref.set(sanitized, { merge: true });
+    const reviewInvalidated = currentStatus === 'in_review';
+    const merged = {
+      ...data,
+      ...sanitized,
+      ...(reviewInvalidated ? { businessStatus: 'draft' } : {}),
+    };
+    const stateUpdate = updateBusinessState(merged as any);
+    const now = new Date();
+    transaction.set(ref, {
+      ...sanitized,
+      ...stateUpdate,
+      ...(reviewInvalidated
+        ? {
+            businessStatus: 'draft',
+            reviewInvalidatedAt: now,
+            reviewInvalidatedBy: decoded.uid,
+          }
+        : {}),
+      updatedAt: now,
+    }, { merge: true });
 
-  const updatedSnap = await ref.get();
-  if (updatedSnap.exists) {
-    const updatedData = updatedSnap.data() as Record<string, unknown>;
-    const stateUpdate = updateBusinessState(updatedData);
-    await ref.set(stateUpdate, { merge: true });
-  }
+    return { reviewInvalidated, ...stateUpdate };
+  });
 
-  return { ok: true };
+  return { ok: true, ...result };
 }

@@ -22,7 +22,6 @@ export function isLegacyEnabled(): boolean {
  */
 export const LEGACY_ROUTES = [
   '/admin/applications',
-  '/admin/pending-businesses',
 ] as const;
 
 export type LegacyRoute = typeof LEGACY_ROUTES[number];
@@ -68,7 +67,6 @@ export function requireLegacyAccess(route: LegacyRoute): void {
 function getModernAlternative(legacyRoute: LegacyRoute): string {
   const alternatives: Record<LegacyRoute, string> = {
     '/admin/applications': '/admin/solicitudes',
-    '/admin/pending-businesses': '/admin/solicitudes',
   };
   
   return alternatives[legacyRoute] || '/admin/solicitudes';

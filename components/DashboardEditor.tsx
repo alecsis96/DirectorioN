@@ -933,14 +933,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
       
 
       if (result.success) {
-
-        // OK Mantener draft hasta que admin apruebe
-
         setBusinessState(prev => ({
 
           ...prev,
 
-          businessStatus: 'draft', // Correcto: permanece draft hasta aprobacion
+          businessStatus: 'in_review',
 
           applicationStatus: 'ready_for_review',
 
@@ -971,6 +968,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
         }
 
       } else {
+
+        if (result.missingFields) {
+
+          const missingFields = result.missingFields;
+
+          setBusinessState(prev => ({ ...prev, missingFields }));
+
+        }
 
         setUiState(prev => ({ 
 

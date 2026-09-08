@@ -10,6 +10,7 @@ import {
   resolveApplicationOwnerId,
 } from '../../../lib/applications/compatibility';
 import { approveAndDeliverApplicationV2 } from '../../../lib/server/applicationV2ApprovalWorkflow';
+import { reviewExistingBusiness } from '../../../lib/server/businessReviewWorkflow';
 
 const limiter = rateLimit({ interval: 60000, uniqueTokenPerInterval: 20 });
 
@@ -38,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = await auth.verifyIdToken(token, true);
     
     if (!(decoded as any).admin && !hasAdminOverride(decoded.email)) {
       return res.status(403).json({ error: 'Forbidden - Admin access required' });
@@ -66,32 +67,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const businessSnap = await businessRef.get();
     
     if (businessSnap.exists) {
-      // Es una segunda revisión (negocio ya creado, enviado a revisión por el dueño)
-      const businessData = businessSnap.data();
-      
-      console.log('🔍 [review-business] Reviewing existing business:', {
-        businessId,
-        currentStatus: businessData?.status,
-        ownerId: businessData?.ownerId,
-      });
-      
-      if (action === 'approve') {
-        const now = new Date();
-        // businessStatus es la fuente de verdad; status se conserva solo por compatibilidad legacy.
-        await businessRef.update({
-          status: 'published',
-          businessStatus: 'published',
-          applicationStatus: 'approved',
-          adminStatus: 'active',
-          visibility: 'published',
-          isActive: true,
-          publishedAt: now,
-          lastReviewedAt: now,
-          publishedBy: decoded.uid,
-          updatedAt: now,
+      let businessData: Record<string, any>;
+      try {
+        businessData = await reviewExistingBusiness({
+          db,
+          businessId,
+          adminUid: decoded.uid,
+          action,
+          notes,
         });
-        
-        console.log(`✅ [review-business] Business ${businessId} published successfully`);
+      } catch (error) {
+        if (error instanceof Error && error.message === 'El negocio ya no está en revisión') {
+          return res.status(409).json({ error: error.message });
+        }
+        throw error;
+      }
+
+      if (action === 'approve') {
         
         // Enviar notificaciones (email y WhatsApp)
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -155,15 +147,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         return res.status(200).json({ ok: true, message: 'Business published successfully', businessId });
       } else {
-        // Rechazar: volver a draft con notas
-        await businessRef.update({
-          status: 'draft',
-          rejectedAt: new Date(),
-          rejectedBy: decoded.uid,
-          rejectionNotes: notes || 'Sin motivo especificado',
-          updatedAt: new Date(),
-        });
-        
         return res.status(200).json({ ok: true, message: 'Business rejected, returned to draft' });
       }
     }

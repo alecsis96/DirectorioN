@@ -3,10 +3,12 @@ import { NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/server/firebaseAdmin';
 import {
   assertAdminToken,
+  assertRevocationCheckedAdminToken,
   AuthorizationError,
   extractBearerToken,
 } from '@/lib/server/authorization';
 import { MONETIZATION_FEATURE_ENABLED } from '@/lib/featureFlags';
+import { reviewExistingBusiness } from '@/lib/server/businessReviewWorkflow';
 
 const ACTIONS_BY_TYPE: Record<string, ReadonlySet<string>> = {
   application: new Set(['approve', 'reject', 'request-info']),
@@ -17,7 +19,8 @@ const ACTIONS_BY_TYPE: Record<string, ReadonlySet<string>> = {
 
 export async function POST(request: NextRequest) {
   try {
-    await assertAdminToken(extractBearerToken(request.headers));
+    const token = extractBearerToken(request.headers);
+    await assertAdminToken(token);
 
     const body = await request.json();
     const { itemId, businessId, action, type } =
@@ -53,14 +56,12 @@ export async function POST(request: NextRequest) {
         break;
       
       case 'publish':
-        await db.collection('businesses').doc(businessId).update({
-          businessStatus: 'published',
-          applicationStatus: 'approved',
-          adminStatus: 'active',
-          visibility: 'published',
-          isActive: true,
-          publishedAt: new Date().toISOString(),
-          lastReviewedAt: new Date().toISOString(),
+        const publishAdmin = await assertRevocationCheckedAdminToken(token);
+        await reviewExistingBusiness({
+          db,
+          businessId,
+          adminUid: publishAdmin.uid,
+          action: 'approve',
         });
         break;
       
@@ -71,9 +72,12 @@ export async function POST(request: NextRequest) {
             rejectedAt: new Date().toISOString(),
           });
         } else {
-          await db.collection('businesses').doc(businessId).update({
-            applicationStatus: 'rejected',
-            rejectedAt: new Date().toISOString(),
+          const reviewAdmin = await assertRevocationCheckedAdminToken(token);
+          await reviewExistingBusiness({
+            db,
+            businessId,
+            adminUid: reviewAdmin.uid,
+            action: 'reject',
           });
         }
         break;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminFirestore } from '../../../../lib/server/firebaseAdmin';
 import { hasAdminOverride } from '../../../../lib/adminOverrides';
 import { getResourceLimit, normalizePlan } from '../../../../lib/planPermissions';
+import { updateBusinessState } from '../../../../lib/businessStates';
 
 const ALLOWED_FIELDS = new Set([
   'name',
@@ -72,39 +73,65 @@ export async function POST(request: NextRequest) {
     }
 
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(token);
+    const decoded = await auth.verifyIdToken(token, true);
     const db = getAdminFirestore();
     const ref = db.doc(`businesses/${businessId}`);
-    const snap = await ref.get();
-
-    if (!snap.exists) {
-      return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 });
-    }
-
-    const data = snap.data() || {};
-    const ownerId = data.ownerId;
-    const isOwner = typeof ownerId === 'string' && ownerId === decoded.uid;
-    const isAdmin = decoded.admin === true || hasAdminOverride(decoded.email);
-
-    if (!isOwner && !isAdmin) {
-      return NextResponse.json({ error: 'No tienes permisos para editar este negocio' }, { status: 403 });
-    }
-
     const sanitized = sanitizeUpdates(updates);
-    if ('images' in sanitized) {
-      const plan = normalizePlan(typeof data.plan === 'string' ? data.plan : 'free');
-      const galleryLimit = getResourceLimit(plan, 'galleryPhotos');
-      sanitized.images = sanitizeImageItems(sanitized.images, galleryLimit);
-    }
     if (!Object.keys(sanitized).length) {
       return NextResponse.json({ error: 'No hay campos válidos para actualizar' }, { status: 400 });
     }
 
-    sanitized.updatedAt = new Date();
-    await ref.set(sanitized, { merge: true });
+    const result = await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(ref);
+      if (!snap.exists) throw new Error('BUSINESS_NOT_FOUND');
+      const data = snap.data() || {};
+      const isOwner = typeof data.ownerId === 'string' && data.ownerId === decoded.uid;
+      const isAdmin = decoded.admin === true || hasAdminOverride(decoded.email);
+      if (!isOwner && !isAdmin) throw new Error('BUSINESS_FORBIDDEN');
 
-    return NextResponse.json({ ok: true });
+      const currentStatus = data.businessStatus ??
+        (data.status === 'published' ? 'published' : 'draft');
+      if (currentStatus === 'published' && !isAdmin) throw new Error('BUSINESS_PUBLISHED');
+      if (data.businessStatus === 'deleted') throw new Error('BUSINESS_DELETED');
+
+      if ('images' in sanitized) {
+        const plan = normalizePlan(typeof data.plan === 'string' ? data.plan : 'free');
+        sanitized.images = sanitizeImageItems(
+          sanitized.images,
+          getResourceLimit(plan, 'galleryPhotos'),
+        );
+      }
+      const reviewInvalidated = currentStatus === 'in_review';
+      const nextState = updateBusinessState({
+        ...data,
+        ...sanitized,
+        ...(reviewInvalidated ? { businessStatus: 'draft' as const } : {}),
+      });
+      const now = new Date();
+      transaction.set(ref, {
+        ...sanitized,
+        ...nextState,
+        ...(reviewInvalidated ? {
+          businessStatus: 'draft',
+          reviewInvalidatedAt: now,
+          reviewInvalidatedBy: decoded.uid,
+        } : {}),
+        updatedAt: now,
+      }, { merge: true });
+      return { reviewInvalidated };
+    });
+
+    return NextResponse.json({ ok: true, ...result });
   } catch (error) {
+    if (error instanceof Error && error.message === 'BUSINESS_NOT_FOUND') {
+      return NextResponse.json({ error: 'Negocio no encontrado' }, { status: 404 });
+    }
+    if (error instanceof Error && error.message === 'BUSINESS_FORBIDDEN') {
+      return NextResponse.json({ error: 'No tienes permisos para editar este negocio' }, { status: 403 });
+    }
+    if (error instanceof Error && (error.message === 'BUSINESS_PUBLISHED' || error.message === 'BUSINESS_DELETED')) {
+      return NextResponse.json({ error: 'Este negocio no puede editarse desde este flujo' }, { status: 409 });
+    }
     console.error('[api/businesses/update] error', error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }

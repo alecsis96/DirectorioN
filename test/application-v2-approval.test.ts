@@ -175,7 +175,7 @@ describe('0.2R.3 atomic v2 approval', () => {
     expect(actions).toMatch(/approveApplicationV2[\s\S]*?assertAdminToken\(adminToken\)[\s\S]*?approveAndDeliverApplicationV2/);
     expect(actions).toMatch(/resendOwnershipInvitationV2[\s\S]*?assertAdminToken\(adminToken\)[\s\S]*?reissueAndDeliverOwnershipInvitationV2/);
     expect(legacyAction).toMatch(/adminUser = await verifyAdmin\(token\)[\s\S]*?approveAndDeliverApplicationV2/);
-    expect(legacyRoute).toMatch(/verifyIdToken\(token\)[\s\S]*?approveAndDeliverApplicationV2/);
+    expect(legacyRoute).toMatch(/verifyIdToken\(token(?:,\s*true)?\)[\s\S]*?approveAndDeliverApplicationV2/);
   });
 
   it('atomically creates one ownerless, hidden business, one claim and one outbox', async () => {
