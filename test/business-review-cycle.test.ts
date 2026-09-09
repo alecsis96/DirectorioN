@@ -214,10 +214,10 @@ describe('0.2R.5C business review cycle', () => {
     expect(action).toContain('db.runTransaction');
   });
 
-  it('pending admin view uses canonical in_review query and server admin guard', () => {
+  it('legacy pending admin view keeps its server guard and redirects to the canonical in_review filter', () => {
     const page = source('app/admin/pending-businesses/page.tsx');
-    expect(page).toContain("where('businessStatus', '==', 'in_review')");
     expect(page).toContain("requireAdminPage('/admin/pending-businesses')");
+    expect(page).toContain("redirect('/admin/businesses?status=in_review')");
   });
 
   it('owner Firestore writes cannot change state or ownership', () => {

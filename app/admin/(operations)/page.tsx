@@ -1,130 +1,16 @@
-import InboxVirtual from '@/components/admin/operations/InboxVirtual';
-import { getAdminFirestore } from '@/lib/server/firebaseAdmin';
+import Link from 'next/link';
 import { requireAdminPage } from '@/lib/server/adminPageAuthorization';
-import { MONETIZATION_FEATURE_ENABLED } from '@/lib/featureFlags';
 
-export const dynamic = 'force-dynamic';
-export const metadata = {
-  title: 'Inbox - Admin Panel',
-};
+export const metadata = { title: 'Panel de administración' };
 
-interface InboxItem {
-  id: string;
-  type: string;
-  priority: 'critical' | 'warning' | 'info';
-  priorityScore: number;
-  businessName: string;
-  businessId: string;
-  metadata: any;
-  actions: string[];
-}
-
-async function fetchInboxItems() {
-  const db = getAdminFirestore();
-  const items: InboxItem[] = [];
-
-  try {
-    const applicationsSnap = await db.collection('applications').where('status', 'in', ['pending', 'solicitud']).limit(20).get();
-    applicationsSnap.docs.forEach((doc) => {
-      const data = doc.data();
-      items.push({
-        id: doc.id,
-        type: 'application',
-        priority: 'info',
-        priorityScore: 3,
-        businessName: data.businessName || 'Sin nombre',
-        businessId: doc.id,
-        metadata: {
-          plan: data.plan || 'free',
-          email: data.ownerEmail || data.email,
-          createdAt: data.createdAt?.toDate?.() || new Date(),
-        },
-        actions: ['approve', 'reject', 'request-info'],
-      });
-    });
-
-    const inReviewSnap = await db.collection('businesses').where('businessStatus', '==', 'in_review').limit(20).get();
-    inReviewSnap.docs.forEach((doc) => {
-      const data = doc.data();
-      items.push({
-        id: doc.id,
-        type: 'review',
-        priority: 'warning',
-        priorityScore: 2,
-        businessName: data.businessName || data.name || 'Sin nombre',
-        businessId: doc.id,
-        metadata: {
-          plan: data.plan,
-          category: data.category,
-          createdAt: data.createdAt?.toDate?.() || new Date(),
-        },
-        actions: ['publish', 'reject'],
-      });
-    });
-
-    if (MONETIZATION_FEATURE_ENABLED) {
-      const now = new Date();
-      const paymentsSnap = await db.collection('businesses').where('plan', 'in', ['featured', 'sponsor']).get();
-      paymentsSnap.docs.forEach((doc) => {
-        const data = doc.data();
-        if (!data.planExpiresAt) return;
-
-        const expiresAt = data.planExpiresAt.toDate();
-        const daysUntil = Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (daysUntil < 0) {
-          items.push({
-            id: `payment-${doc.id}`,
-            type: 'payment',
-            priority: 'critical',
-            priorityScore: 1,
-            businessName: data.businessName || data.name || 'Sin nombre',
-            businessId: doc.id,
-            metadata: {
-              plan: data.plan,
-              daysOverdue: Math.abs(daysUntil),
-            },
-            actions: ['remind', 'suspend', 'extend'],
-          });
-        } else if (daysUntil <= 7) {
-          items.push({
-            id: `payment-${doc.id}`,
-            type: 'expiration',
-            priority: 'warning',
-            priorityScore: 2,
-            businessName: data.businessName || data.name || 'Sin nombre',
-            businessId: doc.id,
-            metadata: {
-              plan: data.plan,
-              daysUntilExpiration: daysUntil,
-            },
-            actions: ['remind', 'extend'],
-          });
-        }
-      });
-    }
-
-    items.sort((a, b) => a.priorityScore - b.priorityScore);
-  } catch (error) {
-    console.error('[inbox] Error fetching items:', error);
-  }
-
-  return items;
-}
-
-export default async function AdminInboxPage() {
+export default async function AdminPanelPage() {
   await requireAdminPage('/admin');
-  const items = await fetchInboxItems();
-
-  return (
-    <div>
-      <div className="mb-6">
-        <p className="mb-2 text-xs uppercase tracking-wider text-gray-500">Core</p>
-        <h1 className="text-2xl font-bold text-gray-900">Inbox</h1>
-        <p className="mt-1 text-sm text-gray-600">Una bandeja para ver qué requiere acción hoy y resolverlo rápido.</p>
-      </div>
-
-      <InboxVirtual items={items} />
+  return <div className="space-y-6">
+    <header><p className="text-xs uppercase tracking-wider text-gray-500">Administración</p><h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">Panel</h1><p className="mt-1 text-sm text-gray-600">Elige la etapa que quieres gestionar.</p></header>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Link href="/admin/solicitudes" className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:border-emerald-300"><h2 className="font-bold text-gray-900">Solicitudes</h2><p className="mt-1 text-sm text-gray-600">Aprobar solicitudes iniciales, pedir información o rechazarlas.</p></Link>
+      <Link href="/admin/businesses?status=in_review" className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:border-emerald-300"><h2 className="font-bold text-gray-900">Negocios</h2><p className="mt-1 text-sm text-gray-600">Revisar borradores enviados y publicar negocios.</p></Link>
+      <Link href="/admin/observabilidad" className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:border-emerald-300"><h2 className="font-bold text-gray-900">Observabilidad</h2><p className="mt-1 text-sm text-gray-600">Localizar estados y relaciones que requieren atención.</p></Link>
     </div>
-  );
+  </div>;
 }

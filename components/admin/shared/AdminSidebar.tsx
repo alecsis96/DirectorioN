@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ComponentType } from 'react';
+import { MONETIZATION_FEATURE_ENABLED } from '../../../lib/featureFlags';
 import {
   BsBarChart,
   BsBoxSeam,
@@ -12,12 +13,11 @@ import {
   BsExclamationTriangle,
   BsFileText,
   BsGraphUp,
-  BsInbox,
+  BsGear,
   BsList,
   BsMegaphone,
   BsBinoculars,
   BsPencilSquare,
-  BsSearch,
   BsShop,
   BsStar,
   BsX,
@@ -45,14 +45,15 @@ export default function AdminSidebar() {
 
   const navItems: NavItem[] = [
     { section: true, label: 'Principal' },
-    { href: '/admin', label: 'Inbox', icon: BsInbox, description: 'Pendientes y urgencias' },
+    { href: '/admin', label: 'Panel', icon: BsBarChart, description: 'Inicio administrativo' },
     { href: '/admin/solicitudes', label: 'Solicitudes', icon: BsFileText, description: 'Revision y decisiones' },
     { href: '/admin/campaigns', label: 'Campaigns', icon: BsMegaphone, description: 'Hero y ofertas activas' },
     { href: '/admin/businesses', label: 'Negocios', icon: BsShop, description: 'Lista y acciones clave' },
     { href: '/admin/observabilidad', label: 'Observabilidad', icon: BsBinoculars, description: 'Todos los estados y relaciones' },
+    { href: '/admin/configuracion', label: 'Configuración', icon: BsGear, description: 'Ajustes administrativos' },
     { href: '/admin/alta-asistida', label: 'Alta asistida', icon: BsPencilSquare, description: 'Alta guiada' },
     { section: true, label: 'Secundario' },
-    { href: '/admin/payments', label: 'Pagos', icon: BsBoxSeam, description: 'Cobros y vencimientos' },
+    ...(MONETIZATION_FEATURE_ENABLED ? [{ href: '/admin/payments', label: 'Pagos', icon: BsBoxSeam, description: 'Cobros y vencimientos' } as const] : []),
     { href: '/admin/reports', label: 'Reportes', icon: BsExclamationTriangle, description: 'Incidencias y denuncias' },
     { href: '/admin/analytics', label: 'Analytics', icon: BsBarChart, description: 'Uso y comportamiento' },
     { href: '/admin/stats', label: 'Stats', icon: BsGraphUp, description: 'Metricas globales' },
@@ -61,7 +62,6 @@ export default function AdminSidebar() {
 
   const legacyItems = [
     { href: '/admin/applications', label: 'Applications', icon: BsFileText, description: 'Sistema antiguo' },
-    { href: '/admin/pending-businesses', label: 'Pendientes legacy', icon: BsSearch, description: 'Revision vieja' },
   ];
 
   const debugItems = showDebug
@@ -102,7 +102,7 @@ export default function AdminSidebar() {
 
             const navItem = item;
             const Icon = navItem.icon;
-            const isActive = pathname === navItem.href || pathname?.startsWith(navItem.href + '/');
+            const isActive = navItem.href === '/admin' ? pathname === '/admin' : pathname === navItem.href || pathname?.startsWith(navItem.href + '/');
 
             return (
               <li key={navItem.href}>

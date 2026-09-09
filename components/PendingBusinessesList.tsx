@@ -3,7 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { auth } from '../firebaseConfig';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { PendingBusiness } from '../app/admin/pending-businesses/page';
+
+type PendingBusiness = {
+  id: string;
+  name: string;
+  category?: string;
+  ownerEmail?: string;
+  ownerName?: string;
+  phone?: string;
+  status: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+  description?: string;
+  address?: string;
+};
 
 interface Props {
   businesses: PendingBusiness[];
