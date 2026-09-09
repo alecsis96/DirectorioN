@@ -257,7 +257,11 @@ function NavigationContent() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
   
-  // No mostrar en páginas de admin
+  // Los espacios de administración usan navegación propia.
+  if (pathname?.startsWith('/dashboard/')) {
+    return null;
+  }
+
   if (pathname?.startsWith('/admin')) {
     return null;
   }

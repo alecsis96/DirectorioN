@@ -65,8 +65,11 @@ export default async function DashboardBusinessPage({ params }: { params: Promis
     return <DashboardEditor businessId={businessId} initialBusiness={initialBusiness} />;
   }
   const accountCreatedByClaim = await wasAccountCreatedByClaimForBusiness(user.uid, businessId, { db }).catch(() => false);
-  return <>
-    <ClaimGoogleLink ownerId={user.uid} businessId={businessId} accountCreatedByClaim={accountCreatedByClaim} />
-    <DashboardEditor businessId={businessId} initialBusiness={initialBusiness} />
-  </>;
+  return <DashboardEditor
+    businessId={businessId}
+    initialBusiness={initialBusiness}
+    accountSecurityPrompt={
+      <ClaimGoogleLink ownerId={user.uid} businessId={businessId} accountCreatedByClaim={accountCreatedByClaim} />
+    }
+  />;
 }

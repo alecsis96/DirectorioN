@@ -115,9 +115,9 @@ export default function ClaimGoogleLink({ ownerId, businessId, accountCreatedByC
 
   const offerPassword = accountCreatedByClaim && !passwordCreated;
   if (dismissed || (!ready && !message) || (!offerPassword && googleLinked && !message)) return null;
-  return <aside className="mx-auto my-4 max-w-5xl rounded-xl border border-emerald-200 bg-white p-4">
-    <h2 className="font-bold text-gray-900">{accountCreatedByClaim ? 'Protege tu cuenta' : 'Acceso a tu cuenta'}</h2>
-    {offerPassword && <p className="mt-1 text-sm text-gray-600">Crea una contraseña para entrar fácilmente la próxima vez.</p>}
+  return <aside className="mx-auto my-3 max-w-6xl rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3">
+    <h2 className="text-sm font-bold text-gray-900">{accountCreatedByClaim ? 'Protege tu cuenta' : 'Acceso a tu cuenta'}</h2>
+    {offerPassword && <p className="mt-0.5 text-xs text-gray-600">Crea una contraseña para entrar fácilmente la próxima vez.</p>}
 
     {creatingPassword && offerPassword && <form className="mt-4 grid max-w-md gap-3" onSubmit={event => { event.preventDefault(); void createPassword(); }}>
       <label htmlFor="new-password">Nueva contraseña</label>
@@ -129,10 +129,10 @@ export default function ClaimGoogleLink({ ownerId, businessId, accountCreatedByC
       <button disabled={busy} className="rounded-lg bg-emerald-700 px-4 py-3 font-semibold text-white">Guardar contraseña</button>
     </form>}
 
-    {!creatingPassword && ready && <div className="mt-3 flex flex-wrap gap-3">
-      {offerPassword && <button disabled={busy} className="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white" onClick={() => { setCreatingPassword(true); setMessage(''); }}>Crear contraseña</button>}
-      {!googleLinked && <button disabled={busy} className="rounded-lg border border-emerald-700 px-4 py-2 font-semibold text-emerald-700" onClick={() => void linkGoogle()}>Vincular Google</button>}
-      <button disabled={busy} className="px-3 py-2 text-gray-600" onClick={() => setDismissed(true)}>Ahora no</button>
+    {!creatingPassword && ready && <div className="mt-2 flex flex-wrap gap-2 text-sm">
+      {offerPassword && <button disabled={busy} className="rounded-lg bg-emerald-700 px-3 py-2 font-semibold text-white" onClick={() => { setCreatingPassword(true); setMessage(''); }}>Crear contraseña</button>}
+      {!googleLinked && <button disabled={busy} className="rounded-lg border border-emerald-700 px-3 py-2 font-semibold text-emerald-700" onClick={() => void linkGoogle()}>Vincular Google</button>}
+      <button disabled={busy} className="px-2 py-2 text-gray-600" onClick={() => setDismissed(true)}>Ahora no</button>
     </div>}
     {message && <p role="status" className="mt-3 text-sm text-gray-700">{message}</p>}
   </aside>;

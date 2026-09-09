@@ -12,11 +12,9 @@ import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react'
 
 import { useRouter } from 'next/navigation';
 
-import { signOut } from 'firebase/auth';
-
 import { doc, getDoc } from 'firebase/firestore';
 
-import { auth, db } from '../firebaseConfig';
+import { db } from '../firebaseConfig';
 
 import ImageUploader from './ImageUploader';
 
@@ -54,6 +52,16 @@ import { MENU_FEATURE_ENABLED, MONETIZATION_FEATURE_ENABLED } from '../lib/featu
 type DaySchedule = { open: boolean; start: string; end: string };
 
 type WeeklySchedule = Record<string, DaySchedule>;
+
+const DAY_LABELS: Record<string, string> = {
+  lunes: 'Lunes',
+  martes: 'Martes',
+  miercoles: 'Miércoles',
+  jueves: 'Jueves',
+  viernes: 'Viernes',
+  sabado: 'Sábado',
+  domingo: 'Domingo',
+};
 
 type AddressState = {
 
@@ -291,23 +299,25 @@ type DashboardEditorProps = {
 
   initialBusiness?: Business | null;
 
+  accountSecurityPrompt?: React.ReactNode;
+
 };
 
 type EditorTabId = 'info' | 'operacion' | 'catalogo' | 'gestion';
 
 const EDITOR_TABS: Array<{ id: EditorTabId; label: string; shortLabel: string }> = [
 
-  { id: 'info', label: 'Informacion', shortLabel: 'Info' },
+  { id: 'info', label: 'Información', shortLabel: 'Info' },
 
-  { id: 'operacion', label: 'Contacto y ubicacion', shortLabel: 'Operacion' },
+  { id: 'operacion', label: 'Operación', shortLabel: 'Operación' },
 
-  { id: 'catalogo', label: 'Catalogo y medios', shortLabel: 'Catalogo' },
+  { id: 'catalogo', label: 'Catálogo', shortLabel: 'Catálogo' },
 
-  { id: 'gestion', label: 'Gestion y plan', shortLabel: 'Gestion' },
+  { id: 'gestion', label: 'Gestión', shortLabel: 'Gestión' },
 
 ];
 
-export default function EditBusiness({ businessId, initialBusiness }: DashboardEditorProps) {
+export default function EditBusiness({ businessId, initialBusiness, accountSecurityPrompt }: DashboardEditorProps) {
 
   const router = useRouter();
 
@@ -465,10 +475,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   // Estado para controlar el toast
 
   const [showToast, setShowToast] = useState(false);
-
-  // Estado para ?ltimo guardado
-
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // Estado para detectar cambios sin guardar
 
@@ -892,8 +898,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
       // Actualizar timestamp de guardado (ya no es necesario setHasUnsavedChanges aqu?)
 
-      setLastSaved(new Date());
-
       
 
       // Scroll suave hacia arriba
@@ -919,6 +923,14 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
   const handleRequestPublish = async () => {
 
     if (!id || !biz || !user) return;
+
+    if (hasUnsavedChanges) {
+      setUiState(prev => ({
+        ...prev,
+        msg: 'Guarda tus cambios antes de enviar el negocio a revisión.',
+      }));
+      return;
+    }
 
     
 
@@ -1377,7 +1389,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
         </div>
 
-      )}      <main className="mx-auto max-w-6xl overflow-x-hidden px-4 py-6 pb-40 sm:px-6 sm:py-8">
+      )}      <main className={`mx-auto max-w-6xl overflow-x-hidden px-4 pt-0 sm:px-6 ${hasUnsavedChanges ? "pb-24" : "pb-8"}`}>
 
       {!biz ? (
 
@@ -1391,215 +1403,36 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
         <>
 
-          {/* Hero */}
-
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 mb-6">
-
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
-
-              <div className="space-y-1">
-
-                <p className="text-sm text-gray-500">Editor de negocio</p>
-
-                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-
-                  <h1 className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{form.name || 'Sin nombre'}</h1>
-
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-
-                    {biz.plan ? biz.plan.toUpperCase() : 'FREE'}
-
-                  </span>
-
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-
-                    Estado: {businessState.businessStatus === 'in_review' ? 'en revisión' : businessState.businessStatus || biz.status || 'draft'}
-
-                  </span>
-
-                  {hasUnsavedChanges && (
-
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200 animate-pulse">
-
-                       Cambios sin guardar
-
-                    </span>
-
-                  )}
-
-                </div>
-
-                <div className="flex items-center gap-3 flex-wrap">
-
-                  <p className="text-sm text-gray-600">{user?.email || biz.ownerEmail || 'Sesion iniciada'}</p>
-
-                  {lastSaved && !hasUnsavedChanges && (
-
-                    <p className="text-xs text-gray-500">
-
-                      Guardado hace {Math.round((Date.now() - lastSaved.getTime()) / 60000)} min
-
-                    </p>
-
-                  )}
-
-                </div>
-
-              </div>
-
+          <header className="sticky top-0 z-30 -mx-4 mb-4 border-b border-gray-200 bg-white/95 px-3 py-2.5 shadow-sm backdrop-blur sm:-mx-6 sm:px-6">
+            <div className="mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+              <button type="button" onClick={() => router.push('/dashboard')} className="min-h-10 rounded-lg px-2 text-sm font-semibold text-gray-700 hover:bg-gray-100" aria-label="Volver a Mis negocios">
+                <span aria-hidden="true">←</span> <span className="hidden min-[390px]:inline">Mis negocios</span>
+              </button>
+              <h1 className="truncate text-center text-sm font-bold text-gray-900 sm:text-base">{form.name || 'Sin nombre'}</h1>
+              <button type="button" onClick={() => biz.id && window.open(`/negocios/${biz.id}`, '_blank', 'noopener,noreferrer')} className="min-h-10 rounded-lg px-2 text-sm font-semibold text-[#38761D] hover:bg-emerald-50">Vista previa</button>
             </div>
+          </header>
 
-          </div>
-
-          {/* NUEVO: Banner de Estado con Sistema Dual */}
+          {accountSecurityPrompt}
 
           {biz && businessState && (
-
-            <div className="mb-6">
-
-              <BusinessStatusBanner
-
-                business={{
-
-                  businessStatus: businessState.businessStatus || 'draft',
-
-                  applicationStatus: businessState.applicationStatus || 'submitted',
-
-                  completionPercent: businessState.completionPercent || 0,
-
-                  missingFields: businessState.missingFields || [],
-
-                  isPublishReady: businessState.isPublishReady || false,
-
-                  adminNotes: businessState.adminNotes || '',
-
-                  rejectionReason: businessState.rejectionReason || '',
-
-                }}
-
-                onPublish={handleRequestPublish}
-
-              />
-
+            <div className="mb-4">
+              <BusinessStatusBanner business={{ businessStatus: businessState.businessStatus || 'draft', applicationStatus: businessState.applicationStatus || 'submitted', completionPercent: businessState.completionPercent || 0, missingFields: businessState.missingFields || [], isPublishReady: businessState.isPublishReady || false, adminNotes: businessState.adminNotes || '', rejectionReason: businessState.rejectionReason || '' }} onPublish={handleRequestPublish} />
             </div>
-
           )}
 
-          
-
-          {/* Loading state mientras se carga el negocio */}
-
-          {!biz && !uiState.msg && (
-
-            <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-
-              <div className="flex items-center gap-3">
-
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-
-                <p className="text-sm text-blue-800">Cargando informacion del negocio...</p>
-
-              </div>
-
+          <nav className="sticky top-[61px] z-20 -mx-1 mb-4 rounded-xl border border-gray-200 bg-white/95 p-1 shadow-sm backdrop-blur" aria-label="Secciones del editor">
+            <div className="grid grid-cols-4 gap-1">
+              {EDITOR_TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`min-w-0 truncate rounded-lg px-1 py-2.5 text-xs font-semibold transition ${isActive ? 'bg-[#38761D] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}>
+                    <span className="sm:hidden">{tab.shortLabel}</span><span className="hidden sm:inline">{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
-
-          )}
-
-          <div className="mb-6 space-y-4">
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
-                <div className="min-w-0">
-
-                  <p className="text-sm font-medium text-gray-900">Administra tu negocio facilmente</p>
-
-                  <p className="mt-1 break-words text-sm text-gray-600">
-
-                    Completa cada seccion para mantener tu perfil actualizado y recibir mas clientes.
-
-                  </p>
-
-                </div>
-
-                <button
-
-                  onClick={() => {
-
-                    if (biz.id) {
-
-                      window.open(`/negocios/${biz.id}`, "_blank");
-
-                    }
-
-                  }}
-
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-200 sm:w-auto"
-
-                >
-
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-
-                  </svg>
-
-                  Vista previa
-
-                </button>
-
-              </div>
-
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-2 shadow-sm">
-
-              <div className="flex gap-2 overflow-x-auto pb-1">
-
-                {EDITOR_TABS.map((tab) => {
-
-                  const isActive = activeTab === tab.id;
-
-                  return (
-
-                    <button
-
-                      key={tab.id}
-
-                      type="button"
-
-                      onClick={() => setActiveTab(tab.id)}
-
-                      className={`inline-flex min-w-max items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition ${
-
-                        isActive
-
-                          ? "bg-[#38761D] text-white shadow-sm"
-
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-
-                      }`}
-
-                    >
-
-                      <span className="sm:hidden">{tab.shortLabel}</span>
-
-                      <span className="hidden sm:inline">{tab.label}</span>
-
-                    </button>
-
-                  );
-
-                })}
-
-              </div>
-
-            </div>
-
-          </div>
+          </nav>
 
           <div className="space-y-6 min-w-0">
 
@@ -1609,7 +1442,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               <div className={`${activeTab === 'info' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
 
-                <h2 className="text-lg font-semibold text-gray-900">Informacion basica</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Información básica</h2>
 
                 <div className="grid md:grid-cols-2 gap-4">
 
@@ -1645,7 +1478,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     <label className="block text-sm font-medium text-gray-700 mb-1">
 
-                      Categoria <span className="text-red-500">*</span>
+                      Categoría <span className="text-red-500">*</span>
 
                     </label>
 
@@ -1697,7 +1530,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                       <label className="block text-sm font-medium text-gray-700">
 
-                        Categoria visible
+                        Categoría visible
 
                         <select
 
@@ -1742,12 +1575,6 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
                         )}
 
                       </div>
-
-                      <p className="text-xs text-gray-500 break-words">
-
-                        Guardamos el slug estable (categoryId) y mantenemos la etiqueta legacy para compatibilidad con datos anteriores.
-
-                      </p>
 
                     </div>
 
@@ -1805,7 +1632,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                   <label className="block text-sm font-medium text-gray-700 mb-1">
 
-                    Descripcion <span className="text-red-500">*</span>
+                    Descripción <span className="text-red-500">*</span>
 
                     <span className="text-gray-500 text-xs ml-2">(Minimo 20 caracteres)</span>
 
@@ -1817,7 +1644,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     rows={3}
 
-                    placeholder="Descripcion breve de tu negocio"
+                    placeholder="Descripción breve de tu negocio"
 
                     value={form.description}
 
@@ -1929,9 +1756,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                 <div className="flex items-center gap-2">
 
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Envio</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Envío</span>
 
-                  <h2 className="text-lg font-semibold text-gray-900">Opciones de envio</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Opciones de envío</h2>
 
                 </div>
 
@@ -1973,9 +1800,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     <div className="flex-1">
 
-                      <span className="font-medium text-gray-900">Ofrezco servicio de envio a domicilio</span>
+                      <span className="font-medium text-gray-900">Ofrezco servicio de envío a domicilio</span>
 
-                      <p className="text-sm text-gray-600 mt-1">Marca esta opcion si entregas productos o servicios</p>
+                      <p className="text-sm text-gray-600 mt-1">Marca esta opción si haces entregas.</p>
 
                     </div>
 
@@ -1993,7 +1820,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                         <label className="block text-sm font-medium text-gray-700">
 
-                          Costo del envio
+                          Costo del envío
 
                         </label>
 
@@ -2075,7 +1902,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                         <label className="block text-sm font-medium text-gray-700">
 
-                          Informacion adicional (opcional)
+                          Información adicional (opcional)
 
                         </label>
 
@@ -2085,7 +1912,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                           rows={3}
 
-                          placeholder="Ej: Envio gratis en compras mayores a $500, Costo $30 dentro de la ciudad, Zona de cobertura: centro y colonias cercanas"
+                          placeholder="Ej: Envío gratis en compras mayores a $500, Costo $30 dentro de la ciudad, Zona de cobertura: centro y colonias cercanas"
 
                           value={form.envioInfo}
 
@@ -2117,19 +1944,19 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     <div className="flex items-start gap-2 text-sm text-emerald-800">
 
-                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Envio</span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Envío</span>
 
                       <div>
 
                         <p className="font-medium">
 
-                          Servicio de envio disponible
+                          Servicio de envío disponible
 
                           {form.envioCost === 'free' && ' - Gratis'}
 
                           {form.envioCost === 'paid' && ' - Con costo'}
 
-                          {form.envioCost === 'varies' && ' - Costo segun ubicacion'}
+                          {form.envioCost === 'varies' && ' - Costo según ubicación'}
 
                         </p>
 
@@ -2155,11 +1982,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                   <div>
 
-                    <h2 className="text-lg font-semibold text-gray-900">Ubicacion</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Ubicación</h2>
 
                     <p className="text-xs text-gray-500 mt-1">
 
-                      Escribe tu direccion o referencia. El mapa es opcional.
+                      Escribe tu dirección o referencia. El mapa es opcional.
 
                     </p>
 
@@ -2177,11 +2004,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                 
 
-                {/* Acciones rapidas de horarios */}
+                {/* Acciones rápidas de horarios */}
 
                 <div className="flex flex-wrap gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
 
-                  <p className="text-xs text-blue-900 font-medium w-full mb-1">Acciones rapidas:</p>
+                  <p className="text-xs text-blue-900 font-medium w-full mb-1">Acciones rápidas:</p>
 
                   <button
 
@@ -2267,15 +2094,15 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                 </div>
 
-                <div className="overflow-x-auto -mx-2 px-2">
+                <div>
 
                   <div className="space-y-3 bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
 
                     {Object.entries(schedule).map(([day, hours]) => (
 
-                      <div key={day} className="flex items-center gap-2 sm:gap-3">
+                      <div key={day} className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-3">
 
-                        <div className="w-20 sm:w-24 flex-shrink-0">
+                        <div>
 
                           <label className="flex items-center gap-1 sm:gap-2 cursor-pointer">
 
@@ -2301,7 +2128,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                             />
 
-                            <span className="text-xs sm:text-sm font-medium capitalize">{day}</span>
+                            <span className="text-xs sm:text-sm font-medium">{DAY_LABELS[day] || day}</span>
 
                           </label>
 
@@ -2371,7 +2198,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                     <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-300">
 
-                      Desmarca los dias que permaneces cerrado.
+                      Desmarca los días que permaneces cerrado.
 
                     </div>
 
@@ -2391,7 +2218,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600">
 
-                        Menu del negocio
+                        Menú del negocio
 
                       </p>
 
@@ -2403,7 +2230,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                       <p className="mt-2 text-sm text-gray-600">
 
-                        Los cambios que hagas aqui se reflejan en el perfil publico del negocio y en el flujo de pedido por WhatsApp.
+                        Los cambios que hagas aquí se reflejan en el perfil público del negocio y en el flujo de pedido por WhatsApp.
 
                       </p>
 
@@ -2419,21 +2246,11 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               <div className={`${activeTab === 'catalogo' ? '' : 'hidden '}bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4`}>
 
-                <h2 className="text-lg font-semibold text-gray-900">Galeria</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Galería</h2>
 
                 <div className="space-y-3">
 
-                  <p className="text-sm text-gray-600">
-
-                    {biz.plan === 'free' ? '📷 Plan Gratuito: hasta 2 fotos en galería' :
-
-                     biz.plan === 'featured' ? 'Plan Destacado: Logo + Banner + hasta 2 fotos' : 
-
-                     biz.plan === 'sponsor' ? 'Plan Patrocinado: Logo + Banner + hasta 10 fotos' : 
-
-                     'Galeria de imagenes'}
-
-                  </p>
+                  <p className="text-sm text-gray-600">Añade hasta 2 fotos de tu negocio.</p>
 
                   <ImageUploader
 
@@ -2467,21 +2284,9 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
                   </span>
 
-                  <span className="text-xs px-2 py-0.5 rounded-full border bg-green-100 text-green-700 border-green-300">
-
-                    Todos los planes
-
-                  </span>
-
                 </div>
 
-                <p className="text-sm text-gray-600">
-
-                  Tu logo aparece en las tarjetas de tu negocio y mejora el reconocimiento de marca. 
-
-                  <span className="font-semibold text-[#38761D]"> No es obligatorio</span>, pero ayuda a que los clientes te identifiquen facilmente.
-
-                </p>
+                <p className="text-sm text-gray-600">Añade un logo si ya tienes uno.</p>
 
                 <LogoUploader
 
@@ -2499,7 +2304,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               {/* Banner/Cover - Solo para planes Featured y Sponsor */}
 
-              {(biz.plan === 'featured' || biz.plan === 'sponsor') && (
+              {MONETIZATION_FEATURE_ENABLED && (biz.plan === 'featured' || biz.plan === 'sponsor') && (
 
                 <>
 
@@ -2603,6 +2408,7 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               )}
 
+              {MONETIZATION_FEATURE_ENABLED && (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 space-y-4" data-payment-section>
 
                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -3057,178 +2863,22 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 space-y-3">
+              )}
 
-                <h3 className="text-base font-semibold text-gray-900">Estado</h3>
-
-                <p className="text-sm text-gray-600">Propietario: {biz.ownerEmail || user?.email || 'Sesion'}</p>
-
-                <p className="text-sm text-gray-600">ID: {biz.id}</p>
-
-                
-
-                {/* Indicador de carga */}
-
-                {uiState.upgradeBusy && (
-
-                  <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-pulse">
-
-                    <div className="flex-shrink-0">
-
-                      <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-
-                      </svg>
-
-                    </div>
-
-                    <div className="flex-1">
-
-                      <p className="text-sm font-medium text-blue-900">Subiendo comprobante...</p>
-
-                      <p className="text-xs text-blue-700 mt-1">Por favor espera, esto puede tomar unos segundos</p>
-
-                    </div>
-
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                <h2 className="text-lg font-semibold text-gray-900">Gestión del negocio</h2>
+                <p className="mt-1 text-sm text-gray-600">Aquí puedes realizar acciones permanentes sobre este negocio.</p>
+                <details className="mt-4 rounded-xl border border-red-200 bg-red-50">
+                  <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-red-900">Zona de peligro</summary>
+                  <div className="border-t border-red-200 p-4">
+                    <p className="text-sm font-semibold text-gray-900">Eliminar negocio</p>
+                    <p className="mt-1 text-xs text-gray-600">Esta acción es permanente y no se puede deshacer.</p>
+                    <button type="button" onClick={() => setShowDeleteModal(true)} className="mt-3 min-h-10 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Eliminar negocio</button>
                   </div>
-
-                )}
-
-                
-
-                {/* Mensajes de estado */}
-
-                {!uiState.upgradeBusy && uiState.msg && (
-
-                  <div className={`p-4 rounded-lg text-sm font-medium transition-all duration-300 animate-[slideDown_0.3s_ease-out] ${
-
-                    uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') || uiState.msg.includes('demasiado grande') || uiState.msg.includes('expirada') || uiState.msg.includes('servidor')
-
-                      ? 'bg-red-50 text-red-800 border-2 border-red-300 shadow-sm'
-
-                      : uiState.msg.includes('Guardado') || uiState.msg.includes('exitosamente') || uiState.msg.includes('Validaremos') || uiState.msg.includes('enviada') || uiState.msg.includes('eliminado correctamente')
-
-                      ? 'bg-green-50 text-green-800 border-2 border-green-300 shadow-sm'
-
-                      : 'bg-blue-50 text-blue-800 border-2 border-blue-300 shadow-sm'
-
-                  }`}>
-
-                    <div className="flex items-start gap-2">
-
-                      <span className="flex-shrink-0 text-lg">
-
-                        {uiState.msg.includes('Error') || uiState.msg.includes('No pudimos') ? 'X' : 
-
-                         uiState.msg.includes('Guardado') || uiState.msg.includes('exitosamente') || uiState.msg.includes('Validaremos') || uiState.msg.includes('enviada') || uiState.msg.includes('eliminado correctamente') ? 'OK' : 'i'}
-
-                      </span>
-
-                      <p className="flex-1">{uiState.msg}</p>
-
-                    </div>
-
-                  </div>
-
-                )}
-
-                
-
-                {/* ⚠ ZONA DE PELIGRO */}
-
-                <div className="mt-8 border-2 border-red-200 rounded-xl bg-red-50 p-6">
-
-                  <div className="flex items-start gap-3 mb-4">
-
-                    <span className="text-2xl">⚠</span>
-
-                    <div>
-
-                      <h3 className="text-lg font-bold text-red-900 mb-1">Zona de Peligro</h3>
-
-                      <p className="text-sm text-red-700">
-
-                        Acciones permanentes que no se pueden deshacer
-
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                  
-
-                  <div className="bg-white rounded-lg p-4 border-2 border-red-200">
-
-                    <div className="flex items-center justify-between mb-2">
-
-                      <div>
-
-                        <p className="text-sm font-semibold text-gray-900">Eliminar negocio</p>
-
-                        <p className="text-xs text-gray-600 mt-1">
-
-                          Esta accion es permanente y eliminar? todos los datos
-
-                        </p>
-
-                      </div>
-
-                      <button
-
-                        onClick={() => setShowDeleteModal(true)}
-
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-semibold"
-
-                      >
-
-                        Eliminar
-
-                      </button>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                
-
-                <div className="flex flex-col gap-2 mt-6">
-
-                  <button
-
-                    onClick={() => signOut(auth)}
-
-                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
-
-                  >
-
-                    Cerrar sesion
-
-                  </button>
-
-                  {(form.plan === 'featured' || form.plan === 'sponsor') && (
-
-                    <button
-
-                      onClick={() => router.push(`/dashboard/${id}/reportes`)}
-
-                      className="px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
-
-                    >
-
-                      Ver reportes
-
-                    </button>
-
-                  )}
-
-                </div>
-
+                </details>
+                {MONETIZATION_FEATURE_ENABLED && (form.plan === 'featured' || form.plan === 'sponsor') ? (
+                  <button type="button" onClick={() => router.push(`/dashboard/${id}/reportes`)} className="mt-4 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100">Ver reportes</button>
+                ) : null}
               </div>
 
             </div>
@@ -3243,48 +2893,15 @@ export default function EditBusiness({ businessId, initialBusiness }: DashboardE
 
       
 
-      {biz && userCanEdit && (
+      {biz && userCanEdit && hasUnsavedChanges && (
 
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 p-4 shadow-md backdrop-blur">
-
-          <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
-            <div className="min-w-0">
-
-              <p className="text-sm font-semibold text-gray-900">Guardar cambios</p>
-
-              <p className="mt-1 break-words text-xs text-gray-500">
-
-                {hasUnsavedChanges
-
-                  ? "Hay cambios pendientes en esta pantalla."
-
-                  : lastSaved
-
-                    ? `Ultimo guardado: ${lastSaved.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}`
-
-                    : "Tus cambios se reflejan al guardar."}
-
-              </p>
-
-            </div>
-
-            <button
-
-              onClick={save}
-
-              disabled={uiState.busy}
-
-              className="inline-flex w-full items-center justify-center rounded-xl bg-[#38761D] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#2d5a15] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[220px]"
-
-            >
-
-              {uiState.busy ? "Guardando..." : hasUnsavedChanges ? "Guardar cambios" : "Guardar y continuar"}
-
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur [padding-bottom:max(0.5rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-gray-900">Cambios sin guardar</p>
+            <button type="button" onClick={save} disabled={uiState.busy} className="min-h-11 min-w-28 rounded-xl bg-[#38761D] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#2d5a15] disabled:cursor-not-allowed disabled:opacity-60">
+              {uiState.busy ? 'Guardando…' : 'Guardar'}
             </button>
-
           </div>
-
         </div>
 
       )}
